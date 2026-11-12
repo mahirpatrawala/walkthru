@@ -40,3 +40,45 @@ export interface EditorStep {
   isDone(ctx: EditorContext): boolean;
 }
 // each editor/steps/<name>.ts exports:  export const step: EditorStep
+
+// ---------------------------------------------------------------- C5 additions (the contract above is unchanged)
+
+export interface Selection { roomId: string | null; openingId: string | null }
+export interface Validation {
+  errors: string[];
+  warnings: string[];
+  /** from the drawing import: proposal.json notes and proposal-extras.json warnings */
+  importNotes: string[];
+}
+
+/**
+ * What the C5 code adds on top of `EditorContext`. The object main.ts passes to `mount` is always an `EditorHost`;
+ * the C5 steps call `asHost(ctx)` to get at the extras. C6 and C7 steps only need `EditorContext`.
+ */
+export interface EditorHost extends EditorContext {
+  setSceneId(id: string): void;
+  /** reads `property.json` for the id (or starts an empty draft), loads its plan image, shows import notes */
+  loadScene(id: string): Promise<{ found: boolean; error?: string }>;
+  selection: Selection;
+  select(sel: Partial<Selection>): void;
+  validation(): Validation;
+  setImportNotes(notes: string[]): void;
+  /** the plan image currently shown as underlay (not the scan image) */
+  underlayImage: HTMLImageElement | null;
+  /** shows `underlayImage` with the draft's `layout.underlay` placement, or clears it; call after changing either */
+  applyUnderlay(): void;
+  /** frame the plan image, else the rooms */
+  fitPlan(): void;
+  showPreview(on: boolean): void;
+  previewVisible(): boolean;
+  goto(stepId: string): void;
+  toast(text: string, kind?: 'info' | 'warn' | 'error'): void;
+}
+
+export function asHost(ctx: EditorContext): EditorHost {
+  const h = ctx as Partial<EditorHost>;
+  if (typeof h.loadScene !== 'function' || typeof h.applyUnderlay !== 'function') {
+    throw new Error('This editor step needs the walkthru editor page (EditorHost).');
+  }
+  return ctx as EditorHost;
+}
