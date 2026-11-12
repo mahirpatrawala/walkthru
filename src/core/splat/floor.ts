@@ -11,7 +11,7 @@ export const PRESET_QUAT: Record<UpPreset, Quat> = {
 const MAX_POINTS = 400_000;
 const BINS = 512;
 const LOW_CONFIDENCE_BELOW = 3;
-const MAX_TILT_DEG = 15;
+const MAX_TILT_DEG = 30; // integrator: real WhatsApp scans come out ~21° tilted; was 15
 
 /** Row-major 3x3 from a unit quaternion [x, y, z, w]. */
 export function matFromQuat(q: Quat): number[] {
@@ -224,9 +224,9 @@ function searchTilt(all: Pts, bw: number, maxDeg: number): { a: number; b: numbe
  * - `confidence` is read from the histogram of the aligned frame (a tilted floor smears the plain one).
  * - The ceiling is searched in a second histogram of the final levelled points, with the floor's weight read from that same
  *   histogram; `ceilingRaw` is the weighted centre of the peak, not just its first bin.
- * - `opts.maxTiltDeg` (not in SPEC, default 15) is the tilt above which the plane is refused. The editor raises it when the broker
+ * - `opts.maxTiltDeg` (not in SPEC, default 30) is the tilt above which the plane is refused. The editor raises it when the broker
  *   chooses "use the detected floor anyway": real COLMAP output is levelled to the first camera, which can be pitched 20 degrees.
- * - When the tilt is over `maxTiltDeg` (15 by default): `rotation` is the preset alone, `floorOffsetRaw` the un-tilted peak height, `tiltDeg` the
+ * - When the tilt is over `maxTiltDeg` (30 by default): `rotation` is the preset alone, `floorOffsetRaw` the un-tilted peak height, `tiltDeg` the
  *   over-15 angle that was found, `ceilingRaw` null, and `lowConfidence` true.
  */
 export function levelSplat(raw: RawCloud, preset: UpPreset, opts?: { minOpacity?: number; maxTiltDeg?: number }): LevelResult {

@@ -127,7 +127,7 @@ describe('levelSplat', { timeout: 60_000 }, () => {
       positions[i * 3] = r.x; positions[i * 3 + 1] = r.y; positions[i * 3 + 2] = r.z;
     }
     const tilted: RawCloud = { ...cloud, positions };
-    const refused = levelSplat(tilted, 'flip-x');
+    const refused = levelSplat(tilted, 'flip-x', { maxTiltDeg: 15 }); // explicit old guard; default is now 30
     expect(refused.lowConfidence).toBe(true);
     expect(refused.tiltDeg).toBeGreaterThan(15);
     expect(refused.ceilingRaw).toBeNull();

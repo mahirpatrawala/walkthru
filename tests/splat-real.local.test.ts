@@ -68,6 +68,6 @@ describe.skipIf(!have)('real Brush splat (video-sample)', { timeout: 300_000 }, 
     expect(cloud.count).toBe(188317);
     expect(Number.isFinite(def.floorOffsetRaw)).toBe(true);
     // the default guard refuses a plane tilted past 15 degrees; the raised guard accepts it
-    if (def.tiltDeg > 15) { expect(def.lowConfidence).toBe(true); expect(raised.rotation).not.toEqual(def.rotation); }
+    if (def.tiltDeg > 30) { expect(def.lowConfidence).toBe(true); } else { expect(def.lowConfidence).toBe(false); }
   });
 });
