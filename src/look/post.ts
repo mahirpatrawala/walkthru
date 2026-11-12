@@ -7,6 +7,8 @@ export interface PostChain {
   render(dt: number): void;
   setExposure(e: number): void;
   setBloom(on: boolean): void;
+  /** false = linear (True colours: nothing is rolled off) */
+  setToneMapping(on: boolean): void;
   setAO(on: boolean): void;
   dispose(): void;
 }
@@ -53,6 +55,7 @@ export async function createPostChain(viewer: Viewer, init: { exposure: number; 
     render: (dt) => composer.render(dt),
     setExposure: (e) => { exposure.exposure = e; },
     setBloom: (on) => { bloom.intensity = on ? 0.35 : 0; },
+    setToneMapping: (on) => { tone.mode = on ? pp.ToneMappingMode.NEUTRAL : pp.ToneMappingMode.LINEAR; },
     setAO: (on) => { ao.enabled = on; },
     dispose() { off(); composer.dispose(); },
   };

@@ -10,7 +10,7 @@ export interface TierConfig {
   /** sun shadow: none, one static 1024 map re-rendered on change, or a 2048 soft map every frame */
   shadow: 'none' | 'static' | 'live';
   shadowMapSize: number;
-  /** hdri used: a small JPEG backdrop only, the 1k .hdr, or the 2k .hdr */
+  /** window view: the 2048 px picture (low), the same picture also lighting the room (medium), the 4096 px one (high) */
   hdri: 'backdrop' | '1k' | '2k';
   /** the HDRI also lights the room (PMREM environment) */
   environment: boolean;
@@ -37,15 +37,15 @@ export interface TierConfig {
 export const TIERS: Record<Tier, TierConfig> = {
   low: {
     tier: 'low', fpsTarget: 30, pixelRatioCap: 1.0, shadow: 'none', shadowMapSize: 0, hdri: 'backdrop', environment: false,
-    reflection: 'none', fullTextures: false, anisotropy: 4, bloom: false, post: false, hemiIntensity: 0.9, envIntensity: 0, groundColour: '#FFF1DE', skyScale: 0.8, groundScale: 2.0, sunScale: 0.15,
+    reflection: 'none', fullTextures: false, anisotropy: 4, bloom: false, post: false, hemiIntensity: 1.0, envIntensity: 0, groundColour: '#F4F0EA', skyScale: 0.74, groundScale: 2.4, sunScale: 0.1,
   },
   medium: {
     tier: 'medium', fpsTarget: 50, pixelRatioCap: 1.5, shadow: 'static', shadowMapSize: 1024, hdri: '1k', environment: true,
-    reflection: 'cube', fullTextures: true, anisotropy: 4, bloom: false, post: false, hemiIntensity: 0.9, envIntensity: 0.28, groundColour: '#8A8378', skyScale: 1, groundScale: 1, sunScale: 1,
+    reflection: 'cube', fullTextures: true, anisotropy: 4, bloom: false, post: false, hemiIntensity: 1.25, envIntensity: 0.12, groundColour: '#D2CCC2', skyScale: 1, groundScale: 2.0, sunScale: 1,
   },
   high: {
     tier: 'high', fpsTarget: 55, pixelRatioCap: 2.0, shadow: 'live', shadowMapSize: 2048, hdri: '2k', environment: true,
-    reflection: 'planar', fullTextures: true, anisotropy: 8, bloom: true, post: true, hemiIntensity: 0.9, envIntensity: 0.28, groundColour: '#8A8378', skyScale: 1, groundScale: 1, sunScale: 1,
+    reflection: 'planar', fullTextures: true, anisotropy: 8, bloom: true, post: true, hemiIntensity: 1.25, envIntensity: 0.12, groundColour: '#D2CCC2', skyScale: 1, groundScale: 2.0, sunScale: 1,
   },
 };
 

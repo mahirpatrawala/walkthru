@@ -99,14 +99,15 @@ export async function fetchLookFile(sceneId: string): Promise<LookFile | null> {
 }
 
 const OLD_BACKGROUND = '#EEF0F3';
+/** daylight white for the fill light: D65 to D55, a touch warm so shade reads white, not blue */
+const SKY_DAYLIGHT = new THREE.Color('#F6F3EE');
 const SKY_WARM = new THREE.Color('#FFD9B0');
-const SKY_COOL = new THREE.Color('#F3EADB');
 /** SPEC 16.5: hemisphere "intensity 1.0" in the spec's units. three's lights are scaled by pi, so 1.0 shows a surface at its own colour. */
 const TRUE_COLOUR_HEMI = Math.PI;
-const EXPOSURE_WARM = 1.15;
+const EXPOSURE_DEFAULT = 1.3;
 const EXPOSURE_TRUE = 1.0;
 /** the sun's output in three units per unit of sunIntensity() */
-const SUN_GAIN = 3.6;
+const SUN_GAIN = 4.4;
 
 export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: LookFile | null, opts: { tier?: Tier; storage?: Storage | null; hasSplat?: boolean; /** false keeps the flat background colour (the editor's orbit preview) */ backdrop?: boolean } = {}): Promise<Look> {
   const { renderer, scene, camera } = viewer;
@@ -182,8 +183,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   }
 
   function skyColour(): THREE.Color {
-    const k = Math.min(1, Math.max(0, sun.elevationDeg / 45));
-    return SKY_WARM.clone().lerp(SKY_COOL, k);
+    return SKY_DAYLIGHT.clone().lerp(SKY_WARM, sun.warmth);
   }
 
   function shadowsOn(): boolean {
@@ -223,10 +223,13 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       sunLight.castShadow = shadowsOn();
       fitShadow();
     }
-    const exposure = trueColours ? EXPOSURE_TRUE : EXPOSURE_WARM;
-    renderer.toneMapping = post ? THREE.NoToneMapping : THREE.NeutralToneMapping;
+    const exposure = trueColours ? EXPOSURE_TRUE : EXPOSURE_DEFAULT;
+    // "True colours" is no tone mapping at all: nothing in it is brighter than its own colour, so surfaces show it exactly
+    renderer.toneMapping = post || trueColours ? THREE.NoToneMapping : THREE.NeutralToneMapping;
     renderer.toneMappingExposure = exposure;
     post?.setExposure(exposure);
+    post?.setToneMapping(!trueColours);
+    sky.setExposure(exposure);
     sky.setSunAzimuth(sun.planAzimuthDeg);
     needsShadowRefresh();
   }
@@ -292,7 +295,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     if (wantPost) {
       if (post) viewer.setRenderOverride(renderFrame);
       else if (!postLoading) {
-        postLoading = createPostChain(viewer, { exposure: trueColours ? EXPOSURE_TRUE : EXPOSURE_WARM, bloom: cfg.bloom })
+        postLoading = createPostChain(viewer, { exposure: trueColours ? EXPOSURE_TRUE : EXPOSURE_DEFAULT, bloom: cfg.bloom })
           .then((p) => {
             if (disposed || !TIERS[tier].post) { p.dispose(); return; }
             post = p;
@@ -310,7 +313,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     const usePost = !!post && wantPost;
     if (usePost || wantReflection === 'planar') viewer.setRenderOverride(renderFrame);
     else viewer.setRenderOverride(null);
-    renderer.toneMapping = scanVisible ? THREE.NoToneMapping : usePost ? THREE.NoToneMapping : THREE.NeutralToneMapping;
+    renderer.toneMapping = scanVisible || usePost || trueColours ? THREE.NoToneMapping : THREE.NeutralToneMapping;
     reflections.setMode(wantReflection);
   }
 

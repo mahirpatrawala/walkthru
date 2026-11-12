@@ -6,7 +6,7 @@ import { buildShell } from '../src/engine/shell';
 import { aoAt, buildAoField } from '../src/look/floor-ao';
 import { FpsWatch, FrameTimer, TIERS, guessTier, lowerTier, parseTier, stepDown, tierFromQuery } from '../src/look/quality';
 import { chooseBackdrop, backdropPath } from '../src/look/sky';
-import { findSunOpening, kelvinToLinearRgb, sunElevationDeg, sunKelvin, sunState } from '../src/look/sun';
+import { findSunOpening, kelvinToLinearRgb, sunElevationDeg, sunKelvin, sunState, sunWarmth } from '../src/look/sun';
 import { parseLookFile } from '../src/look/types';
 
 const layout = buildTruthProperty('empty').layout;
@@ -178,17 +178,29 @@ describe('quality (SPEC 16.8 check 7)', () => {
 });
 
 describe('sky and look.json', () => {
-  it('floor 5 and up is a rooftop (night from 16:00), below 5 the pure sky, True colours always the sky', () => {
-    expect(chooseBackdrop(null, 16.5, false)).toBe('rooftop_night');
+  it('floor 5 and up is the city by day (dusk from 17:30), below 5 the pure sky, True colours always the sky', () => {
+    expect(chooseBackdrop(null, 16.5, false)).toBe('rooftop_day');
     expect(chooseBackdrop(null, 12, false)).toBe('rooftop_day');
+    expect(chooseBackdrop(null, 17.5, false)).toBe('rooftop_night');
     expect(chooseBackdrop({ floorNumber: 2 }, 12, false)).toBe('sky');
     expect(chooseBackdrop({ floorNumber: 9 }, 12, true)).toBe('sky');
-    expect(chooseBackdrop({ backdrop: 'rooftop_day', floorNumber: 2 }, 17, false)).toBe('rooftop_day');
+    expect(chooseBackdrop({ backdrop: 'rooftop_night', floorNumber: 2 }, 11, false)).toBe('rooftop_night');
   });
-  it('the low tier loads a small jpg, the others the 1k or 2k hdr', () => {
-    expect(backdropPath('rooftop_day', 'backdrop')).toBe('hdri/rooftop_day_bg.jpg');
-    expect(backdropPath('sky', '1k')).toBe('hdri/kloofendal_48d_partly_cloudy_puresky_1k.hdr');
-    expect(backdropPath('rooftop_night', '2k')).toBe('hdri/rooftop_night_2k.hdr');
+  it('the window view is a jpg: 2048 wide on low and medium, 4096 on high', () => {
+    expect(backdropPath('rooftop_day', 'backdrop')).toBe('hdri/view_day_bg.jpg');
+    expect(backdropPath('sky', '1k')).toBe('hdri/view_sky_bg.jpg');
+    expect(backdropPath('rooftop_night', '2k')).toBe('hdri/view_dusk_bg4k.jpg');
+  });
+  it('the sun is daylight white around midday and only gently warm at 16:30', () => {
+    expect(sunWarmth(12.5)).toBeCloseTo(0, 6);
+    expect(sunWarmth(16.5)).toBeGreaterThan(0.1);
+    expect(sunWarmth(16.5)).toBeLessThan(0.25);
+    expect(sunWarmth(19)).toBeGreaterThan(sunWarmth(16.5));
+    const noon = sunState(layout, null, 12.5).colour;
+    expect(noon[0]).toBeCloseTo(1, 6); expect(noon[1]).toBeCloseTo(1, 6); expect(noon[2]).toBeCloseTo(1, 6);
+    const aft = sunState(layout, null, 16.5).colour;
+    expect(aft[0]).toBeCloseTo(1, 6);
+    expect(aft[2]).toBeGreaterThan(0.7); // a touch of warmth, nowhere near the 2,200 K orange
   });
   it('look.json is read leniently', () => {
     expect(parseLookFile(null)).toBeNull();

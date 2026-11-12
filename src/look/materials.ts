@@ -218,7 +218,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
   const loaded = new Set<THREE.Texture>();
   let floorAoTex: THREE.DataTexture | null = null;
   let ceilAoTex: THREE.DataTexture | null = null;
-  let paneMat: THREE.MeshStandardMaterial | null = null;
+  let paneMat: THREE.MeshBasicMaterial | null = null;
   let trueColours = false;
   let cfg: TierConfig | null = null;
 
@@ -290,9 +290,8 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
     },
     pane() {
       if (!paneMat) {
-        paneMat = new THREE.MeshStandardMaterial({
-          color: '#ffffff', transparent: true, opacity: 0.12, roughness: 0.05, metalness: 0, depthWrite: false, side: THREE.DoubleSide,
-        });
+        // an unlit veil: lit glass reflects the environment (and the sun) as a bright smear that hides the view
+        paneMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.06, depthWrite: false, side: THREE.DoubleSide });
         paneMat.userData.shared = true;
         paneMat.visible = shared.plain.value < 0.5;
       }
@@ -334,7 +333,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         // colour truth beats gloss: "True colours" shows no reflections
         r.u.uLkReflOn.value = r.kind === 'floor' && !r.balcony && !o.trueColours ? 1 : 0;
       }
-      shared.reflStrength.value = c.reflection === 'cube' ? 2.4 : 2.0;
+      shared.reflStrength.value = c.reflection === 'cube' ? 2.4 : 1.25;
       api.setPlain(shared.plain.value > 0.5);
     },
     async loadTextures(loader, c) {

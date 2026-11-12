@@ -41,10 +41,21 @@ export function kelvinToLinearRgb(kelvin: number): [number, number, number] {
   return [c[0] / m, c[1] / m, c[2] / m];
 }
 
+/**
+ * How far the sun's colour leaves daylight white (about D65): 0 around noon, gently up in the late afternoon (0.17 at 16:30),
+ * 0.4 at 18:00 and 0.6 at 19:00, and the same in the early morning. Daylight first, warmth as an accent.
+ */
+export function sunWarmth(hour: number): number {
+  const f = Math.max(0, 1 - (sunKelvin(hour) - 2200) / 3400); // 0 at 12:30, 1 at the ends of the day
+  return 0.6 * Math.pow(f, 1.5);
+}
+
 /** `3.0 * sin(elevation)`, minimum 0.4, in three's light units. */
 export function sunIntensity(hour: number): number {
   return Math.max(0.4, 3.0 * Math.sin(sunElevationDeg(hour) * RAD));
 }
+
+const mix3 = (a: [number, number, number], b: [number, number, number], t: number): [number, number, number] => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
 export interface SunOpening {
   openingId: string; roomId: string; edge: number;
@@ -110,7 +121,8 @@ export interface SunState {
   /** compass azimuth (0 = north, clockwise) when the broker set north, else null */
   bearingDeg: number | null;
   kelvin: number;
-  /** linear RGB, largest channel 1 */ colour: [number, number, number];
+  warmth: number;
+  /** linear RGB, largest channel 1: white at midday, the black-body colour of `kelvin` blended in by `warmth` */ colour: [number, number, number];
   intensity: number;
   known: boolean;
   /** the fixed label of SPEC 16.2 rule 4 */ label: string;
@@ -138,11 +150,12 @@ export function sunState(layout: Layout, look: Pick<LookFile, 'northDeg'> | null
   const el = elevationDeg * RAD;
   const toSun: [number, number, number] = [hx * Math.cos(el), Math.sin(el), hz * Math.cos(el)];
   const kelvin = sunKelvin(hour);
+  const warmth = sunWarmth(hour);
   return {
     hour, elevationDeg, toSun,
     lightDirXZ: { x: -hx, z: -hz },
     planAzimuthDeg: (Math.atan2(hz, hx) * 180) / Math.PI,
-    bearingDeg, kelvin, colour: kelvinToLinearRgb(kelvin), intensity: sunIntensity(hour),
+    bearingDeg, kelvin, warmth, colour: mix3([1, 1, 1], kelvinToLinearRgb(kelvin), warmth), intensity: sunIntensity(hour),
     known: bearingDeg !== null,
     label: bearingDeg !== null ? LABEL_SUN_KNOWN : LABEL_SUN_UNKNOWN,
     opening,

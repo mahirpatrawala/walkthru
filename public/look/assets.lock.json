@@ -190,24 +190,39 @@
     }
   },
   "derived": {
-    "hdri/rooftop_night_bg.jpg": {
-      "size": 146324,
-      "sha256": "f8df585e136637f8808c47fb4b64788993ead5199c518bb6e5ed857ed1303d33",
+    "hdri/view_day_bg.jpg": {
+      "size": 314824,
+      "sha256": "0a1214898692a42f0f38bbb9fc19e385b993c6632ebc2c48d122c0cfcfaa1094",
       "from": "scripts/derive-look-assets.ts"
     },
-    "hdri/rooftop_day_bg.jpg": {
-      "size": 130104,
-      "sha256": "e658ca59682476c8e12f9ac3fd66d90f3eead31ffd5bc696b3db8cd183c65500",
+    "hdri/view_day_bg4k.jpg": {
+      "size": 663490,
+      "sha256": "9ba58826f42b21bd7868fe98853e51afd10cbdc14add66a5ca77f42a93b38c6d",
       "from": "scripts/derive-look-assets.ts"
     },
-    "hdri/kloofendal_48d_partly_cloudy_puresky_bg.jpg": {
-      "size": 103399,
-      "sha256": "9ce1681bf35df62b07fbdc98c5d94a9742ac1c69cbdfe61aca19d9741c34d676",
+    "hdri/view_dusk_bg.jpg": {
+      "size": 269683,
+      "sha256": "ccbb4f5ddb720943f55b49c38f7650419184836c94732edf9c54fce2bf62c03d",
+      "from": "scripts/derive-look-assets.ts"
+    },
+    "hdri/view_dusk_bg4k.jpg": {
+      "size": 578431,
+      "sha256": "9247e174c84dbddf6a90e536734d474004a4d1a1f17a28a494151a8071c30b1b",
+      "from": "scripts/derive-look-assets.ts"
+    },
+    "hdri/view_sky_bg.jpg": {
+      "size": 240578,
+      "sha256": "0b11e35ea8d23f37047be056aa3976c507c6f4588754a822e82a68c7b3842cb0",
+      "from": "scripts/derive-look-assets.ts"
+    },
+    "hdri/view_sky_bg4k.jpg": {
+      "size": 510702,
+      "sha256": "e99efe6191d1c349cc202a573f85b66604163295f8ef9dedb5dfe862e460e765",
       "from": "scripts/derive-look-assets.ts"
     },
     "hdri/meta.json": {
-      "size": 360,
-      "sha256": "6b65ea8b8b1d30f0724f04b24eded26fb2d1cacb24e34969682dee9617b35d18",
+      "size": 303,
+      "sha256": "0cb3fc270c234c251d21354b3fc710819b02f870c7a6903764084d94810f82ba",
       "from": "scripts/derive-look-assets.ts"
     },
     "textureMeans": {
