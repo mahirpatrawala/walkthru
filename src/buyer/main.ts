@@ -9,6 +9,9 @@ import { buildShell } from '../engine/shell';
 import { createViewer } from '../engine/viewer';
 import type { Viewer, SplatHandle } from '../engine/viewer';
 import { Character } from '../engine/character';
+import { createLook, fetchLookFile } from '../look/look';
+import type { Look } from '../look/look';
+import { mountLookPanel } from '../look/look-panel';
 import { createInput } from '../engine/controls';
 import { FollowCamera } from '../engine/camera';
 import { stepLocomotion } from '../engine/locomotion';
@@ -142,13 +145,30 @@ async function boot(): Promise<void> {
     loading.showError('Could not start 3D.', `${describe(err)}\nTry another browser, or turn on hardware acceleration.`);
     return;
   }
-  const shell = buildShell(layout);
+  // the look (C11a): lights, tone mapping, materials, backdrop. It never blocks boot: assets arrive after first paint.
+  let look: Look | null = null;
+  try {
+    look = await createLook(viewer, layout, await fetchLookFile(sceneId), { hasSplat: !!property.splat });
+  } catch (err) {
+    console.warn('[walkthru] the look could not start, using the plain scene:', err);
+  }
+  const shell = buildShell(layout, look ? { materials: look.materials() } : undefined);
   viewer.scene.add(shell);
   const furnitureRoot = new THREE.Group();
   furnitureRoot.name = 'furniture';
   viewer.scene.add(furnitureRoot);
   const baseGrid = rasterizeLayout(layout);
   const store = createFurnitureStore({ sceneId, baseGrid, initial: property.furniture, parent: furnitureRoot, storage });
+  if (look) {
+    const lk = look;
+    lk.attach({ shell, furnitureRoot });
+    lk.refresh(store.grid());
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    store.onChange(() => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => { refreshTimer = null; lk.refresh(store.grid()); }, 80);
+    });
+  }
   loading.setProgress(0.3, 'Loading the walker…');
 
   // ---- character
@@ -161,6 +181,7 @@ async function boot(): Promise<void> {
   }
   viewer.scene.add(character.object);
   if (property.splat) character.setShadowVisible(false); // SPEC 12 risk 2: no alpha-blended shadow against a splat
+  look?.attach({ character: { object: character.object, setBlobVisible: (v) => character.setShadowVisible(v && !property.splat) } });
   loading.setProgress(0.85, 'Almost there…');
 
   // ---- HUD, input, camera, overlays, modes, context
@@ -182,6 +203,7 @@ async function boot(): Promise<void> {
     scan: () => setScan(!scanVisible),
   });
   hud.setVisible(false);
+  if (look) mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t) });
 
   const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes });
   const interactions = createInteractions(ctx);
@@ -267,6 +289,7 @@ async function boot(): Promise<void> {
     scanVisible = v;
     scanHandle.setVisible(v);
     shell.visible = !(property.splat.mode === 'replace' && v);
+    look?.setScanVisible(v); // rule 5 of SPEC 16.2: with a scan shown the look steps back
     hud.setScanButton(v ? 'on' : 'off');
   }
   async function loadScan(): Promise<void> {
@@ -424,6 +447,20 @@ async function boot(): Promise<void> {
     },
     store,
     grid: () => store.grid(),
+    /** SPEC 16.8 hooks. `ready` is the current tier's asset promise (a getter, so it follows tier changes). */
+    look: look && {
+      instance: look,
+      stats: () => look.stats(),
+      setTier: (t: 'low' | 'medium' | 'high') => look.setTier(t),
+      setHour: (h: number) => look.setHour(h),
+      setTrueColours: (on: boolean) => look.setTrueColours(on),
+      /** painterly mode is C11c */
+      paint: (_on: boolean) => false,
+      sample: (x0: number, y0: number, x1: number, y1: number) => look.debug.sample(x0, y0, x1, y1),
+      sampleStd: (x0: number, y0: number, x1: number, y1: number) => look.debug.sampleStd(x0, y0, x1, y1),
+      project: (x: number, y: number, z: number) => look.debug.project(x, y, z),
+      get ready(): Promise<void> { return look.ready; },
+    },
   };
   (window as unknown as { __walkthru: typeof api }).__walkthru = api;
 

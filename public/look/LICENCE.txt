@@ -1,0 +1,5 @@
+Everything under public/look/ comes from Poly Haven (https://polyhaven.com) and is CC0 1.0 (public domain).
+https://polyhaven.com/license
+
+Files named hdri/*_bg.jpg are derived from those HDRIs by scripts/derive-look-assets.ts (also CC0).
+assets.lock.json lists every file with its size, MD5 (checked against the Poly Haven API) and SHA-256.

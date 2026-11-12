@@ -1,0 +1,37 @@
+/* Owned by C11a. The look sheet (sun button's panel). Same tokens as buyer.css. */
+.wt-look-sheet {
+  position: absolute; z-index: 12; top: calc(12px + var(--wt-safe-t)); right: calc(72px + var(--wt-safe-r));
+  width: min(340px, calc(100vw - 96px - var(--wt-safe-l) - var(--wt-safe-r))); max-height: calc(100vh - 24px - var(--wt-safe-t) - var(--wt-safe-b)); overflow-y: auto;
+  box-sizing: border-box; padding: 14px 16px 16px; background: var(--wt-card); border-radius: 12px; box-shadow: var(--wt-shadow);
+  pointer-events: auto; font-size: 14px; line-height: 1.35;
+}
+.wt-look-sheet[hidden] { display: none; }
+.wt-look-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.wt-look-head h2 { margin: 0; font-size: 16px; }
+.wt-look-x { width: 36px; height: 36px; border: 0; border-radius: 50%; background: #eef0f3; font-size: 20px; line-height: 1; cursor: pointer; }
+.wt-look-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 10px; }
+.wt-look-k { font-weight: 600; }
+.wt-look-v { color: var(--wt-muted); font-size: 13px; }
+.wt-look-slider { width: 100%; min-height: 32px; margin: 6px 0 0; accent-color: var(--wt-accent); }
+.wt-look-note { margin: 2px 0 0; color: var(--wt-muted); font-size: 12px; }
+.wt-look-switch { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; cursor: pointer; }
+.wt-look-switch input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--wt-accent); flex: none; }
+.wt-look-switch small { display: block; color: var(--wt-muted); font-size: 12px; }
+.wt-look-seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 6px; }
+.wt-look-seg-b {
+  min-height: 40px; border: 1px solid #d5d9e0; border-radius: 10px; background: #fff; color: var(--wt-ink); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.wt-look-seg-b.is-on { background: var(--wt-accent); border-color: var(--wt-accent); color: #fff; }
+.wt-look-paint {
+  width: 100%; min-height: 44px; margin-top: 12px; border: 1px solid var(--wt-accent); border-radius: 10px; background: #fff; color: var(--wt-accent);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.wt-look-swatches { display: grid; gap: 8px; margin-top: 14px; }
+.wt-look-swatch { display: flex; align-items: center; gap: 10px; }
+.wt-look-swatch small { display: block; color: var(--wt-muted); font-size: 12px; }
+.wt-look-chip { width: 28px; height: 28px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.15); flex: none; }
+.wt-look-labels { margin-top: 14px; padding-top: 10px; border-top: 1px solid #e5e8ee; }
+.wt-look-labels p { margin: 0 0 4px; color: var(--wt-muted); font-size: 12px; }
+@media (max-width: 520px) {
+  .wt-look-sheet { top: auto; right: 12px; left: 12px; width: auto; bottom: calc(12px + var(--wt-safe-b) + var(--wt-slot-h, 0px)); max-height: 60vh; }
+}

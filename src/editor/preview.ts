@@ -8,6 +8,9 @@ import { createViewer } from '../engine/viewer';
 import type { Viewer } from '../engine/viewer';
 import { buildShell, disposeShell } from '../engine/shell';
 import { buildFurnitureMesh } from '../engine/furniture';
+import { rasterizeLayout } from '../core/layout-raster';
+import { createLook } from '../look/look';
+import type { Look } from '../look/look';
 
 export interface Preview {
   /** creates the viewer on first use */
@@ -34,10 +37,37 @@ export function createPreview(container: HTMLElement, getProperty: () => Propert
   let framed = false;
   let lastError: string | null = null;
   let furnitureCount = 0;
+  // the look (C11a) at the low tier: sun, tone mapping, wall/floor materials. It steps back whenever a scan is shown.
+  let look: Look | null = null;
+  let lookRequested = false;
+
+  const startLook = (v: Viewer): void => {
+    if (lookRequested) return;
+    lookRequested = true;
+    const origLoad = v.loadSplat.bind(v);
+    v.loadSplat = async (url, transform, onProgress) => {
+      const handle = await origLoad(url, transform, onProgress);
+      look?.setScanVisible(true);
+      const origVisible = handle.setVisible.bind(handle);
+      const origDispose = handle.dispose.bind(handle);
+      handle.setVisible = (on: boolean) => { origVisible(on); look?.setScanVisible(on); };
+      handle.dispose = () => { origDispose(); look?.setScanVisible(false); };
+      return handle;
+    };
+    void createLook(v, getProperty().layout, null, { tier: 'low', backdrop: false })
+      .then((l) => {
+        if (viewer !== v) { l.dispose(); return; }
+        look = l;
+        markDirtyInternal();
+      })
+      .catch((err) => console.warn('[walkthru] preview look not started:', err));
+  };
+  const markDirtyInternal = (): void => { dirty = true; if (visible && viewer && !raf) raf = requestAnimationFrame(rebuild); };
 
   const ensure = (): Viewer => {
     if (viewer) return viewer;
     viewer = createViewer(container, { hasSplat: false });
+    startLook(viewer);
     controls = new OrbitControls(viewer.camera, viewer.canvas);
     controls.enableDamping = true;
     controls.dampingFactor = 0.12;
@@ -75,7 +105,11 @@ export function createPreview(container: HTMLElement, getProperty: () => Propert
     try {
       const group = new THREE.Group();
       group.name = 'editor-preview';
-      shell = buildShell(prop.layout);
+      shell = buildShell(prop.layout, look ? { materials: look.materials() } : undefined);
+      if (look) {
+        look.attach({ shell });
+        try { look.setLayout(prop.layout, rasterizeLayout(prop.layout)); } catch (err) { console.warn('[walkthru] preview look layout:', err); }
+      }
       // seen from above: take the ceilings off
       for (const ch of shell.children) if (ch.name.startsWith('ceiling:')) ch.visible = false;
       group.add(shell);
@@ -142,6 +176,9 @@ export function createPreview(container: HTMLElement, getProperty: () => Propert
       if (raf) cancelAnimationFrame(raf);
       controls?.dispose();
       disposeContent();
+      look?.dispose();
+      look = null;
+      lookRequested = false;
       viewer?.dispose();
       viewer = null;
     },

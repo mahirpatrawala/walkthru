@@ -6,6 +6,7 @@
   "outputDirectory": "dist",
   "headers": [
     { "source": "/scenes/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=300" }] },
-    { "source": "/characters/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }] }
+    { "source": "/characters/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }] },
+    { "source": "/look/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }] }
   ]
 }

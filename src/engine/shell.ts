@@ -1,6 +1,6 @@
 // Owned by C1. SPEC 5: the clean shell (floors, walls, ceilings, frames, panes). three only; runs under Node.
 import * as THREE from 'three';
-import type { EdgeFrame, Layout, RoomTag, Vec2 } from '../types';
+import type { EdgeFrame, Finishes, Layout, RoomTag, Vec2 } from '../types';
 import { computeEdgeFrames, computeTunnels, computeWallPieces, pieceRect } from '../core/layout-geom';
 
 // ---------------------------------------------------------------- small geometry builder
@@ -65,7 +65,19 @@ function localRect(f: EdgeFrame, u0: number, u1: number, o0: number, o1: number)
 
 const hasDom = (): boolean => typeof document !== 'undefined';
 
-function makeTileTexture(floorColor: string, groutColor: string): THREE.Texture | null {
+/** Materials the look supplies (SPEC 16.5). Shared materials carry `userData.shared = true` and are not disposed with the shell. */
+export interface ShellMaterialSet {
+  floor(spec: { color: string; tile: Finishes['tile']; groutColor: string; balcony: boolean }): THREE.Material;
+  wall(color: string): THREE.Material;
+  ceiling(color: string): THREE.Material;
+  frame(color: string): THREE.Material;
+  railing(color: string): THREE.Material;
+  pane(): THREE.Material;
+}
+export interface ShellOptions { materials?: ShellMaterialSet }
+
+/** The 256 px tile texture: floor colour with a 2 px grout border. Null without a DOM (Node). */
+export function makeTileTexture(floorColor: string, groutColor: string): THREE.Texture | null {
   if (!hasDom()) return null;
   const c = document.createElement('canvas');
   c.width = 256;
@@ -112,7 +124,7 @@ function addQuadTri(b: Buf, p: Vec2[], y: number, n: V3, uvOf: (p: Vec2) => [num
   }
 }
 
-export function buildShell(layout: Layout): THREE.Group {
+export function buildShell(layout: Layout, opts?: ShellOptions): THREE.Group {
   const group = new THREE.Group();
   group.name = 'shell';
   const fin = layout.finishes;
@@ -124,10 +136,17 @@ export function buildShell(layout: Layout): THREE.Group {
 
   const uvOf = (p: Vec2): [number, number] => (fin.tile ? [p.x / fin.tile.wM, p.z / fin.tile.lM] : [p.x, p.z]);
   const textures = new Map<string, THREE.Texture | null>();
-  const floorMats = new Map<string, THREE.MeshStandardMaterial>();
-  const floorMat = (room: RoomTag): THREE.MeshStandardMaterial => {
+  const floorMats = new Map<string, THREE.Material>();
+  const set = opts?.materials;
+  const floorMat = (room: RoomTag): THREE.Material => {
     const color = room.floorColor ?? fin.floorColor;
-    let m = floorMats.get(color);
+    if (set) {
+      const key = `${color}|${room.roomType === 'balcony'}`;
+      let sm = floorMats.get(key);
+      if (!sm) { sm = set.floor({ color, tile: fin.tile, groutColor: fin.groutColor, balcony: room.roomType === 'balcony' }); floorMats.set(key, sm); }
+      return sm;
+    }
+    let m = floorMats.get(color) as THREE.MeshStandardMaterial | undefined;
     if (!m) {
       m = new THREE.MeshStandardMaterial({ color, roughness: 0.35 });
       if (fin.tile) {
@@ -148,13 +167,15 @@ export function buildShell(layout: Layout): THREE.Group {
     const floor = new THREE.Mesh(toGeometry(polygonFace(room, 0, true, uvOf)), floorMat(room));
     floor.name = `floor:${room.id}`;
     floor.userData.roomId = room.id;
+    floor.receiveShadow = true;
     group.add(floor);
 
     if (room.roomType !== 'balcony') {
       const ceil = new THREE.Mesh(
         toGeometry(polygonFace(room, layout.wallHeightM, false, uvOf)),
-        new THREE.MeshStandardMaterial({ color: fin.ceilingColor, roughness: 0.95 }),
+        set ? set.ceiling(fin.ceilingColor) : new THREE.MeshStandardMaterial({ color: fin.ceilingColor, roughness: 0.95 }),
       );
+      ceil.castShadow = true;
       ceil.name = `ceiling:${room.id}`;
       ceil.userData.roomId = room.id;
       group.add(ceil);
@@ -173,6 +194,7 @@ export function buildShell(layout: Layout): THREE.Group {
       c.map((p) => uvOf(p)));
     const mesh = new THREE.Mesh(toGeometry(b), floorMat(room));
     mesh.name = `threshold:${n}`;
+    mesh.receiveShadow = true;
     mesh.userData.roomId = t.roomId;
     group.add(mesh);
   });
@@ -196,14 +218,17 @@ export function buildShell(layout: Layout): THREE.Group {
     if (!b || b.pos.length === 0) continue;
     const m = new THREE.Mesh(
       toGeometry(b),
-      new THREE.MeshStandardMaterial({ color: room.wallColor ?? fin.wallColor, roughness: 0.9 }),
+      set ? set.wall(room.wallColor ?? fin.wallColor) : new THREE.MeshStandardMaterial({ color: room.wallColor ?? fin.wallColor, roughness: 0.9 }),
     );
+    m.castShadow = true;
+    m.receiveShadow = true;
     m.name = `walls:${room.id}`;
     m.userData.roomId = room.id;
     group.add(m);
   }
   if (rail.pos.length > 0) {
-    const m = new THREE.Mesh(toGeometry(rail), new THREE.MeshStandardMaterial({ color: fin.railingColor, roughness: 0.6 }));
+    const m = new THREE.Mesh(toGeometry(rail), set ? set.railing(fin.railingColor) : new THREE.MeshStandardMaterial({ color: fin.railingColor, roughness: 0.6 }));
+    m.castShadow = true;
     m.name = 'railings';
     group.add(m);
   }
@@ -229,12 +254,13 @@ export function buildShell(layout: Layout): THREE.Group {
     }
   }
   if (fr.pos.length > 0) {
-    const m = new THREE.Mesh(toGeometry(fr), new THREE.MeshStandardMaterial({ color: fin.frameColor, roughness: 0.7 }));
+    const m = new THREE.Mesh(toGeometry(fr), set ? set.frame(fin.frameColor) : new THREE.MeshStandardMaterial({ color: fin.frameColor, roughness: 0.7 }));
+    m.castShadow = true;
     m.name = 'frames';
     group.add(m);
   }
   if (pane.pos.length > 0) {
-    const m = new THREE.Mesh(toGeometry(pane), new THREE.MeshBasicMaterial({ color: '#CFE8FF', side: THREE.DoubleSide }));
+    const m = new THREE.Mesh(toGeometry(pane), set ? set.pane() : new THREE.MeshBasicMaterial({ color: '#CFE8FF', side: THREE.DoubleSide }));
     m.name = 'panes';
     group.add(m);
   }
@@ -250,6 +276,7 @@ export function disposeShell(group: THREE.Group): void {
     m.geometry?.dispose();
     const mats = Array.isArray(m.material) ? m.material : [m.material];
     for (const mat of mats) {
+      if (mat.userData.shared) continue; // the look owns these (SPEC 16.5)
       const std = mat as THREE.MeshStandardMaterial;
       std.map?.dispose();
       mat.dispose();

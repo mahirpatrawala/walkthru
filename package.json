@@ -10,6 +10,7 @@
     "make:room": "tsx scripts/make-test-room.ts",
     "fetch:assets": "tsx scripts/fetch-assets.ts",
     "fetch:sample": "tsx scripts/fetch-assets.ts --sample",
+    "fetch:look": "tsx scripts/fetch-look-assets.ts",
     "setup": "npm run fetch:assets && npm run make:room",
     "import:drawing": "tsx scripts/import-drawing.ts",
     "media": "tsx scripts/media-worker.ts",

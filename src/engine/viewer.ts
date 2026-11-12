@@ -9,6 +9,17 @@ export interface Viewer {
   /** creates the SparkRenderer on first use */
   loadSplat(url: string, transform: SceneTransform, onProgress?: (fraction: number) => void): Promise<SplatHandle>;
   fps: number;
+  /** the two scene lights (SPEC 16.5): the look drives these instead of adding duplicates */
+  lights: { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight };
+  /** When set, the frame loop calls it instead of `renderer.render(scene, camera)` (post-processing). `null` restores the default. */
+  setRenderOverride(fn: ((dt: number) => void) | null): void;
+  readonly renderOverride: ((dt: number) => void) | null;
+  /** Caps the device pixel ratio (the look sets it per quality tier) and resizes. */
+  setPixelRatioCap(cap: number): void;
+  /** re-reads the container size */
+  resize(): void;
+  /** returns an unsubscribe function; called after the renderer was resized */
+  onResize(cb: (w: number, h: number) => void): () => void;
   dispose(): void;
 }
 export interface SplatHandle {
@@ -66,7 +77,8 @@ export function createViewer(container: HTMLElement, opts: { hasSplat: boolean }
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(BACKGROUND);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xb8b0a8, 1.0));
+  const hemi = new THREE.HemisphereLight(0xffffff, 0xb8b0a8, 1.0);
+  scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xffffff, 0.6);
   sun.position.set(3, 6, 2);
   scene.add(sun);
@@ -81,16 +93,33 @@ export function createViewer(container: HTMLElement, opts: { hasSplat: boolean }
     camera.aspect = w / h;
     camera.fov = camera.aspect < 1 ? 70 : 60;
     camera.updateProjectionMatrix();
+    for (const cb of [...resizeCbs]) {
+      try { cb(w, h); } catch (err) { console.error('[walkthru] resize callback threw', err); }
+    }
   }
+  const resizeCbs = new Set<(w: number, h: number) => void>();
   resize();
   const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
   ro?.observe(container);
   window.addEventListener('resize', resize);
 
   const callbacks = new Set<(dt: number) => void>();
+  let renderOverride: ((dt: number) => void) | null = null;
   const viewer: Viewer = {
     renderer, scene, camera, canvas,
     fps: 0,
+    lights: { hemi, sun },
+    get renderOverride() { return renderOverride; },
+    setRenderOverride(fn) { renderOverride = fn; },
+    setPixelRatioCap(cap) {
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
+      resize();
+    },
+    resize,
+    onResize(cb) {
+      resizeCbs.add(cb);
+      return () => { resizeCbs.delete(cb); };
+    },
     onFrame(cb) {
       callbacks.add(cb);
       return () => { callbacks.delete(cb); };
@@ -103,6 +132,7 @@ export function createViewer(container: HTMLElement, opts: { hasSplat: boolean }
       ro?.disconnect();
       window.removeEventListener('resize', resize);
       callbacks.clear();
+      resizeCbs.clear();
       sparkRenderer?.dispose?.();
       renderer.dispose();
       canvas.remove();
@@ -127,7 +157,17 @@ export function createViewer(container: HTMLElement, opts: { hasSplat: boolean }
     for (const cb of [...callbacks]) {
       try { cb(dt); } catch (err) { console.error('[walkthru] frame callback threw', err); }
     }
-    renderer.render(scene, camera);
+    if (renderOverride) {
+      try {
+        renderOverride(dt);
+      } catch (err) {
+        console.error('[walkthru] render override threw, using the plain renderer', err);
+        renderOverride = null;
+        renderer.render(scene, camera);
+      }
+    } else {
+      renderer.render(scene, camera);
+    }
   });
 
   // ---- splats (Spark is imported lazily so scenes without a scan never download it)
