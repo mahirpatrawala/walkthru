@@ -3,6 +3,7 @@
 // from computeWallPieces, edges by kind, openings, furniture boxes and the spawn arrow. Tools get pointer events in world
 // metres; steps add their own drawing through addLayer.
 import type { Px, PropertyFile, RoomType, Vec2 } from '../types';
+import { editorUnverifiedNote } from '../core/room-trust';
 import { boxCorners, polygonArea } from '../core/geometry';
 import { computeEdgeFrames, computeWallPieces, pieceRect } from '../core/layout-geom';
 import { formatArea } from '../core/units';
@@ -245,7 +246,8 @@ export function createPlanCanvas(
       g.fillText(room.label, s.x, s.y - 7);
       g.font = '11px system-ui, sans-serif';
       g.fillStyle = 'rgba(20,22,28,0.72)';
-      g.fillText(formatArea(area).text, s.x, s.y + 8);
+      const unv = editorUnverifiedNote(room.id);
+      g.fillText(unv ? `${formatArea(area).text} · not measured` : formatArea(area).text, s.x, s.y + 8);
     }
 
     // spawn

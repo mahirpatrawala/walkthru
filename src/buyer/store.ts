@@ -198,24 +198,9 @@ export function nearestInteractable(
 
 // ---------------------------------------------------------------- room chip
 
-/**
- * Room ids whose size was NOT measured (e.g. a drawing import that fell back to the label's dimensions because the
- * room's walls are not closed on the drawing). Value: a short reason shown to the buyer instead of a confident area.
- */
-export type UnverifiedRooms = Record<string, string>;
-
-/** Reads the optional `proposal-extras.json` rooms list: `label-rect` rooms not marked `verified`, and any room marked `verified: false`, are unverified. */
-export function unverifiedRoomsFromExtras(extras: unknown): UnverifiedRooms {
-  const out: UnverifiedRooms = {};
-  const rooms = (extras as { rooms?: unknown } | null)?.rooms;
-  if (!Array.isArray(rooms)) return out;
-  for (const r of rooms as { id?: unknown; method?: unknown; verified?: unknown }[]) {
-    if (typeof r?.id !== 'string') continue;
-    if (r.method === 'label-rect' && r.verified !== true) out[r.id] = 'label size only';
-    else if (r.verified === false) out[r.id] = 'runs off the drawing';
-  }
-  return out;
-}
+export { unverifiedRoomsFromExtras } from '../core/room-trust';
+import type { UnverifiedRooms } from '../core/room-trust';
+export type { UnverifiedRooms } from '../core/room-trust';
 
 /** "Bedroom 1 · 215 sq ft · 20.0 m²", or null when the point is in no room (a doorway, a wall, outside). */
 export function roomChipText(layout: Layout, pt: Vec2, unverified: UnverifiedRooms = {}): string | null {

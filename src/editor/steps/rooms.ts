@@ -1,6 +1,7 @@
 // Owned by C5. E3 Rooms (SPEC 2.2): rectangle and polygon tools with snapping, live size label, type and label, typed
 // size, tile helper, edge kinds, room list, and "Load proposal" (the Phase 2 plug and the C8 drawing import).
 import type { EdgeKind, Layout, RoomTag, RoomType, Vec2 } from '../../types';
+import { editorUnverifiedNote } from '../../core/room-trust';
 import { polygonArea, polygonSelfIntersects, pointInPolygon } from '../../core/geometry';
 import { defaultEdges } from '../../core/layout-geom';
 import { parseSize } from '../../core/units';
@@ -231,7 +232,7 @@ function mountRooms(panel: HTMLElement, ctx: EditorContext, host: EditorHost): v
       const area = Math.abs(polygonArea(room.polygon));
       const li = h('li', { class: room.id === host.selection.roomId ? 'on' : '' },
         h('span', { class: 'dot', style: `background:${typeColour(room.roomType)}` }),
-        h('span', { class: 'grow' }, h('strong', { text: room.label || room.id }), h('br'), h('span', { class: 'muted small', text: `${ROOM_TYPE_NAMES[room.roomType]} · ${areaText(area)}` })),
+        h('span', { class: 'grow' }, h('strong', { text: room.label || room.id }), h('br'), h('span', { class: 'muted small', text: `${ROOM_TYPE_NAMES[room.roomType]} · ${editorUnverifiedNote(room.id) ? `${areaText(area)}, NOT MEASURED (${editorUnverifiedNote(room.id)}), check it` : areaText(area)}` })),
         h('button', { class: 'btn small', text: 'Delete', onclick: (e: Event) => {
           e.stopPropagation();
           removeRoomFromDraft(draft.layout, room.id);
