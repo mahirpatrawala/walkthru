@@ -1,71 +1,432 @@
-// Owned by C3. Placeholder "empty app shell" from C0: builds a viewer inline. C3 replaces this file
-// (the real viewer comes from engine/viewer.ts). Not browser-verified.
+// Owned by C3. The buyer page: boot (B1 loading), height picker (B2), the walking loop (B3), debug hooks.
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { SparkRenderer, SplatMesh } from '@sparkjsdev/spark';
-import type { PropertyFile } from '../types';
+import { catalogItem, itemFromCatalog } from '../core/catalog';
+import { circleFree, nearestFree } from '../core/grid-query';
+import { carpetAreaM2, roomAt } from '../core/layout-geom';
+import { validateLayout, validateProperty } from '../core/layout-validate';
+import { rasterizeLayout } from '../core/layout-raster';
+import { buildShell } from '../engine/shell';
+import { createViewer } from '../engine/viewer';
+import type { Viewer, SplatHandle } from '../engine/viewer';
+import { Character } from '../engine/character';
+import { createInput } from '../engine/controls';
+import { FollowCamera } from '../engine/camera';
+import { stepLocomotion } from '../engine/locomotion';
+import { CHARACTER_RADIUS_M } from '../types';
+import type { PropertyFile, Vec2 } from '../types';
+import { ModeManager, createBuyerContext } from './context';
+import type { BuyerContext, BuyerModeId } from './context';
+import { createFurnishMode } from './furnish';
+import { createGridOverlay } from './debug';
+import type { GridOverlay } from './debug';
+import { createHeightPicker } from './height';
+import { createHud } from './hud';
+import { createInteractions } from './interactions';
+import { createLoadingScreen } from './loading';
+import { createMeasureMode } from './measure';
+import { createOverlays } from './overlays';
+import { createRoomsSheet } from './rooms';
+import {
+  DEFAULT_HEIGHT_CM, HINT_KEY, clampHeightCm, createFurnitureStore, loadHeightCm, roomChipText, safeStorage,
+  saveHeightCm, storageGet, storageSet, tintForHeightCm,
+} from './store';
+
+const SCENE_ID_RE = /^[a-z0-9-]{1,40}$/;
+
+// ---------------------------------------------------------------- loading the property
+
+type PropertyResult = { kind: 'ok'; property: PropertyFile } | { kind: 'missing' };
+
+async function fetchProperty(sceneId: string): Promise<PropertyResult> {
+  if (!SCENE_ID_RE.test(sceneId)) return { kind: 'missing' };
+  let res: Response;
+  try {
+    res = await fetch(`/scenes/${sceneId}/property.json`, { cache: 'no-cache' });
+  } catch (err) {
+    throw new Error(`Could not reach the server (${String(err)}).`);
+  }
+  if (res.status === 404) return { kind: 'missing' };
+  if (!res.ok) throw new Error(`The server answered HTTP ${res.status} for this home.`);
+  const text = await res.text();
+  // a dev server answers a missing file with its index page
+  if (/^\s*</.test(text)) return { kind: 'missing' };
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error('property.json is not valid JSON.');
+  }
+  return { kind: 'ok', property: validateProperty(json) };
+}
+
+// ---------------------------------------------------------------- page boot
 
 const params = new URLSearchParams(location.search);
-const sceneId = params.get('scene') ?? 'test-flat-empty';
-const container = document.getElementById('app') ?? document.body;
-const msg = document.getElementById('msg');
+const sceneId = (params.get('scene') ?? 'test-flat-empty').trim();
+const debug = params.get('debug') === '1';
+const storage = safeStorage();
+const isTouch = ((): boolean => {
+  try { return window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0; } catch { return false; }
+})();
 
-async function loadProperty(): Promise<PropertyFile | null> {
+const loading = createLoadingScreen(document.body);
+let booted = false;
+
+function describe(err: unknown): string {
+  if (err instanceof Error) return err.message || String(err);
+  return String(err);
+}
+
+function showFatalBanner(text: string): void {
+  let b = document.querySelector<HTMLElement>('.wt-fatal');
+  if (!b) {
+    b = document.createElement('div');
+    b.className = 'wt-fatal';
+    b.addEventListener('click', () => { b!.hidden = true; });
+    document.body.appendChild(b);
+  }
+  b.textContent = `${text}\n(tap to dismiss)`;
+  b.hidden = false;
+}
+
+const BENIGN = /ResizeObserver loop/i;
+window.addEventListener('error', (e) => {
+  if (BENIGN.test(e.message)) return;
+  console.error('[walkthru] uncaught error', e.error ?? e.message);
+  const msg = e.error ? describe(e.error) : e.message;
+  if (!booted) loading.showError('Something went wrong', msg);
+  else showFatalBanner(msg);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('[walkthru] unhandled rejection', e.reason);
+  const msg = describe(e.reason);
+  if (!booted) loading.showError('Something went wrong', msg);
+  else showFatalBanner(msg);
+});
+
+async function boot(): Promise<void> {
+  loading.setProgress(0.05, 'Loading the layout…');
+  const result = await fetchProperty(sceneId);
+  if (result.kind === 'missing') {
+    loading.showNotSetUp(sceneId);
+    return;
+  }
+  const property = result.property;
+  document.title = `${property.title} · walkthru`;
+  loading.setTitle(property.title, property.subtitle);
+  loading.setProgress(0.12, 'Building the rooms…');
+  const layout = property.layout;
+  if (layout.rooms.length === 0) {
+    loading.showError('This home has no rooms yet.', 'The layout is empty. A broker can trace the rooms in the editor.');
+    return;
+  }
+  const check = validateLayout(layout);
+  for (const w of check.warnings) console.warn(`[walkthru] layout warning: ${w}`);
+  for (const e of check.errors) console.error(`[walkthru] layout error: ${e}`);
+
+  // ---- viewer, shell, grid
+  const app = document.getElementById('app');
+  if (!app) throw new Error('index.html has no #app element.');
+  let viewer: Viewer;
   try {
-    const res = await fetch(`/scenes/${sceneId}/property.json`);
-    if (!res.ok) return null;
-    return (await res.json()) as PropertyFile;
-  } catch {
-    return null;
+    viewer = createViewer(app, { hasSplat: !!property.splat });
+  } catch (err) {
+    loading.showError('Could not start 3D.', `${describe(err)}\nTry another browser, or turn on hardware acceleration.`);
+    return;
   }
+  const shell = buildShell(layout);
+  viewer.scene.add(shell);
+  const furnitureRoot = new THREE.Group();
+  furnitureRoot.name = 'furniture';
+  viewer.scene.add(furnitureRoot);
+  const baseGrid = rasterizeLayout(layout);
+  const store = createFurnitureStore({ sceneId, baseGrid, initial: property.furniture, parent: furnitureRoot, storage });
+  loading.setProgress(0.3, 'Loading the walker…');
+
+  // ---- character
+  let character: Character;
+  try {
+    character = await Character.load();
+  } catch (err) {
+    loading.showError('Could not load the walking figure.', describe(err));
+    return;
+  }
+  viewer.scene.add(character.object);
+  if (property.splat) character.setShadowVisible(false); // SPEC 12 risk 2: no alpha-blended shadow against a splat
+  loading.setProgress(0.85, 'Almost there…');
+
+  // ---- HUD, input, camera, overlays, modes, context
+  const input = createInput(viewer.canvas);
+  const camera = new FollowCamera(viewer.camera, () => store.grid(), layout.wallHeightM);
+  const overlays = createOverlays(viewer.scene);
+  const modes = new ModeManager();
+
+  let picker: ReturnType<typeof createHeightPicker>;
+  let rooms: ReturnType<typeof createRoomsSheet>;
+  let scanHandle: SplatHandle | null = null;
+  let scanVisible = false;
+
+  const hud = createHud(document.body, {
+    person: () => picker.open(false),
+    measure: () => toggleMode('measure'),
+    furnish: () => toggleMode('furnish'),
+    rooms: () => rooms.toggle(),
+    scan: () => setScan(!scanVisible),
+  });
+  hud.setVisible(false);
+
+  const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes });
+  const interactions = createInteractions(ctx);
+  modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
+  modes.register(interactions.mode);
+  modes.register(createMeasureMode(ctx));
+  modes.registerLazy('furnish', () => createFurnishMode(ctx));
+  modes.onError = (id, err) => {
+    const m = describe(err);
+    console.warn(`[walkthru] mode "${id}" unavailable:`, err);
+    hud.toast(/not implemented/i.test(m) ? 'Furnishing is not available in this build yet.' : `Could not open ${id} mode: ${m}`);
+  };
+  modes.onChange((id, prev) => {
+    hud.setActive('measure', id === 'measure');
+    hud.setActive('furnish', id === 'furnish');
+    if (prev === 'furnish') { input.setInteractKeyMode('interact'); input.claimPointer(null); }
+    if (id === 'walk') hud.setModeBar(null);
+  });
+
+  function toggleMode(id: BuyerModeId): void {
+    if (blocking()) return;
+    modes.set(modes.id === id ? 'walk' : id);
+  }
+
+  // ---- height
+  function applyHeight(cm: number): number {
+    const v = clampHeightCm(cm);
+    character.setHeight(v / 100, tintForHeightCm(v));
+    saveHeightCm(storage, v);
+    picker?.sync(v);
+    interactions.refresh();
+    return v;
+  }
+  let heightCm = loadHeightCm(storage) ?? DEFAULT_HEIGHT_CM;
+  character.setHeight(heightCm / 100, tintForHeightCm(heightCm));
+
+  const blocking = (): boolean => picker.isOpen() || rooms.isOpen();
+
+  picker = createHeightPicker(document.body, {
+    getCm: () => heightCm,
+    onChange: (cm) => { heightCm = applyHeight(cm); },
+    onClose: () => {
+      saveHeightCm(storage, heightCm);
+      hud.setVisible(true);
+      if (storageGet(storage, HINT_KEY) === null) {
+        storageSet(storage, HINT_KEY, '1');
+        hud.hint(isTouch ? 'Left thumb to walk · right thumb to look' : 'WASD to walk · drag to look · E to interact', 4000);
+      }
+    },
+  });
+  rooms = createRoomsSheet(document.body, layout, () => { /* nothing to resume */ });
+
+  // ---- spawn
+  {
+    const sp = property.spawn;
+    let at: Vec2 = { x: sp.x, z: sp.z };
+    const g = store.grid();
+    if (!circleFree(g, at.x, at.z, CHARACTER_RADIUS_M)) {
+      const free = nearestFree(g, at.x, at.z, CHARACTER_RADIUS_M, 4);
+      if (free) at = free; else console.warn('[walkthru] the spawn point is not on a free cell and none is near it');
+    }
+    character.position = at;
+    character.yawDeg = sp.yawDeg;
+    camera.yawDeg = sp.yawDeg;
+    camera.setTarget(at, character.heightM);
+  }
+
+  // ---- input events
+  input.on('interact', () => { if (!blocking()) void interactions.interact(); });
+  input.on('measure', () => toggleMode('measure'));
+  input.on('furnish', () => toggleMode('furnish'));
+  input.on('cancel', () => {
+    if (blocking()) return;
+    const m = modes.id;
+    if (m === 'pose') void interactions.getUp();
+    else if (m === 'measure' || m === 'furnish') modes.set('walk');
+    else interactions.hideDims();
+  });
+
+  // ---- scan overlay (optional, loads in the background)
+  function setScan(v: boolean): void {
+    if (!scanHandle || !property.splat) return;
+    scanVisible = v;
+    scanHandle.setVisible(v);
+    shell.visible = !(property.splat.mode === 'replace' && v);
+    hud.setScanButton(v ? 'on' : 'off');
+  }
+  async function loadScan(): Promise<void> {
+    const splat = property.splat;
+    if (!splat) return;
+    hud.setScanButton('loading', 0);
+    const url = `/scenes/${sceneId}/${splat.file}`;
+    try {
+      try {
+        const head = await fetch(url, { method: 'HEAD' });
+        const type = head.headers.get('content-type') ?? '';
+        if (head.status === 404 || (head.ok && /text\/html/i.test(type))) throw new Error(`the scan file ${splat.file} was not found`);
+      } catch (err) {
+        if (err instanceof Error && /was not found/.test(err.message)) throw err;
+        // HEAD refused or the network hiccuped: let the loader try
+      }
+      scanHandle = await viewer.loadSplat(url, splat.transform, (f) => hud.setScanButton('loading', f));
+      setScan(true);
+    } catch (err) {
+      console.warn('[walkthru] scan not loaded:', err);
+      hud.setScanButton('hidden');
+      hud.toast('The 3D scan could not be loaded. Showing the clean layout.');
+    }
+  }
+  void loadScan();
+
+  // ---- debug overlay
+  let gridOverlay: GridOverlay | null = null;
+  let gridDirty = false;
+  if (debug) {
+    gridOverlay = createGridOverlay(viewer.scene, store.grid());
+    store.onChange(() => { gridDirty = true; });
+  }
+
+  // ---- the frame loop
+  const ZERO_LOOK = { dx: 0, dy: 0, zoom: 0 };
+  let chipClock = 0;
+  let lastChip: string | null | undefined;
+  let debugClock = 0;
+  let gridClock = 0;
+  viewer.onFrame((dt) => {
+    const look = input.takeLook();
+    const blocked = blocking();
+    if (blocked) {
+      if (character.state === 'walk' || character.state === 'jog') character.setLocomotion(0, false);
+    } else if (modes.id !== 'pose') {
+      stepLocomotion(character, input, camera.viewYawDeg, store.grid(), dt);
+    }
+    modes.update(dt);
+    interactions.update(dt);
+    character.update(dt);
+    camera.setTarget(character.position, character.heightM);
+    camera.update(dt, blocked ? ZERO_LOOK : look);
+    // below a 0.7 m boom the character is hidden, above 0.8 m it comes back (SPEC 2.4)
+    if (camera.boom < 0.7) character.setVisible(false);
+    else if (camera.boom > 0.8) character.setVisible(true);
+    hud.setJoystick(input.joystick);
+
+    chipClock += dt;
+    if (chipClock > 0.1) {
+      chipClock = 0;
+      const text = roomChipText(layout, character.position);
+      if (text !== lastChip) { lastChip = text; hud.setRoomChip(text); }
+    }
+    if (gridOverlay) {
+      gridClock += dt;
+      if (gridDirty && gridClock > 0.25) { gridDirty = false; gridClock = 0; gridOverlay.update(store.grid()); }
+      debugClock += dt;
+      if (debugClock > 0.25) {
+        debugClock = 0;
+        const s = snapshot();
+        hud.setDebug(
+          `fps ${s.fps.toFixed(0)}  mode ${s.mode}  state ${s.charState}\n` +
+          `pos ${s.pos.x.toFixed(2)}, ${s.pos.z.toFixed(2)}  yaw ${s.yawDeg.toFixed(0)}  boom ${s.boom.toFixed(2)}\n` +
+          `room ${s.room ?? '-'}  height ${s.heightCm} cm`,
+        );
+      }
+    }
+  });
+
+  // ---- debug hooks
+  function snapshot() {
+    const pos = character.position;
+    const room = roomAt(layout, pos);
+    const near = interactions.nearest();
+    return {
+      pos,
+      yawDeg: ((character.yawDeg % 360) + 360) % 360,
+      mode: modes.id,
+      room: room ? room.label : null,
+      fps: viewer.fps,
+      boom: camera.boom,
+      charState: character.state,
+      heightCm,
+      pose: interactions.pose(),
+      nearest: near ? { id: near.item.id, kind: near.item.kind, distM: near.distM } : null,
+      pickerOpen: picker.isOpen(),
+      scan: scanHandle ? (scanVisible ? 'shown' : 'hidden') : (property.splat ? 'loading-or-failed' : 'none'),
+      items: store.all().map((i) => ({ id: i.id, kind: i.kind, source: i.source })),
+      carpetAreaM2: carpetAreaM2(layout),
+    };
+  }
+  function teleport(x: number, z: number): ReturnType<typeof snapshot> {
+    const g = store.grid();
+    const to: Vec2 = circleFree(g, x, z, CHARACTER_RADIUS_M) ? { x, z } : (nearestFree(g, x, z, CHARACTER_RADIUS_M, 3) ?? { x, z });
+    const apply = (tries: number): void => {
+      if (interactions.pose()) { interactions.cancelTo(to); return; }
+      if (character.state === 'transition' && tries > 0) { setTimeout(() => apply(tries - 1), 50); return; }
+      character.position = to;
+      character.object.position.y = 0;
+      character.setLocomotion(0, false);
+    };
+    apply(40);
+    return snapshot();
+  }
+
+  const api = {
+    ctx,
+    /** Moves the character to (x, z) (nearest free spot if blocked). While posed the release takes up to ~0.7 s. */
+    teleport,
+    state: snapshot,
+    /** E on the nearest item (or get up). Resolves with 'lie' | 'sit' | 'stand' | 'dims' | 'getup' | 'none'. */
+    interact: () => interactions.interact(),
+    /** End the current pose. Resolves when the character stands again. */
+    getUp: () => interactions.getUp(),
+    /** Set the body height in cm (140..200), as the picker would. Returns the height applied. */
+    setHeight: (cm: number) => { heightCm = applyHeight(cm); return heightCm; },
+    /** Close the height picker ("Start walking"). */
+    start: () => { picker.close(); return snapshot(); },
+    openHeightPicker: () => { picker.open(false); },
+    setMode: (id: BuyerModeId) => { modes.set(id); return modes.id; },
+    /** Camera heading in degrees (the walk direction of W). */
+    setYaw: (deg: number) => { camera.yawDeg = deg; character.yawDeg = deg; },
+    /** Place a catalogue item (virtual) for checks, e.g. addItem('bed-king', 1.06, 3.415, 90). Returns its id. */
+    addItem: (catalogId: string, cx: number, cz: number, yawDeg = 0) => {
+      const spec = catalogItem(catalogId);
+      const item = itemFromCatalog(catalogId, { cx, cz, w: spec.footprint.w, d: spec.footprint.d, yawDeg }, 'virtual');
+      store.add(item);
+      return item.id;
+    },
+    removeItem: (id: string) => { store.remove(id); },
+    /** Measure mode, two ray-free points: measure({x,y,z}, {x,y,z}) returns the label. */
+    measure: (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => {
+      modes.set('measure');
+      const m = modes.active() as unknown as { addPoint(p: typeof a): void; last(): { label: string; meters: number } | null };
+      m.addPoint(a);
+      m.addPoint(b);
+      return m.last();
+    },
+    /** Pixel position on screen of a world point, for clicking in automated checks. */
+    project: (x: number, y: number, z: number) => {
+      const v = new THREE.Vector3(x, y, z).project(viewer.camera);
+      const r = viewer.canvas.getBoundingClientRect();
+      return { clientX: r.left + ((v.x + 1) / 2) * r.width, clientY: r.top + ((1 - v.y) / 2) * r.height, behind: v.z > 1 };
+    },
+    store,
+    grid: () => store.grid(),
+  };
+  (window as unknown as { __walkthru: typeof api }).__walkthru = api;
+
+  // ---- go
+  loading.setProgress(1, 'Ready');
+  booted = true;
+  loading.hide();
+  picker.open(true);
 }
 
-async function main(): Promise<void> {
-  const property = await loadProperty();
-  const splat = property?.splat;
-
-  // Spark needs antialias off; plain scenes keep it on.
-  const renderer = new THREE.WebGLRenderer({ antialias: !splat });
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.NoToneMapping;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  container.appendChild(renderer.domElement);
-
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#eef0f3');
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.05, 200);
-  camera.position.set(2, 3, 8);
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(2, 1, 2.5);
-  controls.update();
-
-  if (splat) {
-    const spark = new SparkRenderer({ renderer });
-    scene.add(spark);
-    const mesh = new SplatMesh({ url: `/scenes/${sceneId}/${splat.file}` });
-    const t = splat.transform;
-    mesh.quaternion.set(t.rotation[0], t.rotation[1], t.rotation[2], t.rotation[3]);
-    mesh.scale.setScalar(t.scale);
-    mesh.position.set(t.position[0], t.position[1], t.position[2]);
-    scene.add(mesh);
-    if (msg) msg.textContent = `walkthru scaffold · scan overlay (${sceneId})`;
-  } else {
-    scene.add(new THREE.GridHelper(20, 20, 0x2f6bff, 0xb0b6c0));
-    if (msg) msg.textContent = 'walkthru scaffold';
-  }
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-  renderer.setAnimationLoop(() => {
-    controls.update();
-    renderer.render(scene, camera);
-  });
-}
-
-main().catch((err) => {
-  if (msg) msg.textContent = `walkthru scaffold (error: ${String(err)})`;
+boot().catch((err) => {
+  console.error('[walkthru] boot failed', err);
+  loading.showError('Could not open this home.', describe(err));
 });
