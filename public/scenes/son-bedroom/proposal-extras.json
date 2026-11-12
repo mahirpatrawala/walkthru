@@ -1,0 +1,233 @@
+{
+  "version": 1,
+  "sourceFile": "SON BEDROOM-Binder1.pdf",
+  "planPage": 1,
+  "scale": {
+    "ptPerM": 101.55441034870641,
+    "votes": [
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.53 m short side",
+        "ptPerM": 91.87231614173234
+      },
+      {
+        "source": "furniture BED 1.60 x 1.75 m long side",
+        "ptPerM": 98.57338553006966
+      },
+      {
+        "source": "furniture BED 1.52 x 1.83 m long side",
+        "ptPerM": 99.08906228674545
+      },
+      {
+        "source": "furniture BED 1.52 x 1.83 m short side",
+        "ptPerM": 99.95507182414698
+      },
+      {
+        "source": "furniture BED 1.60 x 1.75 m short side",
+        "ptPerM": 100.1200260217473
+      },
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.53 m long side",
+        "ptPerM": 101.55441034870641
+      },
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.53 m long side",
+        "ptPerM": 101.6261295650544
+      },
+      {
+        "source": "furniture STUDY 0.61 x 1.22 m short side",
+        "ptPerM": 102.16402368766398
+      },
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.53 m short side",
+        "ptPerM": 103.41910997375325
+      },
+      {
+        "source": "furniture STUDY 0.61 x 1.22 m long side",
+        "ptPerM": 103.41910997375331
+      }
+    ],
+    "agreeing": 9,
+    "disagreementPct": 11.450924608819316
+  },
+  "rooms": [
+    {
+      "id": "son-room",
+      "label": "Son Room",
+      "roomType": "bedroom",
+      "method": "label-rect",
+      "confidence": 0.4,
+      "labelDims": {
+        "w": 3.3528,
+        "l": 3.81
+      },
+      "labelAreaM2": 13.935456,
+      "areaM2": 12.774167999999998
+    },
+    {
+      "id": "master-room",
+      "label": "Master Room",
+      "roomType": "bedroom",
+      "method": "label-rect",
+      "confidence": 0.4,
+      "labelDims": {
+        "w": 3.6576,
+        "l": 2.7432
+      },
+      "labelAreaM2": 9.847722240000001,
+      "areaM2": 10.033528319999999
+    },
+    {
+      "id": "passage",
+      "label": "Passage",
+      "roomType": "other",
+      "method": "walls+strokes",
+      "confidence": 0.7,
+      "areaM2": 2.4665289074964094
+    }
+  ],
+  "ceiling": {
+    "heightM": 2.6759886608318495,
+    "method": "geometry",
+    "page": 4,
+    "candidatesM": [
+      2.3885979024471444,
+      2.4529896057625282,
+      2.6057431663059765,
+      2.6759886608318495,
+      2.7143157982353916,
+      2.7874881883665097
+    ],
+    "confidence": 0.5
+  },
+  "furniture": [
+    {
+      "id": "bed-1",
+      "source": "real",
+      "kind": "bed",
+      "label": "Bed",
+      "box": {
+        "cx": 1.5348434322033904,
+        "cz": 0.186087288135593,
+        "w": 1.499999152542373,
+        "d": 1.7844038135593225,
+        "yawDeg": 270
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5,
+      "inner": {
+        "w": 1.524,
+        "d": 1.8288
+      }
+    },
+    {
+      "id": "counter-1",
+      "source": "real",
+      "kind": "counter",
+      "label": "Side table",
+      "box": {
+        "cx": -1.266448305084745,
+        "cz": -1.5642256355932205,
+        "w": 0.5337766949152544,
+        "d": 0.4136110169491528,
+        "yawDeg": 270
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-2",
+      "source": "real",
+      "kind": "counter",
+      "label": "Side table",
+      "box": {
+        "cx": -1.2404563559322028,
+        "cz": 0.5985682203389832,
+        "w": 0.46559491525423713,
+        "d": 0.5334,
+        "yawDeg": 180
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-3",
+      "source": "real",
+      "kind": "counter",
+      "label": "Study",
+      "box": {
+        "cx": 2.198014830508475,
+        "cz": -1.2103207627118646,
+        "w": 1.2415864406779662,
+        "d": 0.6132593220338979,
+        "yawDeg": 270
+      },
+      "heightM": 0.75,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "bed-2",
+      "source": "real",
+      "kind": "bed",
+      "label": "Bed",
+      "box": {
+        "cx": -1.9358351694915246,
+        "cz": -0.4829228813559321,
+        "w": 1.5775983050847457,
+        "d": 1.7011542372881363,
+        "yawDeg": 270
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5,
+      "inner": {
+        "w": 1.6001999999999998,
+        "d": 1.7526
+      }
+    },
+    {
+      "id": "wardrobe-1",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "Wardrobe",
+      "box": {
+        "cx": -0.5980031779661007,
+        "cz": -0.42962055084745765,
+        "w": 2.7432,
+        "d": 0.6158961864406776,
+        "yawDeg": 90
+      },
+      "heightM": 2.13,
+      "surfaceHeightM": 2.13
+    },
+    {
+      "id": "wardrobe-2",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "Dressing / storage",
+      "box": {
+        "cx": -1.0683067796610164,
+        "cz": 0.5985682203389832,
+        "w": 0.12129576271186421,
+        "d": 0.5334,
+        "yawDeg": 180
+      },
+      "heightM": 2.13,
+      "surfaceHeightM": 2.13
+    }
+  ],
+  "unmapped": [],
+  "spawn": {
+    "x": -1.8122874945002465,
+    "z": 1.4343283898305086,
+    "yawDeg": 180
+  },
+  "warnings": [
+    "Label says 150 sq ft but 11'0\"×12'6\" is 137.5 sq ft. The drawn walls agree with 11'0\"×12'6\".",
+    "Room \"Son Room\" is not closed by walls on the drawing. Drawn as a rectangle of its labelled size. Check it.",
+    "Room \"Master Room\" is not closed by walls on the drawing. Drawn as a rectangle of its labelled size. Check it.",
+    "Master Room has no door on the drawing. A door 0.84 m wide was placed where its swing arc hinges on the wall.",
+    "Passage runs off the edge of the drawing. It is closed at the drawing border. Check its length.",
+    "Passage has an entry door on the drawing. A door 0.84 m wide was found at its swing arc.",
+    "Passage meets Son Room with no wall drawn between them. An open doorway 0.90 m wide was added.",
+    "Ceiling 2.68 m: 3 elevation pages agree within 3% (2.61, 2.61, 2.68, 2.71, 2.71). All candidates: 2.39 m from pages 4, 3; 2.45 m from pages 5; 2.61 m from pages 4, 3; 2.68 m from pages 5; 2.71 m from pages 4, 3; 2.79 m from pages 5. Confirm it."
+  ]
+}

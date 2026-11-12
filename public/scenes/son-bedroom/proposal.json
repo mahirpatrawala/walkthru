@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "source": "drawing-import@1",
+  "rooms": [
+    {
+      "id": "son-room",
+      "roomType": "bedroom",
+      "label": "Son Room",
+      "polygon": [
+        {
+          "x": -0.8805481971406753,
+          "z": -1.90766633809322
+        },
+        {
+          "x": 2.4722518028593243,
+          "z": -1.90766633809322
+        },
+        {
+          "x": 2.4722518028593243,
+          "z": 1.90233366190678
+        },
+        {
+          "x": -0.8805481971406753,
+          "z": 1.90233366190678
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "master-room",
+      "roomType": "bedroom",
+      "label": "Master Room",
+      "polygon": [
+        {
+          "x": -4.743862553795763,
+          "z": -1.8992983296186443
+        },
+        {
+          "x": -1.0862625537957629,
+          "z": -1.8992983296186443
+        },
+        {
+          "x": -1.0862625537957629,
+          "z": 0.8439016703813556
+        },
+        {
+          "x": -4.743862553795763,
+          "z": 0.8439016703813556
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "passage",
+      "roomType": "other",
+      "label": "Passage",
+      "polygon": [
+        {
+          "x": -3.4313139830508477,
+          "z": 0.9673525423728813
+        },
+        {
+          "x": -0.8805481971406753,
+          "z": 0.9673525423728813
+        },
+        {
+          "x": -0.8805481971406753,
+          "z": 1.9343283898305086
+        },
+        {
+          "x": -3.4313139830508477,
+          "z": 1.9343283898305086
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    }
+  ],
+  "openings": [
+    {
+      "id": "opening-1",
+      "roomId": "son-room",
+      "edge": 2,
+      "type": "opening",
+      "centreM": 0.45147192997796814,
+      "widthM": 0.7635605932203389,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "window-1",
+      "roomId": "son-room",
+      "edge": 0,
+      "type": "window",
+      "centreM": 1.8324562479881332,
+      "widthM": 2.138120338983051,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "door-3",
+      "roomId": "master-room",
+      "edge": 2,
+      "type": "door",
+      "centreM": 2.0290744535783984,
+      "widthM": 0.8371562181381533,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-4",
+      "roomId": "passage",
+      "edge": 2,
+      "type": "door",
+      "centreM": 0.9317392973595711,
+      "widthM": 0.836279226288629,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "opening-5",
+      "roomId": "son-room",
+      "edge": 3,
+      "type": "opening",
+      "centreM": 0.48498111953389866,
+      "widthM": 0.9000000000000004,
+      "sillM": 0,
+      "headM": 2.1
+    }
+  ],
+  "wallHeightM": 2.6759886608318495,
+  "confidence": 0.4,
+  "notes": [
+    "Label says 150 sq ft but 11'0\"×12'6\" is 137.5 sq ft. The drawn walls agree with 11'0\"×12'6\".",
+    "Room \"Son Room\" is not closed by walls on the drawing. Drawn as a rectangle of its labelled size. Check it.",
+    "Room \"Master Room\" is not closed by walls on the drawing. Drawn as a rectangle of its labelled size. Check it.",
+    "Master Room has no door on the drawing. A door 0.84 m wide was placed where its swing arc hinges on the wall.",
+    "Passage runs off the edge of the drawing. It is closed at the drawing border. Check its length.",
+    "Passage has an entry door on the drawing. A door 0.84 m wide was found at its swing arc.",
+    "Passage meets Son Room with no wall drawn between them. An open doorway 0.90 m wide was added.",
+    "Ceiling 2.68 m: 3 elevation pages agree within 3% (2.61, 2.61, 2.68, 2.71, 2.71). All candidates: 2.39 m from pages 4, 3; 2.45 m from pages 5; 2.61 m from pages 4, 3; 2.68 m from pages 5; 2.71 m from pages 4, 3; 2.79 m from pages 5. Confirm it."
+  ]
+}

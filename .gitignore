@@ -1,6 +1,5 @@
 node_modules
 dist
 .cache
-public/characters/*.glb
 public/scenes/*/scene.*
 public/scenes/sample-room

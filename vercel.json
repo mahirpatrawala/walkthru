@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci",
+  "buildCommand": "npm run make:room && npx vite build",
+  "outputDirectory": "dist",
+  "headers": [
+    { "source": "/scenes/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=300" }] },
+    { "source": "/characters/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }] }
+  ]
+}

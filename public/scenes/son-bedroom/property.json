@@ -1,0 +1,286 @@
+{
+  "version": 1,
+  "id": "son-bedroom",
+  "title": "Son Bedroom",
+  "layout": {
+    "wallHeightM": 2.5908,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "son-room",
+        "roomType": "bedroom",
+        "label": "Son Room",
+        "polygon": [
+          {
+            "x": -0.8805481971406753,
+            "z": -1.90766633809322
+          },
+          {
+            "x": 2.4722518028593243,
+            "z": -1.90766633809322
+          },
+          {
+            "x": 2.4722518028593243,
+            "z": 1.90233366190678
+          },
+          {
+            "x": -0.8805481971406753,
+            "z": 1.90233366190678
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "master-room",
+        "roomType": "bedroom",
+        "label": "Master Room",
+        "polygon": [
+          {
+            "x": -4.743862553795763,
+            "z": -1.8992983296186443
+          },
+          {
+            "x": -1.0862625537957629,
+            "z": -1.8992983296186443
+          },
+          {
+            "x": -1.0862625537957629,
+            "z": 0.8439016703813556
+          },
+          {
+            "x": -4.743862553795763,
+            "z": 0.8439016703813556
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "passage",
+        "roomType": "other",
+        "label": "Passage",
+        "polygon": [
+          {
+            "x": -3.4313139830508477,
+            "z": 0.9673525423728813
+          },
+          {
+            "x": -0.8805481971406753,
+            "z": 0.9673525423728813
+          },
+          {
+            "x": -0.8805481971406753,
+            "z": 1.9343283898305086
+          },
+          {
+            "x": -3.4313139830508477,
+            "z": 1.9343283898305086
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "opening-1",
+        "roomId": "son-room",
+        "edge": 2,
+        "type": "opening",
+        "centreM": 0.45147192997796814,
+        "widthM": 0.7635605932203389,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "window-1",
+        "roomId": "son-room",
+        "edge": 0,
+        "type": "window",
+        "centreM": 1.8324562479881332,
+        "widthM": 2.138120338983051,
+        "sillM": 0.9,
+        "headM": 2.1
+      },
+      {
+        "id": "door-3",
+        "roomId": "master-room",
+        "edge": 2,
+        "type": "door",
+        "centreM": 2.0290744535783984,
+        "widthM": 0.8371562181381533,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "door-4",
+        "roomId": "passage",
+        "edge": 2,
+        "type": "door",
+        "centreM": 0.9317392973595711,
+        "widthM": 0.836279226288629,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "opening-5",
+        "roomId": "son-room",
+        "edge": 3,
+        "type": "opening",
+        "centreM": 0.48498111953389866,
+        "widthM": 0.9000000000000004,
+        "sillM": 0,
+        "headM": 2.1
+      }
+    ],
+    "finishes": {
+      "wallColor": "#F2EFE9",
+      "floorColor": "#D9CFC1",
+      "tile": {
+        "wM": 0.6,
+        "lM": 0.6
+      },
+      "groutColor": "#B9AE9F",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "plan-dimensions"
+  },
+  "furniture": [
+    {
+      "id": "bed-1",
+      "source": "real",
+      "kind": "bed",
+      "label": "Bed",
+      "box": {
+        "cx": 1.5348434322033904,
+        "cz": 0.186087288135593,
+        "w": 1.499999152542373,
+        "d": 1.7844038135593225,
+        "yawDeg": 270
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5,
+      "inner": {
+        "w": 1.524,
+        "d": 1.8288
+      }
+    },
+    {
+      "id": "counter-1",
+      "source": "real",
+      "kind": "counter",
+      "label": "Side table",
+      "box": {
+        "cx": -1.266448305084745,
+        "cz": -1.5642256355932205,
+        "w": 0.5337766949152544,
+        "d": 0.4136110169491528,
+        "yawDeg": 270
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-2",
+      "source": "real",
+      "kind": "counter",
+      "label": "Side table",
+      "box": {
+        "cx": -1.2404563559322028,
+        "cz": 0.5985682203389832,
+        "w": 0.46559491525423713,
+        "d": 0.5334,
+        "yawDeg": 180
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-3",
+      "source": "real",
+      "kind": "counter",
+      "label": "Study",
+      "box": {
+        "cx": 2.198014830508475,
+        "cz": -1.2103207627118646,
+        "w": 1.2415864406779662,
+        "d": 0.6132593220338979,
+        "yawDeg": 270
+      },
+      "heightM": 0.75,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "bed-2",
+      "source": "real",
+      "kind": "bed",
+      "label": "Bed",
+      "box": {
+        "cx": -1.9358351694915246,
+        "cz": -0.4829228813559321,
+        "w": 1.5775983050847457,
+        "d": 1.7011542372881363,
+        "yawDeg": 270
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5,
+      "inner": {
+        "w": 1.6001999999999998,
+        "d": 1.7526
+      }
+    },
+    {
+      "id": "wardrobe-1",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "Wardrobe",
+      "box": {
+        "cx": -0.5980031779661007,
+        "cz": -0.42962055084745765,
+        "w": 2.7432,
+        "d": 0.6158961864406776,
+        "yawDeg": 90
+      },
+      "heightM": 2.13,
+      "surfaceHeightM": 2.13
+    },
+    {
+      "id": "wardrobe-2",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "Dressing / storage",
+      "box": {
+        "cx": -1.0683067796610164,
+        "cz": 0.5985682203389832,
+        "w": 0.12129576271186421,
+        "d": 0.5334,
+        "yawDeg": 180
+      },
+      "heightM": 2.13,
+      "surfaceHeightM": 2.13
+    }
+  ],
+  "spawn": {
+    "x": -1.8122874945002465,
+    "z": 1.4343283898305086,
+    "yawDeg": 180
+  },
+  "updatedAt": "2026-11-12T15:04:48.002Z"
+}
