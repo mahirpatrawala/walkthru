@@ -37,7 +37,7 @@ function lineOf(a: Px, b: Px, tolDeg = 8): Line | null {
 }
 
 /** Wall faces, gap bands and barrier strokes as snap lines, in the dominant frame. */
-function snapLines(walls: WallSet, gaps: Gap[], barriers: [Px, Px][]): Line[] {
+export function snapLines(walls: WallSet, gaps: Gap[], barriers: [Px, Px][]): Line[] {
   const out: Line[] = [];
   const d = walls.dominant;
   const addRing = (r: Px[]): void => {
@@ -49,7 +49,7 @@ function snapLines(walls: WallSet, gaps: Gap[], barriers: [Px, Px][]): Line[] {
   return out;
 }
 
-function polygonFromMask(bm: Bitmap, mask: Uint8Array, walls: WallSet, lines: Line[]): Px[] {
+export function polygonFromMask(bm: Bitmap, mask: Uint8Array, walls: WallSet, lines: Line[]): Px[] {
   const t = walls.t;
   let ring = bm.outerContour(mask);
   if (ring.length < 3) return ring;
@@ -142,7 +142,7 @@ function touchesWall(bm: Bitmap, p: Px, r: number): boolean {
 export function barrierSegments(page: VectorPage, walls: WallSet, wallPixels: Bitmap): { segs: [Px, Px][]; widths: number[] } {
   const t = walls.t;
   const segs: [Px, Px][] = []; const widths: number[] = [];
-  const touch = 0.6 * t;
+  const touch = 0.35 * t;
   const axial = (a: Px, b: Px): boolean => {
     let ang = (Math.atan2(b.y - a.y, b.x - a.x) - walls.dominant) * 180 / Math.PI;
     ang = ((ang % 90) + 90) % 90;

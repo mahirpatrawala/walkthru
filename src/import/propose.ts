@@ -12,7 +12,10 @@ import { classifyPage, normalizePage, roomLabelCount } from './vector-page';
 import { parseLabels } from './labels';
 import type { FurnitureLabel, RoomLabel } from './labels';
 import { bridgeGaps, selectWalls, wallBitmap } from './walls';
-import { findRegions, pxSizeFor } from './regions';
+import { barrierSegments, findRegions, pxSizeFor } from './regions';
+import { doorsFromArcs, findDoorArcs, findPassages, wallLessJunctions } from './passage';
+import type { DoorArc } from './passage';
+import { formatFtIn } from '../core/units';
 import type { RegionResult } from './regions';
 import { collectOutlines, matchOutline, outlineVotes, roomVotes, voteScale } from './scale';
 import { buildOpenings } from './openings';
@@ -26,7 +29,12 @@ export interface ProposeOptions { /** 0-based page index to use as the plan */ p
 const slug = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'room';
 const MIN_PATHS = 20;
 
-/** Rectangle of the labelled size centred on the label, shifted up to 0.5 m per axis to meet the nearest wall faces. */
+/**
+ * Rectangle of the labelled size on the label. Walls and the wall-to-wall strokes of pass 2 (window strokes) count as
+ * walls for the rays. Orientation: the one whose sides fit the finite wall-to-wall spans; a tie falls back to the
+ * spec's longer extent of free space. Then it is shifted so edges meet the nearest wall faces.
+ * SPEC-GAP: 13.5 limits the shift to 0.5 m. The reference's master room label sits 0.85 m off the true wall, so 1.0 m.
+ */
 function labelRect(label: RoomLabel, dimsM: { w: number; l: number }, walls: Bitmap, ptPerM: number): Px[] {
   const cap = 6 * ptPerM;
   const ray = (dx: number, dy: number): number => {
@@ -35,11 +43,15 @@ function labelRect(label: RoomLabel, dimsM: { w: number; l: number }, walls: Bit
     return Infinity;
   };
   const left = ray(-1, 0), right = ray(1, 0), up = ray(0, -1), down = ray(0, 1);
-  const extX = Math.min(left, cap) + Math.min(right, cap), extY = Math.min(up, cap) + Math.min(down, cap);
+  const spanX = left + right, spanY = up + down; // Infinity unless walls on both sides
   const longPt = Math.max(dimsM.w, dimsM.l) * ptPerM, shortPt = Math.min(dimsM.w, dimsM.l) * ptPerM;
-  const W = extX >= extY ? longPt : shortPt;
-  const H = extX >= extY ? shortPt : longPt;
-  const maxShift = 0.5 * ptPerM;
+  const violations = (W: number, H: number): number => Number(W > 1.06 * spanX) + Number(H > 1.06 * spanY);
+  const v1 = violations(longPt, shortPt), v2 = violations(shortPt, longPt);
+  const extX = Math.min(left, cap) + Math.min(right, cap), extY = Math.min(up, cap) + Math.min(down, cap);
+  const longAlongX = v1 !== v2 ? v1 < v2 : extX >= extY;
+  const W = longAlongX ? longPt : shortPt;
+  const H = longAlongX ? shortPt : longPt;
+  const maxShift = 1.0 * ptPerM;
   const place = (centre: number, size: number, lo: number, hi: number): number => {
     const a = centre - size / 2, b = centre + size / 2;
     const opts: number[] = [];
@@ -134,12 +146,37 @@ export function proposeFromPages(pagesIn: VectorPage[], sourceFile: string, scen
   }
 
   // ---- label rectangles for rooms that still leak
+  let rays: Bitmap | null = null;
+  const rayMap = (): Bitmap => {
+    if (!rays) {
+      rays = bitmap.clone();
+      const { segs, widths } = barrierSegments(plan, walls, bitmap);
+      segs.forEach(([a, b], k) => rays!.drawSegment(a, b, widths[k], WALL));
+    }
+    return rays;
+  };
   const finalRegions: (RegionResult & { polygon: Px[] })[] = [];
   for (const r of regions) {
     if (r.polygon) { finalRegions.push(r as RegionResult & { polygon: Px[] }); continue; }
     if (!r.label.dims) { warnings.push(`Room "${r.label.name}" is not closed by walls and has no labelled size. Left out. Add it in the editor.`); continue; }
-    const rect = labelRect(r.label, r.label.dims, bitmap, ptPerM);
+    const rect = labelRect(r.label, r.label.dims, rayMap(), ptPerM);
     finalRegions.push({ ...r, polygon: rect, areaPt2: Math.abs(polygonArea(rect.map((p) => ({ x: p.x, z: p.y })))) });
+  }
+  for (const r of finalRegions) {
+    const l = r.label;
+    if (!l.dims || !l.areaM2) continue;
+    const dimsM2 = l.dims.w * l.dims.l;
+    if (Math.abs(l.areaM2 / dimsM2 - 1) <= 0.03) continue;
+    const sq = (m2: number): number => m2 / 0.09290304;
+    // do the drawn walls agree with the dimensions? both axes need a wall on each side
+    const rm = rayMap();
+    const c = l.centre; const cap = 6 * ptPerM;
+    const hit = (dx: number, dy: number): number => { for (let d = 0; d <= cap; d += rm.px * 0.5) if (rm.at({ x: c.x + dx * d, y: c.y + dy * d }) === WALL) return d; return Infinity; };
+    const sx = hit(-1, 0) + hit(1, 0), sy = hit(0, -1) + hit(0, 1);
+    const lo = Math.min(l.dims.w, l.dims.l), hi = Math.max(l.dims.w, l.dims.l);
+    const [a, b] = [Math.min(sx, sy) / ptPerM, Math.max(sx, sy) / ptPerM];
+    const agree = Number.isFinite(a) && Number.isFinite(b) && Math.abs(a / lo - 1) <= 0.03 && Math.abs(b / hi - 1) <= 0.03;
+    warnings.push(`Label says ${Math.round(sq(l.areaM2))} sq ft but ${formatFtIn(l.dims.w)}×${formatFtIn(l.dims.l)} is ${sq(dimsM2).toFixed(1)} sq ft.` + (agree ? ` The drawn walls agree with ${formatFtIn(l.dims.w)}×${formatFtIn(l.dims.l)}.` : ''));
   }
   for (const r of finalRegions) if (r.method === 'label-rect') warnings.push(`Room "${r.label.name}" is not closed by walls on the drawing. Drawn as a rectangle of its labelled size. Check it.`);
   if (!roomLabels.length) warnings.push('No room labels found on the plan. Add the rooms in the editor.');
@@ -179,8 +216,79 @@ export function proposeFromPages(pagesIn: VectorPage[], sourceFile: string, scen
     ? [{ openingId: openings.find((o) => o.type === 'window')!.id, sillM: openings.find((o) => o.type === 'window')!.sillM, headM: openings.find((o) => o.type === 'window')!.headM }]
     : undefined;
 
+  // ---- doors from swing arcs, then the drawn passage that the doors lead to
+  const arcs = findDoorArcs(plan, ptPerM, gaps, t);
+  const usedArcs = new Set<DoorArc>();
+  const ids = new Set(openings.map((o) => o.id));
+  const toPage = (w: Vec2): Px => ({ x: w.x * ptPerM + cxPt, y: w.z * ptPerM + cyPt });
+  const arcDoors1 = doorsFromArcs(rooms, openings, arcs, toWorld, usedArcs, ids);
+  warnings.push(...arcDoors1.warnings);
+  let allOpenings: Opening[] = [...openings, ...arcDoors1.doors];
+  let allRooms: RoomTag[] = rooms;
+  const extraFindings: RoomFinding[] = [];
+  let spawnOverride: { x: number; z: number; yawDeg: number } | null = null;
+  {
+    // a point 0.5 m beyond each door or opening, outside the room it is on
+    const seeds: Px[] = [];
+    for (const o of allOpenings) {
+      const room = rooms.find((r) => r.id === o.roomId)!;
+      const p = room.polygon[o.edge], q = room.polygon[(o.edge + 1) % room.polygon.length];
+      const L = Math.hypot(q.x - p.x, q.z - p.z); const e = { x: (q.x - p.x) / L, z: (q.z - p.z) / L };
+      const c = { x: p.x + e.x * o.centreM, z: p.z + e.z * o.centreM };
+      seeds.push(toPage({ x: c.x + e.z * 0.5, z: c.z - e.x * 0.5 }));
+    }
+    const roomRings = rooms.map((r) => r.polygon.map(toPage));
+    const found = findPassages(bitmap, walls, gaps, plan, roomRings, roomLabels, barrierSegments(plan, walls, bitmap).segs, seeds, ptPerM);
+    if (found.length) {
+      const tags2: RoomTag[] = [...rooms];
+      found.forEach((f, k) => {
+        let poly = f.polygon.map(toWorld);
+        if (polygonArea(poly) < 0) poly = poly.reverse();
+        let s0 = 0; poly.forEach((p, i) => { const q = poly[s0]; if (p.z < q.z - 1e-6 || (Math.abs(p.z - q.z) <= 1e-6 && p.x < q.x)) s0 = i; });
+        poly = [...poly.slice(s0), ...poly.slice(0, s0)];
+        let id = found.length > 1 ? `passage-${k + 1}` : 'passage'; while (tags2.some((r) => r.id === id)) id += 'x';
+        const label = found.length > 1 ? `Passage ${k + 1}` : 'Passage';
+        tags2.push({ id, roomType: 'other', label, polygon: poly, edges: poly.map(() => 'wall' as const) });
+        extraFindings.push({ id, label, roomType: 'other', method: 'walls+strokes', confidence: 0.7, areaM2: polygonArea(poly) });
+        if (f.leaksAtBorder) warnings.push(`${label} runs off the edge of the drawing. It is closed at the drawing border. Check its length.`);
+      });
+      allRooms = tags2.map((tag) => normalizeRoom({ ...tag, edges: defaultEdges(tag, tags2) }));
+      const passages = allRooms.filter((r) => !rooms.some((x) => x.id === r.id));
+      // doors for the passages from the arcs that are still free
+      const arcDoors2 = doorsFromArcs(passages, allOpenings, arcs, toWorld, usedArcs, ids);
+      warnings.push(...arcDoors2.warnings.map((w) => w.replace('has no door on the drawing. A door', 'has an entry door on the drawing. A door').replace('was placed where its swing arc hinges on the wall.', 'was found at its swing arc.')));
+      allOpenings = [...allOpenings, ...arcDoors2.doors];
+      // stretches where a passage meets a room with no wall between: an open doorway
+      const wallAt = (w: Vec2): boolean => bitmap.at(toPage(w)) === WALL;
+      for (const ps of passages) for (const r of allRooms) {
+        if (r.id === ps.id || passages.some((x) => x.id === r.id)) continue;
+        for (const j of wallLessJunctions(ps, r, wallAt)) {
+          const rp = r.polygon[j.bEdge], rq = r.polygon[(j.bEdge + 1) % r.polygon.length];
+          const L = Math.hypot(rq.x - rp.x, rq.z - rp.z); const e = { x: (rq.x - rp.x) / L, z: (rq.z - rp.z) / L };
+          const u0 = (j.p0.x - rp.x) * e.x + (j.p0.z - rp.z) * e.z, u1 = (j.p1.x - rp.x) * e.x + (j.p1.z - rp.z) * e.z;
+          const lo = Math.min(u0, u1), hi = Math.max(u0, u1);
+          if (allOpenings.some((o) => o.roomId === r.id && o.edge === j.bEdge && Math.min(hi, o.centreM + o.widthM / 2) - Math.max(lo, o.centreM - o.widthM / 2) > 0.3 * (hi - lo))) continue;
+          let k = allOpenings.length + 1; while (ids.has(`opening-${k}`)) k++; ids.add(`opening-${k}`);
+          allOpenings.push({ id: `opening-${k}`, roomId: r.id, edge: j.bEdge, type: 'opening', centreM: (lo + hi) / 2, widthM: hi - lo, sillM: 0, headM: 2.1 });
+          warnings.push(`${ps.label} meets ${r.label} with no wall drawn between them. An open doorway ${(hi - lo).toFixed(2)} m wide was added.`);
+        }
+      }
+      // spawn just inside the passage's entry door, facing in
+      const entry = allOpenings.find((o) => passages.some((x) => x.id === o.roomId) && o.type === 'door');
+      if (entry) {
+        const room = allRooms.find((r) => r.id === entry.roomId)!;
+        const p = room.polygon[entry.edge], q = room.polygon[(entry.edge + 1) % room.polygon.length];
+        const L = Math.hypot(q.x - p.x, q.z - p.z); const e = { x: (q.x - p.x) / L, z: (q.z - p.z) / L };
+        const c = { x: p.x + e.x * entry.centreM, z: p.z + e.z * entry.centreM };
+        const inward = { x: -e.z, z: e.x }; // opposite of the outward normal (dz, -dx)
+        const depth = 0.5;
+        spawnOverride = { x: c.x + inward.x * depth, z: c.z + inward.z * depth, yawDeg: ((Math.atan2(inward.x, inward.z) * 180) / Math.PI + 360) % 360 };
+      }
+    }
+  }
+
   // ---- furniture
-  const fr = buildFurniture(furniture, outlines, t, ptPerM, toWorld, bitmap);
+  const fr = buildFurniture(furniture, outlines, t, ptPerM, toWorld, bitmap, plan.strokes, walls.colors, walls.polys.map((q) => q.ring));
   const items = fr.items;
 
   // ---- ceiling
@@ -195,18 +303,18 @@ export function proposeFromPages(pagesIn: VectorPage[], sourceFile: string, scen
   if (!elevations.length && !ceilingRes.warnings.length) warnings.push('No elevation pages found. Ceiling height set to 2.75 m. Confirm it.');
 
   // ---- layout, validation, spawn
-  const layout: Layout = { ...createEmptyProperty(sceneId).layout, wallHeightM: ceiling.heightM, rooms, openings, scaleSource: 'plan-dimensions' };
+  const layout: Layout = { ...createEmptyProperty(sceneId).layout, wallHeightM: ceiling.heightM, rooms: allRooms, openings: allOpenings, scaleSource: 'plan-dimensions' };
   const v = validateLayout(layout);
   for (const e of v.errors) warnings.push(`Layout check: ${e}`);
-  const spawn = chooseSpawn(layout, items);
-  if (!spawn && rooms.length) warnings.push('No clear spot for the starting position. Place it in the editor.');
+  const spawn = spawnOverride ?? chooseSpawn(layout, items);
+  if (!spawn && allRooms.length) warnings.push('No clear spot for the starting position. Place it in the editor.');
 
-  const confidence = Math.min(scaleConf, ...draft.map((d) => d.region.confidence), 1);
-  const proposal: LayoutProposal = { version: 1, source: 'drawing-import@1', rooms, openings, wallHeightM: ceiling.heightM, confidence, notes: warnings };
+  const confidence = Math.min(scaleConf, ...draft.map((d) => d.region.confidence), ...extraFindings.map((f) => f.confidence), 1);
+  const proposal: LayoutProposal = { version: 1, source: 'drawing-import@1', rooms: allRooms, openings: allOpenings, wallHeightM: ceiling.heightM, confidence, notes: warnings };
   const extras: ProposalExtras = {
     version: 1, sourceFile, planPage: planIdx + 1,
     scale: { ptPerM, votes: usedVotes, agreeing, disagreementPct },
-    rooms: draft.map((d) => d.region), ceiling, furniture: items, unmapped: fr.unmapped,
+    rooms: [...draft.map((d) => d.region), ...extraFindings], ceiling, furniture: items, unmapped: fr.unmapped,
     ...(windowHeights ? { windowHeights } : {}), spawn, warnings,
   };
   return { proposal, extras };

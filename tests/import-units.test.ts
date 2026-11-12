@@ -57,7 +57,10 @@ describe('label parsing', () => {
     expect(one('DINING')!.kind).toBe('room');
     expect(one('STUDY')!.kind).toBe('furniture');
     expect(one('STUDY ROOM')!.kind).toBe('room');
-    expect(one('DRESSING STORAGE')).toBeNull();
+    const d = one('DRESSING STORAGE');
+    expect(d!.kind).toBe('furniture');
+    if (d!.kind === 'furniture') { expect(d!.key).toBe('dressing'); expect(d!.name).toBe('Dressing / storage'); }
+    expect(one('NOTES')).toBeNull();
   });
   it('room types follow the spec mapping', () => {
     expect(roomTypeOf('MASTER ROOM')).toBe('bedroom');

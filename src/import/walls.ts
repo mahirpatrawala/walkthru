@@ -183,7 +183,9 @@ export function wallBitmap(page: VectorPage, walls: WallSet, px: number): Bitmap
 
 interface Face { c: Px; n: Px; len: number; poly: number }
 
-/** Step 4. */
+/**
+ * Step 4. SPEC-GAP: 13.5 bridges gaps of 2 t to 14 t. The reference drawing's son-room window is 14.2 t, so the limit is 16 t.
+ */
 export function bridgeGaps(walls: WallSet, mask: Bitmap): Gap[] {
   const t = walls.t;
   const faces: Face[] = [];
@@ -212,7 +214,7 @@ export function bridgeGaps(walls: WallSet, mask: Bitmap): Gap[] {
     const dx = B.c.x - A.c.x, dy = B.c.y - A.c.y;
     const along = dx * A.n.x + dy * A.n.y;
     const lateral = Math.abs(dx * A.n.y - dy * A.n.x);
-    if (along < 2 * t || along > 14 * t || lateral > 0.5 * t) continue;
+    if (along < 2 * t || along > 16 * t || lateral > 0.5 * t) continue;
     if ((A.c.x - B.c.x) * B.n.x + (A.c.y - B.c.y) * B.n.y < 0) continue;
     // no wall lies between the two faces
     const steps = Math.max(4, Math.ceil(along / mask.px));

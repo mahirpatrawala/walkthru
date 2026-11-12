@@ -17,7 +17,7 @@ export interface RoomLabel {
   kind: 'room'; block: LabelBlock; name: string; roomType: RoomType;
   dims?: { w: number; l: number }; areaM2?: number; centre: Px;
 }
-export type FurnitureKey = 'bed' | 'sofa' | 'dining' | 'wardrobe' | 'study' | 'desk' | 'side table' | 'tv unit';
+export type FurnitureKey = 'bed' | 'sofa' | 'dining' | 'wardrobe' | 'dressing' | 'study' | 'desk' | 'side table' | 'tv unit';
 export interface FurnitureLabel {
   kind: 'furniture'; block: LabelBlock; key: FurnitureKey; name: string;
   dims?: { w: number; l: number }; runningLengthM?: number; centre: Px; angle: number;
@@ -125,6 +125,7 @@ const FURN: { key: FurnitureKey; re: RegExp }[] = [
   { key: 'side table', re: /^SIDE\s*TABLE\b/i },
   { key: 'tv unit', re: /^TV\s*UNIT\b/i },
   { key: 'wardrobe', re: /^WARDROBE\b/i },
+  { key: 'dressing', re: /^DRESSING\b/i },
   { key: 'bed', re: /^BED(?!\s*ROOM|ROOM)\b/i },
   { key: 'sofa', re: /^SOFA\b/i },
   { key: 'study', re: /^STUDY(?!\s*ROOM)\b/i },
@@ -182,7 +183,7 @@ export function parseBlock(block: LabelBlock): RoomLabel | FurnitureLabel | null
   const full = nameLines.join(' ').replace(/\s+/g, ' ').trim();
   for (const f of FURN) {
     if (f.re.test(head)) {
-      const name = f.key === 'wardrobe' ? 'Wardrobe' : titleCase(head.replace(/=.*$/, '').trim());
+      const name = f.key === 'wardrobe' ? 'Wardrobe' : f.key === 'dressing' ? 'Dressing / storage' : f.key === 'side table' ? 'Side table' : titleCase(head.replace(/=.*$/, '').trim());
       return { kind: 'furniture', block, key: f.key, name, dims, runningLengthM: running, centre: block.centre, angle: block.angle };
     }
   }

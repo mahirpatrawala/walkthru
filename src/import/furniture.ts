@@ -5,7 +5,7 @@ import type { Bitmap } from './bitmap';
 import { WALL } from './bitmap';
 import type { Outline } from './scale';
 import { matchOutline } from './scale';
-import type { ProposalExtras } from './types';
+import type { ProposalExtras, VStroke } from './types';
 
 type Unmapped = ProposalExtras['unmapped'][number];
 
@@ -15,7 +15,11 @@ const SPEC: Partial<Record<FurnitureLabel['key'], { kind: FurnitureKind; heightM
   dining: { kind: 'dining', heightM: 0.95, surfaceHeightM: 0.75 },
   study: { kind: 'counter', heightM: 0.75, surfaceHeightM: 0.75 },
   desk: { kind: 'counter', heightM: 0.75, surfaceHeightM: 0.75 },
-  wardrobe: { kind: 'wardrobe', heightM: 2.1, surfaceHeightM: 2.1 },
+  // The wardrobe height is 2.13 m (7 ft) unless an elevation gives one; no elevation here carries height as text.
+  wardrobe: { kind: 'wardrobe', heightM: 2.13, surfaceHeightM: 2.13 },
+  dressing: { kind: 'wardrobe', heightM: 2.13, surfaceHeightM: 2.13 },
+  // SPEC-GAP: the catalogue has no side-table kind, so a side table is a low counter item (types.ts is not widened).
+  'side table': { kind: 'counter', heightM: 0.55, surfaceHeightM: 0.55 },
 };
 
 /** Distance in page units from `from` along `dir` to the first wall pixel, capped. */
@@ -55,40 +59,96 @@ export function boxFromOutline(o: Outline, walls: Bitmap, ptPerM: number, toWorl
   return { cx: c.x, cz: c.z, w: widthPt / ptPerM, d: depthPt / ptPerM, yawDeg: yaw };
 }
 
+/**
+ * A built-in wardrobe given as "WARDROBE=9'0"RFT": the run of shutter and hanger strokes beside the label, against the
+ * nearest wall. The label sits on the open side of the band, so the band lies between the label and the wall.
+ * Returns the band as an oriented rectangle (back on the wall), or null.
+ */
+export function wardrobeBand(
+  label: FurnitureLabel, strokes: VStroke[], wallColors: string[], walls: Bitmap, ptPerM: number, wallRings: Px[][] = [],
+): Outline | null {
+  if (!label.runningLengthM) return null;
+  const L = label.runningLengthM * ptPerM;
+  const a = (label.angle * Math.PI) / 180;
+  const u = { x: Math.cos(a), y: Math.sin(a) };
+  const v = { x: -Math.sin(a), y: Math.cos(a) };
+  const cap = 1.5 * ptPerM;
+  const c = label.centre;
+  const dPlus = rayToWall(walls, c, v, cap), dMinus = rayToWall(walls, c, { x: -v.x, y: -v.y }, cap);
+  if (Math.min(dPlus, dMinus) >= cap) return null;
+  const n = dPlus <= dMinus ? v : { x: -v.x, y: -v.y };
+  let dWall = Math.min(dPlus, dMinus);
+  // the ray is pixel-quantised; move it onto the exact face of the wall piece it hit
+  let exact = Infinity;
+  for (const r of wallRings) for (let i = 0; i < r.length; i++) {
+    const a = r[i], b = r[(i + 1) % r.length];
+    const ex = b.x - a.x, ey = b.y - a.y; const den = n.x * ey - n.y * ex;
+    if (Math.abs(den) < 1e-9) continue;
+    const dx = a.x - c.x, dy = a.y - c.y;
+    const d = (dx * ey - dy * ex) / den, k = (dx * n.y - dy * n.x) / den;
+    if (k >= -1e-6 && k <= 1 + 1e-6 && d > 0 && Math.abs(d - dWall) <= 2 * walls.px) exact = Math.min(exact, d);
+  }
+  if (Number.isFinite(exact)) dWall = exact;
+  const tol = walls.px * 0.5 + 0.5;
+  let s0 = Infinity, s1 = -Infinity, d0 = Infinity, count = 0;
+  for (const st of strokes) {
+    if (wallColors.includes(st.color)) continue;
+    let ok = true;
+    let a0 = Infinity, a1 = -Infinity, e0 = Infinity;
+    for (const p of st.points) {
+      const dx = p.x - c.x, dy = p.y - c.y;
+      const ss = dx * u.x + dy * u.y, dd = dx * n.x + dy * n.y;
+      if (Math.abs(ss) > 0.5 * L + 1 || dd < -1 || dd > dWall + tol) { ok = false; break; }
+      a0 = Math.min(a0, ss); a1 = Math.max(a1, ss); e0 = Math.min(e0, dd);
+    }
+    if (!ok) continue;
+    s0 = Math.min(s0, a0); s1 = Math.max(s1, a1); d0 = Math.min(d0, e0); count++;
+  }
+  if (count < 6) return null;
+  const measured = s1 - s0, depth = dWall - d0;
+  if (Math.abs(measured - L) / L > 0.15 || depth < 0.3 * ptPerM || depth > 1.0 * ptPerM) return null;
+  const length = L; // the label gives the run; the strokes only place it
+  const sMid = (s0 + s1) / 2, dMid = (d0 + dWall) / 2;
+  const cx = c.x + u.x * sMid + n.x * dMid, cy = c.y + u.y * sMid + n.y * dMid;
+  const ang = Math.atan2(u.y, u.x);
+  const corner = (ss: number, dd: number): Px => ({ x: cx + u.x * ss + n.x * dd, y: cy + u.y * ss + n.y * dd });
+  return { cx, cy, a: length, b: depth, ang, corners: [corner(-length / 2, -depth / 2), corner(length / 2, -depth / 2), corner(length / 2, depth / 2), corner(-length / 2, depth / 2)], closed: false };
+}
+
 export function buildFurniture(
   labels: FurnitureLabel[], outlines: Outline[], t: number, ptPerM: number, toWorld: (p: Px) => Vec2, walls: Bitmap,
+  strokes: VStroke[] = [], wallColors: string[] = [], wallRings: Px[][] = [],
 ): { items: FurnitureItem[]; unmapped: Unmapped[]; matched: Map<FurnitureLabel, Outline> } {
   const items: FurnitureItem[] = []; const unmapped: Unmapped[] = []; const matched = new Map<FurnitureLabel, Outline>();
   const counts: Partial<Record<FurnitureKind, number>> = {};
-  for (const l of labels) {
+  const used = new Set<Outline>();
+  // sized labels first so that an unsized label (Dressing / storage) only takes an outline nobody else owns
+  const ordered = [...labels].sort((x, y) => Number(!!y.dims) - Number(!!x.dims));
+  for (const l of ordered) {
     const at = toWorld(l.centre);
     const sizeM = l.dims ? { w: Math.min(l.dims.w, l.dims.l), l: Math.max(l.dims.w, l.dims.l) } : undefined;
     const spec = SPEC[l.key];
     if (!spec) { unmapped.push({ label: l.name, sizeM, at, reason: `No furniture kind for a ${l.key}.` }); continue; }
     let o: Outline | null = null;
     if (l.key === 'wardrobe') {
-      // a closed outline at least 0.45 m deep that contains or touches the label, and spans the labelled run
-      const need = 0.45 * ptPerM;
-      const near = outlines.filter((q) => {
-        if (Math.min(q.a, q.b) < need) return false;
-        const dx = l.centre.x - q.cx, dy = l.centre.y - q.cy;
-        const cs = Math.cos(q.ang), sn = Math.sin(q.ang);
+      o = wardrobeBand(l, strokes, wallColors, walls, ptPerM, wallRings);
+      if (!o) { unmapped.push({ label: l.name, sizeM: l.runningLengthM ? { w: 0, l: l.runningLengthM } : undefined, at, reason: 'Wardrobe run only, and no band of shutter strokes against a wall of that length beside the label.' }); continue; }
+    } else if (l.key === 'dressing') {
+      // no size on the label: the nearest drawn rectangle (closed, or three-sided) that no other label has taken
+      const dist = (q: Outline): number => {
+        const dx = l.centre.x - q.cx, dy = l.centre.y - q.cy, cs = Math.cos(q.ang), sn = Math.sin(q.ang);
         const uu = dx * cs + dy * sn, vv = -dx * sn + dy * cs;
-        return Math.hypot(Math.max(0, Math.abs(uu) - q.a / 2), Math.max(0, Math.abs(vv) - q.b / 2)) <= 0.15 * ptPerM;
-      }).sort((x, y) => x.a * x.b - y.a * y.b);
-      o = near[0] ?? null;
-      if (o && l.runningLengthM) {
-        const longM = Math.max(o.a, o.b) / ptPerM;
-        if (Math.abs(longM - l.runningLengthM) / l.runningLengthM > 0.25) {
-          unmapped.push({ label: l.name, sizeM: { w: 0, l: l.runningLengthM }, at, reason: `Wardrobe run ${l.runningLengthM.toFixed(2)} m, but the outline beside the label is ${longM.toFixed(2)} m. Not boxed.` });
-          continue;
-        }
-      }
-      if (!o) { unmapped.push({ label: l.name, sizeM: l.runningLengthM ? { w: 0, l: l.runningLengthM } : undefined, at, reason: 'Wardrobe run only, no closed outline beside the label.' }); continue; }
+        return Math.hypot(Math.max(0, Math.abs(uu) - q.a / 2), Math.max(0, Math.abs(vv) - q.b / 2));
+      };
+      const free = outlines.filter((q) => !used.has(q) && Math.min(q.a, q.b) >= 0.1 * ptPerM && Math.max(q.a, q.b) <= 2.5 * ptPerM && dist(q) <= 0.8 * ptPerM)
+        .sort((x, y) => dist(x) - dist(y) || x.a * x.b - y.a * y.b);
+      o = free[0] ?? null;
+      if (!o) { unmapped.push({ label: l.name, at, reason: 'No drawn outline near the label that another label has not taken.' }); continue; }
     } else {
-      o = matchOutline(l, outlines, t);
+      o = matchOutline(l, outlines.filter((q) => !used.has(q) || l.key === 'side table'), t);
       if (!o) { unmapped.push({ label: l.name, sizeM, at, reason: 'No outline of the labelled proportions near the label.' }); continue; }
     }
+    used.add(o);
     matched.set(l, o);
     const box = boxFromOutline(o, walls, ptPerM, toWorld, (l.angle * Math.PI) / 180);
     counts[spec.kind] = (counts[spec.kind] ?? 0) + 1;

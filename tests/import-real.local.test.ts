@@ -9,8 +9,10 @@ import { classifyPage, normalizePage } from '../src/import/vector-page';
 import { selectWalls } from '../src/import/walls';
 import { proposeFromPages } from '../src/import/propose';
 import type { ImportResult, VectorPage } from '../src/import/types';
-import { polygonArea } from '../src/core/geometry';
-import { reviewSummary } from '../scripts/import-drawing';
+import { pointInPolygon, polygonArea } from '../src/core/geometry';
+import { rasterizeLayout, stampFurniture } from '../src/core/layout-raster';
+import { validateLayout } from '../src/core/layout-validate';
+import { buildDraftProperty, reviewSummary } from '../scripts/import-drawing';
 
 const file = process.env.WALKTHRU_REAL_DRAWING ?? path.join(os.homedir(), 'Downloads', 'SON BEDROOM-Binder1.pdf');
 
@@ -40,16 +42,18 @@ describe.skipIf(!fs.existsSync(file))('real drawing: SON BEDROOM-Binder1.pdf', (
     expect(w.colors).toContain('#b3b3b3');
     expect(w.colors).not.toContain('#000000');
   });
-  it('finds two rooms, Son Room and Master Room, both bedrooms', () => {
-    expect(r.proposal.rooms.map((x) => x.label).sort()).toEqual(['Master Room', 'Son Room']);
+  it('finds two bedrooms, Son Room and Master Room, and the drawn Passage', () => {
+    expect(r.proposal.rooms.map((x) => x.label).sort()).toEqual(['Master Room', 'Passage', 'Son Room']);
     expect(room('Son Room').roomType).toBe('bedroom');
     expect(room('Master Room').roomType).toBe('bedroom');
   });
-  it('Son Room: short side 3.35 m and area 13.94 m2, each within 3%', () => {
+  it('Son Room: the label dimensions 11\'0" x 12\'6" within 3%, and the 150 SQFT disagreement is reported', () => {
     const d = dims('Son Room');
     console.log(`Son Room measured: short ${d.short.toFixed(3)} m, long ${d.long.toFixed(3)} m, area ${d.area.toFixed(3)} m2`);
     expect(within(d.short, 3.3528, 0.03)).toBe(true);
-    expect(within(d.area, 13.94, 0.03)).toBe(true);
+    expect(within(d.long, 3.81, 0.03)).toBe(true);
+    expect(within(d.area, 3.3528 * 3.81, 0.03)).toBe(true);
+    expect(r.extras.warnings).toContain('Label says 150 sq ft but 11\'0"×12\'6" is 137.5 sq ft. The drawn walls agree with 11\'0"×12\'6".');
   });
   it('Master Room: 3.66 x 2.74 m within 3%, cut off by the drawing edge so label-rect', () => {
     const d = dims('Master Room');
@@ -68,13 +72,57 @@ describe.skipIf(!fs.existsSync(file))('real drawing: SON BEDROOM-Binder1.pdf', (
     expect(son).toBeDefined(); expect(master).toBeDefined();
     expect(within(son.inner!.w, 1.524, 0.01) && within(son.inner!.d, 1.8288, 0.01)).toBe(true);
     expect(within(master.inner!.w, 1.6002, 0.01) && within(master.inner!.d, 1.7526, 0.01)).toBe(true);
-    const study = r.extras.furniture.find((f) => f.kind === 'counter')!;
+    const study = r.extras.furniture.find((f) => f.label === 'Study')!;
     expect(study).toBeDefined();
     console.log(`Study box ${Math.min(study.box.w, study.box.d).toFixed(3)} x ${Math.max(study.box.w, study.box.d).toFixed(3)} m`);
     expect(within(Math.min(study.box.w, study.box.d), 0.6096, 0.03)).toBe(true);
     expect(within(Math.max(study.box.w, study.box.d), 1.2192, 0.03)).toBe(true);
-    const un = r.extras.unmapped.map((u) => u.label);
-    expect(un).toContain('Side Table');
+    expect(r.extras.unmapped).toEqual([]);
+  });
+  it('wardrobe 2.74 x 0.61, dressing / storage, and both side tables are placed', () => {
+    const w = r.extras.furniture.find((f) => f.label === 'Wardrobe')!;
+    expect(w.kind).toBe('wardrobe');
+    console.log(`Wardrobe box ${Math.max(w.box.w, w.box.d).toFixed(3)} x ${Math.min(w.box.w, w.box.d).toFixed(3)} m, height ${w.heightM}`);
+    expect(within(Math.max(w.box.w, w.box.d), 2.7432, 0.03)).toBe(true);
+    expect(within(Math.min(w.box.w, w.box.d), 0.6096, 0.06)).toBe(true);
+    expect(r.extras.furniture.find((f) => f.label === 'Dressing / storage')!.kind).toBe('wardrobe');
+    const st = r.extras.furniture.filter((f) => f.label === 'Side table');
+    expect(st.length).toBe(2);
+    for (const f of st) expect(f.kind).toBe('counter');
+  });
+  it('the drawn passage is about 0.94 m deep, has the entry door, and everything is reachable from the spawn', () => {
+    const d = dims('Passage');
+    console.log(`Passage measured ${d.long.toFixed(3)} x ${d.short.toFixed(3)} m`);
+    expect(within(d.short, 0.94, 0.05)).toBe(true);
+    expect(r.extras.rooms.find((x) => x.label === 'Passage')!.method).toMatch(/^walls/);
+    expect(r.extras.warnings.some((w) => /runs off the edge of the drawing/.test(w))).toBe(true);
+    const entry = r.proposal.openings.find((o) => o.roomId === 'passage' && o.type === 'door')!;
+    console.log(`Entry door ${entry.widthM.toFixed(3)} m wide`);
+    expect(within(entry.widthM, 0.84, 0.1)).toBe(true);
+    const prop = buildDraftProperty('son-bedroom', r);
+    expect(validateLayout(prop.layout).errors).toEqual([]);
+    const grid = stampFurniture(rasterizeLayout(prop.layout), prop.furniture);
+    const seen = new Uint8Array(grid.nx * grid.nz);
+    const sp = prop.spawn;
+    const si = Math.floor((sp.z - grid.originZ) / grid.cellM) * grid.nx + Math.floor((sp.x - grid.originX) / grid.cellM);
+    expect(grid.cells[si]).toBe(0);
+    const st = [si]; seen[si] = 1;
+    while (st.length) {
+      const k = st.pop()!; const i = k % grid.nx, j = (k - i) / grid.nx;
+      for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const x = i + a, y = j + b; if (x < 0 || y < 0 || x >= grid.nx || y >= grid.nz) continue;
+        const q = y * grid.nx + x; if (!seen[q] && grid.cells[q] === 0) { seen[q] = 1; st.push(q); }
+      }
+    }
+    for (const rm of prop.layout.rooms) {
+      let free = 0, reach = 0;
+      for (let j = 0; j < grid.nz; j++) for (let i = 0; i < grid.nx; i++) {
+        const x = grid.originX + (i + 0.5) * grid.cellM, z = grid.originZ + (j + 0.5) * grid.cellM;
+        if (!pointInPolygon({ x, z }, rm.polygon) || grid.cells[j * grid.nx + i] !== 0) continue;
+        free++; if (seen[j * grid.nx + i]) reach++;
+      }
+      expect(reach / free, `${rm.label} reachable`).toBeGreaterThan(0.99);
+    }
   });
   it('ceiling 2.59 m +/- 0.08 by geometry', () => {
     console.log(`Ceiling measured: ${r.extras.ceiling.heightM.toFixed(3)} m by ${r.extras.ceiling.method}, candidates ${r.extras.ceiling.candidatesM.map((c) => c.toFixed(2)).join(', ')}`);

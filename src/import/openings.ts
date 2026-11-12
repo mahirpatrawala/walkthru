@@ -88,8 +88,10 @@ export function buildOpenings(
   const windowGaps = gaps.filter((g) => classifyGap(g, page, t) === 'window').length;
   gaps.forEach((g, gi) => {
     const widthM = g.widthPt / ptPerM;
-    if (widthM > 2.0 || widthM < 0.55) { warnings.push(`A gap ${widthM.toFixed(2)} m wide was left out. Doors are 0.55 to 2.0 m. Check the scale or add it by hand.`); return; }
     const type = classifyGap(g, page, t);
+    // SPEC-GAP: 13.5 drops gaps over 2.0 m. That is a door limit; the reference's son-room window is 2.14 m, so windows may be 3.0 m.
+    const maxW = type === 'window' ? 3.0 : 2.0;
+    if (widthM > maxW || widthM < 0.55) { warnings.push(`A gap ${widthM.toFixed(2)} m wide was left out. ${type === 'window' ? 'Windows' : 'Doors'} are 0.55 to ${maxW.toFixed(1)} m. Check the scale or add it by hand.`); return; }
     const A = toWorld(g.a), B = toWorld(g.b);
     const M = { x: (A.x + B.x) / 2, z: (A.z + B.z) / 2 };
     const gl = Math.hypot(B.x - A.x, B.z - A.z) || 1;

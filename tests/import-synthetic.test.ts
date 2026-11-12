@@ -201,9 +201,16 @@ describe('10. furniture', () => {
     expect(Math.abs(sofa.box.d - t.d)).toBeLessThanOrEqual(0.04);
     expect(sofa.box.yawDeg).toBeCloseTo(t.yawDeg, 3);
   });
-  it('the side table is left in unmapped', () => {
-    expect(A.extras.unmapped.map((u) => u.label)).toContain('Side Table');
-    expect(A.extras.furniture.length).toBe(2);
+  it('the side table has no catalogue kind, so it is a low counter item labelled Side table (spec said unmapped)', () => {
+    const st = A.extras.furniture.find((f) => f.label === 'Side table')!;
+    expect(st.kind).toBe('counter');
+    const e = at({ cx: 3.675, cz: 0.9 });
+    expect(Math.abs(st.box.cx - e.x)).toBeLessThanOrEqual(0.04);
+    expect(Math.abs(st.box.cz - e.z)).toBeLessThanOrEqual(0.04);
+    expect(Math.min(st.box.w, st.box.d)).toBeCloseTo(0.45, 1);
+    expect(Math.max(st.box.w, st.box.d)).toBeCloseTo(0.6, 1);
+    expect(A.extras.unmapped.length).toBe(0);
+    expect(A.extras.furniture.length).toBe(3);
   });
 });
 
@@ -227,7 +234,7 @@ describe('12. end to end', () => {
     expect(() => validateProperty(JSON.parse(JSON.stringify(prop)))).not.toThrow();
     expect(validateLayout(prop.layout).errors).toEqual([]);
     expect(prop.layout.scaleSource).toBe('plan-dimensions');
-    expect(prop.furniture.length).toBe(2);
+    expect(prop.furniture.length).toBe(3);
   });
   it('its grid agrees with the truth on at least 98% of 10,000 seeded samples', () => {
     const grid = stampFurniture(rasterizeLayout(prop.layout), prop.furniture);

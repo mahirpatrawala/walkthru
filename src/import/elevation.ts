@@ -128,14 +128,32 @@ export function findCeiling(elevations: VectorPage[], extentsM: number[]): { cei
     return { ceiling: { heightM: 2.75, method: 'default', page: null, candidatesM: [], confidence: 0.1 }, warnings, boxes };
   }
   if (all.length === 1) return { ceiling: mk(all[0], 0.7, perPage.find((p) => p.c.length)!.b.page, all), warnings, boxes };
-  // several: prefer the candidate that other elevation pages also produce (within 3%)
-  const pagesFor = (h: number): number => perPage.filter((p) => p.c.some((c) => Math.abs(c - h) / h <= 0.03)).length;
-  const counts = all.map((h) => ({ h, n: pagesFor(h) }));
-  const top = Math.max(...counts.map((c) => c.n));
-  const lead = counts.filter((c) => c.n === top).map((c) => c.h);
-  const pageOf = (h: number): number | null => perPage.find((p) => p.c.some((c) => Math.abs(c - h) / h <= 0.03))?.b.page ?? null;
-  if (top >= 2 && lead.length === 1) return { ceiling: mk(lead[0], 0.7, pageOf(lead[0]), all), warnings, boxes };
-  const nearest = (top >= 2 ? lead : all).reduce((a, b) => (Math.abs(b - 2.75) < Math.abs(a - 2.75) ? b : a));
+  // Several candidates. Each elevation page shows one wall, so the true height is the value most pages agree on.
+  // Cluster every (page, candidate) pair: a cluster is a run of candidates all within 3% of the run's own median.
+  // Most distinct pages wins, then most entries, then the tighter run. Only a remaining tie looks at the 2.75 m prior.
+  const entries = perPage.flatMap((p) => p.c.map((h) => ({ h, page: p.b.page }))).sort((a, b) => a.h - b.h);
+  const med = (v: number[]): number => { const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
+  interface Cl { i: number; j: number; pages: number; n: number; spread: number; m: number }
+  let best: Cl | null = null;
+  const log: string[] = [];
+  for (let i = 0; i < entries.length; i++) for (let j = i; j < entries.length; j++) {
+    const run = entries.slice(i, j + 1);
+    const m = med(run.map((e) => e.h));
+    if (run.some((e) => Math.abs(e.h - m) / m > 0.03)) continue;
+    const c: Cl = { i, j, pages: new Set(run.map((e) => e.page)).size, n: run.length, spread: (run[run.length - 1].h - run[0].h) / m, m };
+    const better = !best || c.pages > best.pages || (c.pages === best.pages && (c.n > best.n || (c.n === best.n && (c.spread < best.spread - 1e-9
+      || (Math.abs(c.spread - best.spread) <= 1e-9 && Math.abs(c.m - 2.75) < Math.abs(best.m - 2.75))))));
+    if (better) best = c;
+  }
+  for (const h of all) log.push(`${h.toFixed(2)} m from pages ${[...new Set(entries.filter((e) => Math.abs(e.h - h) <= 0.02).map((e) => e.page))].join(', ')}`);
+  const winner = best!;
+  const run = entries.slice(winner.i, winner.j + 1);
+  const pageOf = run[0].page;
+  if (winner.pages >= 2 && new Set(perPage.map((p) => p.b.page)).size > 1) {
+    warnings.push(`Ceiling ${winner.m.toFixed(2)} m: ${winner.pages} elevation pages agree within 3% (${run.map((e) => e.h.toFixed(2)).join(', ')}). All candidates: ${log.join('; ')}. Confirm it.`);
+    return { ceiling: mk(winner.m, 0.5, pageOf, all), warnings, boxes };
+  }
   warnings.push(`Ceiling height is a guess between ${all.map((v) => v.toFixed(2)).join(', ')} m. Confirm it.`);
-  return { ceiling: mk(nearest, 0.3, pageOf(nearest), all), warnings, boxes };
+  const nearest = all.reduce((a, b) => (Math.abs(b - 2.75) < Math.abs(a - 2.75) ? b : a));
+  return { ceiling: mk(nearest, 0.3, pageOf, all), warnings, boxes };
 }
