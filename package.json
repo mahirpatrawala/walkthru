@@ -1,5 +1,7 @@
 {
-  "name": "walkthru", "private": true, "type": "module",
+  "name": "walkthru",
+  "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
@@ -8,9 +10,20 @@
     "make:room": "tsx scripts/make-test-room.ts",
     "fetch:assets": "tsx scripts/fetch-assets.ts",
     "fetch:sample": "tsx scripts/fetch-assets.ts --sample",
-    "setup": "npm run fetch:assets && npm run make:room"
+    "setup": "npm run fetch:assets && npm run make:room",
+    "import:drawing": "tsx scripts/import-drawing.ts"
   },
-  "dependencies": { "three": "0.186.1", "@sparkjsdev/spark": "2.4.0" },
-  "devDependencies": { "typescript": "6.0.3", "vite": "8.3.5", "vitest": "5.0.5", "tsx": "4.23.15",
-                       "@types/three": "0.186.0", "@types/node": "24.19.2" }
+  "dependencies": {
+    "@sparkjsdev/spark": "2.4.0",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/three": "0.186.0",
+    "pdfjs-dist": "6.4.299",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
 }
