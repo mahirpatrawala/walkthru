@@ -1232,6 +1232,7 @@ Ten chunks in four waves (C8 and C9 are specified in sections 13 and 14). A wave
 | 2 | **C9 Media pipeline** (section 14) | C0, C1 | C2, C3, C5, C8 |
 | 3 | **C10 ML upgrades** (section 15) | C9 (and C1 for validation) | C4, C6, C7 |
 | 4 | **C11 Look** (section 16: C11a, then C11b and C11c in parallel) | C0 to C8 (all built) | C9, C10 |
+| 5 | **C12 Generic drawing-set understanding** (section 17: C12a first, then C12b to C12f) | C8, C11b (the `designs.json` consumer) | C9, C10 |
 
 Rules for every chunk: own files only; all exported signatures exactly as in 7.1; `npm run typecheck` and `npm test` green before reporting; report anything not verified in a browser as "not browser-verified" rather than assuming it works. No agent has a browser; the integrator does section 10.
 
@@ -2261,7 +2262,7 @@ Considered and rejected, with the reason: `sofa_03` (2.73 m wide, would be squee
 
 **Character:** Patch's starter man from the oil-paint repo (commit above, `public/figure/starter-man.glb`, LFS oid above, CC0 1.0). See 16.6 for the checks it must pass and the fallback.
 
-**Painterly code:** `src/oilpaint/*.js`, `src/night/kit.js`, `src/world/noise.js` and `LICENSE` from the same commit, MIT, vendored unmodified into `src/look/painterly/vendor/` (16.7).
+**Painterly code:** `src/oilpaint/*.js`, `src/night/kit.js`, `src/world/noise.js` and `LICENSE` from the same commit, MIT, vendored unmodified into `vendor/oilpaint/` (16.7, 16.7.1).
 
 **Asset budget** (bytes fetched beyond today's page): low tier at most 1.8 MB (one 1k HDRI, the tile and plaster normal maps), medium at most 9 MB, high at most 22 MB (adds the 2k HDRIs). Everything loads after first paint, lazily, in that order: HDRI, floor and wall maps, furniture materials, models. The shell appears immediately in today's flat look and gains detail as files arrive.
 
@@ -2473,12 +2474,21 @@ The chunk report must state which route (A, B or C) each body shipped on, with o
 
 ### 16.7 C11c: painterly mode ("a painting of your future home")
 
-Second priority. **New files:** `src/look/painterly/vendor/**` (the vendored MIT files, unmodified, plus the upstream `LICENSE` and a `VENDOR.md` naming the commit), `vendor/index.d.ts` (type shim for the exports we call), `painterly/adapter.ts`, `painterly/palettes.ts`, tests.
+Second priority. **New files:** `vendor/oilpaint/**` (the vendored MIT files, unmodified, plus the upstream `LICENSE` and a `VENDOR.md` naming the commit; moved out of `src/look/painterly/vendor/` by the C11c brief), `painterly/vendor.d.ts` (type shim for the exports we call), `painterly/adapter.ts`, `painterly/palettes.ts`, tests.
 
 - `palettes.ts` (pure): for each surface colour (sampled wall, floor, frame, each furniture material's mean colour) produce the kit's three mixes: light, middle, shadow, as the colour in OKLCH at lightness +0.08, 0 and -0.14 with chroma × 1.1 in the shadow. Sampled colours stay the middle mix (rule 2 holds in the painting too).
 - `adapter.ts`: `createPainting(viewer, shell: THREE.Group, furniture: THREE.Group[], palettes): { render(): void; dispose(): void }`. Feeds the shell's floor, wall and ceiling faces and each furniture group's geometry to `createKit`, with grain along the wall's length for walls, along the tile grid for floors and along the long axis for furniture; lights them with a `light` GLSL function driven by the current sun direction and colour; draws through the painter's own frame (`createFrame`). The character is hidden.
 - Behaviour: the painterly button freezes the camera where it is and shows the painting. High tier: live, the buyer can orbit. Low and medium: paint **one frame** and show it as a still (the reference measured 4.5 ms a frame on an RTX 4090, far too heavy for a phone to run continuously). "Save picture" downloads a PNG with a one-line caption strip: "A painting of {title}. Illustrative." "Back" returns to the walk-through.
 - The implementer must read `kit.js` and `shade.js` first: the exact shape of `shared` (`createShared`) and of the `light` function is defined there and is not restated here.
+
+#### 16.7.1 As built (C11c, 13 Nov 2026)
+
+- **Where things are.** The vendored files are at `vendor/oilpaint/` (not `src/look/painterly/vendor/`): `src/oilpaint/*.js`, `src/night/kit.js`, `src/world/noise.js` (kit.js imports it), `LICENSE` and upstream's `LICENCE-NOTES.md`, byte for byte from commit `804c65fa...` (Release 1.1.3), with `VENDOR.md` (provenance, licence position) and `vendor.lock.json` (SHA-256 of each file; `tests/painterly.test.ts` fails if one changes). MIT code, CC0 art (none of the art is used); commercial use is allowed; the licence text also ships at `/look/OILPAINT-LICENCE.txt`. Our code is `src/look/painterly/`: `palettes.ts` (pure), `caption.ts` (pure), `adapter.ts`, `person.ts`, `index.ts` (session and overlay), `painterly.css`, `vendor.d.ts` (type shim). The only edits outside are `Look.holdFrame(fn)` (look.ts, hands the frame to the painting and back), the lazy `import()` and the debug hooks in `buyer/main.ts`.
+- **It is the real renderer**, not a filter: the kit's strokes lie on our own triangles (shell by `kit.tri`, one grain per face: along a wall's length, along the tile grid on floors and ceilings, grout lines as dark strokes; furniture by `kit.add` along each mesh's long axis), the sun is `createShade`'s depth picture of our shell and furniture drawn from the sun (the painted sun patch has the walk-through's shape), window glass is a glowing sky palette ("View outside is illustrative"), `createFrame` gives the canvas. The painter's `light` function (`adapter.ts`) is sun through the shade picture, a window sky-fill, a little ambient, warm light and cool shade tints. Palettes are the sampled colours (finishes, per-room colours, each furniture material's base colour) through `palettes.ts`; strokes are laid at 0.9 of the sampled colour because the painter brightens its own streaks.
+- **The person is painted too** (the build brief asked for it; SPEC 16.7 said hidden): a flat underpainting on a `SkinnedMesh` that shares our character's geometry and skeleton, plus `pinDabs` on skin (only where no clothing is near), top, trousers, shoes and hair, in the walk-through's colours; he casts a shadow through the painter's figure-shadow picture. `createPainting(..., { person: false })` leaves him out.
+- **Behaviour.** The sun-button panel's "Show as a painting" opens it. The walk camera is never moved: the painting has its own camera copy, the page's walking and HUD are blocked while it is open, "Back" (or Escape) restores everything. High tier: live; drag to look round, wheel to zoom, pixel ratio capped at 1.25. Low and medium: one frame, kept as a 2D canvas, the painter's GPU memory freed at once. "Save picture" downloads `painting-<title>.png` with a caption strip "A painting of {title}. Illustrative."; the same caption chip ("Painting · Illustrative") is on screen. The painting is of the layout model: with a scan shown it still shows the model, not the scan.
+- **Weight.** `painterly-*.js` is 49.2 kB (19.7 kB gzip) plus 1.6 kB CSS, a separate chunk fetched only on opening; the main chunk grew by 3 kB for the hooks. Nothing painterly is requested before the button (checked in a production build).
+- **Known gaps.** (a) 16.8 check 16's number: mean absolute pixel difference between the realistic frame and the painting is 10 to 18 % (high 10 to 11 %, medium 14 %, low on a 412 x 915 phone 18 %), not above 20 %. Two thirds to 86 % of pixels do differ by more than 10 %. The flats' default finishes are near white, so a painting that keeps the sampled colours is close to the realistic frame in mean colour; the strokes differ, the average does not. (b) Both scenes use the default finishes (nothing in either is sampled yet), so the sampled-colour path is exercised with defaults. (c) Default-wall paintings read pale and chalky; richer finishes read better. (d) The painter's own sun-shaft pass is off (`uShafts = 0`). (e) The hour and tier cannot change while a painting is open; reopen it.
 
 ### 16.8 Acceptance (browser-verifiable)
 
@@ -2537,3 +2547,376 @@ Integrator edits outside the chunks' files: the two npm dependencies; a `"fetch:
 8. **Mobile fps targets under emulation are not proof.** A real mid-range Android phone is needed.
 9. **Repo size grows by about 30 MB** of committed CC0 assets (the three 2k HDRIs are 18 MB of that), so the live site can serve them.
 10. **Benglooru's look was not seen**, only described.
+
+---
+
+## 17. C12 Generic drawing-set understanding
+
+Mahir's rule for this section: his drawing was an example. The product must read **any** architect's or interior designer's drawing set, and builder brochure plans, produce everything the walk-through needs, and let the broker confirm it. Nothing may depend on his file.
+
+Today that is not true. C8 reads plan geometry and real PDF text generically, but `public/scenes/son-bedroom/designs.json` (the parametric wardrobe, bed and headboard heights, side tables, study chair, door-swing gaps) was written by an agent reading the PDF by eye. C12 replaces the eye with a pipeline. Nothing in this section has been built or run; the accuracy bars are targets and every cost is an estimate.
+
+### 17.1 Two rules that govern everything here
+
+**Honesty (Mahir's): never present an unverified number as fact.** Every extracted value carries where it came from, how it was read and how sure we are, and has one of five statuses:
+
+| Status | Meaning | May the buyer see it as a fact? |
+|---|---|---|
+| `verified` | Read as text **and** agrees with the drawing's own geometry (17.5) | Yes |
+| `confirmed` | A broker looked at the crop and accepted it | Yes |
+| `corrected` | A broker typed a different value | Yes (the broker's value) |
+| `unverified` | Read (by OCR, a glyph matcher or a vision model) with nothing to check it against, or measured from geometry with no text | No. It may shape the 3D model, but any card or label that would state it says "Not confirmed" instead of the number |
+| `conflict` | Two sources disagree (two sheets, a chain that does not sum, text against geometry) | No. Both values are shown to the broker; nothing is picked silently |
+
+This applies to model output exactly as to OCR: a number read by a vision model is `method: 'vision'`, `status: 'unverified'` until the geometry check or the broker promotes it. `designs.json` and the buyer-facing parts of `proposal-extras.json` are written **only** from `verified`, `confirmed` and `corrected` values, so the existing buyer code cannot show an unverified number even by accident. Everything else stays in `understanding.json` for the review screen.
+
+**Anti-overfit.** No code path may reference a scene id, a label text taken from a particular drawing, a project, a firm or a person. Vocabulary lives in data files of generic words. Thresholds are in drawing-independent units (wall thicknesses, metres after scale). The one real drawing set is a **development** sample only; acceptance is measured on synthetic sets and on held-out real sets the implementer never opens (17.11). A lint test enforces the first sentence (17.12).
+
+### 17.2 What already exists that is tied to one drawing (found by grep on 13 Nov 2026; C12a fixes each)
+
+| # | Where | What | Fix |
+|---|---|---|---|
+| 1 | `src/import/labels.ts:138` (`BEDROOM_RE`), with the comment on lines 136 to 137 saying it was widened because the reference drawing says "SON ROOM" | Family words `SON`, `DAUGHTER`, `KIDS`, `GUEST`, `PARENTS` hard-coded to make one file's test pass | Replace with the room lexicon (17.4). Rule: a label is a bedroom if it contains a bedroom word **or** is `<any words> ROOM` / `<any words> BED` whose qualifier is not a known non-bedroom word. Family words stay only as lexicon entries, because they are ordinary vocabulary, not because of that file |
+| 2 | `src/import/labels.ts:135` (`ROOM_RE`) and `src/import/vector-page.ts:66` (`ROOM_WORDS`) | The same word list duplicated in two regexes | One lexicon, loaded by both |
+| 3 | `src/import/furniture.ts:63`, `src/import/labels.ts:169` | `WARDROBE=9'0"RFT` handled as one exact shape | Keep the idea (running feet is a common Indian convention) but accept `WARDROBE 9'0" RFT`, `W/R`, `WARD.`, `R.FT`, `RUNNING FT`, metres, and any furniture word, through the furniture lexicon |
+| 4 | `src/look/furniture-real.ts:53` and `:484` (`STUDY_CHAIR`), `src/look/designs.ts` (`DecorDesign.look: 'chair'`) | Per-item designs and a single decor look that exist because one drawing had a wardrobe and a swivel chair | Keep the mechanism; rename nothing; C12 feeds it for any drawing. New decor looks are out of scope (17.7) |
+| 5 | `public/scenes/son-bedroom/designs.json` | Hand-written. Its `source` string names the PDF file, the sheet number and the project, which puts identifying details from the designer's drawing into the repo and onto the live site | Regenerate it with the pipeline; `source` becomes the generic "Imported drawing set, {n} pages". Until then, scrub that string |
+| 6 | `tests/furniture-real.test.ts`, `tests/wardrobe-swing.test.ts` (both import the son-bedroom `designs.json` and `property.json`), `tests/import-units.test.ts` (fixture text `SON ROOM`) | Always-run tests whose expected numbers come from one real drawing | Point them at the synthetic drawing set's outputs (17.10). The real file may appear only in `*.local.test.ts` |
+| 7 | `public/scenes/son-bedroom/` as a whole | A real client drawing's layout shipped as a public demo scene | Mahir's call whether it stays public. Not a code issue |
+
+No scene-id comparison (`=== 'son-bedroom'` or similar) exists in `src/` or `scripts/`. That stays true.
+
+### 17.3 Pipeline overview
+
+```
+PDF / image
+  │
+  ├─ S1  pages: render + classify (plan, elevation, section, detail, title/notes; vector or raster)
+  ├─ S2  text: PDF text → stroke-glyph reader → local OCR → vision model   (each read is a candidate)
+  ├─ S3  dimensions: find dimension lines, attach candidate reads, fit scale, cross-check   → statuses
+  ├─ S4  plan: walls, rooms, openings (C8) + unlabelled symbols
+  ├─ S5  elevations: link each to a wall of the plan, then read built-in units and heights
+  ├─ S6  reconcile sheets: agreements raise confidence, disagreements become conflicts
+  └─ S7  write understanding.json → proposal.json, proposal-extras.json, designs.json
+                │
+                └─ broker review (17.9) writes review.json → S7 runs again
+```
+
+Vector input uses every stage. Raster input (a phone photo of a plan, a brochure JPG) has no geometry of its own, so S2 to S5 run through the vision model and everything starts `unverified` (17.8).
+
+**Files (all new unless listed in 17.2):**
+```
+src/understand/
+  types.ts            Extracted<T>, statuses, UnderstandingFile, ReviewFile (17.6)
+  lexicon/rooms.json  furniture.json  fixtures.json  elevation.json  units.json   (generic vocabulary only)
+  lexicon.ts          loaders and matchers
+  pages.ts            S1
+  text-pdf.ts         S2: real text (wraps C8's labels)
+  glyphs.ts  hershey.ts   S2: stroke-glyph reader and its public-domain templates
+  ocr.ts              S2: adapter that calls the local OCR helper (Node only)
+  dimensions.ts       S3: dimension-line detection, attaching reads, chains
+  scale-fit.ts        S3: robust scale from many dimensions
+  verify.ts           S3 and S6: the checks and the status rules
+  symbols.ts          S4: unlabelled plan symbols
+  elevation-link.ts   S5: which elevation is which wall
+  elevation-read.ts   S5: built-in units, heights
+  reconcile.ts        S6
+  write.ts            S7: the three output files
+  vision/provider.ts  the interface (extends C8's PlanVisionProvider)
+  vision/gemini.ts  vision/claude.ts  vision/prompts.ts  vision/recorded.ts
+  raster.ts           the raster path
+  review-step.ts  review.css          the editor step (17.9)
+  server/understand-api.ts            dev middleware: upload, run, page images, review
+  photo/              the optional AI photo (17.14)
+tools/understand/ocr.py               Tesseract / RapidOCR helper, run in the C10 venv
+scripts/understand.ts                 CLI: tsx scripts/understand.ts <file> --scene <id> [--no-vision] [--live]
+scripts/make-drawing-sets.ts          the synthetic generator (17.10)
+scripts/eval-understand.ts            scores a folder of sets against truth (17.11)
+tests/understand-*.test.ts            always run; no network, no real file
+tests/understand-real.local.test.ts   only when real samples are present
+```
+`src/understand/` reuses C8's `VectorPage`, wall, region, opening and scale code. Only `ocr.ts`, `vision/*.ts` (not `recorded.ts`), `server/` and `photo/server` may touch the network or spawn processes.
+
+### 17.4 S1 pages and the lexicons
+
+**Render.** Each page to PNG at 200 dpi with `pdftocairo` (poppler, already installed) into `.cache/understand/<sceneId>/pages/`. The source PDF and its renders never enter `public/` or the repo.
+
+**Vector or raster, per page.** Raster when images cover more than half the page and there are fewer than 200 strokes plus fills (C8's rule). A scanned PDF is raster.
+
+**Kind**, scored from several weak signals, so no single word decides:
+- title-block and caption words from `lexicon/elevation.json` (`PLAN`, `LAYOUT`, `FURNITURE LAYOUT`, `ELEVATION`, `ELEV`, `VIEW`, `WALL A`, `SECTION`, `DETAIL`, `INTERNAL`, `NOTES`, `LEGEND`, `SCHEDULE`);
+- geometry: a plan has closed wall loops and room labels and no long horizontal ground line; an elevation or section has one dominant ground line, a ceiling or slab band and mostly rectangular content between them; a detail is small and dense; a title or notes page is mostly text;
+- result: `plan | elevation | section | detail | notes`, with a confidence. Below 0.6 the page is offered to the vision model for a second opinion (one word answer) and, failing that, to the broker.
+A sheet may hold several drawings (a plan and two elevations on one page). Split a page into **views** first: connected groups of linework separated by white gaps wider than 5% of the page, each with its nearest caption. Everything downstream works on views, not pages.
+
+**Lexicons** are JSON data, generic, lower-cased, with common abbreviations and Indian usage:
+- `rooms.json`: for each `RoomType`, the words that imply it. Bedroom: `bedroom, bed room, bed, br, mbr, m.bed, master, guest, kids, children, child, son, daughter, parents, grandparents, servant`. Living: `living, hall, drawing, lounge, family, liv, l/d`. Kitchen: `kitchen, kit, pantry`. Bathroom: `toilet, bath, wc, w.c., washroom, powder, c.toilet, m.toilet, att. toilet`. Balcony: `balcony, terrace, deck, sit-out, verandah, utility, dry balcony, wash area`. Other: `passage, lobby, foyer, corridor, store, pooja, puja, mandir, study, dress, dressing, entrance`. Plus a list of non-room words that often sit in rooms (`duct, shaft, lift, stair, ots`).
+- `furniture.json`: words to catalogue kinds (`bed, cot` → bed; `sofa, settee, couch` → sofa; `dining` → dining; `wardrobe, w/r, ward., almirah, cupboard` → wardrobe; `study, desk, table, counter, platform, side table, bedside, dresser, tv unit, console` → counter with a sub-look), and the running-length markers.
+- `fixtures.json`: `wc, ewc, basin, wb, sink, hob, shower, ref, fridge, wm, ac, sb, db, geyser`.
+- `units.json`: patterns for feet and inches (`2'-11"`, `2'11"`, `8'-6"`, `1'-5½"`, `1'-5 1/2"`, `12'0"X9'0"`, `11'0" x 12'6"`), millimetres (`2440`, `900 MM`), metres (`3.05`, `3.05 M`), areas (`150 SQFT`, `150 SQ.FT.`, `14 SQ M`), and the fraction glyphs.
+Adding a word needs no code change. A word may be added only if it is ordinary vocabulary; a name, a project or a firm is never a lexicon entry.
+
+**Units.** Decided per string from its format, not from a note: `'` or `"` means feet and inches; a bare integer of 3 to 5 digits on a dimension line means millimetres; a decimal with a metre marker means metres. A notes page saying "all dimensions in mm" while the strings are in feet and inches (which the development sample does) is recorded as a warning, and the strings win.
+
+### 17.5 S2 and S3: reading text, and checking it against geometry
+
+**Candidate reads, cheapest first.** Each text-like region gets every reader that applies; all results are kept as candidates with their method.
+
+1. **PDF text** (`method: 'pdf-text'`): exact where present.
+2. **Stroke-glyph reader** (`method: 'glyph'`, local, pure TypeScript): for dimension strings drawn as vector strokes, which is what exploded CAD fonts produce. Group strokes into glyphs (strokes whose boxes touch within a text-height band along the dimension line), normalise each glyph to a unit box, and match against stroke templates of the digits, `'`, `"`, `-`, `.`, `/`, `½`, `X` built from the **Hershey** fonts (public domain; the common CAD stroke fonts descend from them): Simplex, Duplex, Complex. Identical glyph shapes recur throughout a drawing, so cluster them first and label clusters, not instances. A cluster's label is accepted when the template distance is under a threshold **or** when at least three independent dimension lines agree on it; the dimension being verified never counts as its own evidence.
+3. **Local OCR** (`method: 'ocr'`): `tools/understand/ocr.py`, run in the C10 Python venv. For each text region: crop from the page render at 600 dpi, rotate it upright (the dimension line's direction is known from geometry, so no skew guessing), and run **Tesseract 5** (`brew install tesseract`, Apache-2.0; not installed yet) in single-line mode with a character whitelist of digits, `'`, `"`, `-`, `.`, `/`, `½¼¾`, `xX`, `mM`, space. **RapidOCR** (the PaddleOCR models on ONNX Runtime, Apache-2.0) is the second local engine if it installs cleanly on the M2; PaddleOCR itself only if RapidOCR does not. Two engines agreeing raises confidence; they never verify each other.
+4. **Vision model** (`method: 'vision'`, 17.8): batches of crops, each with an id, returning the string and a box. Used for regions the local readers left empty or disagreed on, and for all text on raster pages.
+
+A parsed length keeps its raw string. `parseLength` (C0) is extended in a new helper, not edited, to accept `2'-11"`, fractions and the fraction glyphs.
+
+**Dimension lines** (`dimensions.ts`). A dimension is a straight stroke with a terminator at each end (a tick crossing it at 30° to 90°, an arrowhead, or a dot), usually with two extension lines leaving it at right angles, and a text region within 1.5 text heights of its middle, parallel to it. Output: the two end points in page units, the direction, and the attached candidate reads. A **chain** is a run of dimensions sharing a line and end points; an **overall** is a dimension spanning a chain.
+
+**Scale** (`scale-fit.ts`). Every dimension with a parsed read gives a pair (length in page units, value in metres). Fit page-units-per-metre per view by RANSAC over those pairs: a pair is an inlier when it is within 2% or 1 inch (25 mm), whichever is larger. The fit needs at least 3 inliers that are not all collinear repeats of one value; otherwise the view falls back to C8's label voting and every value in it stays `unverified`. Report the inlier count and the spread.
+
+**The checks** (`verify.ts`). A value is `verified` only when a text read passes at least one independent check and fails none:
+- **Geometry:** the read value equals the dimension's measured length times the view's scale, within the larger of 2% and 1 inch. The read must not have contributed its own pair to the scale fit alone: the fit is redone leaving that dimension out.
+- **Chain:** the members of a chain sum to its overall within 1 inch (or 25 mm).
+- **Cross-sheet:** the same physical quantity read on two sheets (a wardrobe's width on the plan and on its elevation) agrees within 1 inch.
+- **Label area:** a room's labelled area agrees with its traced polygon within 3%.
+A read that fails geometry is `conflict` with both numbers kept ("drawing says 2'-11", measures 3'-1""). A length measured from geometry with no readable text is `unverified`, `method: 'vector'`, and is worded "about" wherever the broker sees it. Drawings marked "not to scale" still go through the fit; if fewer than 80% of dimensions are inliers, the view is flagged "not drawn to scale" and geometry checks are replaced by chain and cross-sheet checks only.
+
+`confidence` (0 to 1) is for ordering the review queue, not for deciding facts: 0.99 for verified pdf-text, 0.95 for verified glyph or OCR, 0.6 for an unverified read where two methods agree, 0.4 for one method alone, 0.3 for geometry-only, 0.2 for vision alone on a raster page.
+
+### 17.6 Data: `understanding.json`, `review.json`, and the three outputs
+
+Types in `src/understand/types.ts` (nothing added to `src/types.ts`):
+
+```ts
+export type Method = 'pdf-text' | 'glyph' | 'ocr' | 'vision' | 'vector' | 'derived' | 'broker';
+export type Status = 'verified' | 'confirmed' | 'corrected' | 'unverified' | 'conflict';
+export interface SourceRef { page: number; view: string; sheet: string; /** page units, y down */ bbox: [number, number, number, number]; text?: string }
+export interface Check { kind: 'geometry' | 'chain' | 'cross-sheet' | 'label-area'; expected: number; got: number; ok: boolean }
+export interface Extracted<T> {
+  id: string;                 // stable: hash of field path + source bbox
+  value: T; unit?: 'm' | 'm2' | 'deg' | 'count';
+  method: Method; status: Status; confidence: number;
+  source: SourceRef; alternatives?: { value: T; method: Method; source: SourceRef }[];
+  checks: Check[];
+  /** for 'derived': the ids it was computed from, and the formula in words */
+  derivedFrom?: { ids: string[]; how: string };
+}
+export interface UnderstandingFile {
+  version: 1;
+  input: { kind: 'vector-pdf' | 'raster-pdf' | 'image'; pages: number; sha256: string };   // never the file name
+  views: { id: string; page: number; kind: string; kindConfidence: number; raster: boolean; scale?: Extracted<number> }[];
+  dimensions: { id: string; view: string; a: [number, number]; b: [number, number]; value: Extracted<number>; chain?: string }[];
+  rooms: { id: string; label: Extracted<string>; roomType: Extracted<string>; polygonM: [number, number][]; width: Extracted<number>; length: Extracted<number>; area: Extracted<number> }[];
+  openings: { id: string; roomId: string; type: Extracted<string>; width: Extracted<number>; sill?: Extracted<number>; head?: Extracted<number> }[];
+  items: { id: string; kind: Extracted<string>; label?: Extracted<string>; box: { cx: number; cz: number; w: Extracted<number>; d: Extracted<number>; yawDeg: number };
+           height?: Extracted<number>; surfaceHeight?: Extracted<number>; unit?: UnitDesign; elevationView?: string }[];
+  symbols: { id: string; view: string; class: Extracted<string>; bbox: [number, number, number, number]; mappedTo?: string }[];
+  elevations: { view: string; wall: Extracted<{ roomId: string; edge: number }>; ceiling?: Extracted<number>; levels: Extracted<number>[] }[];
+  conflicts: { id: string; field: string; values: string[]; message: string }[];
+  warnings: string[];
+  cost?: { visionCalls: number; inputTokens: number; outputTokens: number; usd: number; seconds: number };
+}
+/** A built-in unit read from an elevation: the general form of the wardrobe in designs.json. */
+export interface UnitDesign {
+  bays: Extracted<number>; bayWidths: Extracted<number>[];
+  shuttersPerBay: Extracted<number>[]; hinge: Extracted<'left' | 'right' | 'outer-edges' | 'unknown'>[];
+  drawerStrip?: Extracted<number>; baseGap?: Extracted<number>; loft?: Extracted<number>;
+  handle?: { y: Extracted<number>; length: Extracted<number> };
+  interior?: { bay: number; zonesBottomUp: { kind: string; height: Extracted<number> }[] }[];
+}
+export interface ReviewFile { version: 1; decisions: Record<string /* Extracted id */, { action: 'confirm' | 'correct' | 'reject'; value?: unknown; at: string }> }
+```
+
+**Outputs** (`write.ts`), all under `public/scenes/<id>/`:
+- `proposal.json` and `proposal-extras.json`: C8's shapes, unchanged. Rooms whose size is not verified or confirmed keep C8's existing "Not measured" treatment.
+- `designs.json`: the existing `DesignsFile` shape that `src/look/designs.ts` already parses. A field is written only if its `Extracted` is `verified`, `confirmed` or `corrected`; its `sources` entry is `{ page, sheet, text }` from the `SourceRef`. `openable.conflicts` and `cardConflict` are filled from `conflicts`. `openable.notInDrawing` lists the fields the unit needed and the drawing did not give. `source` is the generic sentence in 17.2 row 5.
+- `understanding.json` and `review.json` live in `.cache/understand/<id>/`, not in `public/`: they contain crops' coordinates and raw label text from someone's drawing.
+
+### 17.7 S4 and S5: symbols, linking elevations, reading units
+
+**Plan symbols with no label** (`symbols.ts`). Two passes.
+- *Structure:* drawings place furniture and fixtures as repeated blocks. Group strokes into candidate symbols (connected components not attached to walls, between 0.15 m and 3 m across after scale), compute a shape signature invariant to position, rotation and mirror (sorted normalised segment lengths, turning-angle histogram, counts of arcs and closed loops), and cluster equal signatures.
+- *Rules, in metres:* door swing (a quarter arc of radius equal to the gap it starts at, with a leaf line); sliding door (two overlapping thin rectangles in a gap); window (two or more thin parallel lines in a gap); bed (a rectangle at least 0.85 × 1.8 m with one or two smaller rectangles at one short end); sofa (a rectangle 0.75 to 1.0 m deep with end blocks and seat divisions); dining set (a rectangle with four or more chair shapes around it); chair (0.4 to 0.6 m square with one bowed or thickened side), swivel chair (a seat on a star or circle); wardrobe (a rectangle 0.5 to 0.7 m deep against a wall holding a row of repeated short strokes, the hanger symbol, or shutter swing arcs); WC (an oval with a tank rectangle, about 0.38 × 0.7 m); basin (an oval or rounded rectangle 0.4 to 0.6 m at a wall); shower (a square with a diagonal cross or a circle); sink (one or two rounded rectangles inside a counter); hob (two to four circles in a rectangle).
+- Symbols the rules cannot name go to the vision model as crops ("what is this plan symbol?", choices from the lexicons plus "other"). A model-named symbol is `unverified` until the broker confirms.
+- Mapping: bed, sofa, dining, wardrobe and counter become furniture items (`source: 'real'`), sized from the symbol's box (`method: 'vector'`, so sizes are `unverified` unless a label or elevation dimension verifies them). A chair at a table becomes the existing `chair` decor. Sanitary and kitchen fixtures, AC units and switchboards are recorded in `symbols` and `proposal-extras.json` only: there is no look for them yet, and adding looks is not part of C12.
+
+**Which elevation shows which wall** (`elevation-link.ts`). Three signals, combined into one score per (elevation, wall) pair and solved as an assignment:
+1. **The key.** A marker on the plan (a circle, diamond or cross with numbers or letters around it, or arrows tagged 1 2 3 4 / A B C D) gives a view direction per tag; elevation captions carry the tag (`ELEVATION-3`, `ELEVATION C`, `WALL 2`). The tag's position relative to the marker's centre is the direction it looks.
+2. **Width.** The elevation's clear width between its end walls, at the elevation's own scale, against the length of each wall run of the room.
+3. **Content.** The sequence of things along the wall (window, door, wardrobe, bed head) with their offsets, compared with the plan's sequence along that wall, read left to right as seen from inside the room; the mirrored order is also tried and penalised.
+An elevation with no room on the plan (a detail, an internal view of a unit) links to its parent elevation by caption (`1A` under `1`, `INTERNAL`) and matching width. A link under 0.6 confidence is `unverified` and goes to the broker as one question: "Which wall is this?" with the plan beside it.
+
+**Reading an elevation** (`elevation-read.ts`).
+- **Levels:** the floor line, the ceiling or slab soffit, and every long horizontal line between them, each with the vertical dimensions that end on it. Named by nearby words or by typical height: skirting, sill, lintel or door head, loft line, ceiling.
+- **Openings:** window sill and head, door height, matched to the plan's openings on that wall.
+- **Built-in units** (wardrobes, kitchen runs, TV units, study units), as a `UnitDesign`: the unit is the rectangular region from the floor (or a base gap) upward that the plan shows as a built-in on that wall. Bays are separated by full-height vertical lines; shutters by vertical lines inside a bay; drawers are wide short rectangles, usually stacked; a loft is a row above about 2.1 m. **Hinge side:** from the handle (a small bar or dot near one vertical edge of a shutter: the hinge is the other edge) and from the opening mark (thin or dashed lines meeting in a point on the shutter: the point is at the hinge side by drafting convention). The two signals must agree or the hinge is `conflict`; neither present gives `unknown`, and the walk-through then does not open that shutter. Notes such as "2 SHUTTER OPENABLE", "SLIDING", "DRAWER", "LOFT", "HANGING", "SHELF" are matched through the lexicon.
+- **Internal layouts** on a linked internal view: zones bottom-up per bay with their heights.
+- **Loose furniture in elevation:** bed base, mattress and headboard heights, side-table and study-table heights, from the vertical dimension stacks beside them and words like "MATTRESS".
+- **Services:** AC, switchboard and socket positions are recorded with heights, for later use.
+Every number goes through 17.5: a height is `verified` when its string matches the elevation's geometry at the elevation's scale, and more so when a stack sums to the ceiling height.
+
+**Reconciling sheets** (`reconcile.ts`). The same quantity seen twice is merged when the two agree (confidence up, a `cross-sheet` check recorded). When they disagree the item gets a `conflict` naming both, for example plan bays 2'-11", 2'-11", 3'-1" against an elevation showing three bays of 2'-11". The 3D model uses the value from the sheet that dimensions the thing most directly (an elevation for heights and bay widths, the plan for depths and positions), the card for that item carries the conflict sentence, and nothing is called a fact until the broker chooses.
+
+### 17.8 The vision path, models and keys
+
+**Interface.** `vision/provider.ts` extends C8's `PlanVisionProvider` with crop-level calls, so the pipeline can ask small questions cheaply:
+```ts
+export interface VisionProvider {
+  readonly name: string; readonly model: string;
+  readStrings(crops: { id: string; png: Uint8Array; hint?: 'dimension' | 'label' | 'note' }[]): Promise<{ id: string; text: string; box?: [number, number, number, number]; confidence: number }[]>;
+  classify(crops: { id: string; png: Uint8Array }[], choices: string[]): Promise<{ id: string; choice: string; confidence: number }[]>;
+  /** whole page or view: rooms, labels, dimensions, symbols, each with a box in image pixels */
+  readView(png: Uint8Array, kind: 'plan' | 'elevation', schema: object): Promise<unknown>;
+  usage(): { calls: number; inputTokens: number; outputTokens: number; usd: number };
+}
+```
+Every answer must carry a box; an answer without one is dropped. Boxes let the pipeline attach a model's read to a dimension line or a symbol and run the same checks as for any other reader.
+
+**Which model reads drawings.** Nano Banana is an image generator, not a reader; it is used only for the optional photo (17.14). For reading:
+- **Default: Google Gemini**, on Mahir's own AI Studio key, in two sizes: `gemini-3.8-flash` for the many small crop reads and symbol classifications, and `gemini-3.1-pro-preview` for whole-view reads of raster plans and for regions where readers disagree. Reasons: Mahir has offered that key; the Flash model is cheap enough to send every unread dimension crop; and one provider covers both sizes. Prices on Google's pricing page on 13 Nov 2026: 3.8 Flash $0.75 in / $3.75 out per million tokens (doubling on 1 Jan 2027), 3.1 Pro $2 / $12, batch 50% off. `gemini-4-carbon` is listed as the top model at $2 / $10 until 30 Nov 2026 and $4 / $20 after; it is a third option to compare in the evaluation, not the default. The 2.5 models are deprecated on 1 Dec 2026, so they are not used. Whether these models return usable boxes on drawings is not confirmed from documentation; it is the first thing the evaluation measures.
+- **Alternate: Claude**, behind the same interface, on Mahir's own Anthropic key if he supplies one: `claude-opus-5-5` ($4 / $20 per million tokens) for whole views, with structured outputs. Written with the official `@anthropic-ai/sdk`.
+- The choice between them is made by the evaluation's numbers (17.11), not here.
+
+**Keys.**
+- Local: `~/walkthru-tools/.gemini-key` and, optionally, `~/walkthru-tools/.anthropic-key`. On Vercel: env vars `WALKTHRU_GEMINI_KEY` and `WALKTHRU_ANTHROPIC_KEY`, read only inside serverless functions.
+- Never in the client bundle, never in the repo, never logged.
+- **The GTM Console's Anthropic key is never used.** The Claude client is always constructed with the key passed explicitly from the walkthru key file or `WALKTHRU_ANTHROPIC_KEY`; the SDK's default lookup of `ANTHROPIC_API_KEY` is not relied on, and the code refuses to start a vision run if the only key it can find is that generic variable.
+- **No test calls a live model.** Tests use `vision/recorded.ts`, which replays saved answers for the synthetic sets. A live run happens only through `scripts/understand.ts --live` or `scripts/eval-understand.ts --live`, which first print the number of calls and an estimated cost and need `--yes`.
+
+**Raster input** (`raster.ts`). The page image goes to `readView` once per view; the answer is turned into the same `UnderstandingFile`. Walls come from the model's room boxes and corner points, refined by snapping to dark line pixels in the image; dimension strings are read from crops; scale comes from labelled room sizes and any dimension lines the model boxed, fitted as in 17.5 but against measured pixel lengths. Everything starts `unverified` at confidence 0.2 to 0.4; a value becomes `verified` only where a boxed dimension line's pixel length agrees with the fitted scale and a chain or label area backs it up. In practice a raster plan gives a layout to correct and confirm in the editor, not facts.
+
+### 17.9 Broker review in the editor
+
+A new step, **"Check the drawing"**, registered once in the editor's step list (one line in `src/editor/main.ts`, added by the integrator) and shown whenever `.cache/understand/<id>/understanding.json` exists.
+
+- Left: the drawing page, zoomable, with the current value's source box outlined. Right: a queue of values, lowest confidence first, conflicts at the top.
+- Each row: what it is ("Wardrobe · bay 2 width"), the value, how it was read ("read from the drawing and matches its scale" / "read by OCR, not checked" / "measured from the drawing, no dimension printed" / "read by AI, not checked"), and a tight crop of the source.
+- Actions per row: **Confirm** (one click or Enter), **Correct** (type a value; feet and inches or metric), **Not in the drawing** (reject). Conflicts show both crops side by side with "Use this one" under each.
+- Colour: verified values are collapsed under "Checked against the drawing ({n})" and need no action; unverified are amber; conflicts red.
+- "Confirm all on this page that match the drawing's scale" is offered only for rows that are already `verified`; there is deliberately no bulk confirm for unverified values.
+- A counter: "{k} of {n} values need a look". Saving writes `review.json` and reruns `write.ts`, so the 3D preview and `designs.json` update at once.
+- The step is done when no `conflict` remains. Unverified values may remain; they simply stay out of buyer-facing facts.
+- Server (`server/understand-api.ts`, registered beside the media plugin with one line in `vite.config.ts`): `POST /api/scenes/:id/understand` (upload a PDF or image, streamed to `.cache`), `POST …/understand/run`, `GET …/understand/status`, `GET …/understand/page/:n.png`, `GET` and `PUT …/understand/review`.
+
+### 17.10 Synthetic drawing sets
+
+`scripts/make-drawing-sets.ts` generates whole sets with exact truth, as real PDFs (the hand-written PDF writer from C8's fixture, extended) and as rasterised JPGs of the same pages. Each set is drawn from a seeded description, so any failing set can be regenerated from its seed.
+
+**What varies, independently:**
+- **Flat:** 1 to 4 rooms from templates (studio, 1 BHK, 2 BHK, 3 BHK, a single bedroom like an interior designer's sheet), room sizes drawn from realistic ranges, optional balcony, toilet with fixtures, kitchen with counter, passage.
+- **Wall style:** solid fill (dark, grey, or two greys), double lines with no fill, hatched fill.
+- **Text:** real PDF text or stroke text (Hershey Simplex, Duplex or Complex, with random slant and width); upper or mixed case.
+- **Units:** feet and inches in four formats (`2'-11"`, `2'11"`, `2' 11"`, with and without fractions) or millimetres or metres; areas in sq ft or sq m.
+- **Labels:** builder-brochure style (`BED ROOM 11'0"X12'0"`, `TOILET 5'0"X8'0"`, `KITCHEN`, `BALCONY`, `LIVING/DINING 10'0"X18'6"`) or designer style (room name, separate dimension chains, furniture labels with sizes), or no room labels at all.
+- **Dimensions:** chains and overalls on some walls; tick, arrow or dot terminators; a configurable share of dimension strings rounded so that geometry and text differ by up to 2 inches (to exercise conflicts), and one deliberately wrong string in some sets.
+- **Symbols:** door swings or sliding doors, windows as 2 or 3 lines, beds, sofa, dining set, chairs, wardrobe with hanger strokes, WC, basin, shower, sink, hob; each from two or three drawing variants; labelled or not.
+- **Sheets:** plan only (brochure), or plan plus 2 to 5 elevations with a key marker (numbers or letters), captions in three styles, each elevation at its own scale; some elevations on the same page as the plan.
+- **Elevation content:** a wardrobe with 2 to 5 bays, 1 or 2 shutters a bay, handles and opening marks (sometimes only one of the two, sometimes neither, sometimes disagreeing), a drawer strip, a loft, a base gap; a bed with base, mattress and headboard heights; windows with sill and head; an optional internal view.
+- **Page:** A4 or A3, rotation 0 / 90 / 180 / 270, a title block with invented generic text, optional hatching and noise glyphs, "not to scale" in some sets.
+- **Raster variants:** the pages rendered at 100 to 200 dpi, JPEG quality 40 to 90, and a "phone photo" variant with a perspective warp of up to 8°, uneven lighting and blur.
+
+**Truth** for each set: the layout, every dimension's value and position, every symbol's class and box, the elevation-to-wall links, each unit's full `UnitDesign`, and which strings were made deliberately inconsistent. Recorded vision answers for these sets are generated from truth with seeded noise (a share of misreads and missing boxes), so the recorded provider behaves like an imperfect model without any network call.
+
+Sizes: `npm test` uses 24 fixed sets (seeds 1 to 24, covering every option at least twice); `scripts/eval-understand.ts --synthetic 300` runs a larger sweep on demand.
+
+### 17.11 Evaluation: real samples, metrics, bars
+
+**What is needed from Mahir.** One real set cannot show generality. The minimum for a meaningful measure is **20 real drawing sets**, kept outside the repo in `~/walkthru-tools/eval/real/`:
+
+| Group | How many | Variety wanted |
+|---|---|---|
+| Interior-designer or architect sets (plan plus elevations), vector PDF | 8 | at least 5 different firms; bedrooms, a living room, a kitchen; feet-and-inches and millimetre drawings |
+| Builder brochure floor plans | 8 | at least 6 builders; 1, 2 and 3 BHK; about half as PDF and half as JPG or PNG from a website or WhatsApp |
+| Phone photos of a printed plan | 4 | different lighting and angles |
+
+For each, ten facts someone has checked by hand (for example two room sizes, the ceiling height, a wardrobe's bay count and one bay width, a door width, a bed size), entered through the review screen and saved as that set's truth. Split: **6 development sets** (including the existing one) that the implementer may look at, **14 held-out sets** that are only ever scored by the script. A firm's drawings never sit on both sides of the split.
+
+**Metrics and bars** (a field counts as right when within the tolerance; bars are for vector sets / raster sets):
+
+| Field | Tolerance | Bar: vector | Bar: raster |
+|---|---|---|---|
+| Rooms found and typed (F1) | type must match | ≥ 0.92 | ≥ 0.80 |
+| Room width and length | 2% | ≥ 90% right | ≥ 70% |
+| Room area | 3% | ≥ 90% | ≥ 70% |
+| Openings (F1), and width | 5 cm | ≥ 0.85, ≥ 85% | ≥ 0.65, ≥ 60% |
+| Dimension strings read (exact string) | exact | ≥ 95% of those present | ≥ 85% |
+| Labelled or symbol furniture found (F1), size | 5 cm | ≥ 0.85, ≥ 85% | ≥ 0.65, ≥ 60% |
+| Fixtures and chairs classified (F1) | class | ≥ 0.80 | ≥ 0.65 |
+| Elevation linked to the right wall | exact | ≥ 90% | not applicable |
+| Ceiling, sill, head, bed and table heights | 2 cm | ≥ 90% | not applicable |
+| Unit bays and shutters per bay | exact | ≥ 85% | not applicable |
+| Hinge side, where the drawing shows it | exact | ≥ 85%, and never a wrong side marked verified | not applicable |
+| **Verified values that are wrong** (the honesty metric) | as above | **≤ 0.5%** | **≤ 0.5%** |
+| Conflicts planted in synthetic sets that were surfaced | flagged | ≥ 95% | ≥ 80% |
+| Share of values the broker must look at | count | ≤ 30% | ≤ 100% |
+| Broker review time per set (measured with Mahir or a colleague) | minutes | ≤ 10 | ≤ 20 |
+
+The honesty bar is the one that may never be traded for the others: if making more values `verified` raises the wrong-verified rate above 0.5%, the checks are tightened and coverage is allowed to fall. Each bar is reported three ways: synthetic, real development, real held-out. A gap of more than 10 points between development and held-out on any field is itself a failure (it means the code learned the development files).
+
+### 17.12 Acceptance for the build
+
+Always run (`npm test`, no network, no real file):
+1. **Lint against overfitting** (`tests/no-overfit.test.ts`): no file under `src/` or `scripts/` contains the name of any folder in `public/scenes/` other than those starting `test-`; none compares a scene id to a string literal; lexicon files contain only lower-case words of at most 3 tokens and none of the entries in the optional local file `~/walkthru-tools/eval/denylist.txt` (names of firms, projects and people from real samples, kept outside the repo); the regexes `BEDROOM_RE`, `ROOM_RE` and `ROOM_WORDS` no longer exist.
+2. The findings in 17.2 rows 1 to 6 are fixed: `SON ROOM`, `KIDS BEDROOM`, `BED-2`, `M.BED`, `GUEST ROOM` and `GRANDPARENTS ROOM` all type as bedroom through the lexicon; `STORE ROOM`, `POOJA ROOM` and `STUDY ROOM` do not; the three previously file-bound tests run on synthetic outputs with unchanged assertions about behaviour.
+3. `units`: `2'-11"` = 0.889 m, `8'-6"` = 2.591 m, `1'-5½"` and `1'-5 1/2"` = 0.4445 m, `12'0"X9'0"` = 3.658 × 2.743 m, `2440` on a dimension line = 2.44 m, `3.05 M` = 3.05 m; each within 0.5 mm.
+4. **Glyph reader:** on stroke-text synthetic sets in all three Hershey fonts with slant up to 15°, at least 97% of dimension strings are read exactly; on a font the templates do not include (a seeded distortion of Simplex), reads fall back to clusters confirmed by three dimensions, and no wrong read becomes `verified`.
+5. **Dimension detection:** at least 97% of truth dimensions found, with end points within 1.5 pt; chains and overalls identified.
+6. **Scale fit:** within 0.5% of truth on every vector set with at least 3 dimensions; sets marked "not to scale" are flagged as such.
+7. **Statuses:** every planted wrong string ends as `conflict`, never `verified`; every correct string with a matching dimension line ends `verified`; reads from the recorded vision provider are `unverified` unless a geometry check passes; no `unverified` or `conflict` value appears in any generated `designs.json`.
+8. **The 24 synthetic sets** meet every vector bar in 17.11, and their rasterised twins meet every raster bar, using the recorded vision provider.
+9. **Elevation link:** correct for at least 90% of elevations across the 24 sets, including sets with no key marker (width and content only).
+10. **Units:** bays, shutters per bay, drawer strip, loft and base gap exact for at least 85% of synthetic units; hinge side right wherever a handle or an opening mark is drawn; `unknown` when neither is; `conflict` when the two disagree.
+11. **Generated `designs.json`** for a synthetic set with a three-bay wardrobe loads through `parseDesigns`, drives the existing openable-wardrobe code, and its door-swing clearance equals the truth within 1 cm.
+12. **Review:** applying a `ReviewFile` that confirms one value, corrects one and rejects one changes exactly those three in the regenerated outputs, and the corrected value carries `method: 'broker'`.
+13. **Keys:** with only `ANTHROPIC_API_KEY` set in the environment, the Claude provider refuses to run and says why; no test opens a network socket (asserted by stubbing `fetch` and the SDK transport to throw).
+
+Local only (`tests/understand-real.local.test.ts`, skipped when `~/walkthru-tools/eval/real/` is absent): runs `scripts/eval-understand.ts` on the development sets and prints the table of 17.11; it asserts only the honesty bar (wrong-verified ≤ 0.5%) and that no crash occurs. The held-out sets are scored by the integrator, not by the chunk's agent.
+
+In the browser: the "Check the drawing" step on a synthetic set: the queue orders conflicts first, a click confirms, a correction updates the 3D preview within a second, and the page crop matches the row.
+
+### 17.13 Cost, latency, and where things run
+
+| Stage | Where | Time per set (estimate) | Cost |
+|---|---|---|---|
+| Render, classify, vector parse, glyph reader, dimensions, scale, symbols, elevations | the Mac (Node), later any server | 20 to 60 s | none |
+| Local OCR (Tesseract, about 150 crops) | the Mac (Python helper) | 20 to 60 s | none |
+| Vision reads of leftover crops (Flash) | Google API | 20 to 60 s, in parallel | about $0.05 to $0.15 |
+| Whole-view reads (Pro), only for raster pages and disagreements | Google API | 30 to 90 s | about $0.05 to $0.15 per page |
+
+- A vector designer set like the development sample (6 pages) should cost **about $0.10 to $0.40** and take **2 to 4 minutes**, most of it local. A brochure JPG (one page, all vision) about $0.10 to $0.30 and 1 to 2 minutes. With `gemini-4-carbon` or `claude-opus-5-5` for the whole-view reads, roughly double the vision part. With `--no-vision` the cost is zero and unread strings simply stay unverified.
+- These are estimates from the published prices and guessed token counts (the price page does not state how these models count image tokens). `understanding.json` records actual calls, tokens and dollars for every run, and the evaluation reports cost per set.
+- The pipeline is a queue job like C9's and can move to a cloud worker unchanged; the vision calls already are remote. Nothing here needs a GPU.
+
+### 17.14 Optional: "AI photo" of the current view (Nano Banana)
+
+Where an image model does belong. A buyer taps "AI photo" and gets one photoreal still of what they are looking at.
+
+- **Flow:** the client sends the current canvas frame (1024 px on the long side, JPEG) and a **guide image** of the same view (white walls, each furniture item and wall edge drawn as dark lines, rendered by the app) to a server function. The function calls an image model with both and a fixed prompt: keep the exact room shape, openings and furniture positions and sizes; make it look like a photograph; do not add or remove furniture. It returns one image.
+- **Model:** `gemini-nano-banana-2.1` (listed at about $0.034 per 1K image) by default; `gemini-3-pro-image` (about $0.13) as the quality option. Mahir's Google key, server side only: the local dev middleware reads `~/walkthru-tools/.gemini-key`; on Vercel a serverless function `api/photo.ts` reads `WALKTHRU_GEMINI_KEY`.
+- **Size sanity check, before the buyer sees it:** the app knows where every furniture box's and every wall corner's edges project on screen. Sample points along those projected edges and require, in the returned image, an image edge within 1.5% of the diagonal for at least 80% of the points on each item and at least 85% overall; also require the two images' edge maps to agree (mean nearest-edge distance under 1% of the diagonal). A failing image is discarded and one retry is made; a second failure shows "Could not make a faithful photo of this view." and nothing else.
+- **Label,** drawn into the image itself and shown under it: "AI photo · illustrative, sizes not guaranteed". The walk-through stays the source of truth; no measurement is ever taken from the photo; the photo never replaces the 3D view.
+- **Limits:** lazy (nothing loads until tapped), at most 3 per visit and a daily cap from an env var, the feature off unless `WALKTHRU_PHOTO_ENABLED` is set. Each image costs a few cents and takes roughly 5 to 15 seconds (estimate).
+- **Acceptance:** with a stubbed image model, an output shifted by 5% of the width or with one item erased is rejected, and an output that is the input with noise passes; the label is present in the pixels; no key appears in the built client bundle (grep of `dist/`).
+
+### 17.15 Chunks
+
+- **C12a** Generalise and measure: the fixes in 17.2, the lexicons, the lint, the synthetic set generator with truth, the scoring script. Start first; everything else is judged with it.
+- **C12b** Text and dimensions: `text-pdf`, `glyphs`, `ocr`, `dimensions`, `scale-fit`, `verify`. After C12a.
+- **C12c** Plan symbols, elevation linking, elevation reading, reconcile, the writers. After C12b.
+- **C12d** Vision providers and the raster path. After C12a, alongside C12b.
+- **C12e** Review step and its server. After C12b, alongside C12c.
+- **C12f** AI photo. Independent; any time after C11.
+
+Integrator edits outside the chunk's files: the lines in `src/editor/main.ts` and `vite.config.ts`; npm scripts `understand` and `eval:understand`; `brew install tesseract`; and, only if the Claude alternate is built, the dependency `@anthropic-ai/sdk` at a version at least two weeks old.
+
+### 17.16 Risks
+
+1. **One real sample.** Every bar on real drawings is a hope until the 20 sets exist. Synthetic sets can be made to pass; they prove the checks work, not that architects draw the way the generator does.
+2. **The stroke-glyph reader may not match real CAD fonts** closely enough. That is why OCR and the vision model sit behind it and why no reader's output is a fact without the geometry check.
+3. **Tesseract on rotated, tiny, slashed dimension strings** is unproven here; it is not installed yet. RapidOCR may do better; the evaluation decides.
+4. **Whether Gemini returns reliable boxes on line drawings** is unverified. Without boxes a model's read cannot be attached to a dimension and stays unverified, which is safe but less useful.
+5. **Drawings "not to scale"**, common in brochures, remove the geometry check. Those plans will produce mostly unverified values and lean on the broker.
+6. **Elevation linking without a key marker** depends on widths and content; symmetrical rooms will be ambiguous and will ask the broker.
+7. **Hinge conventions differ** between offices (some draw the opening mark's point at the handle side). The rule needs the handle to agree, or it reports a conflict; expect many `unknown`s.
+8. **Model prices change** (3.8 Flash doubles on 1 Jan 2027; Gemini 4 Carbon doubles on 1 Dec 2026). The cost table is a snapshot of 13 Nov 2026.
+9. **The AI photo can still mislead** even when edges line up (materials, light, clutter it invents). The label is the mitigation; the feature is optional and off by default.
+10. **Privacy:** real drawings carry firm names and phone numbers. Uploads, renders, crops and `understanding.json` stay in `.cache/`, outputs carry no file names, and crops sent to a vision model are the minimum needed; brokers should still be told drawings are sent to a model provider when vision is on.
