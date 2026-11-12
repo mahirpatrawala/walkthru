@@ -4,5 +4,4 @@ dist
 public/scenes/video-sample
 public/scenes/video-sample-auto
 ml
-src/media
 src/ml
