@@ -4,6 +4,7 @@ import { asHost } from '../context';
 import { clear, dropZone, h } from '../dom';
 import { SCENE_ID_HINT, sceneIdValid } from '../save';
 import { tentativePxPerM } from '../plan-helpers';
+import { mountMediaPipeline } from '../../media/editor-hook';
 
 const PLAN_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
 const SCAN_FILES = ['scene.ply', 'scene.spz', 'scene.splat'];
@@ -93,6 +94,8 @@ async function setPlanImage(ctx: EditorContext, file: File): Promise<void> {
   host.goto('scale');
 }
 
+let unmountPipeline: (() => void) | null = null;
+
 export const step: EditorStep = {
   id: 'media',
   title: 'Scene and media',
@@ -170,8 +173,11 @@ export const step: EditorStep = {
       mediaZone, framesInfo,
       h('div', { class: 'drop static' }, h('strong', { text: '3D scan (optional)' }), scanInfo),
     );
+    unmountPipeline = mountMediaPipeline(panel, ctx); // C9: server-side frames + scan jobs + photo pins
   },
   unmount() {
+    unmountPipeline?.();
+    unmountPipeline = null;
     activeCtx = null;
     refreshPanel = null;
     unsubFrames?.();

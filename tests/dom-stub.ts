@@ -29,6 +29,7 @@ export class StubEl {
   }
   appendChild(n: StubEl): StubEl { this.append(n); return n; }
   removeChild(n: StubEl): void { this.children = this.children.filter((c) => c !== n); }
+  replaceChildren(...nodes: (StubEl | StubText | string)[]): void { this.children = []; this.append(...(nodes as never[])); }
   get firstChild(): StubEl | StubText | null { return this.children[0] ?? null; }
   set textContent(v: string) { this.children = v ? [new StubText(v)] : []; }
   get textContent(): string { return this.children.map((c) => c.textContent).join(''); }
@@ -49,6 +50,10 @@ export class StubEl {
 
 export function installDomStub(): void {
   const g = globalThis as unknown as Record<string, unknown>;
-  g.document = { createElement: (t: string) => new StubEl(t.toUpperCase()), body: new StubEl('BODY') };
+  g.document = { createElement: (t: string) => new StubEl(t.toUpperCase()), createTextNode: (s: string) => new StubText(s), body: new StubEl('BODY') };
   g.window = { confirm: () => true, devicePixelRatio: 1, addEventListener() {}, removeEventListener() {} };
+  // site-relative fetches (the C9 media hook polls /scenes/...) have no server under Node: answer 404
+  const realFetch = globalThis.fetch;
+  g.fetch = (u: unknown, init?: RequestInit) =>
+    typeof u === 'string' && u.startsWith('/') ? Promise.resolve(new Response('', { status: 404 })) : realFetch(u as string, init);
 }

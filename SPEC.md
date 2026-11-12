@@ -1231,6 +1231,7 @@ Ten chunks in four waves (C8 and C9 are specified in sections 13 and 14). A wave
 | 2 | **C8 Drawing import** (section 13) | C0, C1 | C3, C5 |
 | 2 | **C9 Media pipeline** (section 14) | C0, C1 | C2, C3, C5, C8 |
 | 3 | **C10 ML upgrades** (section 15) | C9 (and C1 for validation) | C4, C6, C7 |
+| 4 | **C11 Look** (section 16: C11a, then C11b and C11c in parallel) | C0 to C8 (all built) | C9, C10 |
 
 Rules for every chunk: own files only; all exported signatures exactly as in 7.1; `npm run typecheck` and `npm test` green before reporting; report anything not verified in a browser as "not browser-verified" rather than assuming it works. No agent has a browser; the integrator does section 10.
 
@@ -2191,3 +2192,262 @@ export function mlScaleHint(scale: MlScaleFile): string;                        
 4. **Licence positions can change.** They were read on 12 Nov 2026; re-read each before shipping. LoMa's is unverified. The VGGT commercial checkpoint needs an access approval.
 5. **Feed-forward poses drift over long videos.** Window chaining (E3) accumulates error; a 35 s walk through several rooms may bend. Pinning to the layout (C7) bounds how much that matters.
 6. **The real flat has no ground truth.** Scale and ceiling can only be checked against door and tile standards, so the report states spreads, not errors.
+
+---
+
+## 16. Look (C11)
+
+Goal: a buyer should feel they are standing in a real Indian flat, not in a grey box model. Today the shell is flat-coloured procedural boxes under one hemisphere light and one directional light, with no tone mapping, an opaque blue quad for each window, nothing outside, box furniture and a two-colour mannequin. Nothing in this section has been built or rendered; every number is a target to be checked in a browser.
+
+Unlike C8 to C10, this chunk **upgrades existing files** (`engine/viewer.ts`, `shell.ts`, `furniture.ts`, `character.ts`). Rule for those edits: every exported signature in 7.1 keeps working unchanged (new parameters are optional, new interface members are additions), `core/` is not touched, `types.ts` is not touched, and `npm test` stays green. New code lives in `src/look/`.
+
+### 16.1 References, and what was actually checked
+
+- **patch.gg/blendi/oil-paint.** Cloned from `https://git.patch.gg/blendi/oil-paint.git` at commit `804c65fa3a6c6fcdc732ed1bde450fd140cfb4e9` ("Release 1.1.3"). `LICENSE` is MIT (Copyright (c) 2026 Patch). `LICENCE-NOTES.md` says: code MIT, art CC0 1.0. Its `package.json` pins `three 0.186.1` and `vite 8.3.5`, exactly ours. The painter is `src/oilpaint/` (855 lines: `common`, `brush`, `dabs`, `ground`, `pins`, `shade`, `finish`); the kit is `src/night/kit.js` (239 lines, `createKit(shared, { palettes, light, origin, seed, … })`, which takes flat faces or any geometry tagged with a palette name and lays strokes along the grain). The demo also vendors Rapier 0.21.0 (Apache-2.0), which we do not need.
+- **Patch's starter man.** Per the licence notes: built with MPFB2 from MakeHuman system assets (body, `male_casualsuit06`, `shoes05`, `short01` hair), **rigged onto the Universal Animation Library's skeleton**, CC0 1.0. In this repo its pictures (textures) are removed, because the demo paints him. The two GLBs are Git LFS objects (`starter-man.glb`: oid `sha256:450089ce3fd70c1a30e775cb1454a987cbaf3ff71ca53cf8581e74f9163e637e`, 1,255,588 bytes). `git-lfs` is not installed on this Mac, so **the files were not downloaded or inspected**: bone names, material slots and whether a textured version is obtainable (the notes name its origin as patch-lab, `starter-character-combined`) are unverified.
+- **benglooru.com/play.** The page only yielded a logo and "Loading Koramangala". Its look is taken from Mahir's description: warm, atmospheric, late-afternoon light, glowing windows, rich grading. Nothing from it is copied.
+- **Poly Haven** (all assets CC0): every asset below was looked up in its API on 12 Nov 2026; URLs, sizes and MD5 values are the API's.
+- **npm:** `postprocessing` `6.39.5` (9 Sep 2026, Zlib licence, peer `three >= 0.168 < 0.188`; `6.39.6` is under two weeks old) and `n8ao` `2.0.1` (10 Aug 2026, ISC licence per npm, peers `postprocessing >= 6.30`, `three >= 0.137`).
+
+### 16.2 The honesty rule (Mahir's; it outranks every visual choice here)
+
+Realism must never fake a fact.
+
+1. **Sizes are untouchable.** Every fit check, clearance, area and pose keeps using the layout and each item's `Box`. A furniture model is scaled to its box, never the box to the model. `core/` is not edited.
+2. **Sampled colours win.** A wall or floor colour sampled from the video is the mean colour of that surface's material. Textures add only relief and small variation around that mean (16.5). Default finishes are used only where nothing was sampled.
+3. **Colour-true lighting is always one tap away.** The default light is warm late afternoon because it looks like a home; a "True colours" switch sets neutral white light at exposure 1 so surfaces show their sampled colours.
+4. **Anything decorative is labelled.** Three things in the scene are not facts about the property, and each has a fixed label wherever it is controlled or first seen:
+   - the view outside: "View outside is illustrative."
+   - the sun: "Light direction is illustrative." (or "Sun direction is approximate." when the broker has set north, 16.4)
+   - furniture style: "Furniture style is illustrative. Sizes are exact."
+   The character: no label (it is obviously a stand-in), but its height stays exact.
+5. With a scan (splat) shown, the look steps back: no tone mapping, no post-processing, exposure 1, exactly as today, so the scan's captured colours are not altered.
+
+### 16.3 Assets (all CC0 unless noted; fetched by `scripts/fetch-look-assets.ts` into `public/look/`, which is committed so Vercel serves it)
+
+The fetch script checks each file's MD5 against this table, refuses a mismatch, and writes `public/look/assets.lock.json` with size, MD5 and SHA-256 of every file it stored. Poly Haven base URL: `https://dl.polyhaven.org/file/ph-assets/`.
+
+**HDRIs** (`HDRIs/hdr/1k/<name>_1k.hdr`; the 2k versions are fetched too, for the high tier only)
+
+| Name | Used for | 1k size | 1k MD5 | 2k size | 2k MD5 |
+|---|---|---|---|---|---|
+| `rooftop_night` (urban rooftop at dusk) | default "late afternoon / evening" view and light, floors 5 and up | 1,624,479 | `c812bf5033f4b57c0f769a71267471d4` | 6,509,158 | `966095e85f971fbc00aeb67e7d60d1c9` |
+| `rooftop_day` (urban rooftop, daytime) | daytime view and light, floors 5 and up | 1,545,499 | `3d6f39e531c024b4951d8cb29ddbed27` | 6,155,760 | `5ea41f53536f1a23741e8adb7d589720` |
+| `kloofendal_48d_partly_cloudy_puresky` (sky only) | "True colours" mode, and any floor below 5 (a rooftop skyline would be wrong there) | 1,435,119 | `c69498687e876bf68d2a8b8a62234eb9` | 5,451,493 | `2eba3a4d7eeb23cbfbeca364c97e7980` |
+
+**Textures** (1k JPG, `Textures/jpg/1k/<name>/<file>`; if that path 404s, take the same files from the asset's `Textures/gltf/1k/<name>/textures/` folder, which is where the API lists them)
+
+| Asset | Files used (size, MD5) | Used on |
+|---|---|---|
+| `marble_01` | `marble_01_nor_gl_1k.jpg` (110,230, `fa073d722cde733c1bd6cc6e8897c8e3`), `marble_01_rough_1k.jpg` (91,848, `59cef1be1b7376c9d0dcc7a64adf7882`), `marble_01_diff_1k.jpg` (305,029, `04325ced5018eb8a2e598a4ef69cb176`) | glossy vitrified floor tiles: faint veining and gloss variation |
+| `plastered_wall_04` | `…_nor_gl_1k.jpg` (427,268, `f18e649235bb688732fb0ef1d61a5286`), `…_arm_1k.jpg` (212,525, `4d3c55b7cbb32cce818af5b2a1f18ffa`), `…_diff_1k.jpg` (299,230, `3a45e9e3ff0c6aa179371dff02bded1f`) | painted plaster walls and ceilings |
+| `walnut_veneer` | `…_diff_1k.jpg` (496,596, `70e160b3d44d414728a2fb4194fde2a6`), `…_arm_1k.jpg` (641,173, `7db3474a1d0d1ed15e0cc349541ac1e3`) | wood-grain laminate: wardrobes, bed frames, dining table, counters |
+| `dark_wood` | `…_diff_1k.jpg` (754,754, `47fa883f1bb33acc5711245f64b75975`), `…_nor_gl_1k.jpg` (344,338, `ca74ffa4c1b7ff5afe7316bbfa87f9a0`), `…_rough_1k.jpg` (574,415, `b1acb7bf90785d3945a85eca408dbc6c`) | door frames |
+| `rough_linen` | `…_diff_1k.jpg` (835,801, `663db789fb075462b685c1f740e58930`), `…_nor_gl_1k.jpg` (916,843, `3350269a2e9c472aa406bd3cc1eaf2c8`) | sofa fabric |
+| `cotton_jersey` | `…_diff_1k.jpg` (581,360, `d2f4493fdd48634b50d40f810ce9deb7`), `…_nor_gl_1k.jpg` (678,670, `2dcc9dda3b726477f607c808e52f1833`) | bedding, pillows |
+
+White laminate (the other half of the reference wardrobe) and glass need no texture.
+
+**Furniture models** (`Models/gltf/1k/<name>/…`; a `.gltf`, a `.bin` and a `textures/` folder each)
+
+| Model | Real size (W × D × H, m) | Files (size, MD5) | Used for |
+|---|---|---|---|
+| `sofa_02` | 1.81 × 0.82 × 0.71 | `sofa_02_1k.gltf` (4,183, `ec2590dc8433a523d0fe9e507766c16f`), `sofa_02.bin` (74,864, `024d6f57a7c2ee7915430cd6e1c2651e`), `textures/sofa_02_diff_1k.jpg` (86,514, `0452c7d8dd3ef414d5ed3055085028a1`), `…_nor_gl_1k.jpg` (139,858, `968528a369bced172d34275dba5aebf1`), `…_arm_1k.jpg` (121,752, `78799d978a1117ba83dbffed9af0fa33`) | `sofa` |
+| `dining_chair_02` | 0.43 × 0.58 × 0.97 | `dining_chair_02_1k.gltf` (2,723, `5aff75016e0943e84161de89dcc3ceb8`), `dining_chair_02.bin` (544,592, `b7f8a91c0a5249d02de7885f3b242c4e`), `textures/…_diff_1k.jpg` (91,518, `6b7b8e4ac0a3aad9ecdf314a97b0ef75`), `…_nor_gl_1k.jpg` (119,612, `9c0e1003f9c8859a2e5c2c7f92a8f238`), `…_arm_1k.jpg` (162,630, `2b16c9ddb3ea83d200b02de54a4fdcb8`) | the six chairs of `dining` |
+
+Which of a Poly Haven model's three listed dimensions is the height was read as the third; C11b confirms it from the loaded bounding box.
+
+Considered and rejected, with the reason: `sofa_03` (2.73 m wide, would be squeezed to 77%); `dining_table` (2.26 × 1.39 m, would be squeezed to 80% and 65%); `GothicBed_01`, `old_bed_frame`, `vintage_day_bed` (nothing like an Indian storage bed); `modern_wooden_cabinet`, `painted_wooden_cabinet`, `vintage_cabinet_01` (nothing like a floor-to-ceiling laminate wardrobe). **Beds, wardrobes, counters and the dining table therefore stay procedural, with real materials** (16.6). That is also the honest choice: they are the items whose exact size matters most. Kenney's and Quaternius' furniture packs are low-poly game props and would lower realism; not used.
+
+**Character:** Patch's starter man from the oil-paint repo (commit above, `public/figure/starter-man.glb`, LFS oid above, CC0 1.0). See 16.6 for the checks it must pass and the fallback.
+
+**Painterly code:** `src/oilpaint/*.js`, `src/night/kit.js`, `src/world/noise.js` and `LICENSE` from the same commit, MIT, vendored unmodified into `src/look/painterly/vendor/` (16.7).
+
+**Asset budget** (bytes fetched beyond today's page): low tier at most 1.8 MB (one 1k HDRI, the tile and plaster normal maps), medium at most 9 MB, high at most 22 MB (adds the 2k HDRIs). Everything loads after first paint, lazily, in that order: HDRI, floor and wall maps, furniture materials, models. The shell appears immediately in today's flat look and gains detail as files arrive.
+
+### 16.4 Per-property settings (sidecar, optional)
+
+`public/scenes/<id>/look.json`. Absent file = all defaults. Types live in `src/look/types.ts`.
+
+```ts
+export interface LookFile {
+  version: 1;
+  /** storey the flat is on; picks the backdrop. Default 8. */
+  floorNumber?: number;
+  /** compass bearing of the plan's -z direction, degrees clockwise from north. Absent = unknown. */
+  northDeg?: number;
+  /** default hour for the time slider, 6..19. Default 16.5. */
+  hour?: number;
+  /** broker's choice of backdrop, overriding floorNumber */
+  backdrop?: 'rooftop_day' | 'rooftop_night' | 'sky';
+}
+```
+The dev API already serves the scene folder statically; writing `look.json` is by hand for now (a broker UI for it is not in scope).
+
+### 16.5 C11a: lighting, materials, outside
+
+**New files:** `src/look/types.ts`, `quality.ts`, `sun.ts`, `floor-ao.ts`, `materials.ts`, `sky.ts`, `post.ts`, `reflect.ts`, `look.ts`, `look-panel.ts`, `look.css`, `scripts/fetch-look-assets.ts`, tests. **Edited:** `engine/viewer.ts`, `engine/shell.ts`, one mount call in `buyer/main.ts` and in `editor/preview.ts`. **New dependencies (integrator adds):** `"postprocessing": "6.39.5"`, `"n8ao": "2.0.1"`. Both are loaded by dynamic `import()` on the high tier only, so they never reach a phone.
+
+**Tone mapping and colour.** `THREE.NeutralToneMapping` (the Khronos PBR Neutral operator), not ACES or AgX: it leaves base colours under about 0.8 luminance essentially unchanged, which is what rule 2 needs, while still rolling off the sun patch and the window. Exposure 1.0 in "True colours", 1.15 otherwise. `outputColorSpace` stays sRGB. No LUT. The only grading is the light itself.
+
+**Sun and time of day** (`sun.ts`, pure).
+- Slider 6:00 to 19:00, default 16:30 ("late afternoon"). Elevation = `max(3°, 62° * sin(π * (h - 6) / 13))`. Colour temperature from 2,200 K at the ends to 5,600 K at 12:30 (converted to linear RGB), intensity `3.0 * sin(elevation)` lux-scaled to three's units, minimum 0.4.
+- Azimuth with `northDeg` unknown: find the widest `window` or `opening` on an edge with no partner (an outside wall). The sun comes from outside that opening, 30° to one side of its inward normal, so a sun patch always falls into the main room. The slider sweeps the azimuth ±50° around that across the day. Label: "Light direction is illustrative."
+- Azimuth with `northDeg` set: bearing 90° at 6:00 through 180° at 12:30 to 270° at 19:00, rotated into plan space. Label: "Sun direction is approximate."
+- "True colours": sun off, hemisphere light white at intensity 1.0, sky backdrop, exposure 1.0.
+- One `DirectionalLight` with a shadow camera fitted to the layout's bounds, plus a `HemisphereLight` (sky colour from the time of day, ground colour `#8A8378`) at intensity 0.35, plus image-based light from the HDRI at intensity 0.6 on medium and high.
+
+**Ambient occlusion that needs no ray tracing and runs on every tier** (`floor-ao.ts`, pure and unit-tested).
+- **Floor and ceiling:** from the collision grid. Distance transform (in cells) from every cell with value ≥ 20 (walls, furniture) and from void; `ao = 0.62 + 0.38 * smoothstep(0, 0.45 m, distance)`; a 3 × 3 box blur; one `DataTexture` (R8, linear filtering) covering the grid's bounds. Floors and ceilings sample it by world position (`uv = (worldXZ - origin) / size`, injected with `onBeforeCompile`, so no geometry or UV changes). It is rebuilt whenever furniture changes, which gives every placed bed and sofa a soft contact shadow for free. This is the "baked once per property in the browser" pass: a 300 × 300 grid takes a few milliseconds.
+- **Walls:** analytic, in the wall material's shader: `ao = mix(0.78, 1.0, smoothstep(0.0, 0.35, min(y, wallHeight - y)))`, darkening the skirting and cornice lines.
+- **High tier adds** screen-space N8AO (half resolution, radius 0.6 m, intensity 1.6) for wall-to-wall corners and furniture detail.
+
+**Shadows.** Medium: sun shadow map 1024, `PCFShadowMap`, `autoUpdate = false`, re-rendered only when furniture or the hour changes; the character keeps its blob shadow. High: 2048, `PCFSoftShadowMap`, updated every frame so the character casts too (its blob shadow is hidden). Low: none. `shell.ts` sets `castShadow` on walls, ceilings, frames and railings and `receiveShadow` on floors and walls.
+
+**Materials** (`materials.ts`). One cache, textures loaded once, `RepeatWrapping`, world-scale UVs.
+- **Detail-multiply, the mechanism behind rule 2:** an albedo texture is never used as the colour. In the shader the diffuse colour is `baseColor * (texel / meanTexel)`, with `meanTexel` precomputed per texture (stored in `materials.ts` as constants after measuring each file once), clamped to `[0.85, 1.15]`. The surface keeps its sampled mean colour and gains veining or grain. For walls the clamp is `[0.95, 1.05]`.
+- **Floor (vitrified tile):** base colour = `room.floorColor ?? finishes.floorColor`; the existing tile-grid canvas stays as the grout layer; `marble_01` normal map at strength 0.15 and its roughness map remapped into 0.08 to 0.22 (glossy); `metalness 0`. Reflections by tier (below). Balcony floors: roughness 0.6, no reflection.
+- **Walls and ceilings:** base colour as sampled; `plastered_wall_04` normal at strength 0.35, 3.2 m repeat; roughness 0.9.
+- **Door frames:** `dark_wood`, base colour `finishes.frameColor`, roughness from its map.
+- **Railings:** `railingColor`, metalness 0.6, roughness 0.4.
+- **Glass:** each window pane becomes a transparent `MeshStandardMaterial` (`opacity 0.12`, `roughness 0.05`, `depthWrite false`), so the backdrop is visible and sunlight passes (panes do not cast shadows). When a scan is shown, panes are hidden instead, because alpha-blended meshes sort badly against splats. `opening` gaps have no pane, as now.
+- `shell.ts` change: `buildShell(layout, opts?: { materials?: ShellMaterialSet })`. With no `opts` it builds exactly today's materials, so the editor preview, the tests and Node keep working.
+
+**Floor reflections** (`reflect.ts`), the signature of an Indian flat.
+- Low: none (roughness only).
+- Medium: one static cube map, 128 px, rendered once from 1.2 m above the centre of the largest room after assets load (and again when the hour changes), used as `envMap` on floors only, intensity 0.5.
+- High: a planar reflection of the room the viewer is in: mirrored camera, half-resolution target, sampled in the floor shader with a 5-tap blur and Fresnel weighting (0.04 facing down to 0.55 at grazing angles). Other rooms' floors use the medium cube map. If the planar path cannot be made to work with the post-processing chain within the chunk, ship the cube map on high and say so.
+
+**Outside the windows** (`sky.ts`). The HDRI is the scene background and (medium, high) the PMREM environment. Choice: `look.backdrop` if set; else `floorNumber >= 5` gives `rooftop_night` when the hour is 16:00 or later and `rooftop_day` before; below 5 gives the pure sky. "True colours" always uses the pure sky. The backdrop is rotated about Y so its brightest region lines up with the sun azimuth. An HDRI sits at infinity, so the floor number cannot change parallax; it only decides skyline versus sky. Label, shown in the look panel and as a 3-second toast the first time a window fills more than 8% of the screen: "View outside is illustrative."
+
+**Bloom** (high only): threshold 0.9, intensity 0.35, so windows and the sun patch glow slightly. Nothing else blooms.
+
+**Viewer changes** (`engine/viewer.ts`): `toneMapping` and exposure are set by the look, not hard-coded; the frame loop calls `viewer.renderOverride?.(dt)` when one is set, else `renderer.render(scene, camera)`; new members `setRenderOverride(fn | null)` and `lights: { hemi, sun }` so the look can drive the two existing lights instead of adding duplicates. `createViewer`'s signature is unchanged. Antialiasing: the high tier renders through the composer with SMAA; low and medium keep MSAA as today.
+
+**The controller** (`look.ts`):
+```ts
+export type Tier = 'low' | 'medium' | 'high';
+export interface Look {
+  readonly tier: Tier;
+  setTier(t: Tier): Promise<void>;
+  /** 6..19 */ setHour(h: number): void;
+  setTrueColours(on: boolean): void;
+  /** call after furniture changes; rebuilds the floor AO, the static shadow map and the cube map */
+  refresh(grid: Grid): void;
+  /** scan shown: tone mapping, post and glass off (rule 5) */
+  setScanVisible(v: boolean): void;
+  materials(): ShellMaterialSet;
+  stats(): { tier: Tier; fps: number; drawCalls: number; triangles: number; textures: number; bytesLoaded: number };
+  dispose(): void;
+}
+export function createLook(viewer: Viewer, layout: Layout, look: LookFile | null, opts?: { tier?: Tier }): Promise<Look>;
+```
+`look-panel.ts`: `mountLookPanel(host: HTMLElement, look: Look, opts): () => void`. A small sheet behind one new HUD button (a sun icon): the time slider with its label, the "True colours" switch, a quality picker (Auto / Low / Medium / High), the painterly button (C11c), two swatches "Wall colour from the video" and "Floor colour from the video" showing the raw sampled values, and the three illustrative labels. The integrator adds one mount call in `buyer/main.ts`.
+
+**Quality tiers** (`quality.ts`). `?quality=low|medium|high` forces one. Otherwise: read `WEBGL_debug_renderer_info`, `navigator.deviceMemory`, `hardwareConcurrency` and pointer type for a first guess (touch device, or memory ≤ 4 GB, or a renderer string matching `Mali-|Adreno \(TM\) [1-5]|PowerVR|SwiftShader|llvmpipe` → low; touch device otherwise → medium; desktop → high), then time 40 frames of the built scene at that tier and step down while the average frame is slower than the target. During use, if fps stays under the target for 4 seconds, step down one tier, once, and remember it in `localStorage` key `walkthru:tier`.
+
+| | Low | Medium | High |
+|---|---|---|---|
+| Meant for | mid-range Android | good phones, older laptops | desktop |
+| Fps target (section 10) | 30 | 50 on phone | 55 |
+| Pixel ratio cap | 1.0 | 1.5 | 2.0 |
+| Tone mapping | Neutral | Neutral | Neutral |
+| Lights | hemisphere + sun, no shadows | + static 1024 sun shadow | + 2048 soft shadow, every frame |
+| Ambient occlusion | grid floor AO + analytic wall AO | same | same + N8AO |
+| HDRI | 1k, background only | 1k, background + environment | 2k, background + environment |
+| Floor reflection | none | static cube map | planar, blurred |
+| Textures | tile grid + plaster and tile normal maps | all 1k maps | all 1k maps, anisotropy 8 |
+| Glass | transparent panes | same | same |
+| Bloom, SMAA | no | no | yes |
+| Furniture | procedural with flat colours | models and materials | models and materials |
+| Character | new figure, flat materials | same | same, casts a real shadow |
+| Post-processing library loaded | no | no | yes |
+| Painterly mode | one still picture | one still picture | live |
+
+### 16.6 C11b: furniture and character
+
+**New files:** `src/look/furniture-models.ts`, `furniture-materials.ts`, `character-skin.ts`, tests. **Edited:** `engine/furniture.ts`, `engine/character.ts`.
+
+**Furniture.** `buildFurnitureMesh(item, opts?: { style?: 'plain' | 'real'; look?: Look })`. `plain` is today's output, unchanged (tests and the low tier use it). `real`:
+- **Model fitting** (`fitModelToBox(model, w, d, h)`, pure maths on a bounding box): per-axis scale = target / model size. Accept only if all three scales are within `[0.80, 1.25]`; otherwise use the procedural version. The scaled model's footprint equals the item's box exactly, so what the buyer sees is what the fit check measured. For sofas, after scaling, cast a ray down at the seat point; if the seat surface is more than 4 cm from `surfaceHeightM`, rescale Y so the seat matches (the seat height is a fact, the overall height is not).
+- `sofa` → `sofa_02`, fabric tint left as authored. `dining` → procedural table (top and legs in `walnut_veneer`) plus six `dining_chair_02` at the positions the procedural chairs occupy.
+- **Procedural with materials** for `bed`, `wardrobe`, `counter`: same boxes and sizes as today, built with `RoundedBoxGeometry` (radius 1.5 cm on wood, 6 cm on mattress, duvet and pillows) and real materials. Bed: `walnut_veneer` frame and headboard, `cotton_jersey` mattress cover and pillows, a duvet box in `rough_linen` covering the lower two thirds. Wardrobe: carcass and alternating door panels in `walnut_veneer` and white laminate (`#F4F2EE`, roughness 0.35), matching the reference flat's brown wood-grain and white wardrobe; vertical door seams every 0.45 to 0.6 m; slim bar handles. Counter: `walnut_veneer` base, a 4 cm stone-grey top.
+- Real (`source: 'real'`) wardrobes and counters tagged by the broker use the same look. Its colours are not sampled facts, so the furniture label covers them too.
+- `setFurnitureTint` keeps working on both styles (it lerps `material.color`; for textured materials it also sets `emissive` to the tone at 0.25).
+- Label in the furnish tray and on each item's card footer: "Furniture style is illustrative. Sizes are exact."
+
+**Character.** Target: Patch's starter man, with skin, hair and clothes as separate flat PBR materials (skin `#B98A68`, hair `#1E1A17`, shirt = the height preset's tint, trousers `#3B4252`, shoes `#2A2A2A`), no textures. Steps, in order, each a gate:
+1. `brew install git-lfs`, clone at the pinned commit, `git lfs pull`, confirm the file's SHA-256 equals the LFS oid in 16.1. Copy to `public/characters/starter-man.glb` with the repo's `LICENCE-NOTES.md` excerpt as `public/characters/STARTER-MAN-LICENCE.txt`.
+2. Inspect it: bone names, material slots, mesh count, height. It needs at least separate materials or meshes for body, hair and clothes. If it is a single material, split by the mesh's named primitives if present; if there is nothing to split on, stop and use the fallback.
+3. **Retarget our six clips** (`Idle_Loop`, `Walk_Loop`, `Jog_Fwd_Loop`, `Sitting_Enter`, `Sitting_Idle_Loop`, `Sitting_Exit`) from `mannequin.glb`. Both are on the Universal Animation Library skeleton, so this should be a bone-name map (our GLB uses `DEF-hips`, `DEF-spine.001` and so on; the library's other export uses `pelvis`, `spine_01`). Before trusting it, compare the two skeletons' rest poses bone by bone (local rotation within 2°, relative bone lengths within 3%). If they differ, stop and use the fallback; do not hand-tune a retarget.
+4. **Re-measure the pose constants on the new rig**, by the method section 4.6 and C2 used: `h0` from the skinned bounding box in `Idle_Loop` at t = 0; hip height and hip offset from the `Sitting_Idle_Loop` hips keyframes; back depth from the idle bounding box's rearmost point. Height scaling stays `H / h0`, exact. If a measured ratio differs from `SIT_HIP_BACK_RATIO`, `SIT_SEAT_RATIO` or `LIE_BACK_RATIO` by more than 0.01, the difference is applied inside `Character` as a per-rig offset. `types.ts` and `core/poses.ts` are not edited.
+5. `Character.load(url?, opts?: { rig?: 'mannequin' | 'starter-man' })`. The mannequin stays in the repo as the fallback and as the test rig.
+
+**Fallback, in order:** the textured starter man from patch-lab if it can be obtained under the same CC0 terms; else keep the Quaternius mannequin with better materials (skin-tone body, darker joints, rounded contact shadow). A photoreal human is not promised.
+
+### 16.7 C11c: painterly mode ("a painting of your future home")
+
+Second priority. **New files:** `src/look/painterly/vendor/**` (the vendored MIT files, unmodified, plus the upstream `LICENSE` and a `VENDOR.md` naming the commit), `vendor/index.d.ts` (type shim for the exports we call), `painterly/adapter.ts`, `painterly/palettes.ts`, tests.
+
+- `palettes.ts` (pure): for each surface colour (sampled wall, floor, frame, each furniture material's mean colour) produce the kit's three mixes: light, middle, shadow, as the colour in OKLCH at lightness +0.08, 0 and -0.14 with chroma × 1.1 in the shadow. Sampled colours stay the middle mix (rule 2 holds in the painting too).
+- `adapter.ts`: `createPainting(viewer, shell: THREE.Group, furniture: THREE.Group[], palettes): { render(): void; dispose(): void }`. Feeds the shell's floor, wall and ceiling faces and each furniture group's geometry to `createKit`, with grain along the wall's length for walls, along the tile grid for floors and along the long axis for furniture; lights them with a `light` GLSL function driven by the current sun direction and colour; draws through the painter's own frame (`createFrame`). The character is hidden.
+- Behaviour: the painterly button freezes the camera where it is and shows the painting. High tier: live, the buyer can orbit. Low and medium: paint **one frame** and show it as a still (the reference measured 4.5 ms a frame on an RTX 4090, far too heavy for a phone to run continuously). "Save picture" downloads a PNG with a one-line caption strip: "A painting of {title}. Illustrative." "Back" returns to the walk-through.
+- The implementer must read `kit.js` and `shade.js` first: the exact shape of `shared` (`createShared`) and of the `light` function is defined there and is not restated here.
+
+### 16.8 Acceptance (browser-verifiable)
+
+Drive headless Chrome with the existing script `/private/tmp/claude-501/-Users-mahir/10d10097-55f5-4fe7-877e-aab11a5f6ecb/scratchpad/cdp/cdp.mjs` (copy it into `tools/cdp.mjs` first; the scratchpad is temporary). The buyer page gains debug hooks under the existing `window.__walkthru`:
+
+```ts
+__walkthru.look = {
+  stats(): ReturnType<Look['stats']>;
+  setTier(t), setHour(h), setTrueColours(on), paint(on);
+  /** mean sRGB of a screen rectangle, read from the canvas */ sample(x0, y0, x1, y1): [number, number, number];
+  /** screen position of a world point, or null if off screen */ project(x, y, z): [number, number] | null;
+  ready: Promise<void>;   // resolves when the tier's assets are in
+}
+```
+
+**Always (`npm test`, headless):**
+1. `floor-ao`: on the truth grid, AO at 5 cm from a wall is at most 0.72, at 1 m is at least 0.98, and under the furnished variant's bed footprint edge it is under 0.8; values are monotonic with distance.
+2. `sun`: at 16:30 the elevation is between 20° and 35°; with north unknown on the truth flat, the sun direction's horizontal part points from outside into the bedroom through the sliding opening (dot product with that opening's inward normal > 0.7); with `northDeg` set, azimuth at 12:30 is 180° ± 1°.
+3. `fitModelToBox`: `sofa_02`'s size to the 2.10 × 0.90 × 0.85 catalogue sofa is accepted; `sofa_03`'s and `dining_table`'s sizes are rejected.
+4. **Size truth:** for every catalogue item, in both `plain` and `real` styles (with models replaced by boxes of the models' real sizes), the built group's world bounding box matches the item's `Box` footprint within 1 cm and its `heightM` within 1 cm (sofa: seat within 4 cm of `surfaceHeightM`). Every existing test still passes with zero changes to `core/`.
+5. `palettes`: the middle mix equals the input colour within 1/255 per channel.
+6. `buildShell(layout)` with no options produces the same material types and colours as before (snapshot of names, colours, roughness).
+7. `quality`: the renderer strings `Mali-G52`, `Adreno (TM) 506`, `SwiftShader` give low; `Apple M2` with a fine pointer gives high.
+
+**In the browser (local dev server, then the live site), each on `test-flat-empty` unless stated, each scripted through CDP with a screenshot saved to `shots/look/`:**
+8. **Sun patch:** at 16:30 on high, the floor just inside the sliding opening (sampled around the projection of (2.0, 0, 0.8)) is at least 1.4 times brighter than the floor at (0.6, 0, 4.4) in the room's far corner.
+9. **Contact AO:** on low, with "True colours" on, the floor 5 cm from the west wall is 10% to 40% darker than the floor 1.2 m from it.
+10. **A view, not a blue card:** looking out through the window from inside, the pixels inside the window's projected rectangle have a luminance standard deviation above 12 (0 to 255 scale), and are not the old `#CFE8FF`.
+11. **Colour truth:** with "True colours" on, the mean colour of a wall region in open view is within 12% per channel of `finishes.wallColor`, and the floor region within 15% of `finishes.floorColor`. Repeat on the `son-bedroom` scene with its sampled finishes.
+12. **Glossy floor:** on medium and high, looking toward the window at a low angle, the floor region below the window is at least 15% brighter than the same region on low.
+13. **Scan untouched:** on `test-flat` with the scan shown, `renderer.toneMapping` is `NoToneMapping`, no composer is active, and a screenshot of the scan region differs from the pre-C11 build by less than 2% mean absolute pixel difference.
+14. **Furniture and labels:** placing a sofa on medium shows the model, its footprint outline coincides with the model's visible base within 2 cm on screen-projected corners, the verdict text is identical to the pre-C11 build for the king-bed case of section 10, and the string "Furniture style is illustrative. Sizes are exact." is in the DOM. "View outside is illustrative." and the light label are in the look panel.
+15. **Character:** at 160, 175 and 190 cm the figure's skinned bounding-box height equals the chosen height within 1 cm; sitting on the catalogue sofa, the hips bone is within 5 cm of the seat point; lying on the king bed at 190 cm still reports "Tight fit. Only 8 cm to spare."
+16. **Painterly:** the button produces a frame whose pixels differ from the realistic frame by more than 20% mean absolute difference, the saved PNG has the caption strip, and "Back" restores the walk-through with the same camera.
+17. **Frame rate, measured on the live site** (`walkthru-ivory.vercel.app`, after deploy) through `__walkthru.look.stats().fps` averaged over 5 seconds of walking: high at least 55 on the desktop; medium at least 50 and low at least 30 under Chrome's mobile emulation at 412 × 915 with 4× CPU throttling. Emulation does not model a phone GPU: a real mid-range Android phone must also be tried by hand before calling the low tier done.
+18. **Weight:** network bytes for look assets after `ready`: low at most 1.8 MB, medium at most 9 MB, high at most 22 MB; the `postprocessing` and `n8ao` chunks are not requested on low or medium.
+19. **No regressions:** checks 1 to 10 of section 10.2 still pass on each tier.
+
+### 16.9 Chunks
+
+- **C11a** (lighting, materials, HDRI, tiers, look panel): start now. Owns 16.5. Acceptance 1, 2, 6, 7, 8 to 13, 17 to 19.
+- **C11b** (furniture models and materials, character): after C11a merges (it uses the material cache and `Look`). Owns 16.6. Acceptance 3, 4, 14, 15.
+- **C11c** (painterly): after C11a, alongside C11b. Owns 16.7. Acceptance 5, 16.
+
+Integrator edits outside the chunks' files: the two npm dependencies; a `"fetch:look": "tsx scripts/fetch-look-assets.ts"` script; a `Cache-Control` rule for `/look/(.*)` in `vercel.json` (one day, like `/characters/`); the mount calls named above.
+
+### 16.10 Risks
+
+1. **None of this has been rendered.** Light intensities, AO strengths, roughness ranges and the detail-multiply clamps are starting values to tune by eye against checks 8 to 12.
+2. **The starter man could not be downloaded here** (Git LFS). Its bone names, material slots and suitability are unknown, and its copy in that repo has no textures. The plan has gates and a fallback to the current mannequin; a realistic human is the least certain item in this section.
+3. **Poly Haven texture paths:** the API lists texture JPGs under each asset's glTF folder; the standalone `Textures/jpg/1k/…` path was not fetched. The fetch script tries both. MD5 values are from the API; SHA-256 values are recorded on first fetch, not known in advance.
+4. **Planar reflections with the post-processing chain** are fiddly. The fallback (cube map on high) is specified.
+5. **`postprocessing` and `n8ao` with Spark** are untested; the look turns both off whenever a scan is visible, which also satisfies the honesty rule.
+6. **Warm light changes how colours look.** That is intended and is why "True colours" exists; check 11 is run in that mode. If reviewers find the default too warm to trust, change the default hour, not the tone mapping.
+7. **An HDRI cannot show the property's real view** and a rooftop in another city is plainly not Bengaluru or Mumbai. The label covers it; a broker-supplied balcony photo as the backdrop is the obvious next step and is not in scope.
+8. **Mobile fps targets under emulation are not proof.** A real mid-range Android phone is needed.
+9. **Repo size grows by about 30 MB** of committed CC0 assets (the three 2k HDRIs are 18 MB of that), so the live site can serve them.
+10. **Benglooru's look was not seen**, only described.

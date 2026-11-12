@@ -3,6 +3,7 @@ import type { Plugin } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { walkthruMediaApi } from './src/media/server/media-api';
 
 const SCENES_DIR = path.resolve(import.meta.dirname, 'public/scenes');
 const ID_RE = /^[a-z0-9-]{1,40}$/;
@@ -90,7 +91,8 @@ function walkthruDevApi(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [walkthruDevApi()],
+  // media API first: the scene API answers 404 for /api/scenes/... routes it does not know
+  plugins: [walkthruMediaApi(), walkthruDevApi()],
   build: {
     // three + Spark are one big chunk; that is expected for this prototype
     chunkSizeWarningLimit: 4000,
