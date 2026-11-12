@@ -1,0 +1,11 @@
+{
+  "note": "Hand-picked pixel pairs (x, y in the 720x1280 frames of ~/walkthru-tools/scenes/sample2/images). Expected lengths are standards, not measurements of this flat: door frame height 2.1 m, door clear width 0.75 to 0.9 m (midpoint 0.825 used).",
+  "checks": [
+    {"label": "door frame height, left jamb, hall door", "kind": "door-height", "frame": "f0028", "a": [95, 250], "b": [124, 760], "expectedM": 2.1},
+    {"label": "door frame height, right jamb, hall door", "kind": "door-height", "frame": "f0028", "a": [278, 234], "b": [290, 792], "expectedM": 2.1},
+    {"label": "door frame height, left jamb, hall door", "kind": "door-height", "frame": "f0037", "a": [487, 272], "b": [480, 848], "expectedM": 2.1},
+    {"label": "door frame height, right jamb, hall door", "kind": "door-height", "frame": "f0037", "a": [700, 238], "b": [672, 915], "expectedM": 2.1},
+    {"label": "door clear width at mid height", "kind": "door-width", "frame": "f0028", "a": [135, 500], "b": [272, 500], "expectedM": 0.825},
+    {"label": "door clear width at mid height", "kind": "door-width", "frame": "f0037", "a": [503, 500], "b": [672, 500], "expectedM": 0.825}
+  ]
+}

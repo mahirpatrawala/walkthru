@@ -14,7 +14,8 @@
     "setup": "npm run fetch:assets && npm run make:room",
     "import:drawing": "tsx scripts/import-drawing.ts",
     "media": "tsx scripts/media-worker.ts",
-    "test:local": "WALKTHRU_LOCAL=1 vitest run --no-file-parallelism tests/*.local.test.ts"
+    "test:local": "WALKTHRU_LOCAL=1 vitest run --no-file-parallelism tests/*.local.test.ts",
+    "ml:apply": "tsx scripts/ml-apply.ts"
   },
   "dependencies": {
     "@sparkjsdev/spark": "2.4.0",

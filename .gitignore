@@ -5,3 +5,5 @@ public/scenes/*/scene.*
 public/scenes/sample-room
 .vercel
 .env*
+__pycache__/
+*.pyc
