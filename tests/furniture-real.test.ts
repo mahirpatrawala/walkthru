@@ -3,13 +3,12 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { CATALOG, itemFromCatalog } from '../src/core/catalog';
 import { buildFurnitureMesh } from '../src/engine/furniture';
-import { furnitureLook, groupTriangles, setItemDesigns } from '../src/look/furniture-real';
+import { CHAIR_SIZE, CHAIR_VARIANTS, buildChair, furnitureLook, groupTriangles, setItemDesigns } from '../src/look/furniture-real';
 import { applyDesigns, parseDesigns } from '../src/look/designs';
 import { createFurnitureKit } from '../src/look/furniture-materials';
 import type { FurnitureItem } from '../src/types';
 import type { Tier } from '../src/look/types';
-import designsJson from '../public/scenes/son-bedroom/designs.json';
-import sonProperty from '../public/scenes/son-bedroom/property.json';
+import { TRUTH, makeBedroom } from './helpers/synthetic-bedroom';
 
 const TIERS: Tier[] = ['low', 'medium', 'high'];
 const box = (w: number, d: number) => ({ cx: 0, cz: 0, w, d, yawDeg: 0 });
@@ -115,21 +114,22 @@ describe('counts (check 4)', () => {
   });
 });
 
-describe('the son-bedroom drawing (designs.json)', () => {
-  const d = parseDesigns(designsJson);
-  const items = applyDesigns(sonProperty.furniture as unknown as FurnitureItem[], d);
+describe('a scene\'s designs.json (synthetic bedroom, its own ground truth)', () => {
+  const bedroom = makeBedroom();
+  const d = parseDesigns(bedroom.designs);
+  const items = applyDesigns(bedroom.items, d);
   const byId = (id: string) => items.find((i) => i.id === id)!;
   it('applies the drawn heights and leaves every box alone', () => {
-    expect(byId('wardrobe-1').heightM).toBeCloseTo(2.54, 3);
-    expect(byId('bed-1').surfaceHeightM).toBeCloseTo(0.508, 3);
-    expect(byId('bed-1').heightM).toBeCloseTo(1.0668, 3);
+    expect(byId('wardrobe-1').heightM).toBeCloseTo(TRUTH.wardrobeH, 3);
+    expect(byId('bed-1').surfaceHeightM).toBeCloseTo(0.5, 3);
+    expect(byId('bed-1').heightM).toBeCloseTo(1.05, 3);
     for (const it of items) {
-      const src = (sonProperty.furniture as unknown as FurnitureItem[]).find((x) => x.id === it.id)!;
+      const src = bedroom.items.find((x) => x.id === it.id)!;
       expect(it.box).toEqual(src.box);
     }
   });
   for (const tier of TIERS) {
-    for (const id of ['wardrobe-1', 'bed-1', 'counter-1', 'counter-3']) {
+    for (const id of ['wardrobe-1', 'bed-1', 'counter-1', 'counter-2']) {
       it(`${id} keeps its box at ${tier}`, () => {
         const it = { ...byId(id), box: { ...byId(id).box, cx: 0, cz: 0, yawDeg: 0 } };
         const g = buildFurnitureMesh(it, { style: 'real', tier });
@@ -147,5 +147,14 @@ describe('the son-bedroom drawing (designs.json)', () => {
     const shutters = g.getObjectByName('shutters') as THREE.Mesh;
     expect((shutters.geometry.index!.count / 3)).toBeGreaterThan(6 * 12);
     setItemDesigns(null);
+  });
+  it('a chair decor of either variant builds and sits inside its footprint', () => {
+    for (const variant of CHAIR_VARIANTS) {
+      const g = buildChair('medium', variant);
+      const bb = new THREE.Box3().setFromObject(g);
+      expect(bb.max.x - bb.min.x).toBeLessThan(CHAIR_SIZE[variant].w + 0.12);
+      expect(bb.max.z - bb.min.z).toBeLessThan(CHAIR_SIZE[variant].d + 0.12);
+      expect(bb.min.y).toBeGreaterThanOrEqual(-0.001);
+    }
   });
 });

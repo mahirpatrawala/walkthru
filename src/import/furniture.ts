@@ -9,18 +9,14 @@ import type { ProposalExtras, VStroke } from './types';
 
 type Unmapped = ProposalExtras['unmapped'][number];
 
-const SPEC: Partial<Record<FurnitureLabel['key'], { kind: FurnitureKind; heightM: number; surfaceHeightM: number }>> = {
-  bed: { kind: 'bed', heightM: 0.9, surfaceHeightM: 0.5 },
-  sofa: { kind: 'sofa', heightM: 0.85, surfaceHeightM: 0.43 },
-  dining: { kind: 'dining', heightM: 0.95, surfaceHeightM: 0.75 },
-  study: { kind: 'counter', heightM: 0.75, surfaceHeightM: 0.75 },
-  desk: { kind: 'counter', heightM: 0.75, surfaceHeightM: 0.75 },
-  // The wardrobe height is 2.13 m (7 ft) unless an elevation gives one; no elevation here carries height as text.
-  wardrobe: { kind: 'wardrobe', heightM: 2.13, surfaceHeightM: 2.13 },
-  dressing: { kind: 'wardrobe', heightM: 2.13, surfaceHeightM: 2.13 },
-  // SPEC-GAP: the catalogue has no side-table kind, so a side table is a low counter item (types.ts is not widened).
-  'side table': { kind: 'counter', heightM: 0.55, surfaceHeightM: 0.55 },
-};
+import { furnitureEntry } from '../understand/lexicon';
+
+/** Catalogue kind and heights for a furniture label key, from the furniture lexicon. Null = no slot (reported as unmapped). */
+function specOf(key: string): { kind: FurnitureKind; heightM: number; surfaceHeightM: number } | null {
+  const e = furnitureEntry(key);
+  if (!e || !e.kind || e.heightM === undefined || e.surfaceHeightM === undefined) return null;
+  return { kind: e.kind as FurnitureKind, heightM: e.heightM, surfaceHeightM: e.surfaceHeightM };
+}
 
 /** Distance in page units from `from` along `dir` to the first wall pixel, capped. */
 function rayToWall(walls: Bitmap, from: Px, dir: Px, cap: number): number {
@@ -60,11 +56,11 @@ export function boxFromOutline(o: Outline, walls: Bitmap, ptPerM: number, toWorl
 }
 
 /**
- * A built-in wardrobe given as "WARDROBE=9'0"RFT": the run of shutter and hanger strokes beside the label, against the
- * nearest wall. The label sits on the open side of the band, so the band lies between the label and the wall.
+ * A built-in unit given as a running length with no sides (running feet or metres, in any of the formats the units
+ * parser reads): the run of shutter and hanger strokes beside the label, against the nearest wall. The label sits on the open side of the band, so the band lies between the label and the wall.
  * Returns the band as an oriented rectangle (back on the wall), or null.
  */
-export function wardrobeBand(
+export function builtInBand(
   label: FurnitureLabel, strokes: VStroke[], wallColors: string[], walls: Bitmap, ptPerM: number, wallRings: Px[][] = [],
 ): Outline | null {
   if (!label.runningLengthM) return null;
@@ -127,14 +123,15 @@ export function buildFurniture(
   for (const l of ordered) {
     const at = toWorld(l.centre);
     const sizeM = l.dims ? { w: Math.min(l.dims.w, l.dims.l), l: Math.max(l.dims.w, l.dims.l) } : undefined;
-    const spec = SPEC[l.key];
+    const spec = specOf(l.key);
     if (!spec) { unmapped.push({ label: l.name, sizeM, at, reason: `No furniture kind for a ${l.key}.` }); continue; }
     let o: Outline | null = null;
-    if (l.key === 'wardrobe') {
-      o = wardrobeBand(l, strokes, wallColors, walls, ptPerM, wallRings);
-      if (!o) { unmapped.push({ label: l.name, sizeM: l.runningLengthM ? { w: 0, l: l.runningLengthM } : undefined, at, reason: 'Wardrobe run only, and no band of shutter strokes against a wall of that length beside the label.' }); continue; }
-    } else if (l.key === 'dressing') {
-      // no size on the label: the nearest drawn rectangle (closed, or three-sided) that no other label has taken
+    if (l.runningLengthM && !l.dims) {
+      // a run given in running feet or metres with no sides: a built-in band of strokes against a wall
+      o = builtInBand(l, strokes, wallColors, walls, ptPerM, wallRings);
+      if (!o) { unmapped.push({ label: l.name, sizeM: l.runningLengthM ? { w: 0, l: l.runningLengthM } : undefined, at, reason: 'Running length only, and no band of strokes against a wall of that length beside the label.' }); continue; }
+    } else if (!l.dims) {
+      // no size and no run on the label: the nearest drawn rectangle (closed, or three-sided) that no other label has taken
       const dist = (q: Outline): number => {
         const dx = l.centre.x - q.cx, dy = l.centre.y - q.cy, cs = Math.cos(q.ang), sn = Math.sin(q.ang);
         const uu = dx * cs + dy * sn, vv = -dx * sn + dy * cs;
@@ -145,7 +142,8 @@ export function buildFurniture(
       o = free[0] ?? null;
       if (!o) { unmapped.push({ label: l.name, at, reason: 'No drawn outline near the label that another label has not taken.' }); continue; }
     } else {
-      o = matchOutline(l, outlines.filter((q) => !used.has(q) || l.key === 'side table'), t);
+      const shares = !!furnitureEntry(l.key)?.sharesOutline;
+      o = matchOutline(l, outlines.filter((q) => !used.has(q) || shares), t);
       if (!o) { unmapped.push({ label: l.name, sizeM, at, reason: 'No outline of the labelled proportions near the label.' }); continue; }
     }
     used.add(o);

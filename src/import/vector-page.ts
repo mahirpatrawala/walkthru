@@ -2,6 +2,7 @@
 // Pure TypeScript, no DOM, no pdf.js.
 import type { Px } from '../types';
 import type { PageKind, VectorPage, VFill, VStroke, VText } from './types';
+import { isRoomLabel, pageKindWords } from '../understand/lexicon';
 
 // SPEC-GAP: SPEC 13.4 types VectorPage as already-normalised ("y DOWN, text reads left to right") but 13.5 step 0
 // has `normalizePage` do the y flip and the rotation, and 13.11 item 2 tests it on `buildDrawingPages` output.
@@ -63,19 +64,18 @@ export function textCentre(t: VText): Px {
   return { x: t.x + u.x * t.width / 2 + up.x * t.size * 0.35, y: t.y + u.y * t.width / 2 + up.y * t.size * 0.35 };
 }
 
-const ROOM_WORDS = /\b(ROOM|BEDROOM|BED ROOM|MASTER|LIVING|HALL|DRAWING|DINING|KITCHEN|TOILET|BATH|WC|WASH|BALCONY|TERRACE|UTILITY|PASSAGE|LOBBY|FOYER|POOJA|PUJA|STORE)\b/i;
-const PLAN_RE = /\bPLAN\b/i;
-const ELEV_RE = /ELEVATION|ELEV\.?|SECTION/i;
+const isPlanWord = (str: string): boolean => pageKindWords(str).includes('plan');
+const isElevWord = (str: string): boolean => { const k = pageKindWords(str); return k.includes('elevation') || k.includes('section'); };
 
 /** Step 1. */
 export function classifyPage(page: VectorPage): PageKind {
   if (page.imageCoverage > 0.5 && page.strokes.length + page.fills.length < 200) return 'raster';
-  if (page.texts.some((t) => PLAN_RE.test(t.str) && !ELEV_RE.test(t.str))) return 'plan';
-  if (page.texts.some((t) => ELEV_RE.test(t.str))) return 'elevation';
+  if (page.texts.some((t) => isPlanWord(t.str) && !isElevWord(t.str))) return 'plan';
+  if (page.texts.some((t) => isElevWord(t.str))) return 'elevation';
   return 'other';
 }
 
 /** Room-label count, used to pick a plan page when no page says PLAN. */
 export function roomLabelCount(page: VectorPage): number {
-  return page.texts.filter((t) => ROOM_WORDS.test(t.str)).length;
+  return page.texts.filter((t) => isRoomLabel(t.str)).length;
 }

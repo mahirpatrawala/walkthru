@@ -1,0 +1,26 @@
+{
+  "_note": "Furniture words -> catalogue kind. kind null = recognised but the catalogue has no slot (the importer reports it as unmapped). Matching is by leading tokens of a label, longest entry first.",
+  "items": [
+    { "key": "dining", "kind": "dining", "heightM": 0.95, "surfaceHeightM": 0.75, "words": ["dining table", "dining set", "dining tbl", "dinner table"] },
+    { "key": "side table", "kind": "counter", "heightM": 0.55, "surfaceHeightM": 0.55, "displayName": "Side table", "sharesOutline": true, "words": ["side table", "bedside table", "bed side table", "bedside", "night stand", "nightstand", "end table"] },
+    { "key": "tv unit", "kind": null, "words": ["tv unit", "tv cabinet", "tv panel", "tv console", "entertainment unit"] },
+    { "key": "wardrobe", "kind": "wardrobe", "heightM": 2.13, "surfaceHeightM": 2.13, "displayName": "Wardrobe", "words": ["wardrobe", "w/r", "w r", "ward", "almirah", "almirah", "cupboard", "closet"] },
+    { "key": "dressing", "kind": "wardrobe", "heightM": 2.13, "surfaceHeightM": 2.13, "displayName": "Dressing / storage", "words": ["dressing"] },
+    { "key": "bed", "kind": "bed", "heightM": 0.9, "surfaceHeightM": 0.5, "words": ["bed", "cot", "king bed", "queen bed", "single bed", "double bed", "bunk bed"] },
+    { "key": "sofa", "kind": "sofa", "heightM": 0.85, "surfaceHeightM": 0.43, "words": ["sofa", "settee", "couch", "l sofa", "sectional"] },
+    { "key": "study", "kind": "counter", "heightM": 0.75, "surfaceHeightM": 0.75, "words": ["study", "study table", "study desk"] },
+    { "key": "desk", "kind": "counter", "heightM": 0.75, "surfaceHeightM": 0.75, "words": ["desk", "writing table", "work table", "computer table", "office table"] },
+    { "key": "dresser", "kind": "counter", "heightM": 0.8, "surfaceHeightM": 0.8, "words": ["dressing table", "dresser", "console", "console table"] },
+    { "key": "counter", "kind": "counter", "heightM": 0.85, "surfaceHeightM": 0.85, "words": ["counter", "platform", "kitchen counter", "kitchen platform", "island"] },
+    { "key": "loft", "kind": null, "words": ["loft", "loft shutter"] },
+    { "key": "chair", "kind": null, "words": ["chair", "swivel chair", "study chair", "arm chair", "armchair", "stool"] },
+    { "key": "table", "kind": null, "words": ["coffee table", "center table", "centre table", "table"] }
+  ],
+  "runningLength": {
+    "markers": [
+      { "unit": "ft", "words": ["rft", "r.ft", "r ft", "running ft", "running feet", "running foot", "r/ft"] },
+      { "unit": "m", "words": ["rmt", "r.mt", "running m", "running metre", "running meter", "rm"] }
+    ]
+  },
+  "builtInWords": ["wardrobe", "w/r", "almirah", "cupboard", "closet", "loft", "unit", "storage", "cabinet", "shelf", "shelves"]
+}

@@ -12,16 +12,16 @@ const T = (str: string, x: number, y: number, size: number, angle = 0, width?: n
 describe('label grouping', () => {
   it('keeps a room name, its size and its area together, and BED apart from them', () => {
     const texts = [
-      T('SON ROOM', 487, 259, 18.3), T("11'0\"X12'6\"", 504, 276, 14.6), T('150 SQFT', 506, 291.6, 14.6),
+      T('KIDS ROOM', 487, 259, 18.3), T("10'0\"X12'0\"", 504, 276, 14.6), T('120 SQFT', 506, 291.6, 14.6),
       T('BED', 526, 319, 7.3), T("5'0\"X6'0\"", 526, 328, 7.3),
     ];
     const { rooms, furniture } = parseLabels(texts);
     expect(rooms.length).toBe(1);
-    expect(rooms[0].name).toBe('Son Room');
+    expect(rooms[0].name).toBe('Kids Room');
     expect(rooms[0].roomType).toBe('bedroom');
-    expect(rooms[0].dims!.w).toBeCloseTo(3.3528, 3);
-    expect(rooms[0].dims!.l).toBeCloseTo(3.81, 3);
-    expect(rooms[0].areaM2).toBeCloseTo(150 * 0.09290304, 4);
+    expect(rooms[0].dims!.w).toBeCloseTo(3.048, 3);
+    expect(rooms[0].dims!.l).toBeCloseTo(3.6576, 3);
+    expect(rooms[0].areaM2).toBeCloseTo(120 * 0.09290304, 4);
     expect(furniture.length).toBe(1);
     expect(furniture[0].key).toBe('bed');
     expect(furniture[0].dims!.w).toBeCloseTo(1.524, 3);
@@ -66,7 +66,8 @@ describe('label parsing', () => {
     expect(roomTypeOf('MASTER ROOM')).toBe('bedroom');
     expect(roomTypeOf('LIVING ROOM')).toBe('living');
     expect(roomTypeOf('KITCHEN')).toBe('kitchen');
-    expect(roomTypeOf('WASH AREA')).toBe('bathroom');
+    expect(roomTypeOf('WASH AREA')).toBe('balcony'); // 17.4: a wash area is a utility space, WASHROOM is the bathroom
+    expect(roomTypeOf('WASHROOM')).toBe('bathroom');
     expect(roomTypeOf('TERRACE')).toBe('balcony');
     expect(roomTypeOf('PASSAGE')).toBe('other');
     expect(titleCase('BEDROOM 1')).toBe('Bedroom 1');

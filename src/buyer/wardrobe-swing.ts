@@ -14,6 +14,7 @@ import { clearance } from '../core/grid-query';
 import { GRID_CELL_M, GRID_FREE } from '../types';
 import type { Box, CheckCard, FurnitureItem, Grid, Tone, Vec2 } from '../types';
 import type { OpenableDesign } from '../look/designs';
+import { sourceSheet } from '../look/design-sources';
 
 const DEG = Math.PI / 180;
 const M_PER_IN = 0.0254;
@@ -64,7 +65,7 @@ export function specFromDesign(item: FurnitureItem, d: OpenableDesign): OpenSpec
   });
   return {
     itemId: item.id, origin: 'drawing', bays: d.bayCentresFromLeftM.length, shutters, maxAngleRad: d.maxAngleDeg * DEG,
-    widthNote: 'elevation 3', design: d,
+    widthNote: sourceSheet(d.sources?.shutterWidthM) ?? 'the drawing', design: d,
   };
 }
 

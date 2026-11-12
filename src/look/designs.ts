@@ -7,8 +7,8 @@
 import * as THREE from 'three';
 import type { FurnitureItem } from '../types';
 import type { Tier } from './types';
-import { STUDY_CHAIR, buildStudyChair, setItemDesigns } from './furniture-real';
-import type { BedDesign, ItemDesign, WardrobeDesign } from './furniture-real';
+import { CHAIR_SIZE, CHAIR_VARIANTS, buildChair, setItemDesigns } from './furniture-real';
+import type { BedDesign, ChairVariant, ItemDesign, WardrobeDesign } from './furniture-real';
 
 export interface DesignSource { page: number; sheet: string; text: string }
 /** One compartment of the wardrobe's inside, bottom to top (page 4 of the drawing). */
@@ -61,6 +61,8 @@ export interface ItemDesignFile {
 export interface DecorDesign {
   id: string;
   look: 'chair';
+  /** which chair of the family; a swivel desk chair when absent */
+  variant?: ChairVariant;
   /** the item this sits at (a counter), placed in that item's own frame */
   tiedTo: string;
   /** metres from the item's centre: x along its width (+ right), z out of its front */
@@ -146,7 +148,7 @@ export function parseDesigns(json: unknown): DesignsFile | null {
   if (Array.isArray(o.decor)) {
     for (const raw of o.decor as DecorDesign[]) {
       if (raw && raw.look === 'chair' && typeof raw.id === 'string' && typeof raw.tiedTo === 'string' && raw.offset && isNum(raw.offset.x) && isNum(raw.offset.z)) {
-        decor.push({ id: raw.id, look: 'chair', tiedTo: raw.tiedTo, offset: { x: raw.offset.x, z: raw.offset.z }, faceItem: raw.faceItem !== false, sources: raw.sources });
+        decor.push({ id: raw.id, look: 'chair', ...(CHAIR_VARIANTS.includes(raw.variant as ChairVariant) ? { variant: raw.variant } : {}), tiedTo: raw.tiedTo, offset: { x: raw.offset.x, z: raw.offset.z }, faceItem: raw.faceItem !== false, sources: raw.sources });
       }
     }
   }
@@ -205,7 +207,7 @@ function disposeChildren(g: THREE.Group): void {
   }
 }
 
-/** Builds the decorative objects (the study chair) at their items. Items that are missing from the scene are skipped. */
+/** Builds the decorative objects (chairs, by variant) at their items. Items that are missing from the scene are skipped. */
 export function buildDecor(d: DesignsFile | null, items: FurnitureItem[], tier: Tier): Decor[] {
   if (!d?.decor) return [];
   const out: Decor[] = [];
@@ -219,7 +221,7 @@ export function buildDecor(d: DesignsFile | null, items: FurnitureItem[], tier: 
     const lx = spec.offset.x, lz = host.box.d / 2 + spec.offset.z;
     root.position.set(host.box.cx + lx * Math.cos(yaw) + lz * Math.sin(yaw), 0, host.box.cz - lx * Math.sin(yaw) + lz * Math.cos(yaw));
     root.rotation.y = yaw + (spec.faceItem ? Math.PI : 0);
-    const fill = (t: Tier): void => { disposeChildren(root); const g = buildStudyChair(t); for (const c of [...g.children]) root.add(c); };
+    const fill = (t: Tier): void => { disposeChildren(root); const g = buildChair(t, spec.variant ?? 'swivel'); for (const c of [...g.children]) root.add(c); };
     fill(tier);
     root.userData.decor = true;
     root.updateMatrixWorld(true);
@@ -228,4 +230,4 @@ export function buildDecor(d: DesignsFile | null, items: FurnitureItem[], tier: 
   return out;
 }
 
-export { STUDY_CHAIR };
+export { CHAIR_SIZE };

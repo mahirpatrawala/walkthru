@@ -1,6 +1,7 @@
-// Open wardrobe (headless): the swing and clearance arithmetic with the exact values from the son-bedroom drawing
-// (SON BEDROOM-Binder1.pdf, page 1 plan, page 4 internal elevation, page 5 elevation 3), the corrected layout along the
-// room's 11'0" side, the shutter meshes, the temporary obstacles in the walk grid, and a catalogue wardrobe.
+// Open wardrobe (headless): the swing and clearance arithmetic against a synthetic bedroom with its own ground truth
+// (tests/helpers/synthetic-bedroom.ts: 3 bays of 2'-8", shutters 1'-4", 2'-4" clear to the bed), the shutter meshes, the
+// temporary obstacles in the walk grid, and a catalogue wardrobe. No real drawing is read here; the twin that reads the
+// shipped real scene is wardrobe-swing.local.test.ts.
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { catalogItem, itemFromCatalog, specFor } from '../src/core/catalog';
@@ -20,33 +21,32 @@ import {
 import type { ShutterReading } from '../src/buyer/wardrobe-swing';
 import { stampFurniture } from '../src/core/layout-raster';
 import type { FurnitureItem, Grid, PropertyFile } from '../src/types';
-import designsJson from '../public/scenes/son-bedroom/designs.json';
-import sonJson from '../public/scenes/son-bedroom/property.json';
+import { FT, IN, TRUTH, WALL_E, WALL_W, makeBedroom } from './helpers/synthetic-bedroom';
 
-const FT = 0.3048;
-const IN = 0.0254;
-const property = sonJson as unknown as PropertyFile;
-const designs = parseDesigns(designsJson)!;
+const bedroom = makeBedroom();
+const property: PropertyFile = bedroom.property;
+const designs = parseDesigns(bedroom.designs)!;
 const items = applyDesigns(property.furniture, designs);
 setItemDesigns(null);
 const byId = (id: string) => items.find((i) => i.id === id)!;
 const wardrobe = byId('wardrobe-1');
 const bed = byId('bed-1');
-const study = byId('counter-3');
+const study = byId('counter-2');
 const open = designs.items['wardrobe-1'].openable!;
-const room = property.layout.rooms.find((r) => r.id === 'son-room')!;
+const room = property.layout.rooms.find((r) => r.id === 'bedroom-a')!;
 const wallW = Math.min(...room.polygon.map((p) => p.x));
 const wallE = Math.max(...room.polygon.map((p) => p.x));
+void WALL_E; void WALL_W;
 const baseGrid = rasterizeLayout(property.layout);
 
 const front = (i: FurnitureItem) => i.box.cx + i.box.d / 2; // yaw 90 and 270: depth runs along x (sign per item)
 
-describe('the drawing numbers (page + dimension string)', () => {
-  it('shutter width = 2\'-11" / 2 = 1\'-5½" = 0.4445 m (page 5, elevation 3)', () => {
-    expect(open.bayPitchM).toBeCloseTo(35 * IN, 9);
+describe('the drawing numbers (the fixture\'s own dimension strings)', () => {
+  it('shutter width = 2\'-7" / 2 = 1\'-3½" = 0.3937 m', () => {
+    expect(open.bayPitchM).toBeCloseTo(31 * IN, 9);
     expect(open.shutterWidthM).toBeCloseTo(open.bayPitchM / 2, 9);
-    expect(open.shutterWidthM).toBeCloseTo(0.4445, 9);
-    expect(ftInHalf(open.shutterWidthM)).toBe('1\'-5½"');
+    expect(open.shutterWidthM).toBeCloseTo(0.3937, 9);
+    expect(ftInHalf(open.shutterWidthM)).toBe('1\'-3½"');
   });
   it('three bays of two shutters, hinged at the bay\'s outer edges, as the drawing says', () => {
     expect(designs.items['wardrobe-1'].wardrobe!.bays).toBe(3);
@@ -64,19 +64,19 @@ describe('the drawing numbers (page + dimension string)', () => {
       expect(r.hingeU - l.hingeU).toBeCloseTo(open.bayPitchM, 9);
     }
   });
-  it('page 4: bay centres 1\'-7", 4\'-6", 7\'-5" from the left end; 2" + 3 x 2\'-10" + 2 x 1" + 2" = 9\' = the box width', () => {
-    expect(open.bayCentresFromLeftM.map((c) => Math.round(c / IN))).toEqual([19, 54, 89]);
+  it('internal view: bay centres 1\'-5", 4\'-0", 6\'-7" from the left end; 2" + 3 x 2\'-6" + 2 x 1" + 2" = 8\' = the box width', () => {
+    expect(open.bayCentresFromLeftM.map((c) => Math.round(c / IN))).toEqual([17, 48, 79]);
     const inn = open.interior!;
-    expect(2 * inn.sidePanelM + 3 * inn.bayClearM + 2 * inn.partitionM).toBeCloseTo(9 * FT, 9);
-    expect(wardrobe.box.w).toBeCloseTo(9 * FT, 9);
-    expect(inn.bayClearM).toBeCloseTo(34 * IN, 9);
+    expect(2 * inn.sidePanelM + 3 * inn.bayClearM + 2 * inn.partitionM).toBeCloseTo(8 * FT, 9);
+    expect(wardrobe.box.w).toBeCloseTo(8 * FT, 9);
+    expect(inn.bayClearM).toBeCloseTo(30 * IN, 9);
   });
-  it('page 4 zones add up: every bay stacks to 8\'-4" (100") above the base gap', () => {
-    for (const zones of open.interior!.zonesBottomUp) expect(zones.reduce((s, z) => s + z.heightM, 0)).toBeCloseTo(100 * IN, 6);
-    expect(open.interior!.zonesBottomUp[2].filter((z) => z.kind === 'glass-drawer')).toHaveLength(3);
+  it('internal view zones add up: every bay stacks to 7\'-10" (94") above the base gap', () => {
+    for (const zones of open.interior!.zonesBottomUp) expect(zones.reduce((s, z) => s + z.heightM, 0)).toBeCloseTo(94 * IN, 6);
+    expect(open.interior!.zonesBottomUp[0].filter((z) => z.kind === 'glass-drawer')).toHaveLength(2);
     expect(open.interior!.zonesBottomUp[2].find((z) => z.kind === 'lockable-drawer')!.heightM).toBeCloseTo(6 * IN, 9);
   });
-  it('anything the drawing does not give is listed as not in the drawing, and bays 1 and 2 split is marked derived', () => {
+  it('anything the drawing does not give is listed as not in the drawing, and a derived zone is marked derived', () => {
     expect(open.notInDrawing).toEqual(expect.arrayContaining(['shutter thickness', 'handle projection', 'hinge opening angle']));
     expect(open.interior!.zonesBottomUp[0].filter((z) => z.derived).length).toBeGreaterThan(0);
     expect(open.interior!.zonesBottomUp[2].filter((z) => z.derived)).toHaveLength(0);
@@ -87,26 +87,27 @@ describe('the drawing numbers (page + dimension string)', () => {
   });
 });
 
-describe('the son room along its 11\'0" side (page 1 chain: 2\' + 2\'-10" + 6\' + 2")', () => {
-  it('the room is 11\'0" wide in x', () => {
-    expect(wallE - wallW).toBeCloseTo(11 * FT, 6);
+describe('the bedroom along its 10\'6" side (chain: 2\' + 2\'-4" + 6\' + 2")', () => {
+  it('the room is 10\'6" wide in x', () => {
+    expect(wallE - wallW).toBeCloseTo(126 * IN, 6);
   });
   it('wardrobe 2\' deep, back on the wall face', () => {
     expect(wardrobe.box.d).toBeCloseTo(2 * FT, 9);
     expect(wardrobe.box.cx - wardrobe.box.d / 2).toBeCloseTo(wallW, 9);
   });
-  it('2\'-10" clear from the wardrobe front to the bed side', () => {
+  it('2\'-4" clear from the wardrobe front to the bed side', () => {
     const bedSide = bed.box.cx - bed.box.d / 2;
-    expect(bedSide - front(wardrobe)).toBeCloseTo(34 * IN, 9);
-    expect(bedSide - front(wardrobe)).toBeCloseTo(0.8636, 9);
+    expect(bedSide - front(wardrobe)).toBeCloseTo(28 * IN, 9);
+    expect(bedSide - front(wardrobe)).toBeCloseTo(0.7112, 9);
   });
   it('bed 6\' long, 2" to the wall', () => {
     expect(bed.box.d).toBeCloseTo(6 * FT, 9);
     expect(wallE - (bed.box.cx + bed.box.d / 2)).toBeCloseTo(2 * IN, 6);
   });
   it('the other axis and the yaws are as imported (z, w, yaw unchanged)', () => {
-    expect(wardrobe.box).toMatchObject({ cz: -0.42962055084745765, w: 2.7432, yawDeg: 90 });
-    expect(bed.box).toMatchObject({ cz: 0.186087288135593, w: 1.499999152542373, yawDeg: 270 });
+    expect(wardrobe.box).toMatchObject({ cz: -0.3, w: 96 * IN, yawDeg: 90 });
+    expect(bed.box.cz).toBeCloseTo(0.9192 - 0.006 - 24 * IN, 9);
+    expect(bed.box).toMatchObject({ w: 48 * IN, yawDeg: 270 });
   });
 });
 
@@ -148,7 +149,7 @@ describe('shutter geometry', () => {
   });
 });
 
-describe('walking space from each shutter tip (the exact drawing values)', () => {
+describe('walking space from each shutter tip (the fixture\'s exact values)', () => {
   const spec = specFromDesign(wardrobe, open);
   const others = items.filter((i) => i.id !== wardrobe.id);
   const grid = stampFurniture(baseGrid, others);
@@ -159,42 +160,42 @@ describe('walking space from each shutter tip (the exact drawing values)', () =>
   });
   const r = (id: string) => readings.find((x) => x.shutter.id === id)!;
 
-  it('0.8636 - 0.4445 = 0.4191 m: "42 cm" and 1\'-4½" to the bed', () => {
+  it('0.7112 - 0.3937 = 0.3175 m: "32 cm" and 1\'-0½" to the bed', () => {
     for (const id of ['b1-l', 'b1-r', 'b2-l']) {
       expect(r(id).space.kind).toBe('item');
       expect(r(id).space.itemId).toBe('bed-1');
       expect(r(id).space.what).toBe('bed');
-      expect(r(id).space.distM).toBeCloseTo(0.8636 - 0.4445, 9);
-      expect(r(id).space.distM).toBeCloseTo(0.4191, 9);
+      expect(r(id).space.distM).toBeCloseTo(TRUTH.gapToBed - TRUTH.shutterW, 9);
+      expect(r(id).space.distM).toBeCloseTo(0.3175, 9);
     }
-    expect(Math.round(r('b1-l').space.distM * 100)).toBe(42);
-    expect(ftInHalf(r('b1-l').space.distM)).toBe('1\'-4½"');
-    expect(lengthLabel(r('b1-l').space.distM)).toBe('42 cm · 1\'-4½"');
+    expect(Math.round(r('b1-l').space.distM * 100)).toBe(32);
+    expect(ftInHalf(r('b1-l').space.distM)).toBe('1\'-0½"');
+    expect(lengthLabel(r('b1-l').space.distM)).toBe('32 cm · 1\'-0½"');
   });
   it('the shutters beside the study table (bay 3 and the right shutter of bay 2) have the room in front, up to the table', () => {
     for (const id of ['b2-r', 'b3-l', 'b3-r']) {
-      expect(r(id).space.itemId).toBe('counter-3');
+      expect(r(id).space.itemId).toBe('counter-2');
       const tip = shutterPose(wardrobe.box, r(id).shutter, Math.PI / 2).tip;
       expect(r(id).space.distM).toBeCloseTo(study.box.cx - study.box.d / 2 - tip.x, 6);
       expect(r(id).space.distM).toBeGreaterThan(1.5);
     }
   });
-  it('the card for all bays open: "42 cm walking space to the bed", the drawing arithmetic, thickness not included, tone warn', () => {
+  it('the card for all bays open: "32 cm walking space to the bed", the drawing arithmetic, thickness not included, tone warn', () => {
     const { card, tone, blocked, minSpaceM } = openCard(spec, wardrobe, readings);
     expect(blocked).toBe(false);
-    expect(minSpaceM).toBeCloseTo(0.4191, 9);
-    expect(card.headline).toBe('Shutters open: 42 cm walking space to the bed.');
-    expect(card.lines).toContain('From the drawing: 2\'-10" gap − 1\'-5½" shutter = 1\'-4½" (42 cm).');
-    expect(card.lines.join('\n')).toMatch(/Bay 1: 42 cm to the bed\./);
-    expect(card.lines.join('\n')).toMatch(/Bay 2: 42 cm to the bed, \d+ cm to the study\./);
+    expect(minSpaceM).toBeCloseTo(0.3175, 9);
+    expect(card.headline).toBe('Shutters open: 32 cm walking space to the bed.');
+    expect(card.lines).toContain('From the drawing: 2\'-4" gap − 1\'-3½" shutter = 1\'-0½" (32 cm).');
+    expect(card.lines.join('\n')).toMatch(/Bay 1: 32 cm to the bed\./);
+    expect(card.lines.join('\n')).toMatch(/Bay 2: 32 cm to the bed, \d+ cm to the study\./);
     expect(card.lines.join('\n')).toMatch(/Bay 3: \d+ cm to the study\./);
     expect(card.footer).toContain('Shutter thickness and handles are not in the drawing, not included.');
     expect(card.lines.join('\n')).toContain('Drawing conflict:');
-    // the tiers are the placement ones: the wardrobe's access rule (front >= 0.90), so 0.42 is "tight" (warn)
+    // the tiers are the placement ones: the wardrobe's access rule (front >= 0.90), so 0.32 is "tight" (warn)
     expect(specFor(wardrobe).access[0]).toEqual({ sides: ['front'], minM: 0.9, mode: 'all' });
     expect(tone).toBe('warn');
     expect(card.tone).toBe('warn');
-    expect(card.lines.join('\n')).toContain('Tight: a wardrobe needs 90 cm in front (the catalogue access rule), and 42 cm is left with the shutters open.');
+    expect(card.lines.join('\n')).toContain('Tight: a wardrobe needs 90 cm in front (the catalogue access rule), and 32 cm is left with the shutters open.');
   });
   it('one bay open reads "Bay 3 open", with plenty of room', () => {
     const only3 = readings.filter((x) => x.shutter.bay === 2);
@@ -276,14 +277,14 @@ describe('the shutter meshes open into the room, hinged at the outer edge', () =
     const outs = [bb.min, bb.max].map((c) => (c.x - front(wardrobe)) * a.x + (c.z - wardrobe.box.cz) * a.z);
     expect(Math.max(...outs)).toBeCloseTo(0, 3);
   });
-  it('describes the inside with the drawing\'s own dimension strings, bays with the same inside on one line', () => {
+  it('describes the inside with the fixture\'s own dimension strings, bays with the same inside on one line', () => {
     const z = open.interior!.zonesBottomUp;
-    expect(interiorText(z[2])).toBe('Footwear drawer 7", 3 \u00d7 glass drawer 8", Lockable drawers 6", Open shelf 9", Folded shirts and hanging 1\'-11", Open shelf 2\'');
+    expect(interiorText(z[2])).toBe('Footwear drawer 8", Lockable drawers 6", Hanging space 4\'-10", Open shelf 1\'-7"');
     expect(interiorText(z[0])).toContain('Hanging space (not dimensioned)');
-    const lines = interiorLines([0, 1, 2], z);
+    const lines = interiorLines([0, 1, 2], z, 'page 3');
     expect(lines).toHaveLength(2);
-    expect(lines[0]).toMatch(/^Inside bays 1, 2 \(page 4, bottom to top\): Footwear drawer 7"/);
-    expect(lines[1]).toMatch(/^Inside bay 3 \(page 4, bottom to top\)/);
+    expect(lines[0]).toMatch(/^Inside bays 1, 2 \(page 3, bottom to top\): Footwear drawer 8"/);
+    expect(lines[1]).toMatch(/^Inside bay 3 \(page 3, bottom to top\)/);
     model.dispose();
   });
 });
@@ -344,9 +345,9 @@ describe('furnish: "Wardrobe shutters need N cm to open here"', () => {
   const bedBox = (xFront: number) => ({ cx: xFront + 0.9144, cz: -0.4, w: 1.5, d: 1.8288, yawDeg: 270 });
   it('an item whose box reaches into a shutter swing needs the shutter width; one beyond it needs none', () => {
     const f = front(wardrobe);
-    expect(swingNeedCm(spec, wardrobe.box, bedBox(f + 0.3))).toBe(Math.round(0.4445 * 100));
-    expect(swingNeedCm(spec, wardrobe.box, bedBox(f + 0.8636))).toBeNull();
-    expect(swingNeedCm(spec, wardrobe.box, bedBox(f + 0.4445 + 0.02))).toBeNull();
+    expect(swingNeedCm(spec, wardrobe.box, bedBox(f + 0.3))).toBe(Math.round(0.3937 * 100));
+    expect(swingNeedCm(spec, wardrobe.box, bedBox(f + 0.7112))).toBeNull();
+    expect(swingNeedCm(spec, wardrobe.box, bedBox(f + 0.3937 + 0.02))).toBeNull();
     expect(swingNote(44)).toBe('Wardrobe shutters need 44 cm to open here.');
   });
   it('the hook adds the sentence only when a provider is registered', () => {
@@ -358,7 +359,7 @@ describe('furnish: "Wardrobe shutters need N cm to open here"', () => {
     expect(withSwingNote('King bed fits.', b, 'skip')).toBe('King bed fits.');
     setSwingProvider(null);
   });
-  it('the item on the drawing\'s own bed position is clear of the swing (2\'-10" is more than a shutter)', () => {
+  it('the item on the drawing\'s own bed position is clear of the swing (2\'-4" is more than a shutter)', () => {
     expect(swingNeedCm(spec, wardrobe.box, bed.box)).toBeNull();
   });
 });

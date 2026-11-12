@@ -1,7 +1,8 @@
 // C8. SPEC 13.5 step 2: text grouping and label parsing. Pure TypeScript.
 import type { Px, RoomType } from '../types';
-import { parseSize, parseLength } from '../core/units';
 import type { VText } from './types';
+import { findArea, findSize, hasRunningMarker, isSizeOnly, parseRunningLength, stripSize } from '../understand/units';
+import { furnitureOf, isRoomLabel, roomTypeOf as lexRoomTypeOf } from '../understand/lexicon';
 
 export interface LabelLine { text: string; runs: VText[] }
 export interface LabelBlock {
@@ -17,17 +18,12 @@ export interface RoomLabel {
   kind: 'room'; block: LabelBlock; name: string; roomType: RoomType;
   dims?: { w: number; l: number }; areaM2?: number; centre: Px;
 }
-export type FurnitureKey = 'bed' | 'sofa' | 'dining' | 'wardrobe' | 'dressing' | 'study' | 'desk' | 'side table' | 'tv unit';
+/** A furniture lexicon key (understand/lexicon/furniture.json): bed, sofa, wardrobe, side table, ... */
+export type FurnitureKey = string;
 export interface FurnitureLabel {
   kind: 'furniture'; block: LabelBlock; key: FurnitureKey; name: string;
   dims?: { w: number; l: number }; runningLengthM?: number; centre: Px; angle: number;
 }
-
-const FT = "(?:\\d+(?:\\.\\d+)?\\s*'\\s*(?:\\d+(?:\\.\\d+)?\\s*\")?|\\d+(?:\\.\\d+)?\\s*\"|\\d+(?:\\.\\d+)?\\s*(?:mm|cm|m)?)";
-const SIZE_RE = new RegExp(`(${FT})\\s*[xX×]\\s*(${FT})`);
-const AREA_FT_RE = /(\d+(?:\.\d+)?)\s*(SQ\.?\s*FT|SQFT|SFT)/i;
-const AREA_M_RE = /(\d+(?:\.\d+)?)\s*SQ\.?\s*M\b/i;
-const SQFT_M2 = 0.09290304;
 
 const wrap = (d: number): number => { let a = ((d % 360) + 360) % 360; if (a > 180) a -= 360; return a; };
 
@@ -38,14 +34,7 @@ function frame(angleDeg: number): { u: Px; down: Px } {
 
 interface Run { t: VText; s0: number; s1: number; c0: number; c1: number; cb: number; size: number; isSize: boolean }
 
-function isSizeToken(str: string): boolean {
-  const s = str.trim();
-  if (!s) return false;
-  const m = s.match(SIZE_RE);
-  if (m && s.replace(m[0], '').trim() === '') return true;
-  const a = s.match(AREA_FT_RE) ?? s.match(AREA_M_RE);
-  return !!a && s.replace(a[0], '').trim() === '';
-}
+const isSizeToken = isSizeOnly;
 
 /** Group text runs into blocks: same angle, stacked lines, and a size or area line ends the block unless more size lines follow. */
 export function groupTextBlocks(texts: VText[]): LabelBlock[] {
@@ -118,76 +107,41 @@ export function groupTextBlocks(texts: VText[]): LabelBlock[] {
   return blocks;
 }
 
-// ---------------------------------------------------------------- parsing
+// ---------------------------------------------------------------- parsing (vocabulary lives in understand/lexicon)
 
-const FURN: { key: FurnitureKey; re: RegExp }[] = [
-  { key: 'dining', re: /^DINING\s*TABLE\b/i },
-  { key: 'side table', re: /^SIDE\s*TABLE\b/i },
-  { key: 'tv unit', re: /^TV\s*UNIT\b/i },
-  { key: 'wardrobe', re: /^WARDROBE\b/i },
-  { key: 'dressing', re: /^DRESSING\b/i },
-  { key: 'bed', re: /^BED(?!\s*ROOM|ROOM)\b/i },
-  { key: 'sofa', re: /^SOFA\b/i },
-  { key: 'study', re: /^STUDY(?!\s*ROOM)\b/i },
-  { key: 'desk', re: /^DESK\b/i },
-];
-
-const ROOM_RE = /\b(ROOM|BEDROOM|BED\s+ROOM|MASTER|LIVING|HALL|DRAWING|DINING|KITCHEN|TOILET|BATH|WC|WASH|BALCONY|TERRACE|UTILITY|PASSAGE|LOBBY|FOYER|POOJA|PUJA|STORE)\b/i;
-// SPEC-GAP: 13.5 maps "bedroom words" to bedroom but only names BEDROOM, BED ROOM and MASTER. The reference drawing's
-// room is "SON ROOM" and its test expects `bedroom`, so a family word before ROOM also counts.
-const BEDROOM_RE = /\b(BEDROOM|BED\s+ROOM|MASTER|SON|DAUGHTER|KIDS?|CHILDREN|CHILD|GUEST|PARENTS?)\b/i;
-
-export function roomTypeOf(name: string): RoomType {
-  if (BEDROOM_RE.test(name)) return 'bedroom';
-  if (/\b(LIVING|HALL|DRAWING|DINING)\b/i.test(name)) return 'living';
-  if (/\bKITCHEN\b/i.test(name)) return 'kitchen';
-  if (/\b(TOILET|BATH|WC|WASH)\b/i.test(name)) return 'bathroom';
-  if (/\b(BALCONY|TERRACE|UTILITY)\b/i.test(name)) return 'balcony';
-  return 'other';
-}
+export const roomTypeOf = (name: string): RoomType => lexRoomTypeOf(name);
 
 export function titleCase(s: string): string {
   return s.toLowerCase().replace(/(^|[\s\-(])([a-z])/g, (_, a: string, b: string) => a + b.toUpperCase());
 }
 
-function sizeOf(text: string): { w: number; l: number } | undefined {
-  const m = text.match(SIZE_RE);
-  if (!m) return undefined;
-  return parseSize(`${m[1].replace(/\s+/g, '')} x ${m[2].replace(/\s+/g, '')}`) ?? undefined;
-}
-function areaOf(text: string): number | undefined {
-  const f = text.match(AREA_FT_RE);
-  if (f) return parseFloat(f[1]) * SQFT_M2;
-  const m = text.match(AREA_M_RE);
-  if (m) return parseFloat(m[1]);
-  return undefined;
-}
-
 export function parseBlock(block: LabelBlock): RoomLabel | FurnitureLabel | null {
   const nameLines: string[] = []; let dims: { w: number; l: number } | undefined; let area: number | undefined; let running: number | undefined;
   for (const ln of block.lines) {
-    const rft = ln.text.match(/(\d+(?:\.\d+)?\s*'\s*(?:\d+(?:\.\d+)?\s*")?)\s*RFT\b/i);
-    if (rft) running = parseLength(rft[1].replace(/\s+/g, '')) ?? undefined;
-    const sz = isSizeToken(ln.text) ? sizeOf(ln.text) : undefined;
-    const ar = isSizeToken(ln.text) ? areaOf(ln.text) : undefined;
-    if (sz && !dims) dims = sz;
-    else if (ar !== undefined && area === undefined && !sz) area = ar;
-    else if (!isSizeToken(ln.text)) {
+    const rl = parseRunningLength(ln.text);
+    if (rl) running = rl.m;
+    const sizeOnly = isSizeToken(ln.text);
+    const sz = sizeOnly ? findSize(ln.text) : null;
+    const ar = sizeOnly ? findArea(ln.text) : null;
+    if (sz && !dims) dims = { w: sz.w, l: sz.l };
+    else if (ar && area === undefined && !sz) area = ar.m2;
+    else if (!sizeOnly) {
       // a name line, possibly with a trailing size ("BED 5'0"X6'0"")
-      const s = sizeOf(ln.text);
-      if (s && !dims) dims = s;
-      nameLines.push(ln.text.replace(SIZE_RE, '').trim());
+      const s = findSize(ln.text);
+      if (s && !dims) dims = { w: s.w, l: s.l };
+      nameLines.push(stripSize(ln.text));
     }
   }
   const head = nameLines[0] ?? '';
   const full = nameLines.join(' ').replace(/\s+/g, ' ').trim();
-  for (const f of FURN) {
-    if (f.re.test(head)) {
-      const name = f.key === 'wardrobe' ? 'Wardrobe' : f.key === 'dressing' ? 'Dressing / storage' : f.key === 'side table' ? 'Side table' : titleCase(head.replace(/=.*$/, '').trim());
-      return { kind: 'furniture', block, key: f.key, name, dims, runningLengthM: running, centre: block.centre, angle: block.angle };
-    }
+  const f = furnitureOf(head, !!dims);
+  if (f) {
+    const key = f.entry.key;
+    const name = f.entry.displayName ?? titleCase(head.replace(/=.*$/, '').trim());
+    // an unsized, unmarked "WARDROBE" still carries its running length when a later line gave one
+    return { kind: 'furniture', block, key, name, dims, runningLengthM: running, centre: block.centre, angle: block.angle };
   }
-  if (ROOM_RE.test(full)) {
+  if (isRoomLabel(full) && !(running !== undefined && hasRunningMarker(full))) {
     return { kind: 'room', block, name: titleCase(full), roomType: roomTypeOf(full), dims, areaM2: area, centre: block.centre };
   }
   return null;

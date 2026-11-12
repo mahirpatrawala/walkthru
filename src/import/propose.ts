@@ -127,7 +127,7 @@ export function proposeFromPages(pagesIn: VectorPage[], sourceFile: string, scen
   const votes: ScaleVote[] = [];
   const outlineOf = new Map<FurnitureLabel, ReturnType<typeof matchOutline>>();
   for (const l of furniture) {
-    if (!l.dims || l.key === 'wardrobe') continue;
+    if (!l.dims) continue;
     const o = matchOutline(l, outlines, t);
     outlineOf.set(l, o);
     if (o) votes.push(...outlineVotes(o, l, `${l.key.toUpperCase()} ${fmtDims(l.dims)}`));

@@ -50,7 +50,7 @@ export const QUALITY: Record<Tier, Quality> = {
 };
 
 /**
- * Per-item parameters taken from a drawing (SPEC 16.6 addendum: son-bedroom designs.json). Registered by item id; a generic
+ * Per-item parameters taken from a drawing (SPEC 16.6 addendum: a scene's designs.json). Registered by item id; a generic
  * catalogue item has none and keeps the 16.6 looks. Sizes of the box never come from here, only finish details.
  */
 export interface WardrobeDesign {
@@ -478,16 +478,46 @@ export function groupTriangles(g: THREE.Object3D): number {
 }
 void dropFacing;
 
-// ---------------------------------------------------------------- decorative study chair
+// ---------------------------------------------------------------- decorative chairs (a family, not one chair)
 
-/** Footprint and seat height of the swivel study chair (SPEC addendum: drawn at the study table, ~0.5 x 0.5 m, seat ~0.45 m). */
-export const STUDY_CHAIR = { w: 0.5, d: 0.5, seatM: 0.45 } as const;
+/** The chair variants a drawing's chair symbol can map to. More variants are added here and in `CHAIR_SIZE`. */
+export type ChairVariant = 'swivel' | 'side';
+/** Footprint and seat height of each variant: a swivel desk chair (~0.5 x 0.5, seat ~0.45) and a four-legged side / dining chair. */
+export const CHAIR_SIZE: Record<ChairVariant, { w: number; d: number; seatM: number }> = {
+  swivel: { w: 0.5, d: 0.5, seatM: 0.45 },
+  side: { w: 0.45, d: 0.48, seatM: 0.45 },
+};
+export const CHAIR_VARIANTS = Object.keys(CHAIR_SIZE) as ChairVariant[];
 
 /**
- * A swivel study chair: five-star base on casters, gas column, padded seat and backrest, two armrests. Origin on the floor
- * under the column, it faces local +Z. Decorative: it is not part of any item's box and does not block the walk grid.
+ * A chair of the given variant, origin on the floor under the seat centre, facing local +Z. Decorative: it is not part of
+ * any item's box and does not block the walk grid.
  */
-export function buildStudyChair(tier: Tier, kit: FurnitureKit = furnitureKit): THREE.Group {
+export function buildChair(tier: Tier, variant: ChairVariant = 'swivel', kit: FurnitureKit = furnitureKit): THREE.Group {
+  return variant === 'side' ? buildSideChair(tier, kit) : buildSwivelChair(tier, kit);
+}
+
+/** A four-legged side or dining chair: four square legs, a padded seat, an upright backrest on two posts. */
+function buildSideChair(tier: Tier, kit: FurnitureKit): THREE.Group {
+  const b = new Build(kit, QUALITY[tier]);
+  const S = CHAIR_SIZE.side, hw = S.w / 2 - 0.02, hd = S.d / 2 - 0.02;
+  const legs: THREE.BufferGeometry[] = [];
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) legs.push(boxBetween(sx * hw - 0.017, sx * hw + 0.017, 0, S.seatM - 0.04, sz * hd - 0.017, sz * hd + 0.017));
+  b.merged('legs', 'dark', legs);
+  b.add('seat', 'pad', roundedBoxBetween(-S.w / 2, S.w / 2, S.seatM - 0.05, S.seatM, -S.d / 2, S.d / 2, 0.025, QUALITY[tier].seg), '#3A3F47');
+  b.merged('back-posts', 'dark', [-1, 1].map((s) => boxBetween(s * hw - 0.015, s * hw + 0.015, S.seatM, 0.9, -hd - 0.015, -hd + 0.015)));
+  b.add('backrest', 'pad', roundedBoxBetween(-hw, hw, 0.58, 0.86, -hd - 0.025, -hd + 0.02, 0.02, QUALITY[tier].seg), '#3A3F47');
+  const g = b.group;
+  g.name = 'decor:chair';
+  return g;
+}
+
+/**
+ * A swivel chair: five-star base on casters, gas column, padded seat and backrest, two armrests. Origin on the floor
+ * under the column, it faces local +Z.
+ */
+function buildSwivelChair(tier: Tier, kit: FurnitureKit): THREE.Group {
+  const SEAT = CHAIR_SIZE.swivel.seatM;
   const b = new Build(kit, QUALITY[tier]);
   const sides = tier === 'low' ? 5 : 8;
   const legs: THREE.BufferGeometry[] = [], casters: THREE.BufferGeometry[] = [];
@@ -500,14 +530,14 @@ export function buildStudyChair(tier: Tier, kit: FurnitureKit = furnitureKit): T
   b.merged('base', 'dark', legs);
   b.merged('casters', 'dark', casters);
   b.add('column', 'metal', barBetween(0, 0.07, 0, 0, 0.38, 0, 0.025, sides));
-  b.add('seat', 'pad', roundedBoxBetween(-0.24, 0.24, 0.37, STUDY_CHAIR.seatM, -0.23, 0.23, 0.03, QUALITY[tier].seg), '#3A3F47');
+  b.add('seat', 'pad', roundedBoxBetween(-0.24, 0.24, 0.37, SEAT, -0.23, 0.23, 0.03, QUALITY[tier].seg), '#3A3F47');
   const back = roundedBoxBetween(-0.21, 0.21, 0.0, 0.44, -0.03, 0.03, 0.025, QUALITY[tier].seg);
   back.rotateX((-8 * Math.PI) / 180);
   back.translate(0, 0.53, -0.215);
   b.add('backrest', 'pad', back, '#3A3F47');
   b.add('back-support', 'dark', barBetween(0, 0.45, -0.19, 0, 0.56, -0.215, 0.012, sides));
   b.merged('arms', 'dark', [-1, 1].map((s) => boxBetween(s * 0.235 - 0.015, s * 0.235 + 0.015, 0.6, 0.625, -0.19, 0.06)).concat(
-    [-1, 1].map((s) => boxBetween(s * 0.235 - 0.008, s * 0.235 + 0.008, STUDY_CHAIR.seatM, 0.6, -0.1, -0.075))));
+    [-1, 1].map((s) => boxBetween(s * 0.235 - 0.008, s * 0.235 + 0.008, SEAT, 0.6, -0.1, -0.075))));
   const g = b.group;
   g.name = 'decor:chair';
   return g;

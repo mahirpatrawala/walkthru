@@ -265,7 +265,7 @@ describe('Load proposal (the C8 and Phase 2 plug)', () => {
   const proposal = (): Record<string, unknown> => ({
     version: 1, source: 'drawing-import', confidence: 0.7, notes: ['ceiling from elevation'], wallHeightM: 2.9,
     rooms: [
-      { id: 'r1', roomType: 'bedroom', label: 'Son room', polygon: [{ x: 0, z: 0 }, { x: 3.4, z: 0 }, { x: 3.4, z: 4.5 }, { x: 0, z: 4.5 }], edges: ['wall', 'wall', 'wall', 'wall'], futureField: 1 },
+      { id: 'r1', roomType: 'bedroom', label: 'Guest room', polygon: [{ x: 0, z: 0 }, { x: 3.4, z: 0 }, { x: 3.4, z: 4.5 }, { x: 0, z: 4.5 }], edges: ['wall', 'wall', 'wall', 'wall'], futureField: 1 },
     ],
     openings: [{ id: 'o1', roomId: 'r1', edge: 2, type: 'door', centreM: 1, widthM: 0.8, sillM: 0, headM: 2.1 }],
     somethingNew: { a: 1 },
@@ -292,7 +292,7 @@ describe('Load proposal (the C8 and Phase 2 plug)', () => {
     expect(patch.notes).toEqual(['ceiling from elevation', 'Scale votes disagree by 9%', 'Spawn not found']);
     const fresh = createEmptyProperty('f');
     applyProposal(fresh, patch);
-    expect(fresh.layout.rooms[0].label).toBe('Son room');
+    expect(fresh.layout.rooms[0].label).toBe('Guest room');
     expect(fresh.layout.wallHeightM).toBe(2.9);
     expect(fresh.furniture).toHaveLength(1);
     expect(fresh.spawn).toEqual({ x: 1.5, z: 2, yawDeg: 90 });

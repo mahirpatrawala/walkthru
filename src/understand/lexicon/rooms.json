@@ -1,0 +1,39 @@
+{
+  "_note": "Generic vocabulary only: ordinary room words, Indian builder-brochure terms and common abbreviations. Never a name, a project or a firm. Lower case, at most 3 tokens per entry. Punctuation is ignored when matching (m.bed = m bed = mbed).",
+  "types": {
+    "bedroom": [
+      "bedroom", "bed room", "bed", "br", "mbr", "m bed", "m.bed", "master", "guest", "kids", "kid", "children", "child",
+      "son", "daughter", "parents", "parent", "grandparents", "grandparent", "servant", "maid", "nursery", "sleeping",
+      "master bedroom", "dorm"
+    ],
+    "living": [
+      "living", "hall", "drawing", "lounge", "family", "liv", "l/d", "living/dining", "dining", "drawing room",
+      "living room", "sitting", "great room"
+    ],
+    "kitchen": ["kitchen", "kit", "pantry", "kitchenette", "cooking"],
+    "bathroom": [
+      "toilet", "bath", "bathroom", "wc", "w.c.", "washroom", "wash room", "wash", "powder", "c.toilet", "m.toilet",
+      "att. toilet", "attached toilet", "lavatory", "lav", "restroom", "shower", "common toilet"
+    ],
+    "balcony": [
+      "balcony", "terrace", "deck", "sit-out", "sit out", "verandah", "veranda", "utility", "dry balcony", "wash area",
+      "wash balcony", "dry yard", "utility area", "service balcony", "service area", "open terrace"
+    ],
+    "other": [
+      "passage", "lobby", "foyer", "corridor", "store", "storage room", "pooja", "puja", "mandir", "prayer", "study",
+      "dress", "dressing", "entrance", "entry", "gallery", "vestibule", "walk in closet", "wic", "library", "office",
+      "home office", "gym", "laundry", "garage", "parking", "staircase", "landing", "lift lobby", "foyer area", "hallway"
+    ]
+  },
+  "roomWords": ["room", "rm"],
+  "nonBedroomQualifiers": [
+    "store", "storage", "pooja", "puja", "study", "media", "tv", "game", "gym", "theatre", "theater", "laundry",
+    "wash", "pantry", "library", "office", "workshop", "music", "play", "prayer", "meditation", "yoga", "sports",
+    "electrical", "meter", "pump", "garage", "car", "lift", "stair", "lobby", "dining", "living", "drawing", "kitchen",
+    "bath", "toilet", "dress", "dressing", "utility", "servant", "sewing", "hobby", "art", "dark", "panel", "server",
+    "conference", "meeting", "board", "reception", "waiting", "common", "family", "puja"
+  ],
+  "qualifierStopWords": ["the", "a", "an", "of", "no", "number", "for", "with", "and", "att", "attached"],
+  "nonRoomWords": ["duct", "shaft", "lift", "stair", "ots", "pipe", "sunk", "chajja", "ledge", "niche", "mep"],
+  "titleCaseKeep": []
+}

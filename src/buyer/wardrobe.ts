@@ -9,6 +9,7 @@ import { circleFree, nearestFree } from '../core/grid-query';
 import { CHARACTER_RADIUS_M } from '../types';
 import type { Box, CheckCard, FurnitureItem, Tone } from '../types';
 import type { DesignsFile, OpenableZone } from '../look/designs';
+import { sourcePage } from '../look/design-sources';
 import { furnitureKit } from '../look/furniture-materials';
 import type { FurnitureKit } from '../look/furniture-materials';
 import type { WardrobeDesign } from '../look/furniture-real';
@@ -96,14 +97,14 @@ export function interiorText(zones: OpenableZone[]): string {
   }).join(', ');
 }
 
-/** One line per distinct inside among the open bays: "Inside bays 1, 2 (page 4, bottom to top): ...". */
-export function interiorLines(bays: number[], zonesByBay: OpenableZone[][]): string[] {
+/** One line per distinct inside among the open bays: "Inside bays 1, 2 (page 4, bottom to top): ...". `where` is the sheet's page. */
+export function interiorLines(bays: number[], zonesByBay: OpenableZone[][], where = 'from the drawing'): string[] {
   const groups = new Map<string, number[]>();
   for (const b of bays) {
     const txt = interiorText(zonesByBay[b] ?? []);
     groups.set(txt, [...(groups.get(txt) ?? []), b]);
   }
-  return [...groups].map(([txt, bs]) => `Inside bay${bs.length > 1 ? 's' : ''} ${bs.map((b) => b + 1).join(', ')} (page 4, bottom to top): ${txt}.`);
+  return [...groups].map(([txt, bs]) => `Inside bay${bs.length > 1 ? 's' : ''} ${bs.map((b) => b + 1).join(', ')} (${where}, bottom to top): ${txt}.`);
 }
 
 export function createWardrobes(deps: { ctx: BuyerContext; store: FurnitureStoreImpl; designs: DesignsFile | null; parent: THREE.Object3D; kit?: FurnitureKit }): Wardrobes {
@@ -301,7 +302,8 @@ export function createWardrobes(deps: { ctx: BuyerContext; store: FurnitureStore
     const inside = rec.spec.design?.interior;
     if (inside && rec.model.hasInterior) {
       const at = Math.max(0, lines.length - (rec.spec.design?.conflicts.length ? 1 : 0));
-      const add = interiorLines([...rec.open].sort((x, y) => x - y), inside.zonesBottomUp);
+      const src = rec.spec.design?.sources;
+      const add = interiorLines([...rec.open].sort((x, y) => x - y), inside.zonesBottomUp, sourcePage(src?.interior ?? src?.bayCentresFromLeftM) ?? undefined);
       lines.splice(at, 0, ...add);
     }
     return { card: { ...r.card, lines }, tone: r.tone, readings, blocked: r.blocked, minSpaceM: r.minSpaceM };

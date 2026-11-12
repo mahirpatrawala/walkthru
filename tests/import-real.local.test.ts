@@ -1,5 +1,5 @@
 // C8 acceptance on the real drawing (SPEC 13.11, "Real file, local only"). The PDF stays outside the repo.
-// Path: WALKTHRU_REAL_DRAWING, default ~/Downloads/SON BEDROOM-Binder1.pdf. Skips when it is absent.
+// Path: WALKTHRU_REAL_DRAWING, default ~/walkthru-tools/drawings/real-dev-1/drawing.pdf (outside the repo). Skips when absent.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,9 +14,9 @@ import { rasterizeLayout, stampFurniture } from '../src/core/layout-raster';
 import { validateLayout } from '../src/core/layout-validate';
 import { buildDraftProperty, reviewSummary } from '../scripts/import-drawing';
 
-const file = process.env.WALKTHRU_REAL_DRAWING ?? path.join(os.homedir(), 'Downloads', 'SON BEDROOM-Binder1.pdf');
+const file = process.env.WALKTHRU_REAL_DRAWING ?? path.join(os.homedir(), 'walkthru-tools', 'drawings', 'real-dev-1', 'drawing.pdf');
 
-describe.skipIf(!fs.existsSync(file))('real drawing: SON BEDROOM-Binder1.pdf', () => {
+describe.skipIf(!fs.existsSync(file))('real development drawing (local only)', () => {
   let pages: VectorPage[]; let r: ImportResult;
   beforeAll(async () => {
     pages = await loadVectorPages(new Uint8Array(fs.readFileSync(file)));

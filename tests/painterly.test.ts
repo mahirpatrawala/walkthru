@@ -59,7 +59,7 @@ describe('palettes (16.8 check 5)', () => {
 
 describe('caption', () => {
   it('is the fixed line of SPEC 16.7', () => {
-    expect(captionFor('Son Bedroom')).toBe('A painting of Son Bedroom. Illustrative.');
+    expect(captionFor('Guest Bedroom')).toBe('A painting of Guest Bedroom. Illustrative.');
     expect(captionFor('Test flat, 1 bedroom.  ')).toBe('A painting of Test flat, 1 bedroom. Illustrative.');
     expect(captionFor('   ')).toBe('A painting of this home. Illustrative.');
   });

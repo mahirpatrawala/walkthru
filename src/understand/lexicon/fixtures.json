@@ -1,0 +1,16 @@
+{
+  "_note": "Sanitary, kitchen and services symbols and the words that label them.",
+  "classes": {
+    "wc": ["wc", "ewc", "iwc", "w.c.", "commode", "western closet", "indian wc", "toilet seat"],
+    "basin": ["basin", "wb", "wash basin", "washbasin", "hand basin"],
+    "shower": ["shower", "shower area", "shower tray"],
+    "sink": ["sink", "kitchen sink", "double sink"],
+    "hob": ["hob", "gas stove", "stove", "cooktop", "cook top", "gas hob"],
+    "fridge": ["ref", "fridge", "refrigerator"],
+    "washing machine": ["wm", "washing machine", "w.m."],
+    "ac": ["ac", "air conditioner", "split ac", "outdoor unit"],
+    "switchboard": ["sb", "switchboard", "switch board", "sw board"],
+    "distribution board": ["db", "distribution board"],
+    "geyser": ["geyser", "water heater", "gz"]
+  }
+}

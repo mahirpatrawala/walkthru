@@ -153,7 +153,7 @@ describe('E3 rooms step', () => {
 describe('E3 Load proposal', () => {
   it('shows the button only when proposal.json exists, loads it, and shows the extras warnings', async () => {
     const proposal = { version: 1, source: 'drawing-import', confidence: 0.8, wallHeightM: 2.7,
-      rooms: [{ id: 'r1', roomType: 'bedroom', label: 'Son room', polygon: [{ x: 0, z: 0 }, { x: 3.4, z: 0 }, { x: 3.4, z: 4.5 }, { x: 0, z: 4.5 }], edges: ['wall', 'wall', 'wall', 'wall'] }],
+      rooms: [{ id: 'r1', roomType: 'bedroom', label: 'Guest room', polygon: [{ x: 0, z: 0 }, { x: 3.4, z: 0 }, { x: 3.4, z: 4.5 }, { x: 0, z: 4.5 }], edges: ['wall', 'wall', 'wall', 'wall'] }],
       openings: [] };
     const extras = { version: 1, warnings: ['Window heights are assumed.'] };
     const realFetch = globalThis.fetch;
@@ -173,7 +173,7 @@ describe('E3 Load proposal', () => {
       await new Promise((r2) => setTimeout(r2, 0));
       r.panel.byText('button', 'Load proposal').click();
       await new Promise((r2) => setTimeout(r2, 5));
-      expect(r.draft.layout.rooms.map((x) => x.label)).toEqual(['Son room']);
+      expect(r.draft.layout.rooms.map((x) => x.label)).toEqual(['Guest room']);
       expect(r.draft.layout.wallHeightM).toBe(2.7);
       const notes = (r.host.setImportNotes as unknown as { mock: { calls: string[][][] } }).mock.calls[0][0];
       expect(notes.join(' ')).toMatch(/Window heights are assumed/);

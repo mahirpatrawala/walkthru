@@ -1,0 +1,13 @@
+{
+  "_note": "Unit markers and number formats as data. A bare integer of 3 to 5 digits on a dimension is read as millimetres, a decimal as metres.",
+  "feet": ["'", "ft", "feet", "foot", "ft."],
+  "inches": ["\"", "in", "inch", "inches", "in."],
+  "mm": ["mm", "mm."],
+  "cm": ["cm"],
+  "metres": ["m", "mtr", "mtrs", "metre", "metres", "meter", "meters"],
+  "fractionGlyphs": { "½": 0.5, "¼": 0.25, "¾": 0.75, "⅛": 0.125, "⅜": 0.375, "⅝": 0.625, "⅞": 0.875, "⅓": 0.3333333333, "⅔": 0.6666666667 },
+  "separators": ["x", "×", "*", "by"],
+  "areaFeet": ["sq ft", "sq. ft.", "sq.ft.", "sq.ft", "sqft", "sft", "sq feet", "square feet", "sqf"],
+  "areaMetres": ["sq m", "sq. m", "sq.m", "sqm", "m2", "m²", "sq mt", "square metres", "square meters"],
+  "bareMmDigits": [3, 5]
+}
