@@ -11,10 +11,49 @@ import { STUDY_CHAIR, buildStudyChair, setItemDesigns } from './furniture-real';
 import type { BedDesign, ItemDesign, WardrobeDesign } from './furniture-real';
 
 export interface DesignSource { page: number; sheet: string; text: string }
+/** One compartment of the wardrobe's inside, bottom to top (page 4 of the drawing). */
+export interface OpenableZone {
+  kind: 'footwear-drawer' | 'glass-drawer' | 'lockable-drawer' | 'open-shelf' | 'hanging' | 'folded-shirts' | 'board' | 'gap';
+  heightM: number;
+  /** the drawing's dimension string, or how a derived value was got */
+  dim: string;
+  label: string;
+  /** not a dimension string on the drawing: measured or got by subtraction */
+  derived?: boolean;
+  note?: string;
+}
+/**
+ * What the drawing says about opening a wardrobe (buyer: "Open wardrobe", SPEC 16.6 addendum). Every number has its page and
+ * dimension string in `sources`; what the drawing does not give is listed in `notInDrawing` and shown to the buyer as such.
+ */
+export interface OpenableDesign {
+  /** one bay's dimension on the elevation (a pair of shutters) */
+  bayPitchM: number;
+  /** one shutter's width: bayPitchM / 2 */
+  shutterWidthM: number;
+  /** each bay's centre, from the left end seen from the room, along the box width */
+  bayCentresFromLeftM: number[];
+  /** furthest a shutter sticks out is at this angle (the clearance does not depend on it) */
+  maxAngleDeg: number;
+  /** dimensioned gaps from the wardrobe front to another item, so the card can show its arithmetic */
+  gaps: { toItem: string; label: string; gapM: number; text: string; page: number; sheet: string }[];
+  conflicts: string[];
+  /** one sentence of the main conflict for the card (the full text is in `conflicts`) */
+  cardConflict?: string;
+  notInDrawing: string[];
+  interior?: {
+    sidePanelM: number; partitionM: number; bayClearM: number;
+    /** per bay, bottom to top, starting above the base gap */
+    zonesBottomUp: OpenableZone[][];
+    topCutNote?: string;
+  };
+  sources?: Record<string, DesignSource | DesignSource[] | string>;
+}
 export interface ItemDesignFile {
   heightM?: number;
   surfaceHeightM?: number;
   wardrobe?: WardrobeDesign;
+  openable?: OpenableDesign;
   bed?: BedDesign;
   /** where each value came from; free text keys such as "heightM", "bays", "baseTopM" */
   sources?: Record<string, DesignSource | DesignSource[] | string>;
@@ -39,6 +78,50 @@ export interface DesignsFile {
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
+const ZONE_KINDS = ['footwear-drawer', 'glass-drawer', 'lockable-drawer', 'open-shelf', 'hanging', 'folded-shirts', 'board', 'gap'];
+const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string') : []);
+
+/** The openable part of an item's design, or undefined when it is missing or malformed (the wardrobe then does not open). */
+export function parseOpenable(raw: unknown): OpenableDesign | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const o = raw as Record<string, unknown>;
+  if (!isNum(o.bayPitchM) || !(o.bayPitchM > 0) || !isNum(o.shutterWidthM) || !(o.shutterWidthM > 0)) return undefined;
+  if (!Array.isArray(o.bayCentresFromLeftM) || o.bayCentresFromLeftM.length < 1 || !o.bayCentresFromLeftM.every(isNum)) return undefined;
+  const gaps: OpenableDesign['gaps'] = [];
+  if (Array.isArray(o.gaps)) {
+    for (const g of o.gaps as Record<string, unknown>[]) {
+      if (g && typeof g.toItem === 'string' && isNum(g.gapM) && typeof g.text === 'string' && isNum(g.page)) {
+        gaps.push({ toItem: g.toItem, label: typeof g.label === 'string' ? g.label : g.toItem, gapM: g.gapM, text: g.text, page: g.page, sheet: typeof g.sheet === 'string' ? g.sheet : '' });
+      }
+    }
+  }
+  const out: OpenableDesign = {
+    bayPitchM: o.bayPitchM, shutterWidthM: o.shutterWidthM, bayCentresFromLeftM: [...(o.bayCentresFromLeftM as number[])],
+    maxAngleDeg: isNum(o.maxAngleDeg) && o.maxAngleDeg > 0 && o.maxAngleDeg <= 180 ? o.maxAngleDeg : 90,
+    gaps, conflicts: strs(o.conflicts), notInDrawing: strs(o.notInDrawing),
+  };
+  if (typeof o.cardConflict === 'string') out.cardConflict = o.cardConflict;
+  const inn = o.interior as Record<string, unknown> | undefined;
+  if (inn && isNum(inn.sidePanelM) && isNum(inn.partitionM) && isNum(inn.bayClearM) && Array.isArray(inn.zonesBottomUp)) {
+    const zones: OpenableZone[][] = [];
+    for (const bay of inn.zonesBottomUp as unknown[]) {
+      const list: OpenableZone[] = [];
+      for (const z of Array.isArray(bay) ? (bay as Record<string, unknown>[]) : []) {
+        if (z && typeof z.kind === 'string' && ZONE_KINDS.includes(z.kind) && isNum(z.heightM) && z.heightM > 0) {
+          list.push({
+            kind: z.kind as OpenableZone['kind'], heightM: z.heightM, dim: typeof z.dim === 'string' ? z.dim : '',
+            label: typeof z.label === 'string' ? z.label : z.kind, ...(z.derived ? { derived: true } : {}), ...(typeof z.note === 'string' ? { note: z.note } : {}),
+          });
+        }
+      }
+      zones.push(list);
+    }
+    out.interior = { sidePanelM: inn.sidePanelM, partitionM: inn.partitionM, bayClearM: inn.bayClearM, zonesBottomUp: zones, ...(typeof inn.topCutNote === 'string' ? { topCutNote: inn.topCutNote } : {}) };
+  }
+  if (o.sources && typeof o.sources === 'object') out.sources = o.sources as OpenableDesign['sources'];
+  return out;
+}
+
 export function parseDesigns(json: unknown): DesignsFile | null {
   if (!json || typeof json !== 'object') return null;
   const o = json as Record<string, unknown>;
@@ -53,6 +136,8 @@ export function parseDesigns(json: unknown): DesignsFile | null {
     const w = r.wardrobe;
     if (w && isNum(w.bays) && isNum(w.shuttersPerBay) && isNum(w.drawerStripM) && isNum(w.baseGapM) && isNum(w.handleYM) && isNum(w.handleLenM)
       && typeof w.frontColor === 'string' && typeof w.handleColor === 'string' && w.bays >= 1 && w.shuttersPerBay >= 1) it.wardrobe = { ...w };
+    const op = parseOpenable(r.openable);
+    if (op) it.openable = op;
     if (r.bed && isNum(r.bed.baseTopM) && r.bed.baseTopM > 0.1 && r.bed.baseTopM < 0.6) it.bed = { baseTopM: r.bed.baseTopM };
     if (r.sources) it.sources = r.sources;
     items[id] = it;

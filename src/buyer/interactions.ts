@@ -45,7 +45,12 @@ function cardTone(item: FurnitureItem, H: number): string {
   return checkFor(item, H).tone;
 }
 
-export function createInteractions(ctx: BuyerContext): Interactions {
+/** Optional extras: a wardrobe that opens takes over the prompt and the action of its items (src/buyer/wardrobe.ts). */
+export interface InteractionExtras {
+  wardrobe?: { promptFor(item: FurnitureItem): string | null; activate(item: FurnitureItem): boolean };
+}
+
+export function createInteractions(ctx: BuyerContext, extras: InteractionExtras = {}): Interactions {
   const R = CHARACTER_RADIUS_M;
   let gen = 0;
   interface Active {
@@ -177,6 +182,7 @@ export function createInteractions(ctx: BuyerContext): Interactions {
     if (ctx.mode() !== 'walk' || !freeToStand()) return 'none';
     const n = nearest();
     if (!n) return 'none';
+    if (extras.wardrobe?.activate(n.item)) return 'wardrobe';
     const { action } = actionFor(n.item.kind);
     if (action === 'dims') {
       showDims(n.item);
@@ -216,7 +222,7 @@ export function createInteractions(ctx: BuyerContext): Interactions {
       // moving away, or ending up beside something else, closes the dimensions card
       if (dimsId !== null && (Math.hypot(ctx.input.moveX, ctx.input.moveY) > MOVE_END || n?.item.id !== dimsId)) hideDims();
       if (!n) { h.setPrompt(null); return; }
-      h.setPrompt(actionFor(n.item.kind).prompt, () => { void interact(); });
+      h.setPrompt(extras.wardrobe?.promptFor(n.item) ?? actionFor(n.item.kind).prompt, () => { void interact(); });
     },
     interact,
     getUp,

@@ -15,6 +15,328 @@
         "handleYM": 0.99,
         "handleLenM": 0.26
       },
+      "openable": {
+        "bayPitchM": 0.889,
+        "shutterWidthM": 0.4445,
+        "bayCentresFromLeftM": [
+          0.4826,
+          1.3716,
+          2.2606
+        ],
+        "hinge": "outer-edges",
+        "meet": "bay-centre",
+        "maxAngleDeg": 90,
+        "gaps": [
+          {
+            "toItem": "bed-1",
+            "label": "bed",
+            "gapM": 0.8636,
+            "text": "2'-10\"",
+            "page": 1,
+            "sheet": "PLAN"
+          }
+        ],
+        "conflicts": [
+          "Plan (page 1) dimensions the wardrobe front 2'-11\", 2'-11\", 3'-1\" (WARDROBE=9'0\"RFT = 9'0\"); elevation 3 (page 5) shows three bays of 2'-11\" (8'-9\"). Page 4 gives the carcass as 9' = 2\" + 3 x 2'-10\" + 2 x 1\" + 2\", so 2'-11\" is the bay pitch (2'-10\" clear + a 1\" partition).",
+          "Shutter width uses elevation 3 (the wardrobe's own drawing): 2'-11\" / 2 = 1'-5½\" = 0.4445 m. If the shutters fill only the 2'-10\" clear bay on page 4 they would be 1'-5\" (0.4318 m), 1.3 cm less."
+        ],
+        "cardConflict": "the plan shows the front as 2'-11\", 2'-11\", 3'-1\" (9'0\"), elevation 3 shows three 2'-11\" bays (8'-9\"), page 4 gives the carcass as 9'. Shutter widths use elevation 3.",
+      "notInDrawing": [
+          "shutter thickness",
+          "handle projection",
+          "hinge opening angle",
+          "interior depth of shelves (the plan gives the carcass 2' deep)"
+        ],
+        "interior": {
+          "sidePanelM": 0.0508,
+          "partitionM": 0.0254,
+          "bayClearM": 0.8636,
+          "zonesBottomUp": [
+            [
+              {
+                "kind": "footwear-drawer",
+                "heightM": 0.1778,
+                "dim": "7\"",
+                "label": "Footwear drawer"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "glass-drawer",
+                "heightM": 0.2032,
+                "dim": "8\"",
+                "label": "Glass drawer"
+              },
+              {
+                "kind": "glass-drawer",
+                "heightM": 0.2032,
+                "dim": "8\"",
+                "label": "Glass drawer"
+              },
+              {
+                "kind": "glass-drawer",
+                "heightM": 0.2032,
+                "dim": "8\"",
+                "label": "Glass drawer"
+              },
+              {
+                "kind": "lockable-drawer",
+                "heightM": 0.1524,
+                "dim": "6\"",
+                "label": "Lockable drawers (two side by side)"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "hanging",
+                "heightM": 0.6477,
+                "dim": "remainder of 3'",
+                "label": "Hanging space",
+                "derived": true,
+                "note": "3' (36\") is dimensioned for the open shelf plus hanging space together, not for each"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "open-shelf",
+                "heightM": 0.2413,
+                "dim": "about 9½\" measured on the drawing",
+                "label": "Open shelf",
+                "derived": true,
+                "note": "not dimensioned in bays 1 and 2"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "open-shelf",
+                "heightM": 0.6096,
+                "dim": "2'",
+                "label": "Open shelf"
+              }
+            ],
+            [
+              {
+                "kind": "footwear-drawer",
+                "heightM": 0.1778,
+                "dim": "7\"",
+                "label": "Footwear drawer"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "glass-drawer",
+                "heightM": 0.2032,
+                "dim": "8\"",
+                "label": "Glass drawer"
+              },
+              {
+                "kind": "glass-drawer",
+                "heightM": 0.2032,
+                "dim": "8\"",
+                "label": "Glass drawer"
+              },
+              {
+                "kind": "glass-drawer",
+                "heightM": 0.2032,
+                "dim": "8\"",
+                "label": "Glass drawer"
+              },
+              {
+                "kind": "lockable-drawer",
+                "heightM": 0.1524,
+                "dim": "6\"",
+                "label": "Lockable drawers (two side by side)"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "hanging",
+                "heightM": 0.6477,
+                "dim": "remainder of 3'",
+                "label": "Hanging space",
+                "derived": true,
+                "note": "3' (36\") is dimensioned for the open shelf plus hanging space together, not for each"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "open-shelf",
+                "heightM": 0.2413,
+                "dim": "about 9½\" measured on the drawing",
+                "label": "Open shelf",
+                "derived": true,
+                "note": "not dimensioned in bays 1 and 2"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "open-shelf",
+                "heightM": 0.6096,
+                "dim": "2'",
+                "label": "Open shelf"
+              }
+            ],
+            [
+              {
+                "kind": "footwear-drawer",
+                "heightM": 0.1778,
+                "dim": "7\"",
+                "label": "Footwear drawer"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "glass-drawer",
+                "heightM": 0.2032,
+                "dim": "8\"",
+                "label": "Glass drawer"
+              },
+              {
+                "kind": "glass-drawer",
+                "heightM": 0.2032,
+                "dim": "8\"",
+                "label": "Glass drawer"
+              },
+              {
+                "kind": "glass-drawer",
+                "heightM": 0.2032,
+                "dim": "8\"",
+                "label": "Glass drawer"
+              },
+              {
+                "kind": "lockable-drawer",
+                "heightM": 0.1524,
+                "dim": "6\"",
+                "label": "Lockable drawers (two side by side)"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "open-shelf",
+                "heightM": 0.2286,
+                "dim": "9\"",
+                "label": "Open shelf"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "folded-shirts",
+                "heightM": 0.5842,
+                "dim": "1'-11\"",
+                "label": "Folded shirts and hanging"
+              },
+              {
+                "kind": "gap",
+                "heightM": 0.0762,
+                "dim": "3\"",
+                "label": "Gap"
+              },
+              {
+                "kind": "board",
+                "heightM": 0.0254,
+                "dim": "1\"",
+                "label": "Board"
+              },
+              {
+                "kind": "open-shelf",
+                "heightM": 0.6096,
+                "dim": "2'",
+                "label": "Open shelf"
+              }
+            ]
+          ],
+          "topCutNote": "Page 4 stacks to 8'-6\" (2\" base gap + 100\"); the modelled wardrobe is 8'-4\" (page 5), so the top open shelf is drawn cut at the model height.",
+          "sources": {
+            "sidePanelM": {
+              "page": 4,
+              "sheet": "ELEVATION-1A (INTERNAL)",
+              "text": "2\" at each end of the bottom dimension chain 2\" | 2'-10\" | 1\" | 2'-10\" | 1\" | 2'-10\" | 2\""
+            },
+            "bayClearM": {
+              "page": 4,
+              "sheet": "ELEVATION-1A (INTERNAL)",
+              "text": "2'-10\" (three bays); 2\" + 3 x 2'-10\" + 2 x 1\" + 2\" = 9' as dimensioned along the top"
+            },
+            "zonesBottomUp": {
+              "page": 4,
+              "sheet": "ELEVATION-1A (INTERNAL)",
+              "text": "right-hand stack bottom to top: 7\" footwear drawer, 8\" 8\" 8\" glass drawers, 6\" lockable drawers, 1\" boards; bay 3: 9\" open shelf, 1'-11\" folded shirts, 3\"; every bay: 2' open shelf at the top. Bays 1 and 2: 3' is given for open shelf plus hanging space together; the split is measured off the drawing (derived)"
+            }
+          }
+        },
+        "sources": {
+          "shutterWidthM": {
+            "page": 5,
+            "sheet": "ELEVATION-3",
+            "text": "2'-11\" per bay (bottom row), \"2 SHUTTER OPENABLE\", split line at mid-bay, so 2'-11\" / 2 = 1'-5½\"; derived"
+          },
+          "bayPitchM": {
+            "page": 5,
+            "sheet": "ELEVATION-3",
+            "text": "2'-11\" (bottom row, three bays)"
+          },
+          "bayCentresFromLeftM": {
+            "page": 4,
+            "sheet": "ELEVATION-1A (INTERNAL)",
+            "text": "2\" + 2'-10\"/2 = 1'-7\", then + 2'-11\" each: 1'-7\", 4'-6\", 7'-5\" from the left end seen from the room; derived"
+          },
+          "hinge": {
+            "page": 5,
+            "sheet": "ELEVATION-3",
+            "text": "dashed opening lines converge at each bay's outer edges, so each pair is hinged at the bay's outer edges and meets at the centre"
+          },
+          "maxAngleDeg": "not in the drawing: 90 degrees is the furthest a shutter sticks out, so the clearance does not depend on the angle",
+          "gaps": {
+            "page": 1,
+            "sheet": "PLAN",
+            "text": "dimension chain along the 11'0\" side: 2' wardrobe, 2'-10\" clear to the bed, 6' bed, 2\" to the wall"
+          }
+        }
+      },
       "sources": {
         "bays": { "page": 5, "sheet": "ELEVATION-3", "text": "three bays, each dimensioned 2'-11\" (bottom row), each labelled \"2 SHUTTER OPENABLE\"; plan page 1: \"WARDROBE=9'0\"RFT\"" },
         "shuttersPerBay": { "page": 5, "sheet": "ELEVATION-3", "text": "\"2 SHUTTER OPENABLE\" in every bay" },
@@ -47,6 +369,64 @@
       }
     }
   },
+  "corrections": [
+    {
+      "item": "wardrobe-1",
+      "field": "box.d",
+      "from": 0.6158961864406776,
+      "to": 0.6096,
+      "source": {
+        "page": 1,
+        "sheet": "PLAN",
+        "text": "wardrobe depth 2' (dimension 2' between the wardrobe's back and front)"
+      }
+    },
+    {
+      "item": "wardrobe-1",
+      "field": "box.cx",
+      "from": -0.5980031779661007,
+      "to": -0.5757481971406753,
+      "source": {
+        "page": 1,
+        "sheet": "PLAN",
+        "text": "the 11'0\" chain starts at the wardrobe's back on the wall face (x -0.8805), so the centre is the wall face + 2'/2; the earlier back was 2.5 cm outside the wall"
+      }
+    },
+    {
+      "item": "bed-1",
+      "field": "box.d",
+      "from": 1.7844038135593225,
+      "to": 1.8288,
+      "source": {
+        "page": 1,
+        "sheet": "PLAN",
+        "text": "6' dimension of the bed along the 11'0\" side (BED 5'0\"X6'0\")"
+      }
+    },
+    {
+      "item": "bed-1",
+      "field": "box.cx",
+      "from": 1.5348434322033904,
+      "to": 1.5070518028593247,
+      "source": {
+        "page": 1,
+        "sheet": "PLAN",
+        "text": "wardrobe front (wall face + 2') + 2'-10\" clear + half of 6'; leaves 2\" to the east wall: 2' + 2'-10\" + 6' + 2\" = 11'0\" = the room's width 3.3528 m"
+      }
+    }
+  ],
+  "unchanged": [
+    {
+      "item": "bed-1",
+      "field": "box.w",
+      "value": 1.499999152542373,
+      "note": "the drawing says 5'0\" (1.524 m); left as imported, along the other axis"
+    },
+    {
+      "item": "counter-3",
+      "note": "the study table (2'0\"X4'0\") is 3 cm into the east wall and 4 mm deeper than 2'; not dimensioned in the chain, not changed"
+    }
+  ],
   "decor": [
     {
       "id": "study-chair",

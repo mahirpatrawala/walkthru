@@ -229,8 +229,13 @@ export interface FurnitureStoreOptions {
 export interface FurnitureStoreImpl extends FurnitureStore {
   /** layout + all furniture (cached until the next change) */
   grid(): Grid;
-  /** layout + all furniture except the given ids */
-  gridWithout(ids: string[]): Grid;
+  /** layout + all furniture except the given ids; `withTemporary` false leaves out the temporary obstacles too */
+  gridWithout(ids: string[], withTemporary?: boolean): Grid;
+  /**
+   * Temporary obstacles in the walk grid (an open wardrobe's shutters): thin boxes under a key, replaced as a set. They are
+   * not items: nothing is saved, no mesh is built, `all()` does not list them. An empty list clears the key.
+   */
+  setTemporary(key: string, obstacles: { box: Box; heightM: number }[]): void;
   /** writes any pending save now */
   flush(): void;
   /** true when the id exists */
@@ -271,6 +276,8 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
   const delay = opts.saveDelayMs ?? 250;
   const entries = new Map<string, Entry>();
   const listeners = new Set<() => void>();
+  const temporary = new Map<string, FurnitureItem[]>();
+  const temporaryItems = (): FurnitureItem[] => [...temporary.values()].flat();
   let cached: Grid | null = null;
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let dirty = false;
@@ -366,12 +373,24 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
       return () => { listeners.delete(cb); };
     },
     grid() {
-      if (!cached) cached = stampFurniture(baseGrid, [...entries.values()].map((e) => e.item));
+      if (!cached) cached = stampFurniture(baseGrid, [...[...entries.values()].map((e) => e.item), ...temporaryItems()]);
       return cached;
     },
-    gridWithout(ids) {
+    gridWithout(ids, withTemporary = true) {
       const skip = new Set(ids);
-      return stampFurniture(baseGrid, [...entries.values()].filter((e) => !skip.has(e.item.id)).map((e) => e.item));
+      const items = [...entries.values()].filter((e) => !skip.has(e.item.id)).map((e) => e.item);
+      return stampFurniture(baseGrid, withTemporary ? [...items, ...temporaryItems()] : items);
+    },
+    setTemporary(key, obstacles) {
+      if (obstacles.length === 0) {
+        if (!temporary.delete(key)) return;
+      } else {
+        temporary.set(key, obstacles.map((o, i) => ({
+          id: `temporary:${key}:${i}`, source: 'virtual' as const, kind: 'wardrobe' as const, label: 'temporary obstacle',
+          box: { ...o.box }, heightM: o.heightM, surfaceHeightM: o.heightM,
+        })));
+      }
+      changed();
     },
     flush() {
       if (dirty) saveNow();

@@ -111,10 +111,10 @@
       "kind": "bed",
       "label": "Bed",
       "box": {
-        "cx": 1.5348434322033904,
+        "cx": 1.5070518028593247,
         "cz": 0.186087288135593,
         "w": 1.499999152542373,
-        "d": 1.7844038135593225,
+        "d": 1.8288,
         "yawDeg": 270
       },
       "heightM": 0.9,
@@ -194,10 +194,10 @@
       "kind": "wardrobe",
       "label": "Wardrobe",
       "box": {
-        "cx": -0.5980031779661007,
+        "cx": -0.5757481971406753,
         "cz": -0.42962055084745765,
         "w": 2.7432,
-        "d": 0.6158961864406776,
+        "d": 0.6096,
         "yawDeg": 90
       },
       "heightM": 2.13,
@@ -234,6 +234,9 @@
     "Passage runs off the edge of the drawing. It is closed at the drawing border. Check its length.",
     "Passage has an entry door on the drawing. A door 0.84 m wide was found at its swing arc.",
     "Passage meets Son Room with no wall drawn between them. An open doorway 0.90 m wide was added.",
-    "Ceiling 2.68 m: 3 elevation pages agree within 3% (2.61, 2.61, 2.68, 2.71, 2.71). All candidates: 2.39 m from pages 4, 3; 2.45 m from pages 5; 2.61 m from pages 4, 3; 2.68 m from pages 5; 2.71 m from pages 4, 3; 2.79 m from pages 5. Confirm it."
+    "Ceiling 2.68 m: 3 elevation pages agree within 3% (2.61, 2.61, 2.68, 2.71, 2.71). All candidates: 2.39 m from pages 4, 3; 2.45 m from pages 5; 2.61 m from pages 4, 3; 2.68 m from pages 5; 2.71 m from pages 4, 3; 2.79 m from pages 5. Confirm it.",
+    "Wardrobe front, plan against elevation: the plan (page 1) dimensions the wardrobe front as 2'-11\", 2'-11\", 3'-1\" (9'0\" RFT), while elevation 3 (page 5) shows three bays of 2'-11\" (8'-9\"). Page 4 (internal) gives the carcass as 9' = 2\" + 3 x 2'-10\" + 2 x 1\" + 2\", so 2'-11\" reads as the bay pitch. The wardrobe box keeps the plan's 9'0\". Shutter widths use elevation 3: 2'-11\" / 2 = 1'-5½\". Check it with the designer.",
+    "Son Room, 11'0\" direction, corrected to the plan's dimension chain on 13 Nov 2026: wardrobe 2' deep + 2'-10\" clear to the bed + bed 6' + 2\" to the wall = 11'0\". The earlier import had the wardrobe 2'-0¼\" deep and 2.5 cm outside the wall face, the bed 5'-10¼\" long, and 3'-0¾\" between them.",
+    "Not in the drawing: shutter thickness, handle projection and the hinge opening angle. The open-wardrobe clearance leaves thickness and handles out, and uses 90 degrees (the furthest a shutter sticks out)."
   ]
 }

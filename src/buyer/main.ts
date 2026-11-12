@@ -33,6 +33,7 @@ import type { GridOverlay } from './debug';
 import { createHeightPicker } from './height';
 import { createHud } from './hud';
 import { createInteractions } from './interactions';
+import { createWardrobes } from './wardrobe';
 import { createLoadingScreen } from './loading';
 import { createMeasureMode } from './measure';
 import { createOverlays } from './overlays';
@@ -260,10 +261,42 @@ async function boot(): Promise<void> {
     scan: () => setScan(!scanVisible),
   });
   hud.setVisible(false);
-  if (look) mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t) });
+  // C11c: the painterly mode is a lazy chunk, fetched only when the buyer taps "Show as a painting"
+  type PaintSession = import('../look/painterly/index').PaintingSession;
+  let painting: PaintSession | null = null;
+  let paintOpening = false;
+  async function openPainterly(): Promise<PaintSession | null> {
+    if (!look || painting?.active || paintOpening) return painting;
+    paintOpening = true;
+    hud.root.querySelector<HTMLElement>('.wt-look-x')?.click();
+    try {
+      const mod = await import('../look/painterly/index');
+      const head = new THREE.Vector3(character.position.x, Math.max(0.5, character.heightM * 0.8), character.position.z);
+      const s = await mod.openPainting({
+        viewer, look, shell, furnitureRoot, layout, title: property.title, host: document.body, focus: head,
+        character: { object: character.object, tone: character.appearance.tone },
+        setBusy: (on) => { paintBusy = on; hud.setVisible(!on); },
+        toast: (t) => hud.toast(t),
+      });
+      painting = s.active ? s : null;
+      return s;
+    } catch (err) {
+      console.warn('[walkthru] painterly mode could not start:', err);
+      hud.toast('The painting is not available on this device.');
+      paintBusy = false;
+      hud.setVisible(true);
+      return null;
+    } finally {
+      paintOpening = false;
+    }
+  }
+  let paintBusy = false;
+  if (look) mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); } });
 
   const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes });
-  const interactions = createInteractions(ctx);
+  // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
+  const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
+  const interactions = createInteractions(ctx, { wardrobe: wardrobes });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));
@@ -308,7 +341,7 @@ async function boot(): Promise<void> {
   let heightCm = person.heightCm;
   character.setHeight(heightCm / 100, tintForHeightCm(heightCm));
 
-  const blocking = (): boolean => picker.isOpen() || rooms.isOpen();
+  const blocking = (): boolean => picker.isOpen() || rooms.isOpen() || paintBusy;
 
   picker = createHeightPicker(document.body, {
     getCm: () => heightCm,
@@ -409,6 +442,7 @@ async function boot(): Promise<void> {
     }
     modes.update(dt);
     interactions.update(dt);
+    wardrobes.update(dt);
     character.update(dt);
     camera.setTarget(character.position, character.heightM);
     camera.update(dt, blocked ? ZERO_LOOK : look);
@@ -530,6 +564,8 @@ async function boot(): Promise<void> {
       character,
     },
     decor,
+    /** open-wardrobe hooks for the acceptance scripts */
+    wardrobe: wardrobes.debug,
     /** SPEC 16.8 hooks. `ready` is the current tier's asset promise (a getter, so it follows tier changes). */
     look: look && {
       instance: look,
@@ -537,8 +573,14 @@ async function boot(): Promise<void> {
       setTier: (t: 'low' | 'medium' | 'high') => look.setTier(t),
       setHour: (h: number) => look.setHour(h),
       setTrueColours: (on: boolean) => look.setTrueColours(on),
-      /** painterly mode is C11c */
-      paint: (_on: boolean) => false,
+      /** painterly mode (C11c): true opens the painting (resolves with the session), false goes back */
+      paint: async (on: boolean) => {
+        if (on) return openPainterly();
+        painting?.back();
+        painting = null;
+        return null;
+      },
+      get painting(): PaintSession | null { return painting?.active ? painting : null; },
       sample: (x0: number, y0: number, x1: number, y1: number) => look.debug.sample(x0, y0, x1, y1),
       sampleStd: (x0: number, y0: number, x1: number, y1: number) => look.debug.sampleStd(x0, y0, x1, y1),
       project: (x: number, y: number, z: number) => look.debug.project(x, y, z),

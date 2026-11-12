@@ -1,0 +1,19 @@
+{
+  "commit": "804c65fa3a6c6fcdc732ed1bde450fd140cfb4e9",
+  "source": "https://git.patch.gg/blendi/oil-paint.git",
+  "release": "1.1.3",
+  "files": {
+    "LICENCE-NOTES.md": "ee3596170e8414d9c70aea8e8809ab71144017e6870badf66989fba3ce6b9b7c",
+    "LICENSE": "7365d4eae601e727a532de8495f0af8bd005de273fe352fa8fecb42de8c12785",
+    "src/night/kit.js": "96245251abbcb817f8fe23c418f14e842e7b14cc886a70d2c5d33472868af691",
+    "src/oilpaint/brush.js": "2be2a3341f8fb16cb9974175a763c28f924ccc2f43df7edbff177b35505fa54b",
+    "src/oilpaint/common.js": "14b37b64675300f74a8fea61f086b76d85da6abdaf361008a5dbf640bd68d0ca",
+    "src/oilpaint/dabs.js": "cd94a78fb1520f5adce69920fafdfa678b541be5d53057fcd797a72cdab9b357",
+    "src/oilpaint/finish.js": "6e9928388917c72b36a8f4f303d3fed9e27baf81fdb84e78ebc8e7c67130532c",
+    "src/oilpaint/ground.js": "ff161d11dc265b6a0b7f768223bf75b26982cdbf08dc380cca0e0a9a80adb7fc",
+    "src/oilpaint/index.js": "1e9804f0f8d3fcc617f1d333a267c9612c117deb4ff580810814d87a9bbef5b6",
+    "src/oilpaint/pins.js": "3d9087d943dff946066177fc53a6e13ed255d2fcb01523f556d852f0e69bfa2f",
+    "src/oilpaint/shade.js": "6c217276e8d7f110bef96a8e58615dac3df6b2013c5951487d4a6c5377aa4fb0",
+    "src/world/noise.js": "8f85d12655db0b1c5cb6ef9d84cb65d782a9b463209b4199848395574786fb1b"
+  }
+}

@@ -5,6 +5,7 @@
 // Node against the real FurnitureStore), then `createFurnishMode` (the tray DOM, pointer and key wiring).
 import * as THREE from 'three';
 import './furnish.css';
+import { withSwingNote } from './wardrobe-hooks';
 import { CATALOG, catalogItem, itemFromCatalog, specFor } from '../core/catalog';
 import { pointInBox, sideEdge } from '../core/geometry';
 import { circleFree, nearestFree } from '../core/grid-query';
@@ -245,7 +246,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishS
     const r = check(s);
     return {
       id: s.id, catalogId: s.item.catalogId ?? null, name: s.spec.name, box: copyBox(s.box),
-      verdict: r.verdict, reason: r.reason, tone: r.tone, message: r.message,
+      verdict: r.verdict, reason: r.reason, tone: r.tone, message: withSwingNote(r.message, s.box, s.id),
       clearanceM: { ...r.clearanceM }, canPlace: r.verdict !== 'blocked',
       lines: clearanceLines(s.box, r.clearanceM).map((l) => ({ side: l.side, cm: l.cm })),
     };
@@ -270,13 +271,13 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishS
     if (!s) return { phase: 'browse', message: BROWSE_TEXT, tone: null, canPlace: false, canRotate: false, canMove: false, canRemove: false, buyerCount: bc };
     if (work) {
       const r = check(s);
-      return { phase: 'edit', message: r.message, tone: r.tone, canPlace: r.verdict !== 'blocked', canRotate: true, canMove: false, canRemove: false, buyerCount: bc };
+      return { phase: 'edit', message: withSwingNote(r.message, s.box, s.id), tone: r.tone, canPlace: r.verdict !== 'blocked', canRotate: true, canMove: false, canRemove: false, buyerCount: bc };
     }
     if (s.item.source === 'real') {
       return { phase: 'selected', message: realItemText(s.item), tone: null, canPlace: false, canRotate: false, canMove: false, canRemove: false, buyerCount: bc };
     }
     const r = check(s);
-    return { phase: 'selected', message: r.message, tone: r.tone, canPlace: false, canRotate: false, canMove: true, canRemove: true, buyerCount: bc };
+    return { phase: 'selected', message: withSwingNote(r.message, s.box, s.id), tone: r.tone, canPlace: false, canRotate: false, canMove: true, canRemove: true, buyerCount: bc };
   };
 
   /** Redraws the outline, the clearance lines and the tint, then pushes the view to the UI when it changed. */

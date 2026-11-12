@@ -1,0 +1,13 @@
+/* Open the wardrobe: the Open / Close chips (mounted in the HUD's bottom slot) and a card that may carry many lines. */
+.wtw-bar {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; max-width: 600px; margin: 0 auto; box-sizing: border-box;
+  padding: 0 12px calc(12px + var(--wt-safe-b, 0px)); pointer-events: none;
+}
+.wtw-bar[hidden] { display: none !important; }
+.wtw-chip {
+  min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--wt-card, #fff); color: var(--wt-ink, #1a1a1a);
+  font: inherit; font-size: 14px; font-weight: 600; box-shadow: var(--wt-shadow, 0 2px 12px rgba(0, 0, 0, 0.16)); cursor: pointer; pointer-events: auto;
+}
+.wtw-chip.is-on, .wtw-chip[data-chip="all"] { background: var(--wt-accent, #2F6BFF); color: #fff; }
+.wtw-chip[data-chip^="bay"]:not(.is-on) { background: var(--wt-card, #fff); color: var(--wt-ink, #1a1a1a); }
+.wt-card { max-height: 44vh; overflow-y: auto; }

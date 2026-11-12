@@ -60,6 +60,8 @@ export interface Look {
   windowFraction(): number;
   /** tell the look the buyer's own render happened outside it (the painterly mode, C11c) */
   onChange(cb: () => void): () => void;
+  /** C11c: while `fn` is set it draws every frame instead of the look's own render path (the painting). `null` hands the frame back. */
+  holdFrame(fn: ((dt: number) => void) | null): void;
   /** acceptance helpers (SPEC 16.8) */
   debug: LookDebug;
 }
@@ -146,6 +148,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let loadingTier = false;
   let steppedDown = false;
   let cubeTimer: ReturnType<typeof setTimeout> | null = null;
+  let held: ((dt: number) => void) | null = null;
 
   renderer.info.autoReset = false;
   const sunLight = viewer.lights.sun;
@@ -315,6 +318,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     else viewer.setRenderOverride(null);
     renderer.toneMapping = scanVisible || usePost || trueColours ? THREE.NoToneMapping : THREE.NeutralToneMapping;
     reflections.setMode(wantReflection);
+    if (held) viewer.setRenderOverride(held);
   }
 
   /** N8AO costs about 1.5 ms per megapixel of drawing buffer on an M2: 8 ms at 2880 x 1800. Past 2.5 megapixels the high tier keeps the
@@ -515,6 +519,10 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       return best;
     },
     onChange(cb) { listeners.add(cb); return () => { listeners.delete(cb); }; },
+    holdFrame(fn) {
+      held = fn;
+      applyRenderPath();
+    },
     debug: {
       reflections,
       get post() { return post; },
