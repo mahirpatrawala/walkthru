@@ -1,6 +1,8 @@
 // Procedural furniture meshes (SPEC 4.4, "Procedural look"). All boxes, matte, opaque. three only; runs under Node.
 import * as THREE from 'three';
 import type { FurnitureItem, FurnitureKind, Tone } from '../types';
+import { buildRealFurniture } from '../look/furniture-real';
+import type { Tier } from '../look/types';
 
 const DEG = Math.PI / 180;
 const TONE_COLOURS: Record<Tone, string> = { good: '#1E9E5A', warn: '#E0A100', bad: '#D64545' };
@@ -87,23 +89,71 @@ const BUILDERS: Record<FurnitureKind, (g: THREE.Group, item: FurnitureItem) => v
   bed: buildBed, sofa: buildSofa, dining: buildDining, wardrobe: buildCase, counter: buildCase,
 };
 
+export type FurnitureStyle = 'plain' | 'real';
+export interface FurnitureBuildOpts { style?: FurnitureStyle; tier?: Tier }
+
+/**
+ * What `buildFurnitureMesh` uses when it is called without options: the store and the furnish mode call it that way, so the
+ * buyer page sets the real look once. Headless tests keep the plain boxes (SPEC 16.6.6 check 1: plain is unchanged).
+ */
+const DEFAULTS: { style: FurnitureStyle; tier: Tier } = { style: 'plain', tier: 'medium' };
+export function setFurnitureDefaults(o: FurnitureBuildOpts): void {
+  if (o.style) DEFAULTS.style = o.style;
+  if (o.tier) DEFAULTS.tier = o.tier;
+}
+export function furnitureDefaults(): { style: FurnitureStyle; tier: Tier } {
+  return { ...DEFAULTS };
+}
+
+function disposeKids(g: THREE.Group): void {
+  for (const c of [...g.children]) {
+    g.remove(c);
+    c.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      m.geometry?.dispose();
+      const mats = Array.isArray(m.material) ? m.material : [m.material];
+      for (const mat of mats) mat?.dispose();
+    });
+  }
+}
+
 /**
  * One group per item, origin at the footprint centre on the floor, local +Z = front, local +X = right (3.1).
  * Positioned at (cx, 0, cz) with rotation.y = yawDeg, so it can be added to the scene as is.
  * Every mesh owns its material (tints are per item); dispose geometries and materials when removing it.
+ * `style: 'real'` (SPEC 16.6.5) builds the real-looking furniture at the same exact size; `plain` is the original boxes.
+ * A real group carries `userData.rebuildTier(tier)` that refills it in place when the quality tier changes.
  */
-export function buildFurnitureMesh(item: FurnitureItem): THREE.Group {
+export function buildFurnitureMesh(item: FurnitureItem, opts: FurnitureBuildOpts = {}): THREE.Group {
+  const style = opts.style ?? DEFAULTS.style;
+  const tier = opts.tier ?? DEFAULTS.tier;
   const g = new THREE.Group();
   g.name = `furniture:${item.id}`;
   g.userData.itemId = item.id;
   g.userData.kind = item.kind;
-  const build = BUILDERS[item.kind];
-  if (build) build(g, item);
-  else console.error(`[walkthru] buildFurnitureMesh: unknown furniture kind "${String(item.kind)}" on ${item.id}`);
+  if (style === 'real') {
+    g.userData.style = 'real';
+    g.userData.rebuildTier = (t: Tier): void => { disposeKids(g); buildRealFurniture(g, item, t); g.updateMatrixWorld(true); };
+    buildRealFurniture(g, item, tier);
+  } else {
+    const build = BUILDERS[item.kind];
+    if (build) build(g, item);
+    else console.error(`[walkthru] buildFurnitureMesh: unknown furniture kind "${String(item.kind)}" on ${item.id}`);
+  }
   g.position.set(item.box.cx, 0, item.box.cz);
   g.rotation.y = item.box.yawDeg * DEG;
   g.updateMatrixWorld(true);
   return g;
+}
+
+/** Refills every real-style furniture group under `root` (and the decor objects) for a new tier. */
+export function rebuildFurnitureTier(root: THREE.Object3D, tier: Tier): void {
+  DEFAULTS.tier = tier;
+  for (const c of root.children) {
+    const f = c.userData?.rebuildTier as ((t: Tier) => void) | undefined;
+    if (f) f(tier);
+  }
 }
 
 /** Tints every material toward the verdict colour (lerp 0.45 from its own colour). `null` restores the originals. */

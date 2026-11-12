@@ -134,6 +134,19 @@ html, body {
   width: 100%; max-width: 380px; padding: 20px 20px 18px; box-sizing: border-box; background: var(--wt-card); border-radius: 12px; box-shadow: 0 6px 28px rgba(0, 0, 0, 0.22);
 }
 .wt-sheet h2 { margin: 0 0 14px; font-size: 20px; }
+.wt-cards { display: flex; gap: 10px; margin-bottom: 12px; }
+.wt-card {
+  flex: 1; border: 2px solid transparent; border-radius: 12px; background: #f3f4f7; color: var(--wt-ink); font-size: 15px; font-weight: 600; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 8px; min-height: 44px;
+}
+.wt-card-img { width: 96px; height: 120px; object-fit: contain; border-radius: 8px; }
+.wt-card.is-on { border-color: var(--wt-accent); background: #fff; }
+.wt-tones { display: flex; justify-content: space-between; gap: 8px; margin: 0 4px 16px; }
+.wt-tone {
+  width: 44px; height: 44px; border-radius: 50%; border: 3px solid #fff; background: var(--c); cursor: pointer; padding: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+.wt-tone.is-on { box-shadow: 0 0 0 3px var(--wt-accent); }
 .wt-chips { display: flex; gap: 10px; }
 .wt-chip-btn {
   flex: 1; min-height: 52px; border: 2px solid transparent; border-radius: 12px; background: #f3f4f7; color: var(--wt-ink); font-size: 15px; font-weight: 600; cursor: pointer;

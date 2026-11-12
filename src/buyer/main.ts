@@ -9,6 +9,13 @@ import { buildShell } from '../engine/shell';
 import { createViewer } from '../engine/viewer';
 import type { Viewer, SplatHandle } from '../engine/viewer';
 import { Character } from '../engine/character';
+import { rebuildFurnitureTier, setFurnitureDefaults } from '../engine/furniture';
+import { applyDesigns, buildDecor, fetchDesigns } from '../look/designs';
+import type { Decor } from '../look/designs';
+import { furnitureKit } from '../look/furniture-materials';
+import { prefetchPerson } from '../look/people';
+import { tierFromQuery } from '../look/quality';
+import { CHARACTER_URL } from '../types';
 import { createLook, fetchLookFile } from '../look/look';
 import type { Look } from '../look/look';
 import { mountLookPanel } from '../look/look-panel';
@@ -16,6 +23,7 @@ import { createInput } from '../engine/controls';
 import { FollowCamera } from '../engine/camera';
 import { stepLocomotion } from '../engine/locomotion';
 import { CHARACTER_RADIUS_M } from '../types';
+import { loadPerson, savePerson } from './person-store';
 import type { PropertyFile, Vec2 } from '../types';
 import { ModeManager, createBuyerContext } from './context';
 import type { BuyerContext, BuyerModeId } from './context';
@@ -30,8 +38,8 @@ import { createMeasureMode } from './measure';
 import { createOverlays } from './overlays';
 import { createRoomsSheet } from './rooms';
 import {
-  DEFAULT_HEIGHT_CM, HINT_KEY, clampHeightCm, createFurnitureStore, loadHeightCm, roomChipText, safeStorage,
-  saveHeightCm, storageGet, storageSet, tintForHeightCm, unverifiedRoomsFromExtras,
+  HINT_KEY, clampHeightCm, createFurnitureStore, distanceToBox, roomChipText, safeStorage,
+  storageGet, storageSet, tintForHeightCm, unverifiedRoomsFromExtras,
 } from './store';
 
 const SCENE_ID_RE = /^[a-z0-9-]{1,40}$/;
@@ -107,7 +115,19 @@ window.addEventListener('unhandledrejection', (e) => {
   else showFatalBanner(msg);
 });
 
+/** Which body file to start fetching before the GL context says which tier this is: a guess, a wrong one only costs the lighter file. */
+function guessedBodyTier(): 'low' | 'medium' {
+  const forced = tierFromQuery(location.search);
+  if (forced) return forced === 'low' ? 'low' : 'medium';
+  const mem = (navigator as { deviceMemory?: number }).deviceMemory;
+  return isTouch || (mem !== undefined && mem <= 4) ? 'low' : 'medium';
+}
+
 async function boot(): Promise<void> {
+  // C11b: the body, its clips and the drawing's designs download while the layout and the look start up
+  const early = loadPerson(storage);
+  prefetchPerson(early.body, guessedBodyTier());
+  const designsP = fetchDesigns(sceneId);
   loading.setProgress(0.05, 'Loading the layout…');
   const result = await fetchProperty(sceneId);
   if (result.kind === 'missing') {
@@ -158,7 +178,16 @@ async function boot(): Promise<void> {
   furnitureRoot.name = 'furniture';
   viewer.scene.add(furnitureRoot);
   const baseGrid = rasterizeLayout(layout);
-  const store = createFurnitureStore({ sceneId, baseGrid, initial: property.furniture, parent: furnitureRoot, storage });
+  // C11b: the real-looking furniture at the same exact sizes (SPEC 16.6.5). A scene's drawing (designs.json) may set drawn
+  // heights and finish details; boxes are never changed. Textures arrive after first paint.
+  const designs = await designsP;
+  const startTier = look?.tier ?? 'medium';
+  setFurnitureDefaults({ style: 'real', tier: startTier });
+  void furnitureKit.setTier(startTier).catch((err) => console.warn('[walkthru] furniture textures not loaded', err));
+  const initialItems = applyDesigns(property.furniture, designs);
+  const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage });
+  const decor: Decor[] = buildDecor(designs, store.all(), startTier);
+  for (const d of decor) furnitureRoot.add(d.group);
   if (look) {
     const lk = look;
     lk.attach({ shell, furnitureRoot });
@@ -172,9 +201,16 @@ async function boot(): Promise<void> {
   loading.setProgress(0.3, 'Loading the walker…');
 
   // ---- character
+  let person = loadPerson(storage);
   let character: Character;
   try {
-    character = await Character.load();
+    // SPEC 16.6: a person body; the mannequin is the fallback when a body file is missing (route C)
+    try {
+      character = await Character.load(CHARACTER_URL, { body: person.body, tone: person.tone, tier: startTier });
+    } catch (err) {
+      console.error('[walkthru] the person body could not be loaded, using the mannequin:', err);
+      character = await Character.load();
+    }
   } catch (err) {
     loading.showError('Could not load the walking figure.', describe(err));
     return;
@@ -182,6 +218,27 @@ async function boot(): Promise<void> {
   viewer.scene.add(character.object);
   if (property.splat) character.setShadowVisible(false); // SPEC 12 risk 2: no alpha-blended shadow against a splat
   look?.attach({ character: { object: character.object, setBlobVisible: (v) => character.setShadowVisible(v && !property.splat) } });
+  // the sofa seat height lets a tall person sit with raised knees instead of floating (look/character: sitPlan)
+  character.surfaceProbe = (x, z) => {
+    for (const it of store.all()) if (it.kind === 'sofa' && distanceToBox({ x, z }, it.box) <= 0.05) return it.surfaceHeightM;
+    return null;
+  };
+  character.onRebind = () => look?.refresh(store.grid());
+  if (look) {
+    // a tier change rebuilds the furniture for it and swaps the body between its full and low files
+    let seenTier = startTier;
+    look.onChange(() => {
+      const t = look!.tier;
+      if (t === seenTier) return;
+      seenTier = t;
+      void furnitureKit.setTier(t).then(() => {
+        rebuildFurnitureTier(furnitureRoot, t);
+        for (const d of decor) d.rebuild(t);
+        look!.refresh(store.grid());
+      });
+      void character.setAppearance({ tier: t }).catch((err) => console.warn('[walkthru] body for this tier not loaded', err));
+    });
+  }
   loading.setProgress(0.85, 'Almost there…');
 
   // ---- HUD, input, camera, overlays, modes, context
@@ -232,12 +289,23 @@ async function boot(): Promise<void> {
   function applyHeight(cm: number): number {
     const v = clampHeightCm(cm);
     character.setHeight(v / 100, tintForHeightCm(v));
-    saveHeightCm(storage, v);
+    person = { ...person, heightCm: v };
+    savePerson(storage, person);
     picker?.sync(v);
     interactions.refresh();
     return v;
   }
-  let heightCm = loadHeightCm(storage) ?? DEFAULT_HEIGHT_CM;
+  /** body and skin tone (SPEC 16.6.4); the new body is fetched only now, and swapped in place */
+  function applyPerson(next: { body: 'male' | 'female'; tone: number }): Promise<void> {
+    person = { ...person, body: next.body, tone: next.tone };
+    savePerson(storage, person);
+    picker?.syncPerson(next);
+    return character.setAppearance({ body: next.body, tone: next.tone }).then(() => {
+      character.setHeight(heightCm / 100, tintForHeightCm(heightCm));
+      interactions.refresh();
+    });
+  }
+  let heightCm = person.heightCm;
   character.setHeight(heightCm / 100, tintForHeightCm(heightCm));
 
   const blocking = (): boolean => picker.isOpen() || rooms.isOpen();
@@ -245,8 +313,9 @@ async function boot(): Promise<void> {
   picker = createHeightPicker(document.body, {
     getCm: () => heightCm,
     onChange: (cm) => { heightCm = applyHeight(cm); },
+    person: { get: () => ({ body: person.body, tone: person.tone }), onChange: (p) => { void applyPerson(p); } },
     onClose: () => {
-      saveHeightCm(storage, heightCm);
+      savePerson(storage, person);
       hud.setVisible(true);
       if (storageGet(storage, HINT_KEY) === null) {
         storageSet(storage, HINT_KEY, '1');
@@ -447,6 +516,20 @@ async function boot(): Promise<void> {
     },
     store,
     grid: () => store.grid(),
+    /** SPEC 16.6.6 hooks: who is walking. `set` resolves when the new body is in. */
+    person: {
+      get: () => ({ ...person, appearance: character.appearance, poseConstants: character.poseConstants }),
+      set: async (p: { body?: 'male' | 'female'; tone?: number; heightCm?: number }) => {
+        await applyPerson({ body: p.body ?? person.body, tone: p.tone ?? person.tone });
+        if (p.heightCm !== undefined) heightCm = applyHeight(p.heightCm);
+        return { ...person };
+      },
+      measure: () => character.measure(),
+      meshNames: () => character.visibleMeshNames(),
+      /** the character itself, for the acceptance scripts */
+      character,
+    },
+    decor,
     /** SPEC 16.8 hooks. `ready` is the current tier's asset promise (a getter, so it follows tier changes). */
     look: look && {
       instance: look,

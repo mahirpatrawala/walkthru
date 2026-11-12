@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "source": "Architect's drawing set 'SON BEDROOM-Binder1.pdf', sheet FX-0001 'DOSTI MEZZO 16TH FLOOR', dated 20.05.2026 (kept outside the repository). Values marked derived were measured from the drawing's own scale, not read from a dimension string.",
+  "items": {
+    "wardrobe-1": {
+      "heightM": 2.54,
+      "surfaceHeightM": 2.54,
+      "wardrobe": {
+        "bays": 3,
+        "shuttersPerBay": 2,
+        "drawerStripM": 0.1778,
+        "baseGapM": 0.0508,
+        "frontColor": "#E3D5C8",
+        "handleColor": "#5B3B2C",
+        "handleYM": 0.99,
+        "handleLenM": 0.26
+      },
+      "sources": {
+        "bays": { "page": 5, "sheet": "ELEVATION-3", "text": "three bays, each dimensioned 2'-11\" (bottom row), each labelled \"2 SHUTTER OPENABLE\"; plan page 1: \"WARDROBE=9'0\"RFT\"" },
+        "shuttersPerBay": { "page": 5, "sheet": "ELEVATION-3", "text": "\"2 SHUTTER OPENABLE\" in every bay" },
+        "drawerStripM": { "page": 5, "sheet": "ELEVATION-3", "text": "\"FOOTWEAR DRAWER\" strip under each bay, dimension 7\" (right side stack)" },
+        "baseGapM": { "page": 5, "sheet": "ELEVATION-3", "text": "2\" at the foot of the right-side dimension stack" },
+        "heightM": { "page": 5, "sheet": "ELEVATION-3", "text": "right-side stack 2\" + 7\" + 7'-7\" = 8'-4\" = 100\" = 2.54 m, under the 8'-6\" ceiling; a further 2\" to the ceiling is implied by 8'-6\" - 8'-4\"; the topmost dimension text of the stack is overprinted (\"2\" / 6\"\") and could not be read" },
+        "frontColor": "drawing fill colour of the shutters, sampled from the rendered page (#E3D5C8 to #E7DBCF, a light beige gradient); derived",
+        "handleYM": "derived: bar centre 39\" above the floor, from the drawing's scale (7.2 px per inch on the 7'-7\" shutter height)",
+        "handleLenM": "derived: bar length about 10\" by the same scale",
+        "internal": { "page": 4, "sheet": "ELEVATION-1A (INTERNAL)", "text": "open shelf at the top, lockable drawers, three glass drawers, hanging space with folded shirts, footwear drawer: read but not built, the shutters do not open in the viewer" }
+      }
+    },
+    "bed-1": {
+      "heightM": 1.0668,
+      "surfaceHeightM": 0.508,
+      "bed": { "baseTopM": 0.3556 },
+      "sources": {
+        "surfaceHeightM": { "page": 6, "sheet": "ELEVATION-4", "text": "1'-8\" from the floor to the top of the \"6\"MATTRESS\" band" },
+        "heightM": { "page": 6, "sheet": "ELEVATION-4", "text": "1'-8\" to the mattress top + 1'-10\" headboard rise above it = 3'-6\" = 1.0668 m" },
+        "baseTopM": "derived: mattress is 6\" thick (\"6\"MATTRESS\"), so the bed base is 1'-8\" - 6\" = 14\" = 0.3556 m high",
+        "width": { "page": 6, "sheet": "ELEVATION-4", "text": "5' (bed and headboard); plan page 1: BED 5'0\"X6'0\"" }
+      }
+    },
+    "counter-1": {
+      "heightM": 0.508,
+      "surfaceHeightM": 0.508,
+      "sources": {
+        "heightM": "derived: ELEVATION-4 (page 6) draws the side table top level with the mattress top (1'-8\" = 0.508 m); there is no dimension string for it",
+        "width": { "page": 6, "sheet": "ELEVATION-4", "text": "1'-2\" wide, both sides of the bed. The layout's box for this item is not changed" }
+      }
+    }
+  },
+  "decor": [
+    {
+      "id": "study-chair",
+      "look": "chair",
+      "tiedTo": "counter-3",
+      "offset": { "x": 0, "z": 0.34 },
+      "faceItem": true,
+      "sources": {
+        "position": { "page": 1, "sheet": "PLAN", "text": "swivel chair symbol (no label) on the room side of the STUDY 2'0\"X4'0\" table, centre about 1 ft from the table edge, about the middle of its 4' length" }
+      }
+    }
+  ]
+}
