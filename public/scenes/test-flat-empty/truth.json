@@ -1,0 +1,74 @@
+{
+  "description": "Ground truth for the synthetic test flat. World frame in metres, Y up.",
+  "variant": "empty",
+  "scale": 0.37,
+  "tiltDeg": 3,
+  "rawOffset": {
+    "x": 5,
+    "y": -2,
+    "z": 7
+  },
+  "wallHeightM": 2.6,
+  "doorJambs": [
+    {
+      "x": 0.4,
+      "y": 1,
+      "z": 5
+    },
+    {
+      "x": 1.3,
+      "y": 1,
+      "z": 5
+    }
+  ],
+  "landmarks": [
+    {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 5
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 5
+    },
+    {
+      "x": 0.4,
+      "y": 1,
+      "z": 5
+    },
+    {
+      "x": 1.3,
+      "y": 1,
+      "z": 5
+    }
+  ],
+  "roomAreasM2": {
+    "bedroom": 20,
+    "balcony": 4.5,
+    "passage": 4.800000000000001
+  },
+  "roomAreasSqFt": {
+    "bedroom": 215,
+    "balcony": 48,
+    "passage": 52
+  },
+  "carpetAreaM2": 24.8,
+  "carpetAreaSqFt": 267,
+  "furniture": [],
+  "spawn": {
+    "x": 2.6,
+    "z": 0.8,
+    "yawDeg": 0
+  }
+}

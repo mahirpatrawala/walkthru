@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "id": "test-flat-empty",
+  "title": "Test flat, 1 bedroom (empty)",
+  "subtitle": "Synthetic scene with known sizes",
+  "layout": {
+    "wallHeightM": 2.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "bedroom",
+        "roomType": "bedroom",
+        "label": "Bedroom 1",
+        "polygon": [
+          {
+            "x": 0,
+            "z": 0
+          },
+          {
+            "x": 4,
+            "z": 0
+          },
+          {
+            "x": 4,
+            "z": 5
+          },
+          {
+            "x": 0,
+            "z": 5
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "balcony",
+        "roomType": "balcony",
+        "label": "Balcony",
+        "polygon": [
+          {
+            "x": 0.5,
+            "z": -1.62
+          },
+          {
+            "x": 3.5,
+            "z": -1.62
+          },
+          {
+            "x": 3.5,
+            "z": -0.12
+          },
+          {
+            "x": 0.5,
+            "z": -0.12
+          }
+        ],
+        "edges": [
+          "railing",
+          "railing",
+          "wall",
+          "railing"
+        ]
+      },
+      {
+        "id": "passage",
+        "roomType": "other",
+        "label": "Passage",
+        "polygon": [
+          {
+            "x": 0,
+            "z": 5.12
+          },
+          {
+            "x": 4,
+            "z": 5.12
+          },
+          {
+            "x": 4,
+            "z": 6.32
+          },
+          {
+            "x": 0,
+            "z": 6.32
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-bed",
+        "roomId": "bedroom",
+        "edge": 2,
+        "type": "door",
+        "centreM": 3.15,
+        "widthM": 0.9,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "slider",
+        "roomId": "bedroom",
+        "edge": 0,
+        "type": "opening",
+        "centreM": 2,
+        "widthM": 1.6,
+        "sillM": 0,
+        "headM": 2.2
+      },
+      {
+        "id": "window",
+        "roomId": "bedroom",
+        "edge": 3,
+        "type": "window",
+        "centreM": 1,
+        "widthM": 1.2,
+        "sillM": 0.9,
+        "headM": 2.1
+      },
+      {
+        "id": "door-main",
+        "roomId": "passage",
+        "edge": 1,
+        "type": "door",
+        "centreM": 0.6,
+        "widthM": 0.9,
+        "sillM": 0,
+        "headM": 2.1
+      }
+    ],
+    "finishes": {
+      "wallColor": "#F2EFE9",
+      "floorColor": "#D9CFC1",
+      "tile": {
+        "wM": 0.6,
+        "lM": 0.6
+      },
+      "groutColor": "#B9AE9F",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "plan-dimensions",
+    "underlay": {
+      "file": "plan.svg",
+      "pxPerM": 53,
+      "originPx": {
+        "x": 75.9,
+        "y": 160.7
+      },
+      "dimensions": [],
+      "disagreementPct": 0
+    }
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 2.6,
+    "z": 0.8,
+    "yawDeg": 0
+  },
+  "updatedAt": "2026-11-12T00:00:00.000Z"
+}
