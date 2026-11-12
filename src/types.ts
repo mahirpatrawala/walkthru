@@ -215,7 +215,7 @@ export const HEIGHT_MAX_CM = 200;
 export const HEIGHT_TINTS = ['#1FA3A3', '#E8823A', '#7A5AF0'] as const;
 export const CHARACTER_RADIUS_M = 0.22;
 /** ratios of body height, read from the GLB's Sitting_Idle_Loop hips keyframes */
-export const SIT_HIP_BACK_RATIO = 0.181;  // hips sit this far behind the root
-export const SIT_SEAT_RATIO = 0.242;      // seat height the clip assumes
+export const SIT_HIP_BACK_RATIO = 0.186;  // hips sit this far behind the root
+export const SIT_SEAT_RATIO = 0.26;       // seat height the clip assumes
 export const LIE_BACK_RATIO = 0.09;       // lift so the back rests on the surface
 export const WALKWAY_M = 0.6;

@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<title>walkthru engine demo</title>
+<!--
+  C2 engine demo (not a build input). Open it with `npm run dev` at /engine-demo.html.
+  The truth flat's collision grid is drawn as boxes (every non-free cell, 5 cm wide), the real bed and sofa are
+  drawn with buildFurnitureMesh, and a counter is added along the north wall. Walk with full controls and the
+  follow camera. Keys 1 / 2 / 3 lie on the bed, sit on the sofa, stand at the counter.
+-->
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #eef0f3; overscroll-behavior: none;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; }
+  #app { position: fixed; inset: 0; }
+  #hud { position: fixed; left: 12px; top: 12px; margin: 0; padding: 10px 12px; background: rgba(255,255,255,0.92);
+    border-radius: 12px; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12); pointer-events: none; max-width: calc(100vw - 24px); }
+  #card { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); min-width: 240px; max-width: calc(100vw - 32px);
+    background: #fff; border-radius: 12px; padding: 12px 16px; box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    border-left: 6px solid #1E9E5A; display: none; pointer-events: none; }
+  #card .t { font-size: 12px; color: #555; }
+  #card .h { font-size: 18px; font-weight: 650; margin: 2px 0 4px; }
+  #card .l { font-size: 14px; }
+  #card .f { font-size: 11px; color: #777; margin-top: 6px; }
+  #prompt { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); display: none; padding: 10px 18px;
+    background: #2F6BFF; color: #fff; border-radius: 999px; font-size: 14px; }
+  #err { position: fixed; left: 12px; right: 12px; bottom: 12px; padding: 10px 14px; background: #D64545; color: #fff;
+    border-radius: 12px; font: 13px/1.4 ui-monospace, monospace; white-space: pre-wrap; display: none; z-index: 10; }
+  #joyRing, #joyKnob { position: fixed; border-radius: 50%; pointer-events: none; display: none; }
+  #joyRing { width: 120px; height: 120px; margin: -60px 0 0 -60px; border: 2px solid rgba(47,107,255,0.55); }
+  #joyKnob { width: 44px; height: 44px; margin: -22px 0 0 -22px; background: rgba(47,107,255,0.55); }
+  #height { position: fixed; right: 12px; top: 12px; display: flex; gap: 8px; }
+  #height button { min-width: 56px; min-height: 44px; border: 0; border-radius: 12px; background: #fff; font-size: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<pre id="hud">loading…</pre>
+<div id="height">
+  <button data-h="160" style="color:#1FA3A3">160</button>
+  <button data-h="175" style="color:#E8823A">175</button>
+  <button data-h="190" style="color:#7A5AF0">190</button>
+</div>
+<div id="prompt"></div>
+<div id="card"><div class="t"></div><div class="h"></div><div class="l"></div><div class="f"></div></div>
+<div id="joyRing"></div><div id="joyKnob"></div>
+<div id="err"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { createViewer } from '/src/engine/viewer.ts';
+import { Character } from '/src/engine/character.ts';
+import { createInput } from '/src/engine/controls.ts';
+import { FollowCamera } from '/src/engine/camera.ts';
+import { stepLocomotion } from '/src/engine/locomotion.ts';
+import { buildFurnitureMesh } from '/src/engine/furniture.ts';
+import { createGrid, cellCentre } from '/src/core/grid-codec.ts';
+import { circleFree, nearestFree } from '/src/core/grid-query.ts';
+import { liePose, seatPose, standPose } from '/src/core/poses.ts';
+import { checkFor } from '/src/core/checks.ts';
+import { GRID_CELL_M, GRID_FREE, GRID_VOID, CHARACTER_RADIUS_M, HEIGHT_TINTS } from '/src/types.ts';
+
+const $ = (id) => document.getElementById(id);
+const errBox = $('err');
+function showError(msg) {
+  console.error('[engine-demo]', msg);
+  errBox.style.display = 'block';
+  errBox.textContent += (errBox.textContent ? '\n\n' : '') + msg;
+}
+window.addEventListener('error', (e) => showError(`${e.message}\n${e.filename}:${e.lineno}`));
+window.addEventListener('unhandledrejection', (e) => showError(`Unhandled promise rejection: ${e.reason && e.reason.stack ? e.reason.stack : e.reason}`));
+
+// ---------------------------------------------------------------- the truth flat (SPEC 6.1), as rectangles
+
+const WALL_H = 2.6;
+const SPAWN = { x: 2.6, z: 0.8, yawDeg: 0 };
+const ROOM_RECTS = [
+  { x0: 0, x1: 4, z0: 0, z1: 5, colour: '#D9CFC1' },            // bedroom
+  { x0: 0.5, x1: 3.5, z0: -1.62, z1: -0.12, colour: '#B8BDC2' }, // balcony
+  { x0: 0, x1: 4, z0: 5.12, z1: 6.32, colour: '#CFC6B8' },       // passage
+];
+const BANDS = [
+  { x0: -0.06, x1: 4.06, z0: -0.06, z1: 0, h: 250 }, { x0: 4, x1: 4.12, z0: -0.12, z1: 5.12, h: 250 },
+  { x0: -0.06, x1: 4.06, z0: 5, z1: 5.06, h: 250 }, { x0: -0.12, x1: 0, z0: -0.12, z1: 3.4, h: 250 },
+  { x0: -0.12, x1: 0, z0: 3.4, z1: 4.6, h: 90 }, { x0: -0.12, x1: 0, z0: 4.6, z1: 5.12, h: 250 },
+  { x0: 0.45, x1: 3.55, z0: -1.67, z1: -1.62, h: 110 }, { x0: 3.5, x1: 3.55, z0: -1.67, z1: -0.07, h: 110 },
+  { x0: 0.45, x1: 0.5, z0: -1.67, z1: -0.07, h: 110 }, { x0: 0.44, x1: 3.56, z0: -0.12, z1: -0.06, h: 250 },
+  { x0: -0.06, x1: 4.06, z0: 5.06, z1: 5.12, h: 250 }, { x0: 4, x1: 4.12, z0: 5.0, z1: 6.44, h: 250 },
+  { x0: -0.12, x1: 4.12, z0: 6.32, z1: 6.44, h: 250 }, { x0: -0.12, x1: 0, z0: 5.0, z1: 6.44, h: 250 },
+];
+const CLEARS = [
+  { x0: 0.4, x1: 1.3, z0: 4.98, z1: 5.14 }, { x0: 1.2, x1: 2.8, z0: -0.14, z1: 0.02 }, { x0: 3.98, x1: 4.14, z0: 5.27, z1: 6.17 },
+];
+// The three hard-coded items keys 1 / 2 / 3 act on.
+const BED = { id: 'bed-1', source: 'real', kind: 'bed', label: 'Bed',
+  box: { cx: 1.0, cz: 2.25, w: 1.5, d: 2.0, yawDeg: 90 }, heightM: 0.55, surfaceHeightM: 0.55 };
+const SOFA = { id: 'sofa-1', source: 'real', kind: 'sofa', label: 'Sofa',
+  box: { cx: 3.55, cz: 3.5, w: 2.0, d: 0.9, yawDeg: 270 }, heightM: 0.85, surfaceHeightM: 0.42 };
+const COUNTER = { id: 'counter-1', source: 'real', kind: 'counter', label: 'Counter',
+  box: { cx: 3.25, cz: 0.3, w: 1.2, d: 0.6, yawDeg: 0 }, heightM: 0.9, surfaceHeightM: 0.9 };
+const ITEMS = [BED, SOFA, COUNTER];
+
+function inRect(x, z, r) { return x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1; }
+function wallValue(x, z) {
+  let v = GRID_VOID;
+  for (const r of ROOM_RECTS) if (inRect(x, z, r)) v = GRID_FREE;
+  let wall = 0;
+  for (const b of BANDS) if (inRect(x, z, b)) wall = Math.max(wall, b.h);
+  if (wall > 0) v = wall;
+  for (const c of CLEARS) if (inRect(x, z, c)) v = GRID_FREE;
+  return v;
+}
+function boxContains(box, x, z) {
+  const y = (box.yawDeg * Math.PI) / 180;
+  const dx = x - box.cx, dz = z - box.cz;
+  const along = dx * Math.sin(y) + dz * Math.cos(y);
+  const across = dx * Math.cos(y) - dz * Math.sin(y);
+  return Math.abs(across) <= box.w / 2 && Math.abs(along) <= box.d / 2;
+}
+
+// Same bounds rule as SPEC 4.2: bounding box of the rooms padded by 1 m, snapped outward to the cell size.
+const ox = Math.floor((0 - 1) / GRID_CELL_M + 1e-9) * GRID_CELL_M;
+const oz = Math.floor((-1.62 - 1) / GRID_CELL_M + 1e-9) * GRID_CELL_M;
+const nx = Math.ceil((4 + 1) / GRID_CELL_M - 1e-9) - Math.round(ox / GRID_CELL_M);
+const nz = Math.ceil((6.32 + 1) / GRID_CELL_M - 1e-9) - Math.round(oz / GRID_CELL_M);
+const wallGrid = createGrid(ox, oz, nx, nz, GRID_VOID);
+const grid = createGrid(ox, oz, nx, nz, GRID_VOID);
+for (let j = 0; j < nz; j++) {
+  for (let i = 0; i < nx; i++) {
+    const c = cellCentre(wallGrid, i, j);
+    const v = wallValue(c.x, c.z);
+    wallGrid.cells[j * nx + i] = v;
+    let g = v;
+    for (const it of ITEMS) if (boxContains(it.box, c.x, c.z)) g = Math.min(250, Math.max(20, Math.round(it.heightM * 100)));
+    grid.cells[j * nx + i] = g;
+  }
+}
+
+// ---------------------------------------------------------------- the world, drawn
+
+function buildWorld(scene) {
+  const g = new THREE.Group();
+  // floors
+  for (const r of [...ROOM_RECTS, ...CLEARS.map((c) => ({ ...c, colour: '#CFC6B8' }))]) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(r.x1 - r.x0, r.z1 - r.z0), new THREE.MeshStandardMaterial({ color: r.colour, roughness: 0.9 }));
+    m.rotation.x = -Math.PI / 2;
+    m.position.set((r.x0 + r.x1) / 2, 0.001, (r.z0 + r.z1) / 2);
+    g.add(m);
+  }
+  // every non-free, non-void cell of the wall grid as a 5 cm box of its own height
+  const cells = [];
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+    const v = wallGrid.cells[j * nx + i];
+    if (v !== GRID_FREE && v !== GRID_VOID) cells.push({ i, j, v });
+  }
+  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(GRID_CELL_M, 1, GRID_CELL_M), new THREE.MeshStandardMaterial({ roughness: 0.9 }), cells.length);
+  const m4 = new THREE.Matrix4(), col = new THREE.Color();
+  cells.forEach((c, k) => {
+    const h = c.v / 100;
+    const p = cellCentre(wallGrid, c.i, c.j);
+    m4.compose(new THREE.Vector3(p.x, h / 2, p.z), new THREE.Quaternion(), new THREE.Vector3(1, h, 1));
+    mesh.setMatrixAt(k, m4);
+    mesh.setColorAt(k, col.set(c.v >= 250 ? '#F2EFE9' : c.v >= 100 ? '#4A4A4D' : '#B8A99A'));
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  g.add(mesh);
+  // a 2.1 m door frame on the bedroom door, to judge the 190 cm figure against
+  const frame = new THREE.MeshStandardMaterial({ color: '#4A3528', roughness: 0.9 });
+  for (const [x, w, y, h] of [[0.375, 0.05, 1.05, 2.1], [1.325, 0.05, 1.05, 2.1], [0.85, 0.95, 2.125, 0.05]]) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.16), frame);
+    b.position.set(x, y, 5.03);
+    g.add(b);
+  }
+  // furniture
+  for (const it of ITEMS) g.add(buildFurnitureMesh(it));
+  scene.add(g);
+}
+
+// ---------------------------------------------------------------- main
+
+const hud = $('hud');
+const card = $('card');
+const prompt = $('prompt');
+let ch, cam, input, viewer;
+let posed = null;   // 'lie' | 'sit' | 'stand' | null
+let busy = false;
+let heightCm = 175;
+const R = CHARACTER_RADIUS_M;
+
+function setHeightCm(cm) {
+  heightCm = Math.max(140, Math.min(200, cm));
+  const tint = heightCm <= 167 ? HEIGHT_TINTS[0] : heightCm <= 182 ? HEIGHT_TINTS[1] : HEIGHT_TINTS[2];
+  ch.setHeight(heightCm / 100, tint);
+  if (posed) refreshCard();
+}
+
+function nearestItem() {
+  let best = null, bestD = 1.0;
+  for (const it of ITEMS) {
+    const b = it.box, y = (b.yawDeg * Math.PI) / 180, p = ch.position;
+    const dx = p.x - b.cx, dz = p.z - b.cz;
+    const along = Math.abs(dx * Math.sin(y) + dz * Math.cos(y)) - b.d / 2;
+    const across = Math.abs(dx * Math.cos(y) - dz * Math.sin(y)) - b.w / 2;
+    const d = Math.hypot(Math.max(0, along), Math.max(0, across));
+    if (d <= bestD) { bestD = d; best = it; }
+  }
+  return best;
+}
+const ACTIONS = { bed: ['lie', 'Lie on the bed'], sofa: ['sit', 'Sit on the sofa'], counter: ['stand', 'Stand at the counter'] };
+
+function refreshCard() {
+  const item = posed === 'lie' ? BED : posed === 'sit' ? SOFA : COUNTER;
+  const c = checkFor(item, ch.heightM);
+  card.style.display = 'block';
+  card.style.borderLeftColor = c.tone === 'good' ? '#1E9E5A' : c.tone === 'warn' ? '#E0A100' : '#D64545';
+  card.querySelector('.t').textContent = c.title;
+  card.querySelector('.h').textContent = c.headline;
+  card.querySelector('.l').innerHTML = c.lines.map((l) => `<div>${l.replace(/</g, '&lt;')}</div>`).join('');
+  card.querySelector('.f').textContent = c.footer || '';
+}
+
+async function startPose(kind) {
+  if (busy) return;
+  if (posed) { await endPose(); }
+  busy = true;
+  try {
+    const H = ch.heightM, approach = ch.position;
+    posed = kind;
+    if (kind === 'lie') {
+      const len = (BED.inner || BED.box).d;
+      cam.focusOn({ x: BED.box.cx, y: BED.surfaceHeightM, z: BED.box.cz }, Math.max(2.2, 1.2 * len), 50, BED.box.yawDeg + 180 + 30);
+      await ch.lie(liePose(BED, H, approach));
+    } else if (kind === 'sit') {
+      cam.focusOn({ x: SOFA.box.cx, y: 0.7, z: SOFA.box.cz }, 2.4, 20, SOFA.box.yawDeg + 180);
+      await ch.sit(seatPose(SOFA, H, approach));
+    } else {
+      await ch.standAt(standPose(COUNTER, H, approach));
+    }
+    refreshCard();
+  } catch (err) {
+    showError(`pose "${kind}" failed: ${err && err.stack ? err.stack : err}`);
+    posed = null;
+  } finally {
+    busy = false;
+  }
+}
+
+async function endPose() {
+  if (!posed || busy) return;
+  busy = true;
+  try {
+    posed = null;
+    card.style.display = 'none';
+    cam.releaseFocus();
+    const p = ch.position;
+    const to = nearestFree(grid, p.x, p.z, R) || { x: SPAWN.x, z: SPAWN.z };
+    await ch.release(to);
+  } catch (err) {
+    showError(`release failed: ${err && err.stack ? err.stack : err}`);
+  } finally {
+    busy = false;
+  }
+}
+
+async function main() {
+  viewer = createViewer($('app'), { hasSplat: false });
+  buildWorld(viewer.scene);
+
+  try {
+    ch = await Character.load();
+  } catch (err) {
+    hud.textContent = 'Character failed to load.';
+    showError(err && err.message ? err.message : String(err));
+    return;
+  }
+  viewer.scene.add(ch.object);
+  ch.position = { x: SPAWN.x, z: SPAWN.z };
+  ch.yawDeg = SPAWN.yawDeg;
+  setHeightCm(175);
+
+  input = createInput(viewer.canvas);
+  cam = new FollowCamera(viewer.camera, () => grid, WALL_H);
+  cam.yawDeg = SPAWN.yawDeg;
+
+  input.on('interact', () => {
+    if (posed) return endPose();
+    const it = nearestItem();
+    if (it && ACTIONS[it.kind]) return startPose(ACTIONS[it.kind][0]);
+  });
+  input.on('cancel', () => { if (posed) endPose(); });
+  prompt.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (posed) endPose(); else { const it = nearestItem(); if (it) startPose(ACTIONS[it.kind][0]); } });
+  prompt.dataset.ui = '1';
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === '1') startPose('lie');
+    else if (e.key === '2') startPose('sit');
+    else if (e.key === '3') startPose('stand');
+    else if (e.key === '4') setHeightCm(160);
+    else if (e.key === '5') setHeightCm(175);
+    else if (e.key === '6') setHeightCm(190);
+    else if (e.key === '[') setHeightCm(heightCm - 5);
+    else if (e.key === ']') setHeightCm(heightCm + 5);
+  });
+  for (const b of document.querySelectorAll('#height button')) {
+    b.addEventListener('click', () => setHeightCm(Number(b.dataset.h)));
+  }
+
+  const ring = $('joyRing'), knob = $('joyKnob');
+  let hudT = 0;
+  viewer.onFrame((dt) => {
+    const look = input.takeLook();
+    if (posed) {
+      // any movement input ends the pose
+      if (Math.hypot(input.moveX, input.moveY) > 0.2) endPose();
+    } else {
+      stepLocomotion(ch, input, cam.viewYawDeg, grid, dt);
+    }
+    ch.update(dt);
+    cam.setTarget(ch.position, ch.heightM);
+    cam.update(dt, look);
+    // below a 0.7 m boom the character is hidden, above 0.8 m it comes back
+    if (cam.boom < 0.7) ch.setVisible(false); else if (cam.boom > 0.8) ch.setVisible(true);
+
+    const j = input.joystick;
+    if (j && j.active) {
+      ring.style.display = knob.style.display = 'block';
+      ring.style.left = j.originX + 'px'; ring.style.top = j.originY + 'px';
+      knob.style.left = (j.originX + j.x) + 'px'; knob.style.top = (j.originY + j.y) + 'px';
+    } else {
+      ring.style.display = knob.style.display = 'none';
+    }
+
+    hudT += dt;
+    if (hudT > 0.15) {
+      hudT = 0;
+      const p = ch.position;
+      const it = !posed && ch.state !== 'transition' ? nearestItem() : null;
+      if (it && ACTIONS[it.kind]) { prompt.style.display = 'block'; prompt.textContent = ACTIONS[it.kind][1]; }
+      else if (posed && ch.state !== 'transition') { prompt.style.display = 'block'; prompt.textContent = posed === 'stand' ? 'Step back' : 'Get up'; }
+      else prompt.style.display = 'none';
+      hud.textContent =
+        'WASD / arrows walk · Shift jog · drag look · wheel zoom\n' +
+        '1 lie on bed · 2 sit on sofa · 3 stand at counter · E / Esc / move = get up\n' +
+        '4 / 5 / 6 = 160 / 175 / 190 cm, [ ] = ±5 cm · touch: left thumb walks, right looks, pinch zooms\n' +
+        `state ${ch.state}   height ${heightCm} cm   fps ${viewer.fps.toFixed(0)}\n` +
+        `pos ${p.x.toFixed(2)}, ${p.z.toFixed(2)}   yaw ${(((ch.yawDeg % 360) + 360) % 360).toFixed(0)}   boom ${cam.boom.toFixed(2)}   free ${circleFree(grid, p.x, p.z, R)}`;
+    }
+  });
+  window.__demo = { ch, cam, input, viewer, grid, startPose, endPose, setHeightCm };
+}
+
+main().catch((err) => showError(err && err.stack ? err.stack : String(err)));
+</script>
+</body>
+</html>

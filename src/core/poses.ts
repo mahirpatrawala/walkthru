@@ -1,12 +1,65 @@
-// Owned by C2. Stub from C0: signatures only (SPEC 7.1, algorithms in 4.6).
+// Poses (SPEC 4.6). Pure. `approach` is where the character stood when they pressed the button.
+import { SIT_HIP_BACK_RATIO, SIT_SEAT_RATIO } from '../types';
 import type { FurnitureItem, LiePose, SeatPose, StandPose, Vec2 } from '../types';
+import { boxAxes } from './geometry';
 
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, v));
+}
+
+/** Signed distance of `approach` from the box centre along the width axis b. */
+function lateral(item: FurnitureItem, approach: Vec2): number {
+  const { b } = boxAxes(item.box);
+  return (approach.x - item.box.cx) * b.x + (approach.z - item.box.cz) * b.z;
+}
+
+/**
+ * Lying along the item's length, head 5 cm from the head end of the mattress, feet `heightM` further toward +a.
+ * On a mattress 1.2 m wide or more the body takes the half nearest to `approach` (a quarter of the width off centre).
+ */
 export function liePose(item: FurnitureItem, heightM: number, approach: Vec2): LiePose {
-  throw new Error('not implemented: C2 liePose');
+  const box = item.box;
+  const { a, b } = boxAxes(box);
+  const inner = item.inner ?? { w: box.w, d: box.d };
+  const headInset = (box.d - inner.d) / 2 + 0.05;
+  const lat = inner.w < 1.2 ? 0 : Math.sign(lateral(item, approach)) * (inner.w / 4);
+  const along = box.d / 2 - headInset;
+  const head = { x: box.cx - a.x * along + b.x * lat, z: box.cz - a.z * along + b.z * lat };
+  return {
+    feet: { x: head.x + a.x * heightM, z: head.z + a.z * heightM },
+    yawDeg: box.yawDeg,
+    surfaceY: item.surfaceHeightM,
+  };
 }
+
+/** Sitting at the seat spot nearest `approach`, facing the item's front (+a). */
 export function seatPose(item: FurnitureItem, heightM: number, approach: Vec2): SeatPose {
-  throw new Error('not implemented: C2 seatPose');
+  const box = item.box;
+  const { a, b } = boxAxes(box);
+  const m = box.w / 2 - 0.35;
+  const lat = clamp(lateral(item, approach), -m, m);
+  const hip = {
+    x: box.cx + a.x * (box.d / 2 - 0.3) + b.x * lat,
+    z: box.cz + a.z * (box.d / 2 - 0.3) + b.z * lat,
+  };
+  const back = SIT_HIP_BACK_RATIO * heightM;
+  return {
+    root: { x: hip.x + a.x * back, z: hip.z + a.z * back },
+    rootY: Math.max(-0.02, item.surfaceHeightM - SIT_SEAT_RATIO * heightM),
+    yawDeg: box.yawDeg,
+  };
 }
+
+/** Standing 0.30 m in front of the item, facing it. */
 export function standPose(item: FurnitureItem, heightM: number, approach: Vec2): StandPose {
-  throw new Error('not implemented: C2 standPose');
+  void heightM;
+  const box = item.box;
+  const { a, b } = boxAxes(box);
+  const m = Math.max(0, box.w / 2 - 0.3);
+  const lat = clamp(lateral(item, approach), -m, m);
+  const out = box.d / 2 + 0.3;
+  return {
+    root: { x: box.cx + a.x * out + b.x * lat, z: box.cz + a.z * out + b.z * lat },
+    yawDeg: (box.yawDeg + 180) % 360,
+  };
 }
