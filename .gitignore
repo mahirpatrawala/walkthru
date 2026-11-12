@@ -3,3 +3,5 @@ dist
 .cache
 public/scenes/*/scene.*
 public/scenes/sample-room
+.vercel
+.env*
