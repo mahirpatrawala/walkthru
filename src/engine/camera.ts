@@ -90,13 +90,34 @@ export class FollowCamera {
    * The boom collision rule still applies.
    */
   focusOn(centre: Vec3, distance: number, pitchDeg: number, yawDeg?: number): void {
+    const dist = clamp(distance, 0.5, 8);
+    const pitch = clamp(pitchDeg, PITCH_MIN_DEG, 85);
     this.focus = {
       centre: { ...centre },
-      distance: clamp(distance, 0.5, 8),
-      pitchDeg: clamp(pitchDeg, PITCH_MIN_DEG, 85),
-      yawDeg: yawDeg ?? this.viewYaw,
+      distance: dist,
+      pitchDeg: pitch,
+      yawDeg: this.bestFocusYaw(centre, dist, pitch, yawDeg ?? this.viewYaw),
     };
     this.focusActive = true;
+  }
+
+  /**
+   * Integrator fix: furniture usually stands against a wall, so the requested heading can put the boom straight
+   * into that wall. Try headings in 15 degree steps outward from the requested one and keep the first whose boom
+   * is at least 90% free; otherwise the one with the most room.
+   */
+  private bestFocusYaw(centre: Vec3, distance: number, pitchDeg: number, wantYaw: number): number {
+    const pr = pitchDeg * DEG;
+    let best = wantYaw, bestFree = -1;
+    for (let i = 0; i < 24; i++) {
+      const off = (i % 2 === 1 ? 1 : -1) * Math.ceil(i / 2) * 15;
+      const yaw = wantYaw + off, yr = yaw * DEG;
+      const dir: Vec3 = { x: -Math.sin(yr) * Math.cos(pr), y: Math.sin(pr), z: -Math.cos(yr) * Math.cos(pr) };
+      const free = boomDistance(this.getGrid(), centre, dir, distance, this.ceilingM, true);
+      if (free >= 0.9 * distance) return yaw;
+      if (free > bestFree) { bestFree = free; best = yaw; }
+    }
+    return best;
   }
 
   /** Swings back to following the character. The heading it had in the focus is kept. */
@@ -149,7 +170,8 @@ export class FollowCamera {
     // 4. boom: behind and above the pivot, shortened by the grid
     const pr = pitch * DEG;
     const dir: Vec3 = { x: -Math.sin(yr) * Math.cos(pr), y: Math.sin(pr), z: -Math.cos(yr) * Math.cos(pr) };
-    const free = boomDistance(this.getGrid(), pivot, dir, wanted, this.ceilingM);
+    // While focused, the pivot sits on the furniture itself, so low furniture must not block the boom.
+    const free = boomDistance(this.getGrid(), pivot, dir, wanted, this.ceilingM, s > 0);
     if (!this.haveBoom || free < this.boomLen) {
       this.boomLen = free; // shorten instantly
       this.haveBoom = true;

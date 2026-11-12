@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-<title>walkthru engine demo</title>
+<title>walkthru engine demo (synthetic test room)</title>
 <!--
   C2 engine demo (not a build input). Open it with `npm run dev` at /engine-demo.html.
   The truth flat's collision grid is drawn as boxes (every non-free cell, 5 cm wide), the real bed and sofa are
@@ -343,6 +343,7 @@ async function main() {
       else if (posed && ch.state !== 'transition') { prompt.style.display = 'block'; prompt.textContent = posed === 'stand' ? 'Step back' : 'Get up'; }
       else prompt.style.display = 'none';
       hud.textContent =
+        'SYNTHETIC TEST ROOM (made-up flat for testing, not an imported drawing)\n' +
         'WASD / arrows walk · Shift jog · drag look · wheel zoom\n' +
         '1 lie on bed · 2 sit on sofa · 3 stand at counter · E / Esc / move = get up\n' +
         '4 / 5 / 6 = 160 / 175 / 190 cm, [ ] = ±5 cm · touch: left thumb walks, right looks, pinch zooms\n' +

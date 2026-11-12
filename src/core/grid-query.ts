@@ -124,7 +124,11 @@ export function clearance(grid: Grid, origin: Vec2, dir: Vec2, maxM = 3): number
  * lower than v/100 + 0.15; or the sample is above ceilingM - 0.15 or below 0.15. Void never blocks.
  * Returns max(0, hitDistance - 0.20), or `maxDist` when nothing blocks.
  */
-export function boomDistance(grid: Grid, pivot: Vec3, dir: Vec3, maxDist: number, ceilingM: number): number {
+export function boomDistance(
+  grid: Grid, pivot: Vec3, dir: Vec3, maxDist: number, ceilingM: number, ignoreLow = false,
+): number {
+  // ignoreLow (integrator addition): low furniture (beds, sofas, sills) never blocks. Used while the camera is
+  // focused on a piece of furniture, where the pivot sits on that furniture's own surface.
   const top = ceilingM - 0.15;
   for (let t = BOOM_STEP_M; t <= maxDist + 1e-9; t += BOOM_STEP_M) {
     const x = pivot.x + dir.x * t;
@@ -134,7 +138,7 @@ export function boomDistance(grid: Grid, pivot: Vec3, dir: Vec3, maxDist: number
     if (!blocked) {
       const v = cellValue(grid, x, z);
       if (v >= GRID_TALL_CM && v <= 250) blocked = true;
-      else if (v > 0 && v < GRID_TALL_CM && y < v / 100 + 0.15) blocked = true;
+      else if (!ignoreLow && v > 0 && v < GRID_TALL_CM && y < v / 100 + 0.15) blocked = true;
     }
     if (blocked) return Math.max(0, t - BOOM_STOP_M);
   }
