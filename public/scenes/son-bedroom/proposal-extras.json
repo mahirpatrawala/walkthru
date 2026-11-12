@@ -61,7 +61,9 @@
         "l": 3.81
       },
       "labelAreaM2": 13.935456,
-      "areaM2": 12.774167999999998
+      "areaM2": 12.774167999999998,
+      "verified": true,
+      "verifiedNote": "Checked by hand 12 Nov 2026: drawn wall faces span 392.8 x 346.3 pt at 103.2 pt/m = 3.81 x 3.35 m, matching the label 12'6\" x 11'0\" within 0.1%."
     },
     {
       "id": "master-room",
@@ -74,7 +76,8 @@
         "l": 2.7432
       },
       "labelAreaM2": 9.847722240000001,
-      "areaM2": 10.033528319999999
+      "areaM2": 10.033528319999999,
+      "verifiedNote": "Width 9'0\" confirmed from walls (284.3 pt). Length NOT measurable: the room runs off the sheet edge (~7'11\" visible). Label says 12'0\"x9'0\" and prints 106 SQFT, which does not equal 108."
     },
     {
       "id": "passage",
@@ -82,7 +85,9 @@
       "roomType": "other",
       "method": "walls+strokes",
       "confidence": 0.7,
-      "areaM2": 2.4665289074964094
+      "areaM2": 2.4665289074964094,
+      "verified": false,
+      "verifiedNote": "Width 3'1\" confirmed from walls (98.2 pt). Length NOT measurable: it runs off the sheet edge."
     }
   ],
   "ceiling": {
@@ -221,7 +226,8 @@
     "yawDeg": 180
   },
   "warnings": [
-    "Label says 150 sq ft but 11'0\"×12'6\" is 137.5 sq ft. The drawn walls agree with 11'0\"×12'6\".",
+    "Master Room: only its 9'0\" width is on the drawing. Its far wall is off the sheet, so 12'0\" (and the printed 106 sq ft, which does not equal 12'0\"x9'0\" = 108) cannot be checked.",
+    "Label says 150 sq ft but 11'0\"\u00d712'6\" is 137.5 sq ft. The drawn walls agree with 11'0\"\u00d712'6\".",
     "Room \"Son Room\" is not closed by walls on the drawing. Drawn as a rectangle of its labelled size. Check it.",
     "Room \"Master Room\" is not closed by walls on the drawing. Drawn as a rectangle of its labelled size. Check it.",
     "Master Room has no door on the drawing. A door 0.84 m wide was placed where its swing arc hinges on the wall.",

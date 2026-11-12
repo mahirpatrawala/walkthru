@@ -4,6 +4,7 @@ import { polygonArea } from '../core/geometry';
 import { formatArea } from '../core/units';
 import type { Layout } from '../types';
 import { el } from './hud';
+import type { UnverifiedRooms } from './store';
 
 export const ROOMS_FOOTER = 'Sizes from the floor plan. Colours approximate (from phone video).';
 
@@ -15,23 +16,29 @@ export interface RoomsSummary {
   footer: string;
 }
 
-export function roomsSummary(layout: Layout): RoomsSummary {
+export function roomsSummary(layout: Layout, unverified: UnverifiedRooms = {}): RoomsSummary {
   const rows = layout.rooms.map((r) => {
     const a = formatArea(polygonArea(r.polygon));
-    return { id: r.id, label: r.label, sqft: a.sqft, m2: a.m2, text: a.text };
+    const note = unverified[r.id];
+    return { id: r.id, label: r.label, sqft: a.sqft, m2: a.m2, text: note ? `Not measured (${note})` : a.text };
   });
   const carpet = formatArea(carpetAreaM2(layout));
+  const anyUnverified = layout.rooms.some((r) => unverified[r.id]);
   return {
     rows, carpet,
-    carpetLine: `Carpet area (rooms, excluding balcony): ${carpet.text}`,
+    carpetLine: anyUnverified
+      ? `Carpet area: can't be confirmed. ${layout.rooms.filter((r) => unverified[r.id]).map((r) => r.label).join(', ')} not measured on the drawing.`
+      : `Carpet area (rooms, excluding balcony): ${carpet.text}`,
     footer: ROOMS_FOOTER,
   };
 }
 
 export interface RoomsSheet { open(): void; close(): void; toggle(): void; isOpen(): boolean }
 
-export function createRoomsSheet(parent: HTMLElement, layout: Layout, onClose: () => void): RoomsSheet {
-  const s = roomsSummary(layout);
+export function createRoomsSheet(
+  parent: HTMLElement, layout: Layout, onClose: () => void, unverified: UnverifiedRooms = {},
+): RoomsSheet {
+  const s = roomsSummary(layout, unverified);
   const back = el('div', 'wt-rooms', undefined, parent);
   back.dataset.testid = 'rooms-sheet';
   back.hidden = true;

@@ -355,3 +355,17 @@ describe('measure labels and overlay geometry', () => {
     expect(cellColor(250)[3]).toBeGreaterThan(cellColor(0)[3]);
   });
 });
+
+import { unverifiedRoomsFromExtras, roomChipText as chipText } from '../src/buyer/store';
+describe('unverified room sizes (integrator)', () => {
+  it('flags label-rect rooms unless verified, and the chip shows no area for them', () => {
+    const u = unverifiedRoomsFromExtras({ rooms: [
+      { id: 'a', method: 'label-rect' }, { id: 'b', method: 'label-rect', verified: true }, { id: 'c', method: 'walls' }, { id: 'd', method: 'walls', verified: false },
+    ] });
+    expect(Object.keys(u)).toEqual(['a', 'd']);
+    expect(unverifiedRoomsFromExtras(null)).toEqual({});
+    const layout = { rooms: [{ id: 'a', label: 'Master Room', roomType: 'bedroom', polygon: [{ x: 0, z: 0 }, { x: 3, z: 0 }, { x: 3, z: 3 }, { x: 0, z: 3 }] }] } as never;
+    expect(chipText(layout, { x: 1, z: 1 }, u)).toBe('Master Room · not measured (label size only)');
+    expect(chipText(layout, { x: 1, z: 1 })).toMatch(/^Master Room · \d+ sq ft/);
+  });
+});

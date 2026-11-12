@@ -28,7 +28,7 @@ import { createOverlays } from './overlays';
 import { createRoomsSheet } from './rooms';
 import {
   DEFAULT_HEIGHT_CM, HINT_KEY, clampHeightCm, createFurnitureStore, loadHeightCm, roomChipText, safeStorage,
-  saveHeightCm, storageGet, storageSet, tintForHeightCm,
+  saveHeightCm, storageGet, storageSet, tintForHeightCm, unverifiedRoomsFromExtras,
 } from './store';
 
 const SCENE_ID_RE = /^[a-z0-9-]{1,40}$/;
@@ -116,6 +116,14 @@ async function boot(): Promise<void> {
   loading.setTitle(property.title, property.subtitle);
   loading.setProgress(0.12, 'Building the rooms…');
   const layout = property.layout;
+  // Optional drawing-import sidecar: rooms whose size came from a label, not measured walls, must not show a
+  // confident area. Missing file (or a dev server's index page) means nothing is flagged.
+  let unverifiedRooms = {} as ReturnType<typeof unverifiedRoomsFromExtras>;
+  try {
+    const r = await fetch(`/scenes/${sceneId}/proposal-extras.json`, { cache: 'no-cache' });
+    const t = r.ok ? await r.text() : '';
+    if (t && !/^\s*</.test(t)) unverifiedRooms = unverifiedRoomsFromExtras(JSON.parse(t));
+  } catch { /* optional */ }
   if (layout.rooms.length === 0) {
     loading.showError('This home has no rooms yet.', 'The layout is empty. A broker can trace the rooms in the editor.');
     return;
@@ -224,7 +232,7 @@ async function boot(): Promise<void> {
       }
     },
   });
-  rooms = createRoomsSheet(document.body, layout, () => { /* nothing to resume */ });
+  rooms = createRoomsSheet(document.body, layout, () => { /* nothing to resume */ }, unverifiedRooms);
 
   // ---- spawn
   {
@@ -320,7 +328,7 @@ async function boot(): Promise<void> {
     chipClock += dt;
     if (chipClock > 0.1) {
       chipClock = 0;
-      const text = roomChipText(layout, character.position);
+      const text = roomChipText(layout, character.position, unverifiedRooms);
       if (text !== lastChip) { lastChip = text; hud.setRoomChip(text); }
     }
     if (gridOverlay) {
