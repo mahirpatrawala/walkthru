@@ -1216,7 +1216,7 @@ Downloads the Quaternius zip to `.cache/`, checks the SHA-256, extracts with the
 
 ## 9. Build chunks
 
-Nine chunks in four waves (C8 is specified in section 13). A wave starts when the previous one is merged and `npm run typecheck && npm test` is green.
+Ten chunks in four waves (C8 and C9 are specified in sections 13 and 14). A wave starts when the previous one is merged and `npm run typecheck && npm test` is green.
 
 | Wave | Chunk | Depends on | Parallel with |
 |---|---|---|---|
@@ -1229,6 +1229,8 @@ Nine chunks in four waves (C8 is specified in section 13). A wave starts when th
 | 3 | **C6 Editor: finishes, furniture, spawn** | C5 | C4, C7 |
 | 3 | **C7 Scan overlay** | C5 | C4, C6 |
 | 2 | **C8 Drawing import** (section 13) | C0, C1 | C3, C5 |
+| 2 | **C9 Media pipeline** (section 14) | C0, C1 | C2, C3, C5, C8 |
+| 3 | **C10 ML upgrades** (section 15) | C9 (and C1 for validation) | C4, C6, C7 |
 
 Rules for every chunk: own files only; all exported signatures exactly as in 7.1; `npm run typecheck` and `npm test` green before reporting; report anything not verified in a browser as "not browser-verified" rather than assuming it works. No agent has a browser; the integrator does section 10.
 
@@ -1615,3 +1617,577 @@ These expected values come from the drawing's labels and a rough reading of the 
 4. **Scale votes from rooms are nominal.** Drawings with no furniture labels and loose room labels can be several percent off; the review summary shows the vote spread so the broker can check one door width.
 5. **Styles not covered:** walls drawn as two parallel strokes with no fill (common in older CAD exports), hatched walls, and curved walls. These fall through to "no walls found" and the manual trace. Stroke-pair walls are the first thing to add if real drawings need it.
 6. **The editor has no drop zone for a PDF.** Import is a CLI step for now. Wiring it into E1 means touching a C5 file, so it is left for the integrator after wave 2.
+
+---
+
+## 14. C9 Media pipeline
+
+Additive chunk. It changes nothing in sections 3.2 or 7.1 and edits no file owned by C0 to C8. It depends only on C0 (types, the dev-API pattern) and C1 (`validateProperty`, `roomAt`), both committed, so it runs now, alongside C2, C3, C5 and C8. No new npm packages.
+
+### 14.1 What it does
+
+The broker drops a WhatsApp video and/or WhatsApp photos. Assume they are always poor: 720p, heavily compressed, a fast walk, blank walls. Automatically, with no further input:
+
+1. **Frames** for the editor's colour sampling (`FrameStore`): extracted on the server, sharpness-ranked, de-duplicated.
+2. **A scan splat** where reconstruction succeeds: `scene.ply` plus a `splat` block in overlay mode, for C7 to level and pin.
+3. **Photo pins**: every photo becomes a pin. The broker drops it on the plan (or accepts an auto-suggested spot). The buyer sees a "Real photo" bubble in the walk-through and taps it to see the photo where it was taken.
+
+**Fail soft is the rule.** Reconstruction usually covers only part of the flat and sometimes nothing. No splat is a normal outcome, not an error: the job still ends `done`, frames and pins still arrive, and the shell still ships.
+
+### 14.2 Measured facts this design rests on (Mahir's M2, 8 GB, the reference video: 35.5 s, 720x1280, about 2.7 Mbps)
+
+- Installed: ffmpeg / ffprobe 8 and COLMAP 4.2.1 (Homebrew, CPU only) at `/opt/homebrew/bin`; Brush v0.3.0 at `~/walkthru-tools/brush/brush-app-aarch64-apple-darwin/brush_app`.
+- COLMAP's faiss matcher **crashes** in this build. Always pass `--SiftMatching.cpu_brute_force_matcher 1`.
+- Best recipe found: 10 fps (355 frames) with the feature, matcher and mapper flags in 14.6. Result: 12 fragments, the largest 133 frames (the first 13 s). At 4 fps with defaults only 23 of 142 frames registered. Features, matching and mapping took a few minutes on CPU.
+- Brush with the flags in 14.6 took 11 minutes, 1.5 GB peak. Its PLY (44 MB, SH degree 3, COLMAP's Y-down frame, so `upPreset: 'flip-x'`) rendered correctly in Spark in Chrome.
+- COLMAP 4's `global_mapper` is untested. It is not used.
+
+### 14.3 Files (all new, all owned by C9)
+
+```
+src/media/
+  types.ts              every C9 type (14.4). Imports from ../types only.
+  frame-metrics.ts      pure: sharpness, perceptual hash, descriptors, frame selection
+  colmap-model.ts       pure: parse COLMAP text models, fragments, coverage, camera poses
+  pins.ts               pure: pins file validation, nearest-frame match, pose suggestion
+  client.ts             browser: upload, start job, poll, read and write pins (fetch only)
+  editor-hook.ts        browser: mountMediaPipeline(panel, ctx)  -> the one line C5 calls
+  photo-pins-view.ts    browser: mountPhotoPins(opts)             -> the one call C3 makes
+  media.css
+  server/               Node only. Never imported by a page.
+    media-api.ts        Vite middleware: walkthruMediaApi()
+    jobs.ts             queue, job store, events
+    pipeline.ts         the stages, in order
+    tools.ts            tool discovery, spawn with timeout and abort
+    frames.ts           ffprobe, ffmpeg extraction
+    backend.ts          ReconstructionBackend + registry
+    backends/local-colmap-brush.ts
+    backends/fake.ts    canned result, for tests
+    backends/cloud.ts   interface-conforming placeholder that reports "not configured"
+scripts/
+  media-worker.ts       CLI: run the pipeline on files without the dev server
+  make-test-video.ts    synthetic test video
+tests/
+  media-*.test.ts       always run (pure parts, fake backend, ffmpeg-gated parts)
+  media-tools.local.test.ts   runs only when colmap is installed
+  media-real.local.test.ts    runs only when the reference video is present
+```
+
+Nothing in `src/media/` except `server/` may import `node:*`. `server/` may not import three, Spark or anything from `buyer/`, `editor/`, `engine/`.
+
+### 14.4 Types (`src/media/types.ts`)
+
+```ts
+import type { Vec2, Vec3, SplatOverlay } from '../types';
+
+// ---------- jobs ----------
+export type JobState = 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
+export type StageId = 'probe' | 'frames' | 'photos' | 'features' | 'matching' | 'mapping' | 'select' | 'training' | 'publish';
+export type StageState = 'pending' | 'running' | 'done' | 'skipped' | 'failed' | 'timeout';
+export interface StageStatus { id: StageId; state: StageState; fraction: number; message?: string; startedAt?: string; endedAt?: string }
+export interface JobEvent {
+  seq: number;                       // strictly increasing per job, from 1
+  at: string;                        // ISO 8601
+  type: 'state' | 'stage-start' | 'progress' | 'stage-end' | 'warning' | 'log';
+  stage?: StageId;
+  stageState?: StageState;
+  fraction?: number;                 // 0..1 within the stage
+  message?: string;
+}
+export interface MediaOptions {
+  mode: 'full' | 'tiny';             // tiny = fast settings for tests (14.6)
+  backend: 'local' | 'cloud' | 'fake' | 'none';
+  /** also train every other fragment with at least this many frames; 0 = only the largest */
+  trainExtraFragmentsMin: number;    // default 0; the UI offers 60
+  /** write the splat block into an existing property.json on disk */
+  patchProperty: boolean;            // CLI default true; the editor sends false and patches its own draft
+  /** skip the training stage (COLMAP only) */
+  skipTraining: boolean;             // default false
+}
+export interface JobStatus {
+  jobId: string; sceneId: string; state: JobState;
+  createdAt: string; updatedAt: string;
+  options: MediaOptions;
+  stages: StageStatus[];             // always all nine, in order
+  overall: number;                   // 0..1, weighted (14.5)
+  events: JobEvent[];                // those with seq > ?since=, at most 200
+  lastSeq: number;
+  result: MediaResult | null;        // set when state is done
+  error?: string;                    // set when state is failed
+}
+
+// ---------- results ----------
+export interface FrameInfo { file: string; timeSec: number; sharpness: number; width: number; height: number }
+export interface PhotoInfo { id: string; file: string; thumb: string; width: number; height: number; originalName: string }
+export interface Coverage {
+  totalFrames: number; registeredFrames: number;     // largest fragment
+  secondsTotal: number; secondsCovered: number;
+  spans: { fromSec: number; toSec: number }[];
+}
+export interface FragmentInfo {
+  index: number;                     // 0 = largest
+  registeredFrames: number;
+  coverage: Coverage;
+  /** published file name in the scene folder, or null when not trained */
+  ply: string | null;
+  splatCount: number | null;
+  trainState: 'trained' | 'skipped' | 'failed' | 'timeout';
+}
+/** Camera centre and viewing direction of a registered frame, in the splat's raw frame. */
+export interface FrameCamera { frame: string; timeSec: number; centre: Vec3; forward: Vec3 }
+export interface MediaResult {
+  frames: FrameInfo[];               // editor frames, sharpest first within time order
+  photos: PhotoInfo[];
+  /** null when there is no splat; reason says why in plain words */
+  splat: SplatOverlay | null;
+  splatReason: string;
+  fragments: FragmentInfo[];
+  cameras: FrameCamera[];            // of fragment 0
+  warnings: string[];
+}
+/** public/scenes/<id>/media/manifest.json = the MediaResult of the latest job plus jobId and a timestamp. */
+export interface MediaManifest extends MediaResult { version: 1; jobId: string; finishedAt: string }
+
+// ---------- reconstruction backend ----------
+export interface ReconInput {
+  workDir: string;                   // absolute; the backend may write anywhere inside it
+  imagesDir: string;                 // absolute; frame-000001.jpg ...
+  frames: { file: string; timeSec: number }[];
+  ordered: boolean;                  // true for video frames, false for a photo set
+  mode: 'full' | 'tiny';
+  trainExtraFragmentsMin: number;
+  skipTraining: boolean;
+  signal: AbortSignal;
+}
+export interface ReconHooks {
+  stage(id: 'features' | 'matching' | 'mapping' | 'select' | 'training', state: StageState, message?: string): void;
+  progress(id: 'features' | 'matching' | 'mapping' | 'training', fraction: number, message?: string): void;
+  log(line: string): void;
+}
+export interface ReconFragment { registered: { file: string; timeSec: number }[]; cameras: FrameCamera[];
+                                 plyPath: string | null; splatCount: number | null; trainState: FragmentInfo['trainState'] }
+export interface ReconResult { fragments: ReconFragment[]; upPreset: 'flip-x' | 'as-is' | 'z-up'; warnings: string[] }
+export interface ReconstructionBackend {
+  readonly name: string;
+  /** which tools or credentials are missing; ok = false means the pipeline skips reconstruction */
+  available(): Promise<{ ok: boolean; missing: string[] }>;
+  /** resolves with zero fragments when nothing reconstructs; rejects only on abort */
+  reconstruct(input: ReconInput, hooks: ReconHooks): Promise<ReconResult>;
+}
+
+// ---------- photo pins ----------
+export interface PhotoPin {
+  id: string;                        // = PhotoInfo.id
+  file: string;                      // 'media/photos/p-001.jpg', relative to the scene folder
+  thumb: string;
+  width: number; height: number;
+  /** where the photo was taken, world metres; null until placed */
+  at: Vec2 | null;
+  /** which way the camera faced; null when unknown */
+  yawDeg: number | null;
+  roomId: string | null;
+  caption?: string;
+  placedBy: 'broker' | 'auto' | null;
+  /** the automatic guess, kept so the broker can accept or ignore it */
+  suggested?: { at: Vec2 | null; yawDeg: number | null; roomId: string | null; frame: string | null;
+                score: number; source: 'frame-pose' | 'frame-only' | 'none' };
+}
+/** public/scenes/<id>/photo-pins.json */
+export interface PhotoPinsFile { version: 1; pins: PhotoPin[] }
+```
+
+Photo pins live in the sidecar `photo-pins.json`, not in `property.json`, so `types.ts` and `validateProperty` are untouched. A scene with no such file simply has no pins.
+
+### 14.5 Jobs (`server/jobs.ts`)
+
+- One job runs at a time across all scenes (8 GB machine). Others wait as `queued`, first in first out.
+- States: `queued → running → done | failed | cancelled`. `failed` only when the media itself cannot be used (the `probe` or `frames` stage fails, or there is no usable input). Every later stage failing or timing out is recorded on the stage, adds a warning, and the job continues to `done`.
+- Each stage moves `pending → running → done | skipped | failed | timeout`. Every transition appends a `JobEvent`. `progress` events are throttled to one per stage per 500 ms.
+- `overall` = sum of stage weights times stage fraction, with weights: probe 0.01, frames 0.06, photos 0.02, features 0.12, matching 0.14, mapping 0.14, select 0.01, training 0.48, publish 0.02. Skipped, failed and timed-out stages count as complete.
+- Persistence: the full status (all events) is written to `.cache/media/<sceneId>/jobs/<jobId>.json` after every event. On server start, any stored job still `queued` or `running` is rewritten as `failed` with `error: 'The dev server restarted. Run it again.'`
+- `jobId`: `j-` + 8 lower-case hex characters. Cancelling aborts the job's `AbortController`; `tools.ts` kills the child process group; the job ends `cancelled`.
+- Work directory: `.cache/media/<sceneId>/<jobId>/`. When a job starts, work directories of that scene's older jobs are deleted. `.cache` is already git-ignored.
+
+### 14.6 Pipeline (`server/pipeline.ts`: `runMediaJob(job, hooks)`)
+
+Tools (`server/tools.ts`): `ffmpeg`, `ffprobe`, `colmap` resolved from `WALKTHRU_FFMPEG`, `WALKTHRU_FFPROBE`, `WALKTHRU_COLMAP`, else PATH plus `/opt/homebrew/bin`. Brush from `WALKTHRU_BRUSH`, else `~/walkthru-tools/brush/brush-app-aarch64-apple-darwin/brush_app`. `run(cmd, args, { timeoutMs, signal, onLine })` spawns without a shell, streams stdout and stderr line by line, kills the process group on timeout or abort, and resolves `{ code, timedOut }`. It never throws for a non-zero exit.
+
+| Stage | What | Timeout full / tiny | On failure |
+|---|---|---|---|
+| `probe` | `ffprobe -v error -print_format json -show_format -show_streams` on each video; image size for each photo | 20 s | job `failed` when no input is readable |
+| `frames` | reconstruction frames and editor frames (below) | 180 s / 60 s | job `failed` if a video yields zero frames; skipped when there is no video |
+| `photos` | normalise, thumbnail, descriptors, nearest-frame match (below) | 120 s | stage `failed`, warning |
+| `features` | COLMAP `feature_extractor` | 10 min / 2 min | no splat |
+| `matching` | COLMAP `sequential_matcher` (video) or `exhaustive_matcher` (photo set) | 15 min / 2 min | no splat |
+| `mapping` | COLMAP `mapper` | 20 min / 3 min | no splat |
+| `select` | read the models, rank fragments, compute coverage | 60 s | no splat |
+| `training` | Brush, per chosen fragment | 25 min / 3 min each | that fragment has no PLY |
+| `publish` | copy files into the scene folder, write the manifest, seed pins, optionally patch `property.json` | 60 s | warning |
+
+Stages `features` to `training` belong to the backend. When `options.backend` is `none`, or `available()` reports missing tools, they are all `skipped` with the message "Scan tools not installed: {list}" and `splatReason` says the same.
+
+**Reconstruction input.** A video: frames at `fps = min(10, 600 / durationSec)` (so at most 600 frames), native resolution, `ffmpeg -i <video> -vf fps=<fps> -q:v 2 <work>/images/frame-%06d.jpg`. `timeSec = (n - 1) / fps`. Several videos: only the longest is reconstructed; the others contribute editor frames. No video: the photos are the input only when there are **20 or more**; fewer gives `splatReason: 'Only {n} photos. A scan needs a video or at least 20 photos.'` Tiny mode: `fps = min(6, 24 / durationSec)` (at most 24 frames), `-vf fps=<fps>,scale=480:-2`.
+
+**Editor frames** (`frame-metrics.ts`). One extra ffmpeg pass decodes the same frames as 160-pixel-wide 8-bit grey raw video to a pipe (`-vf fps=<fps>,scale=160:-2,format=gray -f rawvideo -`). Per frame:
+- `sharpness` = variance of the 3 × 3 Laplacian (`4c - n - s - e - w`) over interior pixels.
+- `hash` = 64-bit difference hash: resize to 9 × 8 by box averaging, one bit per horizontal neighbour comparison.
+Selection (`selectEditorFrames(metrics, { maxFrames: 60, windowSec: 1, minHamming: 7 })`): take the sharpest frame in each one-second window; walk them in time order and drop any whose hash is within Hamming distance 6 of the previously kept frame; if more than 60 remain, keep the 60 sharpest and restore time order. The chosen frames are re-encoded to `public/scenes/<id>/media/frames/f-0001.jpg` … (longest side at most 1280, `-q:v 3`, `-map_metadata -1`).
+
+**Photos.** Each is re-encoded through ffmpeg to `media/photos/p-001.jpg` (longest side at most 2048, `-map_metadata -1` so EXIF and GPS are stripped) with a `p-001.thumb.jpg` (longest side 320). A 12 × 12 RGB descriptor plus the 64-bit hash is computed for every photo and every editor frame; `nearestFrame(photo, frames)` returns the frame with the smallest `0.5 * hamming/64 + 0.5 * meanAbsRgbDiff/255` and that score. A score above 0.22 means "no match".
+
+**Local backend (`backends/local-colmap-brush.ts`).** Exactly these commands (full mode). Database `<work>/db.db`, output `<work>/sparse`.
+
+```
+colmap feature_extractor --database_path db.db --image_path images
+  --ImageReader.single_camera 1 --ImageReader.camera_model OPENCV
+  --FeatureExtraction.use_gpu 0
+  --SiftExtraction.max_num_features 12000 --SiftExtraction.peak_threshold 0.003
+  --SiftExtraction.domain_size_pooling 1
+
+colmap sequential_matcher --database_path db.db
+  --FeatureMatching.use_gpu 0 --SiftMatching.cpu_brute_force_matcher 1
+  --SequentialMatching.overlap 25
+
+colmap mapper --database_path db.db --image_path images --output_path sparse
+  --Mapper.init_min_num_inliers 50 --Mapper.abs_pose_min_num_inliers 15
+  --Mapper.abs_pose_min_inlier_ratio 0.15 --Mapper.init_min_tri_angle 4
+  --Mapper.min_model_size 5
+```
+- Photo sets (`ordered: false`): `--ImageReader.single_camera 0` and `colmap exhaustive_matcher --database_path db.db --FeatureMatching.use_gpu 0 --SiftMatching.cpu_brute_force_matcher 1`.
+- Tiny mode: `max_num_features 3000`, `overlap 8`, everything else the same.
+- The brute-force matcher flag is mandatory on every matcher call. Add a comment saying the faiss matcher crashes in COLMAP 4.2.1.
+- Progress: `features` and `mapping` fractions from counting COLMAP's per-image log lines against the frame count; if the log format does not match, emit only start and end. Never fail a stage because progress could not be parsed.
+- `select`: for each `sparse/<n>`, `colmap model_converter --input_path sparse/<n> --output_path txt/<n> --output_type TXT`, then `parseImagesTxt` (`colmap-model.ts`). Rank models by registered image count. Fragment 0 is the largest. A largest fragment with fewer than 30 frames (8 in tiny mode) yields zero fragments and the warning "Only {n} frames lined up. Not enough for a scan."
+- Camera poses: COLMAP stores world-to-camera `q = (qw, qx, qy, qz)`, `t`. Centre `C = -Rᵀ t`. Forward = `Rᵀ (0, 0, 1)`.
+- `training`, for fragment 0 and for any other fragment with at least `trainExtraFragmentsMin` frames when that option is above 0: build `<work>/frag-<i>/` with `images` (a symlink to the images directory) and `sparse/0` (a copy of that model's binary files), then
+
+```
+brush_app <work>/frag-<i> --total-steps 15000 --max-splats 800000 --max-resolution 720
+  --export-every 5000 --export-path <work>/frag-<i>/out --export-name "splat_{iter}.ply"
+```
+  Tiny mode: `--total-steps 300 --max-splats 20000 --max-resolution 320 --export-every 300`. Progress = the highest `splat_<iter>.ply` present divided by total steps, polled every 5 s. Result = the file with the highest iteration; if the process times out but an earlier export exists, use it and record `trainState: 'timeout'` with that PLY. `splatCount` from the PLY header's `element vertex` line. Brush missing: `trainState: 'skipped'`.
+- `upPreset: 'flip-x'`.
+
+**Publish.**
+- Fragment 0's PLY → `public/scenes/<id>/scene.ply`. Extra fragments → `scene-2.ply`, `scene-3.ply`, listed in the manifest only (`property.json` holds one splat).
+- `MediaResult.splat` = `{ file: 'scene.ply', format: 'ply', upPreset: 'flip-x', mode: 'overlay', transform: { rotation: [0, 0, 0, 1], scale: 1, position: [0, 0, 0] } }`. The transform is deliberately the identity: levelling and pinning are C7's job (E7).
+- `media/manifest.json` is written. `photo-pins.json` is created or merged: one pin per photo, existing pins (matched by `id`) keep their `at`, `yawDeg`, `roomId`, `caption`, `placedBy`; new pins get `at: null` and a `suggested` block.
+- With `patchProperty` and an existing `property.json` that has no `splat`: add the block, run `validateProperty`, write. An existing `splat` is left alone and a warning says so. No `property.json`: nothing is created.
+- `splatReason` in plain words, one of: "Scan made from {registered} of {total} frames ({seconds} s of {totalSeconds} s)." · "The video did not line up well enough for a scan. The room layout still works." · "Scan tools not installed: {list}" · the photo-count message above · "Scan training ran out of time."
+
+**Cloud later.** `backends/cloud.ts` implements `ReconstructionBackend` with `available()` returning `{ ok: false, missing: ['WALKTHRU_MODAL_URL'] }`. A real version uploads `imagesDir`, polls, downloads PLYs into `workDir` and returns the same `ReconResult`. `pipeline.ts`, the API and every caller stay as they are; only `options.backend` changes.
+
+### 14.7 Dev API (`server/media-api.ts`: `walkthruMediaApi(): Plugin`, `apply: 'serve'`)
+
+Scene ids must match `^[a-z0-9-]{1,40}$`. Any route not listed calls `next()`.
+
+| Route | Body | Response |
+|---|---|---|
+| `POST /api/scenes/:id/media?name=<file name>` | the raw file, **streamed to disk** (never buffered whole), max 300 MB | `{ uploadId, kind: 'video' \| 'photo', bytes }`; 415 for other types, 413 when too large |
+| `POST /api/scenes/:id/jobs` | `{ uploadIds: string[], options?: Partial<MediaOptions> }` | `{ jobId }` |
+| `GET /api/scenes/:id/jobs/:jobId?since=<seq>` | | `JobStatus` (events after `since`) ; 404 when unknown |
+| `GET /api/scenes/:id/jobs` | | `{ jobId, state, createdAt }[]`, newest first |
+| `DELETE /api/scenes/:id/jobs/:jobId` | | `{ ok: true }`, cancels |
+| `GET /api/scenes/:id/pins` | | `PhotoPinsFile` (empty list when the file is missing) |
+| `PUT /api/scenes/:id/pins` | `PhotoPinsFile` | `{ ok: true }` after validation (`validatePinsFile` in `pins.ts`) |
+
+Kind by extension, checked against the first bytes: video `mp4 mov m4v webm`; photo `jpg jpeg png webp heic`. Uploads go to `.cache/media/<sceneId>/uploads/<uploadId>-<sanitised name>`; `uploadId` is `u-` + 8 hex characters. Uploaded originals never enter `public/`.
+
+**Integrator hooks (the only edits to files C9 does not own):**
+
+1. `vite.config.ts`, two lines. The media plugin must come first, because the existing scene middleware answers 404 for `/api/scenes/...` routes it does not know:
+   ```ts
+   import { walkthruMediaApi } from './src/media/server/media-api';
+   // ...
+   plugins: [walkthruMediaApi(), walkthruDevApi()],
+   ```
+2. `src/editor/steps/media.ts` (C5), one line inside `mount(panel, ctx)` plus its import: `mountMediaPipeline(panel, ctx);` from `'../../media/editor-hook'`.
+3. `src/buyer/main.ts` (C3), one call after the context exists: `mountPhotoPins({ ... })` (14.9).
+4. `package.json`, one script: `"media": "tsx scripts/media-worker.ts"`.
+
+### 14.8 Editor hook (`editor-hook.ts`: `mountMediaPipeline(panel: HTMLElement, ctx: EditorContext): () => void`)
+
+Imports `EditorContext` as a type only. Appends one block to the panel and returns an unmount function. Small UI, three parts:
+
+1. **Drop zone**: "Drop the WhatsApp video and photos here". Uploads each file (`client.uploadMedia`), then starts one job with `patchProperty: false`. A checkbox "Also scan smaller pieces (slower)" sets `trainExtraFragmentsMin: 60`.
+2. **Progress**: one bar for `overall`, the running stage's name in plain words (Reading the video · Picking frames · Preparing photos · Finding features · Matching frames · Working out the camera path · Choosing the best piece · Building the scan · Saving), and a Cancel button. Polls `GET …/jobs/:jobId?since=` once a second. A job found `running` on mount (from `GET …/jobs`) is picked up again.
+3. **Result**, when `done`:
+   - Frames: fetch each `media/frames/*.jpg` as a `File` and call `ctx.frames.addImages(files)`. Line: "{n} frames ready for colour sampling."
+   - Scan: `result.splatReason` as the line. When `result.splat` is set and `ctx.draft.splat` is undefined: `ctx.draft.splat = result.splat; ctx.commit();` and add "Go to the Scan step to line it up with the plan."
+   - Coverage line: "Scan covers {secondsCovered} s of {secondsTotal} s ({registeredFrames} of {totalFrames} frames)."
+   - **Photo pins**: a row of thumbnails. Click a thumbnail, then click the plan to place it; drag from the placed pin to set the direction it faces. A pin with a suggestion shows a dashed marker at the suggested spot and a button "Use suggestion ({room label})". Pins are drawn through `ctx.plan.addLayer` as a camera glyph with a direction wedge; the placing click uses `ctx.plan.setTool`. `roomId` is set from `roomAt(ctx.draft.layout, at)`. Every change is saved with `client.savePins`. A caption field per pin (optional, 60 characters).
+   - Failed job: the `error` text and "Try again".
+
+**Auto-suggestion** (`pins.ts`, `suggestPinPose(pin, match, cameras, splat, layout)`), recomputed whenever the panel mounts:
+- The photo's nearest editor frame (14.6) gives a frame and a time. No match: `source: 'none'`.
+- If that frame's nearest registered camera (within 0.5 s) exists and `ctx.draft.splat` has been pinned (its transform is not the identity): world position = `scale * rotate(rotation, centre) + position`, yaw from the transformed forward vector's heading, `roomId` from `roomAt`. `source: 'frame-pose'`, `at` set.
+- Otherwise `source: 'frame-only'`: `at: null`, and the panel shows the matching video frame beside the photo to help the broker place it by eye.
+
+### 14.9 Buyer module (`photo-pins-view.ts`)
+
+Standalone: it takes plain parameters, not `BuyerContext`, so it can be built and tested before C3 lands.
+
+```ts
+export interface PhotoPinsOptions {
+  sceneId: string;
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  /** element covering the canvas; bubbles and the lightbox are appended here */
+  overlay: HTMLElement;
+  /** subscribe to the render loop; returns unsubscribe */
+  onFrame(cb: (dt: number) => void): () => void;
+  /** where the character is, for showing only nearby pins */
+  viewerPosition(): Vec2;
+  /** room id at a point, or null (the integrator passes roomAt bound to the layout) */
+  roomIdAt(p: Vec2): string | null;
+  roomLabel(roomId: string): string;
+  /** called when the lightbox opens or closes, so the buyer can pause movement input */
+  onLightbox?(open: boolean): void;
+}
+export interface PhotoPinsHandle { count: number; setVisible(v: boolean): void; dispose(): void }
+export function mountPhotoPins(opts: PhotoPinsOptions): Promise<PhotoPinsHandle>;
+```
+
+Behaviour:
+- Loads `/scenes/<id>/photo-pins.json`; a 404 or an empty list resolves with `count: 0` and renders nothing. Only pins with `at` set are shown.
+- Each pin: an opaque floor ring (radius 0.18 m, colour `#2F6BFF`, 1 cm above the floor) with a small wedge toward `yawDeg`, plus an HTML bubble projected from `(x, 1.5, z)` every frame: a 44 px round thumbnail with a 2 px white border and the caption "Real photo" under it. HTML, not a sprite, so nothing alpha-blends against a splat.
+- A bubble is shown when the pin is in front of the camera and either in the same room as the viewer or within 4 m. Bubbles fade in over 150 ms. At most 6 bubbles at once, nearest first.
+- Tapping a bubble opens a lightbox over the view: the full photo fitted to the screen, the line "Real photo · {room label}" (plus the caption when present), "Photo from the broker" in small text, and a close button; Esc and a tap outside also close it.
+- The integrator's call in C3: `mountPhotoPins({ sceneId, scene: viewer.scene, camera: viewer.camera, overlay, onFrame: viewer.onFrame, viewerPosition: () => character.position, roomIdAt: p => roomAt(property.layout, p)?.id ?? null, roomLabel: id => …, onLightbox: open => … })`. The buyer has no floor-plan view in this prototype, so pins appear in 3D only; the plan-view bubbles exist in the editor.
+
+### 14.10 CLI (`scripts/media-worker.ts`)
+
+`tsx scripts/media-worker.ts <files…> --scene <id> [--tiny] [--backend local|fake|none] [--extra-fragments 60] [--skip-training] [--no-patch]`
+Runs the same `runMediaJob` in-process, prints events as lines (`[features] 42% …`), ends with the coverage line and `splatReason`. Exit code 0 for `done` (with or without a splat), 1 for `failed`.
+
+### 14.11 Synthetic test video (`scripts/make-test-video.ts`)
+
+- `buildLavfiVideo(outPath, { seconds = 4, size = '360x640', fps = 30 })`: `ffmpeg -f lavfi -i testsrc2=size=…:rate=… -t … -pix_fmt yuv420p`. No parallax, so it exercises probing, frames, hashing and the soft-fail path (COLMAP cannot map it).
+- `buildRoomVideo(outPath, { frames = 48, size = [480, 640] })`: a software render of the synthetic splat fragment from `scripts/make-test-room.ts` (`buildSplatFragment()`), so it has real parallax. A pinhole camera (FOV 70°) walks from (3.2, 1.4, 0.8) to (2.2, 1.4, 4.0) looking at (0.8, 0.9, 2.4), in equal steps. Each point is drawn as a square of side `max(1, round(0.03 * f / depth))` pixels with a z-buffer. Because the generated room is flat-coloured (nothing for SIFT to find), each point's colour is multiplied by `0.55 + 0.45 * noise`, where `noise` is a hash of the point's position quantised to 4 cm, which paints a stable speckle on every surface. Frames are piped to ffmpeg as raw RGB and encoded to H.264 at 12 fps.
+- `buildTestPhotos(dir, n)`: `n` frames of that render saved as JPEGs, as stand-ins for WhatsApp photos.
+
+### 14.12 Acceptance
+
+Always run (`npm test`; ffmpeg-dependent cases use `describe.skipIf(!hasFfmpeg)`):
+1. `laplacianVariance`: a 160 × 120 checkerboard of 8 px squares scores more than 20 times the same image box-blurred with radius 4; a constant image scores 0.
+2. `dHash`: identical images have distance 0; the image and its 2-pixel shift at most 10; the image and its inverse exactly 64.
+3. `selectEditorFrames`: 100 synthetic metrics at 10 fps (10 s) where each second has one clearly sharpest frame and seconds 3 to 5 share one hash → returns the sharpest frame of each second, with seconds 4 and 5 dropped as duplicates (8 frames), in time order. With 200 distinct seconds it returns exactly 60.
+4. `parseImagesTxt` on a hand-written 3-image model: 3 names; a camera with identity rotation and `t = (0, 0, -2)` has centre (0, 0, 2) and forward (0, 0, 1); a 90° yaw case is asserted numerically.
+5. `coverage`: registered times {0.0 … 2.9} and {6.0 … 7.4} at 10 fps over a 10 s video → spans [0, 3.0] and [6.0, 7.5], `secondsCovered` 4.5, `registeredFrames` 45, `totalFrames` 100.
+6. Job runner with the `fake` backend and the lavfi video: states go `queued`, `running`, `done`; event `seq` values are 1, 2, 3, … with no gaps; all nine stages end `done`; `overall` is 1; the status file on disk equals the final status; a second job enqueued meanwhile stays `queued` until the first ends.
+7. Soft fail: a backend whose `reconstruct` returns zero fragments → job `done`, `result.splat` null, `splatReason` is the "did not line up" sentence, frames are still published. A backend that never resolves, with a 200 ms test timeout, → the stage is `timeout`, the job is `done`.
+8. Hard fail: a text file renamed `.mp4` → job `failed` at `probe` with a readable `error`.
+9. Cancel: `DELETE` during the fake backend's delay → `cancelled`, and the child-process helper reports the process gone.
+10. Frames on the lavfi video (4 s): reconstruction frames = 40 ± 1 in full mode; editor frames between 1 and 4; every published frame is a JPEG no larger than 1280 on its longest side; no EXIF block.
+11. Photos: 3 test photos → `p-001.jpg` to `p-003.jpg` plus thumbs of longest side 320; `photo-pins.json` has 3 pins with `at: null`; a second job with 2 of the same photos and one new keeps a hand-placed `at` on the first pin.
+12. Fewer than 20 photos and no video → reconstruction stages `skipped`, the photo-count `splatReason`, job `done`.
+13. `nearestFrame`: a photo that is frame 17 of the room render re-encoded at JPEG quality 40 and scaled to 70% matches frame 17 or a neighbour within 2, with a score under 0.22; a lavfi frame against room frames scores above 0.22.
+14. `suggestPinPose`: with a camera at raw (1, 2, 3) facing raw +Z and a splat transform of scale 0.5, yaw 90°, position (10, 0, 20), the suggestion is the transformed point's XZ and a heading of 90° more than the raw heading; with the identity transform the source is `frame-only` and `at` is null.
+15. API (the middleware mounted on a bare `node:http` server in the test): upload → `{ uploadId, kind: 'video' }`; a 1 KB `.exe` → 415; a bad scene id → 400; job status `?since=` returns only later events; pins `PUT` then `GET` round-trips; a pins file with a duplicate id → 400.
+16. `validatePinsFile` and the publish step never write outside `public/scenes/<id>/` and `.cache/media/<id>/` (a name containing `../` is sanitised).
+17. `photo-pins-view` pure helpers (bubble selection): of 10 pins, with the viewer in room A, the result is at most 6, nearest first, all either in room A or within 4 m.
+
+Tool-gated, local only (`media-tools.local.test.ts`, `describe.skipIf(!hasColmap)`, test timeout 8 min):
+18. Tiny mode on `buildRoomVideo`: the job ends `done`. Expected: at least 12 of 24 frames registered in the largest fragment, and with Brush present a `scene.ply` whose header parses and holds at least 1,000 splats. If COLMAP cannot map the software render, record the numbers in the chunk report and keep the assertion on `done`; do not tune the renderer for more than an hour.
+
+Real video, local only (`media-real.local.test.ts`; path from `WALKTHRU_REAL_VIDEO`, default `/Users/mahir/Downloads/WhatsApp Video 2026-11-12 at 19.00.04.mp4`; `describe.skipIf` when absent or COLMAP is missing; test timeout 25 min):
+19. Full mode with `skipTraining: true`: 355 ± 2 reconstruction frames; the largest fragment has **at least 100 registered frames** (measured: 133); `secondsCovered` at least 9; between 15 and 36 editor frames.
+20. Only when `WALKTHRU_TRAIN=1` (adds about 11 minutes): `scene.ply` exists, 10 to 80 MB, `upPreset` `flip-x`, and `splatReason` starts "Scan made from".
+
+Not headless (report as not browser-verified): the editor panel, the plan pins, the buyer bubbles and lightbox.
+
+### 14.13 Risks specific to C9
+
+1. **An unpinned scan sits at the wrong place and size.** The published `splat` block has an identity transform until the broker completes the Scan step (C7). If a property is saved before that, the buyer's Scan toggle shows it misplaced. The integrator should make saving warn when a splat's transform is still the identity; that check lives in C5 or C7 files, so C9 only flags it.
+2. **Whether COLMAP maps the synthetic room render is unknown.** The always-run tests therefore use the fake backend, and the tool-gated test asserts completion, with the registration count as an expectation.
+3. **Brush's command-line flags and export naming** are taken from the one measured run on v0.3.0. Its dataset loader was only seen working with the `images` + `sparse/0` layout and the OPENCV camera model.
+4. **COLMAP log parsing for progress** is best effort and may show only start and end.
+5. **Photo to frame matching is appearance-only** (hash plus colour grid). A photo taken from a viewpoint the video never had will get no match; that is the `none` case and the broker places it by hand.
+6. **`heic` photos** depend on the installed ffmpeg being able to decode them; if not, the photo is skipped with a warning.
+7. **One job at a time** means a second scene waits behind an 11-minute training run.
+
+---
+
+## 15. ML upgrades (C10)
+
+Additive. It changes nothing in sections 3.2 or 7.1 and edits no file owned by C0 to C9. Goal: get more out of low-quality WhatsApp video and photos with open-source models, **measured on the real sample video, not assumed**. Nothing in this section has been run. Every runtime and memory figure below is an estimate to be replaced by a measurement; every "pass bar" is the test that decides whether an experiment's code is kept.
+
+### 15.1 Ground rules
+
+- **Hardware:** M2 MacBook, 8 GB unified memory, PyTorch MPS or CPU, no CUDA. A model is "local" only if its weights are under about 1.5 GB and peak memory stays under 5 GB. Everything else is in the cloud bucket (15.4) and is not to be attempted locally.
+- **Licences:** each model has a code licence and a weights licence, recorded in 15.3. Only commercial-OK models may produce files the app ships. Non-commercial models may be run as a yardstick in experiments; their outputs must be written under `ml/experiments/` and never under the paths in 15.6.
+- **Heavy jobs run one at a time.** Before any model run or COLMAP / Brush run, wait while `pgrep -f "colmap|brush_app"` prints anything (another agent uses them). `ml/common.py` exposes `wait_for_idle()` doing exactly that with a 30 s poll; every experiment script calls it first.
+- **Offline scripts only.** Python writes JSON, PLY and PNG into the scene folder. The TypeScript app only reads those files through one adapter (15.7). The app never spawns Python.
+- **Environment:** a venv at `~/walkthru-tools/ml/.venv`. Homebrew's `python3` is 3.15.2, which PyTorch is unlikely to ship wheels for, so `ml/setup.sh` runs `brew install python@3.12` and builds the venv from `/opt/homebrew/bin/python3.12`. Model repos are cloned at pinned commits into `~/walkthru-tools/ml/src/`, weights into `~/walkthru-tools/ml/weights/`. None of that is inside the repo.
+- **Python pins** (PyPI, each at least two weeks old on 12 Nov 2026): `torch==2.14.1`, `torchvision==0.29.1`, `numpy==2.5.4`, `opencv-python-headless==4.14.0.94`, `huggingface_hub==2.3.0`. If a model repo cannot import under these, pin what its own requirements file asks for inside a second venv for that model and record it in the report; do not loosen the main venv.
+
+### 15.2 What was verified today
+
+- **COLMAP 4.2.1 on this Mac already has learned features built in.** `--FeatureExtraction.type` exists (default `SIFT`) and `--FeatureMatching.type` exists (default `SIFT_BRUTEFORCE`). The binary contains the enum names `ALIKED_N16ROT`, `ALIKED_N32`, `LOMA`-family names, and matcher names `SIFT_LIGHTGLUE`, `ALIKED_BRUTEFORCE`, `ALIKED_LIGHTGLUE`, `LOMA_BRUTEFORCE` and others. Homebrew has `onnxruntime 1.31.1` installed. The ONNX models download automatically from the COLMAP 3.13.0 release, with these SHA-256 values printed in COLMAP's own help:
+  - `sift-lightglue.onnx` `e0500228472b43f92b3d36881a09b3310d3b058b56187b246cc7b9ab6429096e`
+  - `aliked-n16rot.onnx` `39c423d0a6f03d39ec89d3d1d61853765c2fb6a8b8381376c703e5758778a547`
+  - `aliked-n32.onnx` `a077728a02d2de1a775c66df6de8cfeb7c6b51ca57572c64c680131c988c8b3c`
+  - `aliked-lightglue.onnx` `b9a5de7204648b18a8cf5dcac819f9d30de1a5961ef03756803c8b86c2dceb8d`
+  Which enum string goes with which option was not confirmed (passing a bad value only says "Unknown string value"). Experiment E1 starts by confirming it.
+- **Brush v0.3.0** (Apache-2.0, release of 14 Sep 2025): the README documents a `masks/` folder (black = ignored, `--invert-masks` to flip). It documents no depth prior. So masking is a local experiment and depth-regularised training is cloud-bucket work.
+- **Licences and weights** in 15.3 were read from each repo's licence file or README and each Hugging Face model card on 12 Nov 2026. Three corrections to common assumptions: Pi3's code is BSD-3 but its **weights are CC BY-NC 4.0**; Depth Pro's weights are under Apple's research model licence (`apple-amlr`), **not commercial**; SpatialLM 1.1's point encoder (Sonata) weights are **CC BY-NC 4.0**, so both 1.1 models are non-commercial in practice.
+- **A find worth the top slot:** Depth Anything 3 (ByteDance, Apache-2.0 code). Its `DA3-SMALL` (137 MB) and `DA3-BASE` (542 MB) checkpoints are **Apache-2.0** and estimate **camera poses and depth from several images in one forward pass**, the same job as VGGT but small enough to try on 8 GB. `DA3METRIC-LARGE` (1.3 GB, Apache-2.0) gives metric depth plus sky segmentation.
+
+### 15.3 Shortlist
+
+Commit = repo head on 12 Nov 2026 (pin it). Weights = Hugging Face repo, revision prefix, file, SHA-256.
+
+| Model | What it would fix | Code licence | Weights licence | Commercial | Runs on M2 8 GB | Expected cost (estimate) |
+|---|---|---|---|---|---|---|
+| **COLMAP ALIKED + LightGlue** (built into 4.2.1; ALIKED `Shiaoming/ALIKED`, LightGlue `cvg/LightGlue`) | Registration on blank walls | COLMAP BSD; ALIKED BSD-3; LightGlue Apache-2.0 | ONNX exports hosted by COLMAP, same terms | Yes | Yes, CPU via ONNX | 5 to 20 min for 355 frames |
+| **COLMAP SIFT + LightGlue** | Same, smaller change | as above | as above | Yes | Yes | 5 to 15 min |
+| COLMAP LoMa (`davnords/storage` ONNX) | Same | unverified | unverified | **Unknown, experiment only** | Probably | unknown |
+| **Depth Anything 3 Base / Small** (`ByteDance-Seed/Depth-Anything-3` @ `3d835ec1a5802d64a8b8b15f817a1ab54809bfe4`) | Poses + depth for all frames with no tracking; one connected model | Apache-2.0 | Apache-2.0 | Yes | To be tested (E3); 0.08 to 0.12 B parameters | 1 to 5 min for 32 frames |
+| **MoGe-2 ViT-S / ViT-B** (`microsoft/MoGe` @ `74fbce054ebed49800de42d0ad0e83495065719a`) | Metric scale, point map and normals per frame | MIT | MIT | Yes | Yes | about 1 s per frame |
+| **Depth Anything V2 Metric Indoor Small** (`DepthAnything/Depth-Anything-V2` @ `a561b849ebae10a6f5ef49e26c83cbbcd36c71bf`) | Metric depth, second opinion on scale | Apache-2.0 | Apache-2.0 (Small only; Base and Large are CC BY-NC) | Yes | Yes | under 1 s per frame |
+| **DA3 Metric Large** | Metric depth + sky / window mask | Apache-2.0 | Apache-2.0 | Yes | Borderline (1.3 GB weights) | a few s per frame |
+| Depth Pro (`apple/ml-depth-pro` @ `9e65e4dbe9568d23c546fcec53302b10445e109e`) | Sharp metric depth, focal length | Apple sample-code licence | `apple-amlr` (research) | **No, yardstick only** | Borderline (1.9 GB weights) | 10 to 30 s per frame |
+| UniDepthV2-S (`lpiccinelli-eth/UniDepth` @ `8d8cfe4c7ee15297099983607febf0d4f32eb3d6`) | Metric depth + intrinsics | CC BY-NC 4.0 | CC BY-NC 4.0 | **No, yardstick only** | Yes | about 1 s per frame |
+| VGGT-1B-Commercial (`facebookresearch/vggt` @ `a288dd0f14786c93483e45524328726ab7b1b4ce`) | Feed-forward poses + points | VGGT licence (commercial allowed, no military use) | gated, manual approval; commercial allowed | Yes, after approval | **No** (5.0 GB weights) | cloud |
+| MapAnything Apache (`facebookresearch/map-anything` v1.1.3) | Feed-forward metric reconstruction | Apache-2.0 | Apache-2.0 (`facebook/map-anything-apache`) | Yes | **No** (4.9 GB weights) | cloud |
+| Pi3 (`yyfz/Pi3` @ `9fa3ddb3f8d53041f8b2738df404f62223bbaa7b`) | Feed-forward poses + points | BSD-3 | CC BY-NC 4.0 | **No** | No (3.8 GB) | cloud, yardstick only |
+| MASt3R / MASt3R-SfM (`naver/mast3r` @ `f5209afc300cec36239a7ac992263f36847bbba0`), MASt3R-SLAM | Dense matching SfM on low texture | CC BY-NC-SA 4.0 | CC BY-NC-SA 4.0 | **No** | No (2.8 GB, CUDA-oriented) | cloud, yardstick only |
+| Fast3R (`facebookresearch/fast3r` @ `33104d4b5b8df43795ecded236194958bbdac572`) | Many-view feed-forward | FAIR Noncommercial | FAIR Noncommercial | **No** | No | cloud, yardstick only |
+| SpatialLM 1.1 (`manycore-research/SpatialLM` @ `8913c44d84a450c53e9340b13317f8cf7144a738`) | Walls, doors, windows, boxes from a point cloud | Llama 3.2 / Apache (by variant) | Sonata encoder CC BY-NC 4.0 | **No** | **No**: needs CUDA 12.4, torchsparse, flash-attn | cloud, yardstick only |
+| **RANSAC planes** (own numpy code) | Wall lines → a rough `LayoutProposal` | ours | none | Yes | Yes | seconds |
+| **Brush masks** (Brush v0.3.0) | Fewer floaters at windows and glass | Apache-2.0 | none | Yes | Yes | no extra time |
+| Depth-regularised splat training (gsplat and similar) | Flatter walls, fewer floaters | Apache-2.0 | none | Yes | **No** (CUDA) | cloud |
+
+Weights to fetch for local experiments (`ml/fetch_weights.py` checks each SHA-256 and refuses a mismatch):
+
+| Hugging Face repo @ revision | File | Size | SHA-256 |
+|---|---|---|---|
+| `depth-anything/DA3-SMALL` @ `e08cab65ca0e` | `model.safetensors` | 137 MB | `364492e38a3a06d221ac75da7f6621ada3f2361cd24fde11ba79091e9f40efcf` |
+| `depth-anything/DA3-BASE` @ `f4a6c9b3c95e` | `model.safetensors` | 542 MB | `e01067dc1659613083d9145a9a2547ccdbe6ccbbf83c4fe7b3e8a4e2bdae78b5` |
+| `depth-anything/DA3METRIC-LARGE` @ `4010e39f3634` | `model.safetensors` | 1,337 MB | `bbea5b0b3ee389849cffa7ddae89de064a90abd2b055fc5aa99aac68db324776` |
+| `Ruicheng/moge-2-vits-normal` @ `26b477f41595` | `model.pt` | 141 MB | `79a16621928c2bf0ed04659218c55c01075e950507f40bb3332fb4c873d3e1dc` |
+| `Ruicheng/moge-2-vitb-normal` @ `ca5f0e07ff01` | `model.pt` | 419 MB | `16b8110e86d5dc5a849db120ca96ef3a223fd30b0c9146d1d81db504073da5f6` |
+| `depth-anything/Depth-Anything-V2-Metric-Hypersim-Small` @ `3bc65d4e14a6` | `depth_anything_v2_metric_hypersim_vits.pth` | 99 MB | `b782898d8a3e8be1f639de33837ed85e9b4b73e40f8f5e5cd99067588d722545` |
+| yardstick only: `apple/DepthPro` @ `ccd1350a774e` | `depth_pro.pt` | 1,904 MB | `3eb35ca68168ad3d14cb150f8947a4edf85589941661fdb2686259c80685c0ce` |
+| yardstick only: `lpiccinelli/unidepth-v2-vits14` @ `038c238f06c8` | `model.safetensors` | 137 MB | `93705cb3295dd7476b44911b8a55f5215bf74e8d5eccd27cecdb1b338270a648` |
+
+Revisions are 12-character prefixes; resolve each to the full commit id with the Hugging Face API when writing `fetch_weights.py`, and confirm it starts with the prefix.
+
+### 15.4 Cloud GPU later (Modal). Do not run these locally.
+
+| Item | Why it is not local | Licence position |
+|---|---|---|
+| VGGT-1B-Commercial | 5.0 GB weights | commercial OK once Meta approves the access form |
+| MapAnything (Apache checkpoint) | 4.9 GB weights | commercial OK |
+| DA3 Large / Giant / Nested, DA3-Streaming | 1.6 GB and up; streaming needs about 12 GB | Large is CC BY-NC; check each card |
+| Depth-regularised or normal-regularised splat training (gsplat) | CUDA rasteriser | Apache-2.0 |
+| SpatialLM | CUDA 12.4, torchsparse, flash-attn | non-commercial (Sonata weights) |
+| Pi3, MASt3R-SfM, MASt3R-SLAM, Fast3R | size and CUDA-oriented code | non-commercial, comparison only |
+
+They would sit behind C9's `ReconstructionBackend` (`backend: 'cloud'`) and the `LayoutProposal` plug, so no caller changes.
+
+### 15.5 Experiment plan (in this order; each has one pass bar)
+
+Inputs: the reference video's 355 frames at 10 fps and the baseline COLMAP run (12 fragments, largest 133 frames). All results go to `~/walkthru-tools/scenes/<id>/ml/report.json` (15.6). An experiment that fails its bar is recorded and its production code is not written.
+
+**E0. Environment and baseline (30 min).** Build the venv, fetch weights, confirm `torch.backends.mps.is_available()`. Record the baseline: fragments 12, largest 133 of 355, seconds covered, wall-clock time. Pass: the venv imports torch and MoGe on MPS and runs one frame.
+
+**E1. Learned matching inside COLMAP (CPU, no Python).** First confirm the enum strings by running `feature_extractor` and a matcher on a 5-image folder with each candidate value. Then, on the same 355 frames with the same mapper flags as section 14:
+- (a) SIFT features + `SIFT_LIGHTGLUE` matching;
+- (b) `ALIKED_N16ROT` features + `ALIKED_LIGHTGLUE` matching (`--AlikedExtraction.max_num_features 4096`);
+- (c) the better of (a) and (b), after dropping frames whose sharpness (C9's Laplacian variance) is in the lowest 20% when both neighbours are kept;
+- (d) LoMa, only if (a) to (c) fail, and only as an experiment (licence unverified).
+Metrics: frames in the largest fragment, number of fragments, seconds covered, minutes taken. **Pass bar: the largest fragment has at least 200 of 355 frames (baseline 133), or at most 6 fragments with the largest still at least 133; in at most 25 minutes on CPU.** Note whether the faiss crash also affects these matcher types.
+
+**E2. Metric scale and ceiling height from single frames.** Models: MoGe-2 ViT-S, MoGe-2 ViT-B, Depth Anything V2 Metric Indoor Small, DA3 Metric Large if it fits; Depth Pro and UniDepthV2-S as yardsticks only. Input: 40 registered frames spread evenly over the largest fragment.
+- Scale: for each frame, project its COLMAP sparse points into the image, read the model's metric depth at those pixels, `scale_i = median(metric depth / COLMAP depth)`. The vote is the median over frames; the spread is `IQR / median`.
+- Check against things of known size. A small hand-made file `ml/checks.json` lists pixel pairs in named frames with an expected length: a door frame's height (2.1 m), a door's clear width (0.75 to 0.9 m), one floor tile's edge (0.6 or 0.8 m). The script measures each pair in the model's metric point map.
+- Ceiling: in each frame's point map, fit the two largest near-parallel planes whose normals are close to the image's vertical; their separation is one ceiling-height sample. Report median and spread. This flat's true height is unknown; Indian flats are about 2.6 to 2.75 m clear, so report rather than judge.
+**Pass bar (per model): scale spread at most 10% over at least 30 frames, and the door-height check within 10% of 2.1 m.** Ceiling is kept only if its spread is at most 8% over at least 10 frames. If two commercial-OK models pass, keep the one with the smaller spread and use the other as a cross-check (they must agree within 8%).
+
+**E3. Feed-forward poses without tracking.** DA3-BASE, then DA3-SMALL, on MPS. Start with 16 frames at 336 px on the long side, then 24 and 32 frames at 504 px, sampled evenly over the whole 35 s (so most frames are ones COLMAP never placed). Record peak memory (`/usr/bin/time -l`) and time for each size, stopping at the first size that exceeds 5 GB or swaps.
+- Compare with COLMAP on the frames both placed: after a similarity alignment, median relative-rotation error between consecutive shared frames, and median camera-centre error as a fraction of the path length.
+- Connectedness: fraction of consecutive sampled frames whose step is under 3 times the median step (no teleports).
+- If it passes, chain windows of 32 frames with 8 shared frames, aligning each window to the previous by a similarity fit on the shared cameras, to cover a whole video; then write a COLMAP-format model and train Brush on it.
+**Pass bar: runs at 24 frames or more within 5 GB and 10 minutes; median rotation disagreement with COLMAP at most 5°; at least 90% of steps free of teleports.** A pass here is the largest win available: one connected model of the whole flat instead of the first 13 seconds.
+
+**E4. A rough layout from points.** Input: the fused cloud from E3 (or E2 depth on COLMAP poses), scaled by E2. Own numpy code: find the floor plane (largest plane whose normal matches the gravity estimate), level the cloud, keep points 0.3 to 2.0 m above the floor, project to the plan, find wall lines by RANSAC on the 2D density with a Manhattan (two perpendicular directions) prior, close them into rectangles or rectilinear polygons, find gaps as openings.
+**Pass bar, two parts.** Synthetic (always testable): on a generated cloud of the truth flat's bedroom with 2 cm noise, 30% of wall points removed and 5% outliers, the recovered room area is within 5% of 20 m² and each wall line within 5 cm. Real video: the output passes `validateLayout` with zero errors, contains at least one room of at least 6 m², and its ceiling agrees with E2 within 10%. The real-video proposal always ships with `confidence` at most 0.4.
+
+**E5. Masks for Brush.** Per-frame masks that black out blown-out windows and glass (pixels over 250 luma in connected regions over 2% of the frame, plus DA3 Metric's sky segmentation when available). First run `brush_app --help` to find whether it can hold out frames for evaluation. Train twice on the same fragment, with and without masks.
+**Pass bar: held-out PSNR improves by at least 0.5 dB, or (if Brush cannot hold frames out) a blind side-by-side of three fixed viewpoints is judged better by the reviewer.** Each training run is 11 minutes; run them only when the machine is idle.
+
+**E6. Not planned.** Learned deblurring and super-resolution tend to invent detail, which is the opposite of what a measuring tool should do; skip unless E1 to E3 all fail. Frame selection by sharpness is already in C9 and is variant (c) of E1.
+
+### 15.6 Output files and how they plug into existing contracts
+
+Written by the Python scripts into `public/scenes/<id>/ml/`. Everything is optional; the app must behave exactly as before when the folder is absent.
+
+| File | Shape | Plugs into |
+|---|---|---|
+| `ml/report.json` | `{ version: 1, generatedAt, experiments: { id, variant, model, licence, commercialOk, metrics: Record<string, number>, passed: boolean, minutes, peakMemoryGb, notes }[] }` | nothing; the record of what was measured |
+| `ml/registration.json` | `{ version: 1, recipe: { extractorType, matcherType, extraArgs: string[] }, largestFragmentFrames, fragments, totalFrames }` | C9's reconstruction backend, through a new backend file (15.7) |
+| `ml/scale.json` | `{ version: 1, model, licence, metresPerUnit, spreadPct, frames, checks: { label, expectedM, measuredM }[], crossCheck?: { model, metresPerUnit } }` | the splat block: `transform.scale` of an unpinned splat (15.7). Also shown to the broker as a scale vote in the Scan step's hints |
+| `ml/ceiling.json` | `{ version: 1, model, heightM, spreadPct, frames }` | `LayoutProposal.wallHeightM` and the editor's wall-height default |
+| `ml/layout-proposal.json` | exactly a `LayoutProposal` (3.2), `source: 'ml-planes@1'`, `confidence <= 0.4` | copied to `proposal.json` when no proposal exists, for the editor's "Load proposal" |
+| `ml/poses/sparse/0/{cameras,images,points3D}.txt` | a COLMAP text model from E3 | Brush training through C9's backend; `images.txt` also feeds C9's `parseImagesTxt` for photo-pin suggestions |
+| `ml/masks/<frame>.png` | 8-bit, white = keep | Brush's `masks/` folder |
+| `ml/frames-drop.json` | `{ version: 1, drop: string[] }` | the reconstruction input list |
+| `ml/experiments/**` | anything | never read by the app; the only place non-commercial model outputs may go |
+
+`metresPerUnit` is metres per unit of the splat's raw frame, the same meaning as `SceneTransform.scale`. A drawing's or floor plan's scale still outranks it: the layout is the ruler (section 0.1), and C7's pinning overrides any ML scale.
+
+### 15.7 Build chunk C10
+
+Wave 3, after C9. Built only for the experiments that pass; the experiment scripts themselves are written first, since they produce the evidence.
+
+**Files (all new):**
+```
+ml/                              Python, in the repo
+  requirements.txt               the pins in 15.1
+  setup.sh                       python@3.12, venv, clone repos at the pinned commits
+  fetch_weights.py               downloads + SHA-256 checks (15.3)
+  common.py                      wait_for_idle(), COLMAP text-model reader, PLY writer, report writer
+  e1_registration.py             drives COLMAP variants, writes registration.json
+  e2_scale.py                    scale.json, ceiling.json
+  e3_feedforward.py              poses/, fused cloud
+  e4_layout.py                   layout-proposal.json   (pure numpy core in layout_planes.py)
+  e5_masks.py                    masks/
+  layout_planes.py               plane and wall-line fitting, no torch
+  tests/test_layout_planes.py    pytest, synthetic cloud (E4's synthetic bar)
+  tests/test_scale_fit.py        pytest, synthetic depth vs sparse points
+src/ml/
+  outputs.ts                     the one TypeScript adapter: types for the files in 15.6, readers, validators
+  apply.ts                       pure functions that turn outputs into existing contract values
+  recon-backend-learned.ts       a ReconstructionBackend (C9's interface) that runs COLMAP with the recipe in registration.json
+scripts/
+  ml-apply.ts                    CLI: apply a scene's ml/ outputs
+tests/
+  ml-outputs.test.ts
+```
+
+**`src/ml/apply.ts` (pure):**
+```ts
+export function splatWithMlScale(splat: SplatOverlay, scale: MlScaleFile): SplatOverlay;       // only when the transform is still the identity
+export function proposalFromMl(p: unknown, ceiling: MlCeilingFile | null): LayoutProposal;     // validates, normalises rooms, caps confidence at 0.4
+export function mlScaleHint(scale: MlScaleFile): string;                                        // "Depth model suggests 1 unit = 0.41 m (±6%)."
+```
+`scripts/ml-apply.ts --scene <id> [--force]`: writes `proposal.json` from `ml/layout-proposal.json` when none exists; sets the splat scale in `property.json` when the splat is unpinned; prints what it did and what it skipped. It refuses any file whose `commercialOk` is false or whose path is under `ml/experiments/`.
+
+**Integrator hooks (the only edits outside C10's files):** one line in C9's backend registry to register `'learned'` from `src/ml/recon-backend-learned.ts`; one `package.json` script `"ml:apply": "tsx scripts/ml-apply.ts"`.
+
+**Acceptance:**
+1. `tests/ml-outputs.test.ts`: each file in 15.6 round-trips through its validator; a `scale.json` with `spreadPct` over 10 is rejected by `splatWithMlScale` (returns the splat unchanged and a warning); a pinned splat is never rescaled; a proposal with `confidence 0.9` comes back at 0.4; a room with a bow-tie polygon is dropped with a warning; a file marked non-commercial is refused.
+2. `ml/tests/test_layout_planes.py`: E4's synthetic bar (area within 5% of 20 m², walls within 5 cm).
+3. `ml/tests/test_scale_fit.py`: sparse depths times 0.37 with 5% noise and 10% gross outliers recover 0.37 within 2%.
+4. The learned backend, with COLMAP mocked, builds exactly the argument list from `registration.json` and falls back to section 14's recipe when the file is missing.
+5. `ml/report.json` exists for the reference video with every experiment that was run, its measured numbers, and pass or fail. No number in it is copied from this spec.
+
+### 15.8 Risks
+
+1. **Nothing here has been run.** Memory fit of DA3 on 8 GB MPS, MPS operator coverage for each repo, and Python 3.12 wheel availability for the pinned torch are all unknown until E0 and E3.
+2. **COLMAP's learned features may not be compiled into this Homebrew build** even though the options appear in its help. E1's first step settles it; the fallback is LightGlue from `cvg/LightGlue` (Apache-2.0, with ALIKED or DISK, never SuperPoint, whose weights are non-commercial) writing matches into the COLMAP database.
+3. **Monocular metric depth is often 5 to 15% off indoors**, and blank white walls are its worst case. That is why E2's bar is agreement across frames plus a known-size check, and why an ML scale never outranks a floor-plan dimension.
+4. **Licence positions can change.** They were read on 12 Nov 2026; re-read each before shipping. LoMa's is unverified. The VGGT commercial checkpoint needs an access approval.
+5. **Feed-forward poses drift over long videos.** Window chaining (E3) accumulates error; a 35 s walk through several rooms may bend. Pinning to the layout (C7) bounds how much that matters.
+6. **The real flat has no ground truth.** Scale and ceiling can only be checked against door and tile standards, so the report states spreads, not errors.
