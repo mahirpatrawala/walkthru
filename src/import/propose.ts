@@ -26,6 +26,7 @@ import { WALL, distPointSeg, pointInRing } from './bitmap';
 import { pageReads, readPageText, readsToNormalised, withoutReadStrokes } from '../understand/text-pdf';
 import { findDimensions } from '../understand/dimensions';
 import { deriveLineWalls } from '../understand/walls-lines';
+import { isNotesBlock } from '../understand/notes-block';
 import { findUnlabelledRegions } from '../understand/rooms-unlabelled';
 import type { LineWalls } from '../understand/walls-lines';
 import type { DimLine } from '../understand/dimensions';
@@ -173,7 +174,8 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
     return p.x >= walls.bbox[0] - m && p.x <= walls.bbox[2] + m && p.y >= walls.bbox[1] - m && p.y <= walls.bbox[3] + m;
   };
   // the title block and notes sit outside the walls and carry no size; a sized label (a balcony drawn outside the walls) stays
-  const roomLabels = allRoomLabels.filter((l) => inFrame(l.centre) || l.dims || l.areaM2);
+  // C12c: a notes paragraph, a legend or a title block is never a room label (it carries no size and sits off the walls, or is a paragraph)
+  const roomLabels = allRoomLabels.filter((l) => (inFrame(l.centre) || l.dims || l.areaM2) && !(useText && isNotesBlock(l.block) && !l.dims));
   const furniture = furnLabels.filter((l) => inFrame(l.centre));
   if (Math.abs(((walls.dominant * 180) / Math.PI + 45) % 90 - 45) > 1) warnings.push(`The walls run ${((walls.dominant * 180) / Math.PI).toFixed(1)} degrees off the page axes. Rooms are not levelled.`);
 
