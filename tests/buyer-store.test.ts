@@ -13,6 +13,7 @@ import { cellColor } from '../src/buyer/debug';
 import { measureResult } from '../src/buyer/measure';
 import { outlineGeometry } from '../src/buyer/overlays';
 import { roomsSummary } from '../src/buyer/rooms';
+import { sceneTagText } from '../src/buyer/scene-tag';
 import {
   HEIGHT_KEY, actionFor, clampHeightCm, createFurnitureStore, distanceToBox, loadHeightCm, loadPlaced, nearestInteractable,
   nearestPresetIndex, parsePlaced, placedKey, roomChipText, saveHeightCm, savePlaced, tintForHeightCm, wallBetween,
@@ -117,7 +118,20 @@ describe('rooms sheet', () => {
     const s = roomsSummary(layout);
     expect(s.rows.map((r) => `${r.label}|${r.sqft}|${r.m2}`)).toEqual(['Bedroom 1|215|20.0', 'Balcony|48|4.5', 'Passage|52|4.8']);
     expect(s.carpetLine).toBe('Carpet area (rooms, excluding balcony): 267 sq ft · 24.8 m²');
-    expect(s.footer).toBe('Sizes from the floor plan. Colours approximate (from phone video).');
+    // no sampled colours here, so the footer must not claim a phone video
+    expect(s.footer).toBe('Sizes from the floor plan. Colours and floor tiles are placeholders, not from the home.');
+    expect(roomsSummary({ ...layout, finishes: { ...layout.finishes, source: 'sampled' } }).footer)
+      .toBe('Sizes from the floor plan. Colours approximate (from phone video).');
+  });
+});
+
+describe('test and synthetic scenes are labelled', () => {
+  it('tags the test and sample scenes, never a real home', () => {
+    expect(sceneTagText({ id: 'test-flat-empty', subtitle: 'Synthetic scene with known sizes' })).toMatch(/not a real home/i);
+    expect(sceneTagText({ id: 'video-sample', subtitle: 'Synthetic scene with known sizes' })).toMatch(/not a real home/i);
+    expect(sceneTagText({ id: 'my-flat', subtitle: 'Synthetic floor plan' })).toMatch(/not a real home/i);
+    expect(sceneTagText({ id: 'son-bedroom' })).toBeNull();
+    expect(sceneTagText({ id: 'koramangala-2bhk', subtitle: '2 BHK, 3rd floor' })).toBeNull();
   });
 });
 

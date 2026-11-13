@@ -38,7 +38,8 @@ import { createWardrobes } from './wardrobe';
 import { createLoadingScreen } from './loading';
 import { createMeasureMode } from './measure';
 import { createOverlays } from './overlays';
-import { createRoomsSheet } from './rooms';
+import { createRoomsSheet, sizesNote } from './rooms';
+import { mountSceneTag, sceneTagText } from './scene-tag';
 import {
   HINT_KEY, clampHeightCm, createFurnitureStore, distanceToBox, roomChipText, safeStorage,
   storageGet, storageSet, tintForHeightCm, unverifiedRoomsFromExtras,
@@ -139,6 +140,7 @@ async function boot(): Promise<void> {
   const property = result.property;
   document.title = `${property.title} · walkthru`;
   loading.setTitle(property.title, property.subtitle);
+  loading.setNote(sizesNote(property.layout));
   loading.setProgress(0.12, 'Building the rooms…');
   const layout = property.layout;
   // Optional drawing-import sidecar: rooms whose size came from a label, not measured walls, must not show a
@@ -265,6 +267,8 @@ async function boot(): Promise<void> {
     scan: () => setScan(!scanVisible),
   });
   hud.setVisible(false);
+  const tagText = sceneTagText(property);
+  if (tagText) mountSceneTag(hud.root, tagText);
   // C11c: the painterly mode is a lazy chunk, fetched only when the buyer taps "Show as a painting"
   type PaintSession = import('../look/painterly/index').PaintingSession;
   let painting: PaintSession | null = null;

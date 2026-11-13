@@ -6,7 +6,15 @@ import type { Layout } from '../types';
 import { el } from './hud';
 import type { UnverifiedRooms } from './store';
 
+/** The footer when some colour was sampled from phone video (SPEC 2.1). */
 export const ROOMS_FOOTER = 'Sizes from the floor plan. Colours approximate (from phone video).';
+/** Honesty: with no sampled colour the walls, floor and tile pattern are placeholders, so the note must not claim a video. */
+export const ROOMS_FOOTER_DEFAULT = 'Sizes from the floor plan. Colours and floor tiles are placeholders, not from the home.';
+
+/** The fine print under the sizes: names a phone video only when the colours really came from one. */
+export function sizesNote(layout: Layout): string {
+  return layout.finishes?.source === 'sampled' ? ROOMS_FOOTER : ROOMS_FOOTER_DEFAULT;
+}
 
 export interface RoomsSummary {
   rows: { id: string; label: string; sqft: number; m2: string; text: string }[];
@@ -29,7 +37,7 @@ export function roomsSummary(layout: Layout, unverified: UnverifiedRooms = {}): 
     carpetLine: anyUnverified
       ? `Carpet area: can't be confirmed. ${layout.rooms.filter((r) => unverified[r.id]).map((r) => r.label).join(', ')} not measured on the drawing.`
       : `Carpet area (rooms, excluding balcony): ${carpet.text}`,
-    footer: ROOMS_FOOTER,
+    footer: sizesNote(layout),
   };
 }
 

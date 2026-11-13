@@ -3,6 +3,8 @@ import { el } from './hud';
 
 export interface LoadingScreen {
   setTitle(title: string, subtitle?: string): void;
+  /** the fine print under the tagline */
+  setNote(text: string): void;
   setProgress(fraction: number, status?: string): void;
   /** the "not set up yet" page, with a link to the editor */
   showNotSetUp(sceneId: string): void;
@@ -12,7 +14,8 @@ export interface LoadingScreen {
   isShowingError(): boolean;
 }
 
-export const SIZES_NOTE = 'Sizes from the floor plan. Colours approximate (from phone video).';
+/** Shown until the layout is known; main.ts then swaps in `sizesNote(layout)` (it only names a phone video when colours were sampled). */
+export const SIZES_NOTE = 'Sizes from the floor plan.';
 
 export function createLoadingScreen(parent: HTMLElement): LoadingScreen {
   const screen = el('div', 'wt-screen', undefined, parent);
@@ -24,7 +27,7 @@ export function createLoadingScreen(parent: HTMLElement): LoadingScreen {
   const fill = el('div', undefined, undefined, bar);
   const status = el('p', 'wt-status', '', card);
   el('p', 'wt-tagline', 'Walk around. Try a bed. Check the sizes.', card);
-  el('p', 'wt-fine', SIZES_NOTE, card);
+  const fine = el('p', 'wt-fine', SIZES_NOTE, card);
   let erroring = false;
 
   const toError = (title: string, body: string, actions: HTMLElement[]): void => {
@@ -54,6 +57,9 @@ export function createLoadingScreen(parent: HTMLElement): LoadingScreen {
       h1.textContent = title;
       sub.textContent = subtitle ?? '';
       sub.hidden = !subtitle;
+    },
+    setNote(text) {
+      fine.textContent = text;
     },
     setProgress(f, text) {
       fill.style.width = `${Math.round(Math.min(1, Math.max(0, f)) * 100)}%`;
