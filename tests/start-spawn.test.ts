@@ -1,21 +1,21 @@
 // The start page's spawn: inside the chosen room, just in from the main door, 0.6 m clear, facing the room's centre.
-import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { buildTruthProperty } from '../scripts/make-test-room';
 import { circleFree } from '../src/core/grid-query';
 import { pointInPolygon } from '../src/core/geometry';
-import { validateProperty } from '../src/core/layout-validate';
 import { rasterizeLayout, stampFurniture } from '../src/core/layout-raster';
 import { chooseSpawn, polygonCentroid, SPAWN_CLEAR_M, yawToward } from '../src/core/spawn';
 import { defaultStartRoom, resolveStartRoom, startableRooms } from '../src/core/start-rooms';
-import type { Layout, PropertyFile, RoomTag } from '../src/types';
+import type { Layout, RoomTag } from '../src/types';
+import { crowdedFurniture, crowdedLayout } from './helpers/crowded-flat';
 import { DEFAULT_FINISHES } from '../src/types';
 
-const son = validateProperty(JSON.parse(fs.readFileSync('public/scenes/son-bedroom/property.json', 'utf8')));
 const flat = buildTruthProperty('furnished');
+const crowded = { layout: crowdedLayout, furniture: crowdedFurniture, spawn: { x: -1.81, z: 1.43, yawDeg: 180 } };
+type Scene = { layout: Layout; furniture: typeof crowdedFurniture };
 
-const gridOf = (p: PropertyFile) => stampFurniture(rasterizeLayout(p.layout), p.furniture);
-const room = (p: PropertyFile, id: string): RoomTag => p.layout.rooms.find((r) => r.id === id)!;
+const gridOf = (p: Scene) => stampFurniture(rasterizeLayout(p.layout), p.furniture);
+const room = (p: Scene, id: string): RoomTag => p.layout.rooms.find((r) => r.id === id)!;
 const angleDiff = (a: number, b: number): number => Math.abs((((a - b) % 360) + 540) % 360 - 180);
 
 function box(id: string, x0: number, z0: number, x1: number, z1: number, type: RoomTag['roomType'] = 'bedroom'): RoomTag {
@@ -26,15 +26,15 @@ function layoutOf(rooms: RoomTag[], openings: Layout['openings'] = []): Layout {
 }
 
 describe('chooseSpawn', () => {
-  it('puts the Son Room spawn inside the Son Room, 0.6 m clear, looking at its centre (the old spawn was a passage)', () => {
-    const g = gridOf(son);
-    const sp = chooseSpawn(son.layout, 'son-room', g)!;
+  it('puts the spawn inside the chosen crowded room, 0.6 m clear, looking at its centre (a guessed spawn in the passage is not used)', () => {
+    const g = gridOf(crowded);
+    const sp = chooseSpawn(crowded.layout, 'main', g)!;
     expect(sp).not.toBeNull();
-    const r = room(son, 'son-room');
+    const r = room(crowded, 'main');
     expect(pointInPolygon(sp, r.polygon)).toBe(true);
     expect(circleFree(g, sp.x, sp.z, SPAWN_CLEAR_M)).toBe(true);
-    // not where the file had it (a passage at a door frame)
-    expect(Math.hypot(sp.x - son.spawn.x, sp.z - son.spawn.z)).toBeGreaterThan(1);
+    // not where a guess would have put it (a passage at a door frame)
+    expect(Math.hypot(sp.x - crowded.spawn.x, sp.z - crowded.spawn.z)).toBeGreaterThan(1);
     const c = polygonCentroid(r.polygon);
     expect(angleDiff(sp.yawDeg, yawToward(sp, c))).toBeLessThan(1e-6);
   });
@@ -106,7 +106,7 @@ describe('chooseSpawn', () => {
 
 describe('start rooms', () => {
   it('lists only whole rooms, not passages, bathrooms or balconies', () => {
-    expect(startableRooms(son.layout).map((r) => r.id)).toEqual(['son-room', 'master-room']);
+    expect(startableRooms(crowded.layout).map((r) => r.id)).toEqual(['main', 'second']);
     expect(startableRooms(flat.layout).map((r) => r.id)).toEqual(['bedroom']);
   });
 
@@ -127,13 +127,13 @@ describe('start rooms', () => {
     expect(defaultStartRoom(l)!.id).toBe('big');
     expect(defaultStartRoom(l, { big: 'label size only' })!.id).toBe('lounge');
     expect(defaultStartRoom(l, { big: 'x', lounge: 'x', small: 'x' })!.id).toBe('big');
-    expect(defaultStartRoom(son.layout, { 'master-room': 'label size only', passage: 'runs off the drawing' })!.id).toBe('son-room');
+    expect(defaultStartRoom(crowded.layout, { second: 'label size only', hall: 'runs off the drawing' })!.id).toBe('main');
   });
 
   it('resolves ?room= and falls back to the default for a stale or unknown id', () => {
     expect(resolveStartRoom(flat.layout, 'bedroom')!.id).toBe('bedroom');
     expect(resolveStartRoom(flat.layout, 'gone')!.id).toBe('bedroom');
     expect(resolveStartRoom(flat.layout, null)!.id).toBe('bedroom');
-    expect(resolveStartRoom(son.layout, 'master-room')!.id).toBe('master-room');
+    expect(resolveStartRoom(crowded.layout, 'second')!.id).toBe('second');
   });
 });
