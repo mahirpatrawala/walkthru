@@ -163,7 +163,11 @@ export function mountLivedInToggle(hudRoot: HTMLElement, lived: LivedIn, rooms?:
   input.disabled = lived.count() === 0;
   input.addEventListener('change', () => { lived.setEnabled(input.checked); });
   const offSync = lived.onChange((on) => { input.checked = on; });
+  // right under "True colours" (both are looks of the home), else before the illustrative labels, else at the end
+  const trueColours = sheet.querySelector('[data-testid="look-true-colours"]')?.closest('label');
   const labels = sheet.querySelector('.wt-look-labels');
-  if (labels) sheet.insertBefore(row, labels); else sheet.appendChild(row);
+  if (trueColours?.parentElement === sheet) trueColours.after(row);
+  else if (labels) sheet.insertBefore(row, labels);
+  else sheet.appendChild(row);
   return () => { off(); offSync(); row.remove(); };
 }

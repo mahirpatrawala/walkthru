@@ -17,7 +17,7 @@ export const TONES = ['#C4623F', '#D9A23F', '#2E7D84', '#3A4A7A', '#7E9A78', '#B
 const CREAM = '#F1E6D2';
 const STEEL = '#B9BDC2';
 const BRASS = '#C79A3C';
-const WOOD = '#7B4A2B';
+const WOOD = '#9A5E34';
 const LEAF = ['#3F7D3A', '#5A9A47', '#2F6A35', '#6BA84F'] as const;
 /** curtains read as fabric, so they come from the softer half of the palette */
 const CURTAIN_TONES = ['#E6D6BC', '#9DB39A', '#D79A7C', '#7FA3A6', '#E8C887', '#C9A0A9'] as const;
@@ -210,14 +210,22 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
     parts.add(patch, CREAM, 0.95);
   },
   throw(p, parts) {
-    const bands = 7;
-    const a = tone(p) === TONES[6] ? tone(p, 1) : tone(p), b = CREAM;
-    for (let i = 0; i < bands; i++) {
-      const z0 = -p.d / 2 + (p.d * i) / bands, z1 = -p.d / 2 + (p.d * (i + 1)) / bands;
-      parts.add(box(-p.w / 2, p.w / 2, 0, p.height, z0, z1), i % 2 === 0 ? a : b, 0.97);
+    // a folded woollen throw: a thick body in one colour, a cream and a second stripe near each end, and a short fringe
+    const main = tone(p) === TONES[6] ? tone(p, 1) : tone(p);
+    const second = tone(p, 3) === TONES[6] ? tone(p, 4) : tone(p, 3);
+    const h = Math.max(0.035, p.height);
+    parts.add(box(-p.w / 2, p.w / 2, 0, h, -p.d / 2, p.d / 2), main, 0.98);
+    for (const sx of [-1, 1]) {
+      const x = sx * (p.w / 2 - 0.07);
+      parts.add(box(x - 0.015, x + 0.015, 0, h + 0.003, -p.d / 2 - 0.001, p.d / 2 + 0.001), CREAM, 0.98);
+      parts.add(box(x - 0.015 - sx * 0.04, x + 0.015 - sx * 0.04, 0, h + 0.003, -p.d / 2 - 0.001, p.d / 2 + 0.001), second, 0.98);
+      for (let k = 0; k < 9; k++) {
+        const z = -p.d / 2 + 0.02 + (k * (p.d - 0.04)) / 8;
+        parts.add(box(sx * p.w / 2, sx * (p.w / 2 + 0.035), 0.004, h * 0.55, z - 0.003, z + 0.003), CREAM, 0.98);
+      }
     }
-    // a fold at one end
-    parts.add(box(-p.w / 2, p.w / 2, p.height, p.height + 0.012, -p.d / 2, -p.d / 2 + p.d / bands), a, 0.97);
+    // the fold: a slightly narrower layer on top
+    parts.add(box(-p.w / 2 + 0.03, p.w / 2 - 0.03, h, h + 0.014, -p.d / 2 + 0.02, p.d / 2 - 0.02), main, 0.98);
   },
   books(p, parts) {
     const rnd = mulberry32(p.seed);
@@ -390,10 +398,10 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
   },
   pooja(p, parts, _kit, seg) {
     const w = p.w, h = p.height, d = p.d;
-    parts.add(box(-w / 2, w / 2, 0, h - 0.14, 0, 0.02), WOOD, 0.6);
+    parts.add(box(-w / 2, w / 2, 0, h - 0.14, 0, 0.02), '#EBCB8E', 0.8);
     parts.add(box(-w / 2, -w / 2 + 0.025, 0, h - 0.14, 0, d), WOOD, 0.6);
     parts.add(box(w / 2 - 0.025, w / 2, 0, h - 0.14, 0, d), WOOD, 0.6);
-    parts.add(box(-w / 2, w / 2, 0.06, 0.09, 0, d), '#8A5A3B', 0.55);
+    parts.add(box(-w / 2, w / 2, 0.06, 0.09, 0, d), '#B8793F', 0.55);
     parts.add(box(-w / 2, w / 2, h - 0.16, h - 0.14, 0, d), WOOD, 0.6);
     // a small temple roof
     const roof = new THREE.ConeGeometry(0.5, 0.14, 4, 1);

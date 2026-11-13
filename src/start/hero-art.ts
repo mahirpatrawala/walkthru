@@ -45,10 +45,12 @@ export function heroSvg(): string {
   // the sky behind: a soft arch, a low sun, a few dots
   add('<defs>' +
     '<linearGradient id="hs-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BFE3E2"/><stop offset="1" stop-color="#FBEBC6"/></linearGradient>' +
+    '<linearGradient id="hs-arch" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6DDD2"/><stop offset=".7" stop-color="#F6DDD2" stop-opacity=".7"/><stop offset="1" stop-color="#F6DDD2" stop-opacity="0"/></linearGradient>' +
+    '<linearGradient id="hs-arch2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FAEBC8"/><stop offset=".7" stop-color="#FAEBC8" stop-opacity=".8"/><stop offset="1" stop-color="#FAEBC8" stop-opacity="0"/></linearGradient>' +
     '<linearGradient id="hs-beam" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE3A1" stop-opacity=".7"/><stop offset="1" stop-color="#FFE3A1" stop-opacity=".12"/></linearGradient>' +
     '</defs>');
-  add('<path d="M44 452V238a236 236 0 0 1 472 0V452z" fill="#F6DDD2" opacity=".6"/>');
-  add('<path d="M70 452V240a210 210 0 0 1 420 0V452z" fill="#FAEBC8" opacity=".75"/>');
+  add('<path d="M44 470V238a236 236 0 0 1 472 0V470z" fill="url(#hs-arch)"/>');
+  add('<path d="M70 470V240a210 210 0 0 1 420 0V470z" fill="url(#hs-arch2)"/>');
   add('<circle cx="468" cy="92" r="26" fill="#E3A33A"/><circle cx="468" cy="92" r="38" fill="none" stroke="#E3A33A" stroke-width="2" opacity=".5" stroke-dasharray="3 7"/>');
   for (const [x, y, r] of [[78, 150, 3], [96, 118, 2], [520, 190, 2.5], [44, 250, 2]] as const) add(`<circle cx="${x}" cy="${y}" r="${r}" fill="#B2472B" opacity=".5"/>`);
 

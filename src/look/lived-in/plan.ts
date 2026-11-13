@@ -72,6 +72,8 @@ const DOOR_KEEP_M = 0.7;
 /** extra walkway kept around a floor piece when checking the floor stays connected */
 const WALKWAY_EXTRA_M = 0.25;
 const MAX_FLOOR_PLANTS_BEDROOM = 1;
+/** a patch of walkable floor smaller than this (0.3 m2) does not count as a place when checking the floor stays in one piece */
+const MIN_PLACE_CELLS = 120;
 
 // ---------------------------------------------------------------- small geometry
 
@@ -140,11 +142,12 @@ class Walk {
     let comps = 0;
     for (let s = 0; s < nx * nz; s++) {
       if (!base[s] || blocked[s] || (extra && extra[s]) || seen[s]) continue;
-      comps++;
       seen[s] = 1;
       stack.push(s);
+      let size = 0;
       while (stack.length) {
         const k = stack.pop()!;
+        size++;
         const i = k % nx, j = (k - i) / nx;
         for (let n = 0; n < 4; n++) {
           const ii = i + (n === 0 ? 1 : n === 1 ? -1 : 0), jj = j + (n === 2 ? 1 : n === 3 ? -1 : 0);
@@ -155,6 +158,8 @@ class Walk {
           stack.push(q);
         }
       }
+      // a sliver of floor nobody could stand in (a hand's breadth between a wall and a cupboard) is not a place to keep open
+      if (size >= MIN_PLACE_CELLS) comps++;
     }
     return comps;
   }
@@ -546,7 +551,7 @@ class Planner {
       const md = it.inner ? Math.min(it.inner.d, d - 0.01) : d - 0.03;
       const xs = mw >= 1.2 ? [-mw / 4, mw / 4] : [0];
       xs.forEach((x, k) => on('cushion', x, -d / 2 + 0.66, S, 0.38, 0.14, 0.38, k ? 6 : -6, 16));
-      on('throw', 0, md / 2 - 0.27, S + 0.026, Math.min(mw * 0.88, 1.5), 0.34, 0.03, 0, undefined, 3);
+      on('throw', 0, md / 2 - 0.27, S + 0.026, Math.min(mw * 0.88, 1.5), 0.36, 0.03, 0, undefined, 3);
       return;
     }
     if (it.kind === 'sofa') {
@@ -556,7 +561,7 @@ class Planner {
       const e = w / 2 - aw - 0.22;
       on('cushion', -e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, 8, 14);
       on('cushion', e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, -8, 14);
-      if (w >= 1.8) on('throw', 0.05, d / 2 - 0.3, seatTop, 0.5, 0.34, 0.035, 6, undefined, 3);
+      if (w >= 1.8) on('throw', 0.02, d / 2 - 0.3, seatTop, 0.52, 0.34, 0.04, 6, undefined, 3);
       return;
     }
     if (it.kind === 'dining') {
