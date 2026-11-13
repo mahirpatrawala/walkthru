@@ -512,6 +512,12 @@ function readInterior(c: Ctx, view: ElevView, scale: ReadScale | null): ViewRead
     }
     out.push({ zonesBottomUp: zones });
   }
+  // a bay with the same compartment lines as the first has the same compartments: its heights are the first bay's, said to be worked out
+  const first = out[0]?.zonesBottomUp ?? [];
+  for (let i = 1; i < out.length; i++) {
+    if (out[i].zonesBottomUp.length || !first.length) continue;
+    out[i].zonesBottomUp = first.map((z, k) => ({ kind: z.kind, height: { ...z.height, id: `${z.height.id}-b${i}`, method: 'derived', status: z.height.status === 'verified' ? 'unverified' : z.height.status, confidence: Math.min(z.height.confidence, 0.4), derivedFrom: { ids: [z.height.id], how: `same compartment lines as bay 1 (${k + 1})` } } }));
+  }
   return out;
 }
 

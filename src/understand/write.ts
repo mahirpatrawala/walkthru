@@ -86,6 +86,14 @@ export function addElevationData(u: Understood, doc: UnderstandingDoc, base: Bas
     it.elevationView = att.view;
     if (att.read.height) it.height = att.read.height;
   }
+  // an internal view belongs to the elevation its caption names: its compartments go on that elevation's unit
+  for (const v of e.views.filter((x) => x.internal && x.caption?.parentTag)) {
+    const parent = e.views.find((p) => !p.internal && p.caption?.tag === v.caption!.parentTag);
+    const rd = e.reads.find((r) => r.view === v.id);
+    const att = parent ? rec.units.find((x) => x.view === parent.id) : undefined;
+    const it = att ? byItem.get(itemOf(att.itemId)) : undefined;
+    if (it?.unit && rd?.interior?.some((b) => b.zonesBottomUp.length)) it.unit = { ...it.unit, interior: rd.interior.map((b, i) => ({ bay: i, zonesBottomUp: b.zonesBottomUp })) };
+  }
   for (const bd of rec.beds) {
     const it = byItem.get(itemOf(bd.itemId));
     if (!it) continue;
