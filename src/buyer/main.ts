@@ -73,6 +73,17 @@ async function fetchProperty(sceneId: string): Promise<PropertyResult> {
   return { kind: 'ok', property: validateProperty(json) };
 }
 
+/** The optional drawing-import sidecar: which rooms are not measured. Missing, HTML or broken means nothing is flagged. */
+async function fetchExtras(sceneId: string): Promise<ReturnType<typeof unverifiedRoomsFromExtras>> {
+  try {
+    if (!SCENE_ID_RE.test(sceneId)) return {} as ReturnType<typeof unverifiedRoomsFromExtras>;
+    const r = await fetch(`/scenes/${sceneId}/proposal-extras.json`, { cache: 'no-cache' });
+    const t = r.ok ? await r.text() : '';
+    if (t && !/^\s*</.test(t)) return unverifiedRoomsFromExtras(JSON.parse(t));
+  } catch { /* optional */ }
+  return {} as ReturnType<typeof unverifiedRoomsFromExtras>;
+}
+
 // ---------------------------------------------------------------- page boot
 
 const params = new URLSearchParams(location.search);
@@ -131,6 +142,9 @@ async function boot(): Promise<void> {
   const early = loadPerson(storage);
   prefetchPerson(early.body, guessedBodyTier());
   const designsP = fetchDesigns(sceneId);
+  // the small optional JSON files go out together with property.json instead of one after another
+  const lookFileP = fetchLookFile(sceneId);
+  const extrasP = fetchExtras(sceneId);
   loading.setProgress(0.05, 'Loading the layout…');
   const result = await fetchProperty(sceneId);
   if (result.kind === 'missing') {
@@ -145,12 +159,7 @@ async function boot(): Promise<void> {
   const layout = property.layout;
   // Optional drawing-import sidecar: rooms whose size came from a label, not measured walls, must not show a
   // confident area. Missing file (or a dev server's index page) means nothing is flagged.
-  let unverifiedRooms = {} as ReturnType<typeof unverifiedRoomsFromExtras>;
-  try {
-    const r = await fetch(`/scenes/${sceneId}/proposal-extras.json`, { cache: 'no-cache' });
-    const t = r.ok ? await r.text() : '';
-    if (t && !/^\s*</.test(t)) unverifiedRooms = unverifiedRoomsFromExtras(JSON.parse(t));
-  } catch { /* optional */ }
+  const unverifiedRooms = await extrasP;
   if (layout.rooms.length === 0) {
     loading.showError('This home has no rooms yet.', 'The layout is empty. A broker can trace the rooms in the editor.');
     return;
@@ -172,7 +181,7 @@ async function boot(): Promise<void> {
   // the look (C11a): lights, tone mapping, materials, backdrop. It never blocks boot: assets arrive after first paint.
   let look: Look | null = null;
   try {
-    look = await createLook(viewer, layout, await fetchLookFile(sceneId), { hasSplat: !!property.splat });
+    look = await createLook(viewer, layout, await lookFileP, { hasSplat: !!property.splat });
   } catch (err) {
     console.warn('[walkthru] the look could not start, using the plain scene:', err);
   }

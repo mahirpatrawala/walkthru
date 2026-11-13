@@ -18,6 +18,7 @@ export interface LoadingScreen {
 export const SIZES_NOTE = 'Sizes from the floor plan.';
 
 export function createLoadingScreen(parent: HTMLElement): LoadingScreen {
+  document.getElementById('wt-boot')?.remove(); // the static first-paint splash from index.html
   const screen = el('div', 'wt-screen', undefined, parent);
   screen.dataset.testid = 'loading';
   const card = el('div', 'wt-screen-card', undefined, screen);
