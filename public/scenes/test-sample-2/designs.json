@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "source": "Imported drawing set, 6 pages",
+  "items": {
+    "bed-1": {
+      "surfaceHeightM": 0.55,
+      "bed": {
+        "baseTopM": 0.4
+      },
+      "sources": {
+        "surfaceHeightM": {
+          "page": 2,
+          "sheet": "WALL 1",
+          "text": "400 + 150"
+        },
+        "baseTopM": {
+          "page": 2,
+          "sheet": "WALL 1",
+          "text": "400"
+        }
+      }
+    },
+    "wardrobe-1": {
+      "heightM": 2.591,
+      "wardrobe": {
+        "bays": 3,
+        "shuttersPerBay": 2,
+        "drawerStripM": 0,
+        "baseGapM": 0,
+        "frontColor": "#d9d4ca",
+        "handleColor": "#8c8c8c",
+        "handleYM": 1,
+        "handleLenM": 0.3
+      },
+      "sources": {
+        "heightM": {
+          "page": 3,
+          "sheet": "WALL 2",
+          "text": "2591"
+        },
+        "bays": {
+          "page": 3,
+          "sheet": "WALL 2",
+          "text": ""
+        },
+        "bayWidths": [
+          {
+            "page": 3,
+            "sheet": "WALL 2",
+            "text": "750"
+          },
+          {
+            "page": 3,
+            "sheet": "WALL 2",
+            "text": "750"
+          },
+          {
+            "page": 3,
+            "sheet": "WALL 2",
+            "text": "800"
+          }
+        ],
+        "shutterColour": "default look, not read from the drawing"
+      }
+    }
+  }
+}

@@ -1,0 +1,431 @@
+{
+  "version": 1,
+  "id": "test-sample-1",
+  "title": "Sample 1 BHK",
+  "layout": {
+    "wallHeightM": 2.7432,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "drawing-room",
+        "roomType": "living",
+        "label": "Drawing Room",
+        "polygon": [
+          {
+            "x": -6.272083564525653,
+            "z": -2.3364266568057417
+          },
+          {
+            "x": -2.004882641497649,
+            "z": -2.3364266568057417
+          },
+          {
+            "x": -2.004882641497649,
+            "z": 1.1687733431942584
+          },
+          {
+            "x": -6.272083564525653,
+            "z": 1.1687733431942584
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "mbr-1",
+        "roomType": "bedroom",
+        "label": "Mbr 1",
+        "polygon": [
+          {
+            "x": -1.8778829299439006,
+            "z": -2.3364266568057417
+          },
+          {
+            "x": 1.6273170700560993,
+            "z": -2.3364266568057417
+          },
+          {
+            "x": 1.6273170700560993,
+            "z": 1.1687733431942584
+          },
+          {
+            "x": -1.8778829299439006,
+            "z": 1.1687733431942584
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "foyer",
+        "roomType": "other",
+        "label": "Foyer",
+        "polygon": [
+          {
+            "x": -1.7508818915373958,
+            "z": 1.2957730547480069
+          },
+          {
+            "x": 1.6273170700560993,
+            "z": 1.2957730547480069
+          },
+          {
+            "x": 1.6273170700560993,
+            "z": 3.886580438972041
+          },
+          {
+            "x": -1.7508818915373958,
+            "z": 3.886580438972041
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "kit",
+        "roomType": "kitchen",
+        "label": "Kit",
+        "polygon": [
+          {
+            "x": -6.272083564525653,
+            "z": 1.2957730547480069
+          },
+          {
+            "x": -3.6812761803016194,
+            "z": 1.2957730547480069
+          },
+          {
+            "x": -3.6812761803016194,
+            "z": 3.886580438972041
+          },
+          {
+            "x": -6.272083564525653,
+            "z": 3.886580438972041
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "dry-balcony",
+        "roomType": "balcony",
+        "label": "Dry Balcony",
+        "polygon": [
+          {
+            "x": -5.814887256637671,
+            "z": -4.089037271627791
+          },
+          {
+            "x": -2.4620789493856323,
+            "z": -4.089037271627791
+          },
+          {
+            "x": -2.4620789493856323,
+            "z": -2.565035425571782
+          },
+          {
+            "x": -5.814887256637671,
+            "z": -2.565035425571782
+          }
+        ],
+        "edges": [
+          "railing",
+          "railing",
+          "wall",
+          "railing"
+        ]
+      },
+      {
+        "id": "w-c",
+        "roomType": "bathroom",
+        "label": "W.c.",
+        "polygon": [
+          {
+            "x": -3.5542764687478705,
+            "z": 1.2957730547480069
+          },
+          {
+            "x": -1.8778829299439006,
+            "z": 1.2957730547480069
+          },
+          {
+            "x": -1.8778829299439006,
+            "z": 3.886580438972041
+          },
+          {
+            "x": -3.5542764687478705,
+            "z": 3.886580438972041
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "window-1",
+        "roomId": "w-c",
+        "edge": 2,
+        "type": "window",
+        "centreM": 0.84420741238729,
+        "widthM": 0.45719630788798293,
+        "sillM": 0.9,
+        "headM": 2.1
+      },
+      {
+        "id": "door-1",
+        "roomId": "drawing-room",
+        "edge": 2,
+        "type": "door",
+        "centreM": 0.767196878421041,
+        "widthM": 0.7620009230280043,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "door-2",
+        "roomId": "drawing-room",
+        "edge": 1,
+        "type": "door",
+        "centreM": 1.750002022303482,
+        "widthM": 0.9143926157759659,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "door-3",
+        "roomId": "drawing-room",
+        "edge": 2,
+        "type": "door",
+        "centreM": 2.9671996861159693,
+        "widthM": 0.9143926157759659,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "door-4",
+        "roomId": "mbr-1",
+        "edge": 2,
+        "type": "door",
+        "centreM": 1.699393204478866,
+        "widthM": 0.9143926157759659,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "door-5",
+        "roomId": "foyer",
+        "edge": 2,
+        "type": "door",
+        "centreM": 1.699403819300915,
+        "widthM": 1.0668055381680257,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "window-2",
+        "roomId": "drawing-room",
+        "edge": 3,
+        "type": "window",
+        "centreM": 1.7551979776965183,
+        "widthM": 1.5240018460560085,
+        "sillM": 0.9,
+        "headM": 2.1
+      },
+      {
+        "id": "window-3",
+        "roomId": "kit",
+        "edge": 2,
+        "type": "window",
+        "centreM": 1.290806147311999,
+        "widthM": 1.6763935388039701,
+        "sillM": 0.9,
+        "headM": 2.1
+      },
+      {
+        "id": "opening-1",
+        "roomId": "drawing-room",
+        "edge": 0,
+        "type": "opening",
+        "centreM": 2.149992400463331,
+        "widthM": 1.8288064611960297,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "window-4",
+        "roomId": "mbr-1",
+        "edge": 0,
+        "type": "window",
+        "centreM": 1.7557957248631584,
+        "widthM": 1.8288064611960297,
+        "sillM": 0.9,
+        "headM": 2.1
+      }
+    ],
+    "finishes": {
+      "wallColor": "#F2EFE9",
+      "floorColor": "#D9CFC1",
+      "tile": {
+        "wM": 0.6,
+        "lM": 0.6
+      },
+      "groutColor": "#B9AE9F",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [
+    {
+      "id": "sofa-1",
+      "source": "real",
+      "kind": "sofa",
+      "label": "",
+      "box": {
+        "cx": -4.147091723693475,
+        "cz": -1.8792303489177586,
+        "w": 1.9811981539439913,
+        "d": 0.9143926157759659,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "bed-1",
+      "source": "real",
+      "kind": "bed",
+      "label": "",
+      "box": {
+        "cx": 0.7129138394580844,
+        "cz": -0.5864246345022592,
+        "w": 1.5240018460560092,
+        "d": 1.8288064611960297,
+        "yawDeg": 270
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5
+    },
+    {
+      "id": "counter-1",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 1.3987189161121079,
+        "cz": -1.6070238522905358,
+        "w": 0.45719630788798293,
+        "d": 0.45719630788798293,
+        "yawDeg": 270
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-2",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 1.3987189161121079,
+        "cz": 0.43417458328601477,
+        "w": 0.45719630788798415,
+        "d": 0.45719630788798293,
+        "yawDeg": 270
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-3",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": -1.5730779830906902,
+        "cz": -1.686425706636535,
+        "w": 1.2192191239864634,
+        "d": 0.6096098937064207,
+        "yawDeg": 90
+      },
+      "heightM": 0.75,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "counter-4",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": -4.972092942435667,
+        "cz": 3.58177582383202,
+        "w": 2.440806680142633,
+        "d": 0.6096092302800439,
+        "yawDeg": 180
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "counter-5",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 4.7949619141929185,
+        "cz": -2.2951874097185945,
+        "w": 0.5584789593222649,
+        "d": 1.3094580482182199,
+        "yawDeg": 90
+      },
+      "heightM": 0.75,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "counter-6",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 4.746842437995412,
+        "cz": 2.713840137750119,
+        "w": 0.7614356837538895,
+        "d": 1.7487411804719617,
+        "yawDeg": 0
+      },
+      "heightM": 0.75,
+      "surfaceHeightM": 0.75
+    }
+  ],
+  "spawn": {
+    "x": -4.138483103011652,
+    "z": -0.5838266568057416,
+    "yawDeg": 0
+  },
+  "updatedAt": "2026-11-13T11:55:33.020Z",
+  "subtitle": "Synthetic sample drawing, made-up flat"
+}

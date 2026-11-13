@@ -63,7 +63,10 @@
           "wall",
           "wall",
           "wall"
-        ]
+        ],
+        "partial": {
+          "reason": "Only its 9'0\" width is on your drawing. Its far wall is off the sheet, so the rest of this room is a guess."
+        }
       },
       {
         "id": "passage",
@@ -92,7 +95,10 @@
           "wall",
           "wall",
           "wall"
-        ]
+        ],
+        "partial": {
+          "reason": "This passage runs off the edge of your drawing. Only part of it is shown, and where it ends is a guess."
+        }
       }
     ],
     "openings": [
@@ -278,9 +284,9 @@
     }
   ],
   "spawn": {
-    "x": -1.8122874945002465,
-    "z": 1.4343283898305086,
-    "yawDeg": 180
+    "x": 0.796,
+    "z": -1.003,
+    "yawDeg": 0
   },
   "updatedAt": "2026-11-12T21:50:28.908Z"
 }

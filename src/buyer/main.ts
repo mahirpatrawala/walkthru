@@ -45,6 +45,7 @@ import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
 import { mountSceneTag, sceneTagText } from './scene-tag';
+import { mountPartialBadge, partialRoomInView } from './partial-badge';
 import {
   HINT_KEY, clampHeightCm, createFurnitureStore, distanceToBox, roomChipText, safeStorage,
   standardHeightNote, storageGet, storageSet, tintForHeightCm, unverifiedRoomsFromExtras,
@@ -286,6 +287,7 @@ async function boot(): Promise<void> {
   const tagText = sceneTagText(property);
   if (tagText) mountSceneTag(hud.root, tagText);
   mountHomeLink(hud.root);
+  const partialBadge = mountPartialBadge(hud.root);
   // C11c: the painterly mode is a lazy chunk, fetched only when the buyer taps "Show as a painting"
   type PaintSession = import('../look/painterly/index').PaintingSession;
   let painting: PaintSession | null = null;
@@ -490,6 +492,7 @@ async function boot(): Promise<void> {
       chipClock = 0;
       const text = roomChipText(layout, character.position, unverifiedRooms);
       if (text !== lastChip) { lastChip = text; hud.setRoomChip(text); }
+      partialBadge.update(partialRoomInView(layout, store.grid(), character.position, camera.viewYawDeg));
     }
     if (gridOverlay) {
       gridClock += dt;

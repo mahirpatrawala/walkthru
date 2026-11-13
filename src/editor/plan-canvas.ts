@@ -252,7 +252,7 @@ export function createPlanCanvas(
       g.font = '11px system-ui, sans-serif';
       g.fillStyle = 'rgba(20,22,28,0.72)';
       const unv = editorUnverifiedNote(room.id);
-      const areaText = unv ? `${formatArea(area).text} · not measured` : formatArea(area).text;
+      const areaText = room.partial ? 'not on your drawing · shape guessed' : unv ? `${formatArea(area).text} · not measured` : formatArea(area).text;
       g.strokeText(areaText, s.x, s.y + 8);
       g.fillText(areaText, s.x, s.y + 8);
     }

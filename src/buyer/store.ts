@@ -250,7 +250,7 @@ export { unverifiedRoomsFromExtras } from '../core/room-trust';
 export function unmeasuredRoomsNear(layout: Layout, unverified: UnverifiedRooms, pts: Vec2[], radiusM = 0.3): string[] {
   const out: string[] = [];
   for (const room of layout.rooms) {
-    if (!unverified[room.id]) continue;
+    if (!unverified[room.id] && !room.partial) continue;
     if (pts.some((pt) => distanceToPolygon(pt, room.polygon) <= radiusM)) out.push(room.label);
   }
   return out;
@@ -259,9 +259,13 @@ import type { UnverifiedRooms } from '../core/room-trust';
 export type { UnverifiedRooms } from '../core/room-trust';
 
 /** "Bedroom 1 · 215 sq ft · 20.0 m²", or null when the point is in no room (a doorway, a wall, outside). */
+/** The words that mark a room that is only partly on the drawing (chip, rooms sheet, badge). */
+export const PARTIAL_NOTE = 'Not on your drawing · shape guessed';
+
 export function roomChipText(layout: Layout, pt: Vec2, unverified: UnverifiedRooms = {}): string | null {
   const room = roomAt(layout, pt);
   if (!room) return null;
+  if (room.partial) return `${room.label} · shape guessed`;
   const note = unverified[room.id];
   if (note) return `${room.label} · not measured (${note})`;
   return `${room.label} · ${formatArea(polygonArea(room.polygon)).text}`;

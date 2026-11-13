@@ -1,0 +1,234 @@
+{
+  "version": 1,
+  "id": "test-sample-6",
+  "title": "Sample studio flat",
+  "layout": {
+    "wallHeightM": 2.7432,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "living-room",
+        "roomType": "living",
+        "label": "Living Room",
+        "polygon": [
+          {
+            "x": -3.568699668627265,
+            "z": -2.133600019633897
+          },
+          {
+            "x": 0.8509002739507342,
+            "z": -2.133600019633897
+          },
+          {
+            "x": 0.8509002739507342,
+            "z": 2.133599714458114
+          },
+          {
+            "x": -3.568699668627265,
+            "z": 2.133599714458114
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "bath",
+        "roomType": "bathroom",
+        "label": "Bath",
+        "polygon": [
+          {
+            "x": 0.9779000916506442,
+            "z": -0.17780044668417525
+          },
+          {
+            "x": 3.568700278978832,
+            "z": -0.17780044668417525
+          },
+          {
+            "x": 3.568700278978832,
+            "z": 2.133599714458114
+          },
+          {
+            "x": 0.9779000916506442,
+            "z": 2.133599714458114
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "kitchen",
+        "roomType": "kitchen",
+        "label": "Kitchen",
+        "polygon": [
+          {
+            "x": 0.9779000916506442,
+            "z": -2.133600019633897
+          },
+          {
+            "x": 3.568700278978832,
+            "z": -2.133600019633897
+          },
+          {
+            "x": 3.568700278978832,
+            "z": -0.304799959208302
+          },
+          {
+            "x": 0.9779000916506442,
+            "z": -0.304799959208302
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "window-1",
+        "roomId": "bath",
+        "edge": 2,
+        "type": "window",
+        "centreM": 1.2874000630957827,
+        "widthM": 0.4572000151063988,
+        "sillM": 0.9,
+        "headM": 2.1
+      },
+      {
+        "id": "door-1",
+        "roomId": "living-room",
+        "edge": 1,
+        "type": "door",
+        "centreM": 3.099999867070987,
+        "widthM": 0.7619998217268092,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "door-2",
+        "roomId": "living-room",
+        "edge": 1,
+        "type": "door",
+        "centreM": 0.8999997005316331,
+        "widthM": 0.9144000302127976,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "door-3",
+        "roomId": "living-room",
+        "edge": 2,
+        "type": "door",
+        "centreM": 2.219600233802321,
+        "widthM": 1.0667999335230027,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "window-2",
+        "roomId": "living-room",
+        "edge": 0,
+        "type": "window",
+        "centreM": 2.1999997087756786,
+        "widthM": 1.3715997401434132,
+        "sillM": 0.9,
+        "headM": 2.1
+      }
+    ],
+    "finishes": {
+      "wallColor": "#F2EFE9",
+      "floorColor": "#D9CFC1",
+      "tile": {
+        "wM": 0.6,
+        "lM": 0.6
+      },
+      "groutColor": "#B9AE9F",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [
+    {
+      "id": "sofa-1",
+      "source": "real",
+      "kind": "sofa",
+      "label": "",
+      "box": {
+        "cx": -1.3686996546758032,
+        "cz": -1.6764000045274985,
+        "w": 1.9811999637358004,
+        "d": 0.9144000302127976,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "counter-1",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 2.7563002188952965,
+        "cz": -1.8288002130134868,
+        "w": 1.5239999486294016,
+        "d": 0.6095996132408208,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "counter-2",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 4.360500210757902,
+        "cz": 4.459999875695527,
+        "w": 0.6200000039317757,
+        "d": 2.300000014585619,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "dining-1",
+      "source": "real",
+      "kind": "dining",
+      "label": "",
+      "box": {
+        "cx": -1.5180398655837928,
+        "cz": -0.196180268578076,
+        "w": 0.9144000302127976,
+        "d": 1.5240002538051847,
+        "yawDeg": 90
+      },
+      "heightM": 0.95,
+      "surfaceHeightM": 0.75
+    }
+  ],
+  "spawn": {
+    "x": -1.3588996973382654,
+    "z": 0.7499998474121083,
+    "yawDeg": 0
+  },
+  "updatedAt": "2026-11-13T11:55:38.070Z",
+  "subtitle": "Synthetic sample drawing, made-up flat"
+}

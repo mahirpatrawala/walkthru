@@ -17,6 +17,7 @@ import { barrierSegments, findRegions, pxSizeFor, snapLines } from './regions';
 import { doorsFromArcs, findDoorArcs, findPassages, wallLessJunctions } from './passage';
 import type { DoorArc } from './passage';
 import { formatFtIn } from '../core/units';
+import { PASSAGE_OFF_SHEET_REASON, offSheetReason, sheetArea } from './partial';
 import type { RegionResult } from './regions';
 import { collectOutlines, matchOutline, outlineVotes, roomVotes, voteScale } from './scale';
 import { buildOpenings } from './openings';
@@ -301,6 +302,7 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
   const toWorld = (p: Px): Vec2 => ({ x: (p.x - cxPt) / ptPerM, z: (p.y - cyPt) / ptPerM });
 
   // ---- rooms (largest first), polygon starting at its top-left vertex, positive signed area
+  const sheet = sheetArea(plan);
   const ordered = [...finalRegions].sort((a, b) => b.areaPt2 - a.areaPt2);
   const usedIds = new Set<string>();
   const draft: { region: RoomFinding; tag: RoomTag }[] = [];
@@ -313,6 +315,11 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
     let id = slug(r.label.name); let k = 2; while (usedIds.has(id)) id = `${slug(r.label.name)}-${k++}`;
     usedIds.add(id);
     const tag: RoomTag = { id, roomType: r.label.roomType, label: r.label.name, polygon: poly, edges: poly.map(() => 'wall' as const) };
+    // a room drawn from its printed size whose far wall is off the sheet is only partly on the drawing
+    if (r.method === 'label-rect') {
+      const why = offSheetReason(r.polygon, sheet, t, ptPerM);
+      if (why) { tag.partial = { reason: why }; warnings.push(`Room "${r.label.name}" runs off the edge of the sheet. It is marked as partly on the drawing.`); }
+    }
     const conf = r.method === 'walls' ? 0.9 : r.method === 'walls+strokes' ? 0.7 : 0.4;
     draft.push({
       tag,
@@ -363,7 +370,7 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
         poly = [...poly.slice(s0), ...poly.slice(0, s0)];
         let id = found.length > 1 ? `passage-${k + 1}` : 'passage'; while (tags2.some((r) => r.id === id)) id += 'x';
         const label = found.length > 1 ? `Passage ${k + 1}` : 'Passage';
-        tags2.push({ id, roomType: 'other', label, polygon: poly, edges: poly.map(() => 'wall' as const) });
+        tags2.push({ id, roomType: 'other', label, polygon: poly, edges: poly.map(() => 'wall' as const), ...(f.leaksAtBorder ? { partial: { reason: PASSAGE_OFF_SHEET_REASON } } : {}) });
         extraFindings.push({ id, label, roomType: 'other', method: 'walls+strokes', confidence: 0.7, areaM2: polygonArea(poly) });
         if (f.leaksAtBorder) warnings.push(`${label} runs off the edge of the drawing. It is closed at the drawing border. Check its length.`);
       });
@@ -389,7 +396,7 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
         }
       }
       // spawn just inside the passage's entry door, facing in
-      const entry = allOpenings.find((o) => passages.some((x) => x.id === o.roomId) && o.type === 'door');
+      const entry = allOpenings.find((o) => passages.some((x) => x.id === o.roomId && !x.partial) && o.type === 'door');
       if (entry) {
         const room = allRooms.find((r) => r.id === entry.roomId)!;
         const p = room.polygon[entry.edge], q = room.polygon[(entry.edge + 1) % room.polygon.length];
@@ -448,7 +455,9 @@ function fmtDims(d: { w: number; l: number }): string {
 export function chooseSpawn(layout: Layout, furniture: ProposalExtras['furniture']): { x: number; z: number; yawDeg: number } | null {
   if (!layout.rooms.length) return null;
   const grid = stampFurniture(rasterizeLayout(layout), furniture);
-  const largest = layout.rooms.reduce((a, b) => (polygonArea(b.polygon) > polygonArea(a.polygon) ? b : a));
+  // a room that is only partly on the drawing is a guess, never a start point (unless nothing else exists)
+  const whole = layout.rooms.filter((r) => !r.partial);
+  const largest = (whole.length ? whole : layout.rooms).reduce((a, b) => (polygonArea(b.polygon) > polygonArea(a.polygon) ? b : a));
   const xs = largest.polygon.map((p) => p.x), zs = largest.polygon.map((p) => p.z);
   const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
   if (cellValue(grid, cx, cz) === GRID_FREE && !furniture.some((f) => pointInBox({ x: cx, z: cz }, f.box))) return { x: cx, z: cz, yawDeg: 0 };
