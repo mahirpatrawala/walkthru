@@ -48,6 +48,8 @@ export interface Interactions {
 export interface InteractionExtras {
   seats?: Seats;
   wardrobe?: { promptFor(item: FurnitureItem): string | null; activate(item: FurnitureItem): boolean };
+  /** a footnote for an item's card when part of what it shows is an assumption (e.g. a standard height), or null */
+  cardNote?: (item: FurnitureItem) => string | null;
 }
 
 export function createInteractions(ctx: BuyerContext, extras: InteractionExtras = {}): Interactions {
@@ -63,7 +65,11 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   let promptClock = 0;
 
   const seats = extras.seats;
-  const cardOf = (item: FurnitureItem, H: number) => seats?.card(item, H) ?? checkFor(item, H);
+  const cardOf = (item: FurnitureItem, H: number) => {
+    const card = seats?.card(item, H) ?? checkFor(item, H);
+    const note = card.footer ? null : extras.cardNote?.(item) ?? null;
+    return note ? { ...card, footer: note } : card;
+  };
   const nearest = (): { item: FurnitureItem; distM: number } | null =>
     nearestInteractable(seats ? [...ctx.furniture.all(), ...seats.items()] : ctx.furniture.all(), ctx.character.position, undefined, ctx.grid());
   const freeToStand = (): boolean => {
@@ -269,7 +275,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
         })();
       } else if (dimsId !== null) {
         const it = ctx.furniture.all().find((i) => i.id === dimsId);
-        if (it) ctx.hud.showCard(checkFor(it, ctx.heightM()));
+        if (it) ctx.hud.showCard(cardOf(it, ctx.heightM()));
       }
     },
     nearest,

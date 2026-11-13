@@ -16,7 +16,7 @@ import { roomsSummary } from '../src/buyer/rooms';
 import { sceneTagText } from '../src/buyer/scene-tag';
 import {
   HEIGHT_KEY, actionFor, clampHeightCm, createFurnitureStore, distanceToBox, loadHeightCm, loadPlaced, nearestInteractable,
-  nearestPresetIndex, parsePlaced, placedKey, roomChipText, saveHeightCm, savePlaced, tintForHeightCm, wallBetween,
+  nearestPresetIndex, parsePlaced, placedKey, roomChipText, saveHeightCm, savePlaced, tintForHeightCm, wallBetween, standardHeightNote, STANDARD_HEIGHT_NOTE,
 } from '../src/buyer/store';
 import type { StorageLike } from '../src/buyer/store';
 import { GRID_VOID } from '../src/types';
@@ -132,6 +132,21 @@ describe('test and synthetic scenes are labelled', () => {
     expect(sceneTagText({ id: 'my-flat', subtitle: 'Synthetic floor plan' })).toMatch(/not a real home/i);
     expect(sceneTagText({ id: 'son-bedroom' })).toBeNull();
     expect(sceneTagText({ id: 'koramangala-2bhk', subtitle: '2 BHK, 3rd floor' })).toBeNull();
+  });
+});
+
+describe('a standard height is never presented as drawn', () => {
+  const counter: FurnitureItem = { ...bed, id: 'c1', kind: 'counter', source: 'real' };
+  const designs = { items: { c1: { sources: { heightM: 'derived: elevation' } }, c2: { sources: { width: 'x' } } } };
+  it('is silent for synthetic scenes (no designs file), virtual items, beds and sourced heights', () => {
+    expect(standardHeightNote(counter, null)).toBeNull();
+    expect(standardHeightNote({ ...counter, source: 'virtual' }, designs)).toBeNull();
+    expect(standardHeightNote({ ...counter, kind: 'bed' }, designs)).toBeNull();
+    expect(standardHeightNote(counter, designs)).toBeNull();
+  });
+  it('says so for a real counter whose height the design does not source', () => {
+    expect(standardHeightNote({ ...counter, id: 'c2' }, designs)).toBe(STANDARD_HEIGHT_NOTE);
+    expect(standardHeightNote({ ...counter, id: 'c3' }, designs)).toBe(STANDARD_HEIGHT_NOTE);
   });
 });
 

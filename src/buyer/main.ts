@@ -42,7 +42,7 @@ import { createRoomsSheet, sizesNote } from './rooms';
 import { mountSceneTag, sceneTagText } from './scene-tag';
 import {
   HINT_KEY, clampHeightCm, createFurnitureStore, distanceToBox, roomChipText, safeStorage,
-  storageGet, storageSet, tintForHeightCm, unverifiedRoomsFromExtras,
+  standardHeightNote, storageGet, storageSet, tintForHeightCm, unverifiedRoomsFromExtras,
 } from './store';
 
 const SCENE_ID_RE = /^[a-z0-9-]{1,40}$/;
@@ -304,7 +304,7 @@ async function boot(): Promise<void> {
   const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
   const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
-  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats });
+  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));

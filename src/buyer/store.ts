@@ -219,6 +219,25 @@ export function nearestInteractable(
   return best ? { item: best.item, distM: best.distM } : null;
 }
 
+// ---------------------------------------------------------------- height provenance
+
+export const STANDARD_HEIGHT_NOTE = 'Height is a standard assumption. The drawing does not give it.';
+
+/**
+ * In a scene built from a drawing (it has a designs file), a real item's height is only a fact when the design says where
+ * it was read (`sources.heightM` or `sources.surfaceHeightM`, a dimension string or "derived: ..."). Otherwise it is the
+ * catalogue's standard, and the card must say so. Returns the note for such an item, or null.
+ */
+export function standardHeightNote(
+  item: FurnitureItem, designs: { items: Record<string, { sources?: Record<string, unknown> }> } | null,
+): string | null {
+  if (!designs || item.source !== 'real') return null;
+  if (item.kind !== 'counter' && item.kind !== 'wardrobe' && item.kind !== 'dining') return null;
+  const src = designs.items[item.id]?.sources;
+  if (src && (src.heightM !== undefined || src.surfaceHeightM !== undefined)) return null;
+  return STANDARD_HEIGHT_NOTE;
+}
+
 // ---------------------------------------------------------------- room chip
 
 export { unverifiedRoomsFromExtras } from '../core/room-trust';
