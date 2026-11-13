@@ -49,7 +49,7 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
   const tex = meshTexture();
   const veil = new THREE.MeshBasicMaterial({ color: '#6a6a6a', transparent: true, opacity: tex ? 0.4 : 0.1, depthWrite: false, side: THREE.DoubleSide });
   if (tex) { veil.map = tex; }
-  const skirtColour = `#${new THREE.Color(fin.wallColor).lerp(new THREE.Color('#ffffff'), 0.05).getHexString()}`;
+  const skirtColour = `#${new THREE.Color(fin.wallColor).multiplyScalar(0.9).getHexString()}`;
   const skirting = paint.wall ? paint.wall(skirtColour) : std(skirtColour, 0.8);
   const lens = {} as Record<LightKind, THREE.MeshStandardMaterial>;
   const lit = { tube: false, cove: false, fan: false };
