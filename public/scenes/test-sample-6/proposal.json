@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "source": "drawing-import@1",
+  "rooms": [
+    {
+      "id": "living-room",
+      "roomType": "living",
+      "label": "Living Room",
+      "polygon": [
+        {
+          "x": -3.568699668627265,
+          "z": -2.133600019633897
+        },
+        {
+          "x": 0.8509002739507342,
+          "z": -2.133600019633897
+        },
+        {
+          "x": 0.8509002739507342,
+          "z": 2.133599714458114
+        },
+        {
+          "x": -3.568699668627265,
+          "z": 2.133599714458114
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "bath",
+      "roomType": "bathroom",
+      "label": "Bath",
+      "polygon": [
+        {
+          "x": 0.9779000916506442,
+          "z": -0.17780044668417525
+        },
+        {
+          "x": 3.568700278978832,
+          "z": -0.17780044668417525
+        },
+        {
+          "x": 3.568700278978832,
+          "z": 2.133599714458114
+        },
+        {
+          "x": 0.9779000916506442,
+          "z": 2.133599714458114
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "kitchen",
+      "roomType": "kitchen",
+      "label": "Kitchen",
+      "polygon": [
+        {
+          "x": 0.9779000916506442,
+          "z": -2.133600019633897
+        },
+        {
+          "x": 3.568700278978832,
+          "z": -2.133600019633897
+        },
+        {
+          "x": 3.568700278978832,
+          "z": -0.304799959208302
+        },
+        {
+          "x": 0.9779000916506442,
+          "z": -0.304799959208302
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    }
+  ],
+  "openings": [
+    {
+      "id": "window-1",
+      "roomId": "bath",
+      "edge": 2,
+      "type": "window",
+      "centreM": 1.2874000630957827,
+      "widthM": 0.4572000151063988,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "door-1",
+      "roomId": "living-room",
+      "edge": 1,
+      "type": "door",
+      "centreM": 3.099999867070987,
+      "widthM": 0.7619998217268092,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-2",
+      "roomId": "living-room",
+      "edge": 1,
+      "type": "door",
+      "centreM": 0.8999997005316331,
+      "widthM": 0.9144000302127976,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-3",
+      "roomId": "living-room",
+      "edge": 2,
+      "type": "door",
+      "centreM": 2.219600233802321,
+      "widthM": 1.0667999335230027,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "window-2",
+      "roomId": "living-room",
+      "edge": 0,
+      "type": "window",
+      "centreM": 2.1999997087756786,
+      "widthM": 1.3715997401434132,
+      "sillM": 0.9,
+      "headM": 2.1
+    }
+  ],
+  "wallHeightM": 2.7432,
+  "confidence": 0.9,
+  "notes": [
+    "Kitchen has no door on the drawing and no swing arc was found. Add one in the editor."
+  ]
+}

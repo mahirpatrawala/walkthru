@@ -1,0 +1,288 @@
+{
+  "version": 1,
+  "source": "drawing-import@1",
+  "rooms": [
+    {
+      "id": "drawing-room",
+      "roomType": "living",
+      "label": "Drawing Room",
+      "polygon": [
+        {
+          "x": -6.272083564525653,
+          "z": -2.3364266568057417
+        },
+        {
+          "x": -2.004882641497649,
+          "z": -2.3364266568057417
+        },
+        {
+          "x": -2.004882641497649,
+          "z": 1.1687733431942584
+        },
+        {
+          "x": -6.272083564525653,
+          "z": 1.1687733431942584
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "mbr-1",
+      "roomType": "bedroom",
+      "label": "Mbr 1",
+      "polygon": [
+        {
+          "x": -1.8778829299439006,
+          "z": -2.3364266568057417
+        },
+        {
+          "x": 1.6273170700560993,
+          "z": -2.3364266568057417
+        },
+        {
+          "x": 1.6273170700560993,
+          "z": 1.1687733431942584
+        },
+        {
+          "x": -1.8778829299439006,
+          "z": 1.1687733431942584
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "foyer",
+      "roomType": "other",
+      "label": "Foyer",
+      "polygon": [
+        {
+          "x": -1.7508818915373958,
+          "z": 1.2957730547480069
+        },
+        {
+          "x": 1.6273170700560993,
+          "z": 1.2957730547480069
+        },
+        {
+          "x": 1.6273170700560993,
+          "z": 3.886580438972041
+        },
+        {
+          "x": -1.7508818915373958,
+          "z": 3.886580438972041
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "kit",
+      "roomType": "kitchen",
+      "label": "Kit",
+      "polygon": [
+        {
+          "x": -6.272083564525653,
+          "z": 1.2957730547480069
+        },
+        {
+          "x": -3.6812761803016194,
+          "z": 1.2957730547480069
+        },
+        {
+          "x": -3.6812761803016194,
+          "z": 3.886580438972041
+        },
+        {
+          "x": -6.272083564525653,
+          "z": 3.886580438972041
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "dry-balcony",
+      "roomType": "balcony",
+      "label": "Dry Balcony",
+      "polygon": [
+        {
+          "x": -5.814887256637671,
+          "z": -4.089037271627791
+        },
+        {
+          "x": -2.4620789493856323,
+          "z": -4.089037271627791
+        },
+        {
+          "x": -2.4620789493856323,
+          "z": -2.565035425571782
+        },
+        {
+          "x": -5.814887256637671,
+          "z": -2.565035425571782
+        }
+      ],
+      "edges": [
+        "railing",
+        "railing",
+        "wall",
+        "railing"
+      ]
+    },
+    {
+      "id": "w-c",
+      "roomType": "bathroom",
+      "label": "W.c.",
+      "polygon": [
+        {
+          "x": -3.5542764687478705,
+          "z": 1.2957730547480069
+        },
+        {
+          "x": -1.8778829299439006,
+          "z": 1.2957730547480069
+        },
+        {
+          "x": -1.8778829299439006,
+          "z": 3.886580438972041
+        },
+        {
+          "x": -3.5542764687478705,
+          "z": 3.886580438972041
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    }
+  ],
+  "openings": [
+    {
+      "id": "window-1",
+      "roomId": "w-c",
+      "edge": 2,
+      "type": "window",
+      "centreM": 0.84420741238729,
+      "widthM": 0.45719630788798293,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "door-1",
+      "roomId": "drawing-room",
+      "edge": 2,
+      "type": "door",
+      "centreM": 0.767196878421041,
+      "widthM": 0.7620009230280043,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-2",
+      "roomId": "drawing-room",
+      "edge": 1,
+      "type": "door",
+      "centreM": 1.750002022303482,
+      "widthM": 0.9143926157759659,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-3",
+      "roomId": "drawing-room",
+      "edge": 2,
+      "type": "door",
+      "centreM": 2.9671996861159693,
+      "widthM": 0.9143926157759659,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-4",
+      "roomId": "mbr-1",
+      "edge": 2,
+      "type": "door",
+      "centreM": 1.699393204478866,
+      "widthM": 0.9143926157759659,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-5",
+      "roomId": "foyer",
+      "edge": 2,
+      "type": "door",
+      "centreM": 1.699403819300915,
+      "widthM": 1.0668055381680257,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "window-2",
+      "roomId": "drawing-room",
+      "edge": 3,
+      "type": "window",
+      "centreM": 1.7551979776965183,
+      "widthM": 1.5240018460560085,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "window-3",
+      "roomId": "kit",
+      "edge": 2,
+      "type": "window",
+      "centreM": 1.290806147311999,
+      "widthM": 1.6763935388039701,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "opening-1",
+      "roomId": "drawing-room",
+      "edge": 0,
+      "type": "opening",
+      "centreM": 2.149992400463331,
+      "widthM": 1.8288064611960297,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "window-4",
+      "roomId": "mbr-1",
+      "edge": 0,
+      "type": "window",
+      "centreM": 1.7557957248631584,
+      "widthM": 1.8288064611960297,
+      "sillM": 0.9,
+      "headM": 2.1
+    }
+  ],
+  "wallHeightM": 2.7432,
+  "confidence": 0.7,
+  "notes": [
+    "Dry Balcony has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Printed room sizes against the drawn walls: 5 of 5 rooms agree on one scale; 5 rooms checked."
+  ]
+}

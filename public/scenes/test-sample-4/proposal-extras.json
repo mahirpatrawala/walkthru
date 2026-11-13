@@ -1,0 +1,561 @@
+{
+  "version": 1,
+  "sourceFile": "drawing set",
+  "planPage": 1,
+  "scale": {
+    "ptPerM": 49.00002303204198,
+    "votes": [
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.46 m short side",
+        "ptPerM": 19.358824106721276
+      },
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.46 m long side",
+        "ptPerM": 19.35891845589861
+      },
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.46 m short side",
+        "ptPerM": 19.35922718553325
+      },
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.46 m long side",
+        "ptPerM": 19.359227185533435
+      },
+      {
+        "source": "furniture DINING 0.91 x 1.52 m short side",
+        "ptPerM": 42.56888428802357
+      },
+      {
+        "source": "furniture DINING 0.91 x 1.52 m long side",
+        "ptPerM": 45.14174574003445
+      },
+      {
+        "source": "room Utility long side",
+        "ptPerM": 48.89060729534205
+      },
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.46 m short side",
+        "ptPerM": 48.99826784042131
+      },
+      {
+        "source": "furniture SOFA 0.91 x 1.98 m short side",
+        "ptPerM": 48.999335822157974
+      },
+      {
+        "source": "furniture STUDY 0.61 x 1.22 m short side",
+        "ptPerM": 48.99933582215798
+      },
+      {
+        "source": "room Passage short side",
+        "ptPerM": 48.99933582215798
+      },
+      {
+        "source": "room Balcony short side",
+        "ptPerM": 48.99933582215798
+      },
+      {
+        "source": "room Toilet-1 short side",
+        "ptPerM": 48.99964529413848
+      },
+      {
+        "source": "room Kitchen short side",
+        "ptPerM": 48.9996918160702
+      },
+      {
+        "source": "room M.bed Room long side",
+        "ptPerM": 48.999744325172244
+      },
+      {
+        "source": "furniture BED 1.83 x 1.98 m short side",
+        "ptPerM": 48.9998698130263
+      },
+      {
+        "source": "furniture BED 1.52 x 1.83 m long side",
+        "ptPerM": 48.99988650024094
+      },
+      {
+        "source": "room M.bed Room short side",
+        "ptPerM": 48.99989484384825
+      },
+      {
+        "source": "room Living/dining short side",
+        "ptPerM": 48.99989484384825
+      },
+      {
+        "source": "room Passage long side",
+        "ptPerM": 48.99995186735559
+      },
+      {
+        "source": "room Balcony long side",
+        "ptPerM": 48.999954766119
+      },
+      {
+        "source": "furniture BED 1.52 x 1.83 m short side",
+        "ptPerM": 48.99999663585753
+      },
+      {
+        "source": "room Toilet-2 short side",
+        "ptPerM": 49.000016660515094
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 49.00002303204198
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 49.00002303204198
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 49.00002303204198
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 49.00002303204198
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 49.00002303204198
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 49.00002303204198
+      },
+      {
+        "source": "room Living/dining long side",
+        "ptPerM": 49.00005098849949
+      },
+      {
+        "source": "furniture SOFA 0.91 x 1.98 m long side",
+        "ptPerM": 49.00009059771225
+      },
+      {
+        "source": "furniture BED 1.83 x 1.98 m long side",
+        "ptPerM": 49.00012140487773
+      },
+      {
+        "source": "furniture STUDY 0.61 x 1.22 m long side",
+        "ptPerM": 49.00018687010438
+      },
+      {
+        "source": "room Toilet-1 long side",
+        "ptPerM": 49.000210583514644
+      },
+      {
+        "source": "room Toilet-2 long side",
+        "ptPerM": 49.000210583514644
+      },
+      {
+        "source": "room Kitchen long side",
+        "ptPerM": 49.000210583514644
+      },
+      {
+        "source": "room Utility short side",
+        "ptPerM": 49.000210583514644
+      },
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.46 m short side",
+        "ptPerM": 49.00033705503609
+      },
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.46 m long side",
+        "ptPerM": 49.00047055275317
+      },
+      {
+        "source": "furniture SIDE TABLE 0.46 x 0.46 m long side",
+        "ptPerM": 49.00047055275317
+      },
+      {
+        "source": "room Living/dining area",
+        "ptPerM": 49.01208119800735
+      },
+      {
+        "source": "room M.bed Room area",
+        "ptPerM": 49.062273941197205
+      }
+    ],
+    "agreeing": 36,
+    "disagreementPct": 60.619315437490826
+  },
+  "rooms": [
+    {
+      "id": "utility",
+      "label": "Utility",
+      "roomType": "balcony",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 2.8956,
+        "l": 5.6895999999999995
+      },
+      "areaM2": 16.438080878594008,
+      "verified": true
+    },
+    {
+      "id": "living-dining",
+      "label": "Living/dining",
+      "roomType": "living",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 3.6576,
+        "l": 4.2672
+      },
+      "labelAreaM2": 15.6,
+      "areaM2": 15.60767879370714,
+      "verified": true
+    },
+    {
+      "id": "passage",
+      "label": "Passage",
+      "roomType": "other",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 1.2191999999999998,
+        "l": 11.9634
+      },
+      "areaM2": 14.585551535860782,
+      "verified": false,
+      "note": "drawing and label disagree"
+    },
+    {
+      "id": "m-bed-room",
+      "label": "M.bed Room",
+      "roomType": "bedroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 3.6576,
+        "l": 3.81
+      },
+      "labelAreaM2": 13.9,
+      "areaM2": 13.935340280501473,
+      "verified": true
+    },
+    {
+      "id": "room-9",
+      "label": "Room 9",
+      "roomType": "other",
+      "method": "walls",
+      "confidence": 0.9,
+      "areaM2": 13.377967763940948,
+      "verified": false,
+      "note": "size not confirmed yet"
+    },
+    {
+      "id": "kitchen",
+      "label": "Kitchen",
+      "roomType": "kitchen",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 2.7432,
+        "l": 2.8956
+      },
+      "areaM2": 7.94318663088146,
+      "verified": true
+    },
+    {
+      "id": "toilet-1",
+      "label": "Toilet-1",
+      "roomType": "bathroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 1.6764,
+        "l": 2.8956
+      },
+      "areaM2": 4.854164999051353,
+      "verified": true
+    },
+    {
+      "id": "toilet-2",
+      "label": "Toilet-2",
+      "roomType": "bathroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 1.524,
+        "l": 2.8956
+      },
+      "areaM2": 4.412910716887442,
+      "verified": true
+    },
+    {
+      "id": "balcony",
+      "label": "Balcony",
+      "roomType": "balcony",
+      "method": "walls+strokes",
+      "confidence": 0.7,
+      "labelDims": {
+        "w": 1.2191999999999998,
+        "l": 3.3528
+      },
+      "areaM2": 4.087670735947021,
+      "verified": false,
+      "note": "size not confirmed yet"
+    }
+  ],
+  "ceiling": {
+    "heightM": 2.4383999999999997,
+    "method": "text",
+    "page": 0,
+    "candidatesM": [
+      2.4383999999999997
+    ],
+    "confidence": 0.97,
+    "verified": true,
+    "source": {
+      "page": 1,
+      "sheet": "WALL 2"
+    },
+    "provenance": "checked against the elevation"
+  },
+  "furniture": [
+    {
+      "id": "bed-1",
+      "source": "real",
+      "kind": "bed",
+      "label": "Bed",
+      "box": {
+        "cx": -7.258648632934948,
+        "cz": -1.6400501560950864,
+        "w": 1.8287942814937925,
+        "d": 1.9812039774728687,
+        "yawDeg": 0
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5,
+      "inner": {
+        "w": 1.8288,
+        "d": 1.9811999999999999
+      }
+    },
+    {
+      "id": "counter-1",
+      "source": "real",
+      "kind": "counter",
+      "label": "Side table",
+      "box": {
+        "cx": -8.43164911792788,
+        "cz": -2.4020500570113885,
+        "w": 0.4572029300254168,
+        "d": 0.45720417564026494,
+        "yawDeg": 0
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-2",
+      "source": "real",
+      "kind": "counter",
+      "label": "Side table",
+      "box": {
+        "cx": -6.085651391386015,
+        "cz": -2.402051948529967,
+        "w": 0.18063335732389424,
+        "d": 0.1806333573238925,
+        "yawDeg": 351.0149265749995
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-3",
+      "source": "real",
+      "kind": "counter",
+      "label": "Study",
+      "box": {
+        "cx": -6.0086498432941875,
+        "cz": 0.7221425613022996,
+        "w": 1.2192040765565668,
+        "d": 0.6095914505520739,
+        "yawDeg": 180
+      },
+      "heightM": 0.75,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "sofa-1",
+      "source": "real",
+      "kind": "sofa",
+      "label": "Sofa",
+      "box": {
+        "cx": -3.108651081852914,
+        "cz": -2.1734585569174656,
+        "w": 1.9812027318580205,
+        "d": 0.9143871758281108,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "dining-1",
+      "source": "real",
+      "kind": "dining",
+      "label": "Dining Table",
+      "box": {
+        "cx": -3.466130087132833,
+        "cz": -0.4811325925757084,
+        "w": 0.7943871325838973,
+        "d": 1.40399975858839,
+        "yawDeg": 90
+      },
+      "heightM": 0.95,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "bed-2",
+      "source": "real",
+      "kind": "bed",
+      "label": "Bed",
+      "box": {
+        "cx": 1.890346650620447,
+        "cz": -0.8056523175690045,
+        "w": 1.5239991790251797,
+        "d": 1.8287949043012166,
+        "yawDeg": 270
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5,
+      "inner": {
+        "w": 1.524,
+        "d": 1.8288
+      }
+    },
+    {
+      "id": "counter-4",
+      "source": "real",
+      "kind": "counter",
+      "label": "Side table",
+      "box": {
+        "cx": 2.576152602677132,
+        "cz": -1.8262540057127807,
+        "w": 0.18062959635356166,
+        "d": 0.18063047668873722,
+        "yawDeg": 224.9991178071426
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-5",
+      "source": "real",
+      "kind": "counter",
+      "label": "Side table",
+      "box": {
+        "cx": 2.57615229127342,
+        "cz": 0.21494874776734718,
+        "w": 0.45720417564026494,
+        "d": 0.45718362299526993,
+        "yawDeg": 270
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "wardrobe-1",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "",
+      "box": {
+        "cx": -8.853842797030275,
+        "cz": -0.8056526289727165,
+        "w": 1.8288154569462116,
+        "d": 0.6095914505520742,
+        "yawDeg": 90
+      },
+      "heightM": 2.13,
+      "surfaceHeightM": 2.13
+    },
+    {
+      "id": "wardrobe-2",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "",
+      "box": {
+        "cx": -0.5480506033627652,
+        "cz": -0.8056526289727165,
+        "w": 2.285998457134057,
+        "d": 0.6095914505520739,
+        "yawDeg": 90
+      },
+      "heightM": 2.13,
+      "surfaceHeightM": 2.13
+    },
+    {
+      "id": "counter-6",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": -3.2912532361370865,
+        "cz": 3.919335060601152,
+        "w": 0.6095914505520751,
+        "d": 2.7432026327743224,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    }
+  ],
+  "unmapped": [
+    {
+      "label": "Wardrobe",
+      "sizeM": {
+        "w": 0,
+        "l": 1.8288
+      },
+      "at": {
+        "x": -8.268989831422152,
+        "z": -0.8033271647038551
+      },
+      "reason": "Running length only, and no band of strokes against a wall of that length beside the label."
+    },
+    {
+      "label": "Tv Unit",
+      "at": {
+        "x": -4.583625849411088,
+        "z": 0.8006720813496558
+      },
+      "reason": "No furniture kind for a tv unit."
+    }
+  ],
+  "spawn": {
+    "x": -0.03370353515841229,
+    "z": 3.9225387819906774,
+    "yawDeg": 0
+  },
+  "warnings": [
+    "This sheet holds 2 flats (Flat 1: 4 rooms, Flat 2: 4 rooms). The rooms of all of them are listed, but a walk-through is of one flat: keep the rooms of one flat and delete the rest in the editor.",
+    "1 closed space(s) with no label were added as unnamed rooms. Name them in the editor.",
+    "Balcony has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Room \"Passage\": label says 11.96 x 1.22 m, the walls drawn around it measure about 2.25 x 1.23 m.",
+    "Printed room sizes against the drawn walls: 6 of 7 rooms agree on one scale; 6 rooms checked, 1 disagree by more than 5%."
+  ],
+  "units": [
+    {
+      "id": "flat-1",
+      "label": "Flat 1",
+      "roomIds": [
+        "living-dining",
+        "m-bed-room",
+        "room-9",
+        "balcony"
+      ]
+    },
+    {
+      "id": "flat-2",
+      "label": "Flat 2",
+      "roomIds": [
+        "utility",
+        "kitchen",
+        "toilet-1",
+        "toilet-2"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,312 @@
+{
+  "version": 1,
+  "sourceFile": "drawing set",
+  "planPage": 1,
+  "scale": {
+    "ptPerM": 45.99994684236991,
+    "votes": [
+      {
+        "source": "dimension lines",
+        "ptPerM": 45.9661963735442
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 45.9661963735442
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 45.9661963735442
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 45.9661963735442
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 45.9661963735442
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 45.9661963735442
+      },
+      {
+        "source": "room W.c. short side",
+        "ptPerM": 45.99976954895908
+      },
+      {
+        "source": "room Drawing Room short side",
+        "ptPerM": 45.99994684236991
+      },
+      {
+        "source": "room Mbr 1 short side",
+        "ptPerM": 45.99994684236991
+      },
+      {
+        "source": "room Mbr 1 long side",
+        "ptPerM": 45.99994684236991
+      },
+      {
+        "source": "room Drawing Room long side",
+        "ptPerM": 45.99995679251031
+      },
+      {
+        "source": "room Dry Balcony short side",
+        "ptPerM": 46.000002563156166
+      },
+      {
+        "source": "room Dry Balcony long side",
+        "ptPerM": 46.00006081670544
+      },
+      {
+        "source": "room Kit short side",
+        "ptPerM": 46.00007795010229
+      },
+      {
+        "source": "room Kit long side",
+        "ptPerM": 46.00007795010229
+      },
+      {
+        "source": "room W.c. long side",
+        "ptPerM": 46.00007795010229
+      },
+      {
+        "source": "room Foyer short side",
+        "ptPerM": 46.00007795010229
+      },
+      {
+        "source": "room Foyer long side",
+        "ptPerM": 46.3484170413535
+      }
+    ],
+    "agreeing": 18,
+    "disagreementPct": 0.8309154554440517
+  },
+  "rooms": [
+    {
+      "id": "drawing-room",
+      "label": "Drawing Room",
+      "roomType": "living",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 4.2672,
+        "l": 3.5052
+      },
+      "areaM2": 14.95739267539776,
+      "verified": true
+    },
+    {
+      "id": "mbr-1",
+      "label": "Mbr 1",
+      "roomType": "bedroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 3.5052,
+        "l": 3.5052
+      },
+      "areaM2": 12.28642704,
+      "verified": true
+    },
+    {
+      "id": "foyer",
+      "label": "Foyer",
+      "roomType": "other",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 3.3528,
+        "l": 2.5907999999999998
+      },
+      "areaM2": 8.75226281507439,
+      "verified": true
+    },
+    {
+      "id": "kit",
+      "label": "Kit",
+      "roomType": "kitchen",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 2.5907999999999998,
+        "l": 2.5907999999999998
+      },
+      "areaM2": 6.71228290214978,
+      "verified": true
+    },
+    {
+      "id": "dry-balcony",
+      "label": "Dry Balcony",
+      "roomType": "balcony",
+      "method": "walls+strokes",
+      "confidence": 0.7,
+      "labelDims": {
+        "w": 3.3528,
+        "l": 1.524
+      },
+      "areaM2": 5.109686049724028,
+      "verified": false,
+      "note": "size not confirmed yet"
+    },
+    {
+      "id": "w-c",
+      "label": "W.c.",
+      "roomType": "bathroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 1.6764,
+        "l": 2.5907999999999998
+      },
+      "areaM2": 4.343212759198786,
+      "verified": true
+    }
+  ],
+  "ceiling": {
+    "heightM": 2.7432,
+    "method": "text",
+    "page": 0,
+    "candidatesM": [
+      2.7432
+    ],
+    "confidence": 0.97,
+    "verified": true,
+    "source": {
+      "page": 1,
+      "sheet": ""
+    },
+    "provenance": "checked against the elevation"
+  },
+  "furniture": [
+    {
+      "id": "sofa-1",
+      "source": "real",
+      "kind": "sofa",
+      "label": "",
+      "box": {
+        "cx": -4.147091723693475,
+        "cz": -1.8792303489177586,
+        "w": 1.9811981539439913,
+        "d": 0.9143926157759659,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "bed-1",
+      "source": "real",
+      "kind": "bed",
+      "label": "",
+      "box": {
+        "cx": 0.7129138394580844,
+        "cz": -0.5864246345022592,
+        "w": 1.5240018460560092,
+        "d": 1.8288064611960297,
+        "yawDeg": 270
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5
+    },
+    {
+      "id": "counter-1",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 1.3987189161121079,
+        "cz": -1.6070238522905358,
+        "w": 0.45719630788798293,
+        "d": 0.45719630788798293,
+        "yawDeg": 270
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-2",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 1.3987189161121079,
+        "cz": 0.43417458328601477,
+        "w": 0.45719630788798415,
+        "d": 0.45719630788798293,
+        "yawDeg": 270
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-3",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": -1.5730779830906902,
+        "cz": -1.686425706636535,
+        "w": 1.2192191239864634,
+        "d": 0.6096098937064207,
+        "yawDeg": 90
+      },
+      "heightM": 0.75,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "counter-4",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": -4.972092942435667,
+        "cz": 3.58177582383202,
+        "w": 2.440806680142633,
+        "d": 0.6096092302800439,
+        "yawDeg": 180
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "counter-5",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 4.7949619141929185,
+        "cz": -2.2951874097185945,
+        "w": 0.5584789593222649,
+        "d": 1.3094580482182199,
+        "yawDeg": 90
+      },
+      "heightM": 0.75,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "counter-6",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 4.746842437995412,
+        "cz": 2.713840137750119,
+        "w": 0.7614356837538895,
+        "d": 1.7487411804719617,
+        "yawDeg": 0
+      },
+      "heightM": 0.75,
+      "surfaceHeightM": 0.75
+    }
+  ],
+  "unmapped": [],
+  "spawn": {
+    "x": -4.138483103011652,
+    "z": -0.5838266568057416,
+    "yawDeg": 0
+  },
+  "warnings": [
+    "Dry Balcony has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Printed room sizes against the drawn walls: 5 of 5 rooms agree on one scale; 5 rooms checked."
+  ]
+}

@@ -1,0 +1,524 @@
+{
+  "version": 1,
+  "source": "drawing-import@1",
+  "rooms": [
+    {
+      "id": "store",
+      "roomType": "other",
+      "label": "Store",
+      "polygon": [
+        {
+          "x": -0.05764050993099864,
+          "z": 1.291138153178921
+        },
+        {
+          "x": 7.5738916741296265,
+          "z": 1.291138153178921
+        },
+        {
+          "x": 7.5738916741296265,
+          "z": 3.925049650954512
+        },
+        {
+          "x": -0.05764050993099864,
+          "z": 3.925049650954512
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "passage",
+      "roomType": "other",
+      "label": "Passage",
+      "polygon": [
+        {
+          "x": -7.573892473205096,
+          "z": -0.07747036678695647
+        },
+        {
+          "x": 7.5738916741296265,
+          "z": -0.07747036678695647
+        },
+        {
+          "x": 7.5738916741296265,
+          "z": 1.1620331276911957
+        },
+        {
+          "x": -7.573892473205096,
+          "z": 1.1620331276911957
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "living-dining",
+      "roomType": "living",
+      "label": "Living/dining",
+      "polygon": [
+        {
+          "x": 3.4238157119466788,
+          "z": -3.925050183671492
+        },
+        {
+          "x": 7.5738916741296265,
+          "z": -3.925050183671492
+        },
+        {
+          "x": 7.5738916741296265,
+          "z": -0.20657539227468194
+        },
+        {
+          "x": 3.4238157119466788,
+          "z": -0.20657539227468194
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "parents-room",
+      "roomType": "bedroom",
+      "label": "Parents Room",
+      "polygon": [
+        {
+          "x": -3.8618768751883232,
+          "z": -3.925050183671492
+        },
+        {
+          "x": -0.26514016616562813,
+          "z": -3.925050183671492
+        },
+        {
+          "x": -0.26514016616562813,
+          "z": -0.20657539227468194
+        },
+        {
+          "x": -3.8618768751883232,
+          "z": -0.20657539227468194
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "master-bed-room",
+      "roomType": "bedroom",
+      "label": "Master Bed Room",
+      "polygon": [
+        {
+          "x": -7.573892473205096,
+          "z": -3.925050183671492
+        },
+        {
+          "x": -3.977156829616361,
+          "z": -3.925050183671492
+        },
+        {
+          "x": -3.977156829616361,
+          "z": -0.20657539227468194
+        },
+        {
+          "x": -7.573892473205096,
+          "z": -0.20657539227468194
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "guest-room",
+      "roomType": "bedroom",
+      "label": "Guest Room",
+      "polygon": [
+        {
+          "x": -0.14986021173759043,
+          "z": -3.925050183671492
+        },
+        {
+          "x": 3.308535757518641,
+          "z": -3.925050183671492
+        },
+        {
+          "x": 3.308535757518641,
+          "z": -0.20657539227468194
+        },
+        {
+          "x": -0.14986021173759043,
+          "z": -0.20657539227468194
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "kitchen",
+      "roomType": "kitchen",
+      "label": "Kitchen",
+      "polygon": [
+        {
+          "x": -2.801298098148498,
+          "z": 1.291138153178921
+        },
+        {
+          "x": -0.17292046435903632,
+          "z": 1.291138153178921
+        },
+        {
+          "x": -0.17292046435903632,
+          "z": 3.925049650954512
+        },
+        {
+          "x": -2.801298098148498,
+          "z": 3.925049650954512
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "washroom-1",
+      "roomType": "bathroom",
+      "label": "Washroom 1",
+      "polygon": [
+        {
+          "x": -7.573892473205096,
+          "z": 1.291138153178921
+        },
+        {
+          "x": -6.05219387845312,
+          "z": 1.291138153178921
+        },
+        {
+          "x": -6.05219387845312,
+          "z": 3.925049650954512
+        },
+        {
+          "x": -7.573892473205096,
+          "z": 3.925049650954512
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "washroom-2",
+      "roomType": "bathroom",
+      "label": "Washroom 2",
+      "polygon": [
+        {
+          "x": -5.936914989459042,
+          "z": 1.291138153178921
+        },
+        {
+          "x": -4.415216394707065,
+          "z": 1.291138153178921
+        },
+        {
+          "x": -4.415216394707065,
+          "z": 3.925049650954512
+        },
+        {
+          "x": -5.936914989459042,
+          "z": 3.925049650954512
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "sit-out",
+      "roomType": "balcony",
+      "label": "Sit-Out",
+      "polygon": [
+        {
+          "x": 4.18465595313401,
+          "z": -5.551885801556174
+        },
+        {
+          "x": 6.951373261255975,
+          "z": -5.551885801556174
+        },
+        {
+          "x": 6.951373261255975,
+          "z": -4.157459685881422
+        },
+        {
+          "x": 4.18465595313401,
+          "z": -4.157459685881422
+        }
+      ],
+      "edges": [
+        "railing",
+        "railing",
+        "wall",
+        "railing"
+      ]
+    },
+    {
+      "id": "pooja-room",
+      "roomType": "other",
+      "label": "Pooja Room",
+      "polygon": [
+        {
+          "x": -4.299936440279028,
+          "z": 1.291138153178921
+        },
+        {
+          "x": -2.9165780525765355,
+          "z": 1.291138153178921
+        },
+        {
+          "x": -2.9165780525765355,
+          "z": 3.925049650954512
+        },
+        {
+          "x": -4.299936440279028,
+          "z": 3.925049650954512
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    }
+  ],
+  "openings": [
+    {
+      "id": "window-1",
+      "roomId": "washroom-2",
+      "edge": 2,
+      "type": "window",
+      "centreM": 0.7532293136969743,
+      "widthM": 0.41500037790321853,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "window-2",
+      "roomId": "store",
+      "edge": 2,
+      "type": "window",
+      "centreM": 3.801338651245719,
+      "widthM": 0.41500037790321853,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "window-3",
+      "roomId": "washroom-1",
+      "edge": 2,
+      "type": "window",
+      "centreM": 0.7501400879311317,
+      "widthM": 0.4150014433371781,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "window-4",
+      "roomId": "pooja-room",
+      "edge": 2,
+      "type": "window",
+      "centreM": 0.7087511749027957,
+      "widthM": 0.4150014433371781,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "door-1",
+      "roomId": "passage",
+      "edge": 2,
+      "type": "door",
+      "centreM": 12.742337382533666,
+      "widthM": 0.6916786611342666,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-2",
+      "roomId": "store",
+      "edge": 0,
+      "type": "door",
+      "centreM": 3.830193799173395,
+      "widthM": 0.6916791938512463,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-3",
+      "roomId": "passage",
+      "edge": 2,
+      "type": "door",
+      "centreM": 14.376225640513878,
+      "widthM": 0.6916797265682262,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-4",
+      "roomId": "passage",
+      "edge": 2,
+      "type": "door",
+      "centreM": 11.199220901608957,
+      "widthM": 0.6916797265682262,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-5",
+      "roomId": "passage",
+      "edge": 2,
+      "type": "door",
+      "centreM": 9.066088935257433,
+      "widthM": 0.8300007558064371,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-6",
+      "roomId": "passage",
+      "edge": 0,
+      "type": "door",
+      "centreM": 9.167936963756873,
+      "widthM": 0.8300183354667703,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-7",
+      "roomId": "passage",
+      "edge": 0,
+      "type": "door",
+      "centreM": 1.8154403355628972,
+      "widthM": 0.8300188681837501,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-8",
+      "roomId": "passage",
+      "edge": 0,
+      "type": "door",
+      "centreM": 5.4916882501221504,
+      "widthM": 0.8300188681837501,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-9",
+      "roomId": "passage",
+      "edge": 0,
+      "type": "door",
+      "centreM": 13.071114054596396,
+      "widthM": 0.8300188681837501,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "window-5",
+      "roomId": "master-bed-room",
+      "edge": 3,
+      "type": "window",
+      "centreM": 1.837687662073173,
+      "widthM": 1.0845457139608856,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "window-6",
+      "roomId": "kitchen",
+      "edge": 2,
+      "type": "window",
+      "centreM": 1.31927732948575,
+      "widthM": 1.1066801044714447,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "window-7",
+      "roomId": "parents-room",
+      "edge": 0,
+      "type": "window",
+      "centreM": 1.7796641286337005,
+      "widthM": 1.3833583877024926,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "window-8",
+      "roomId": "guest-room",
+      "edge": 0,
+      "type": "window",
+      "centreM": 1.7439047022893672,
+      "widthM": 1.5216980620349965,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "opening-1",
+      "roomId": "living-dining",
+      "edge": 0,
+      "type": "opening",
+      "centreM": 2.1641687234907137,
+      "widthM": 1.798359031964201,
+      "sillM": 0,
+      "headM": 2.1
+    }
+  ],
+  "wallHeightM": 2.75,
+  "confidence": 0.7,
+  "notes": [
+    "This sheet holds 2 flats (Flat 1: 5 rooms, Flat 2: 5 rooms). The rooms of all of them are listed, but a walk-through is of one flat: keep the rooms of one flat and delete the rest in the editor.",
+    "Room \"Master Bed Room\": the walls drawn around it measure 3.60 x 3.72 m but its label says 3.66 x 3.96 m. The drawn walls are used. Check it.",
+    "Room \"Parents Room\": the walls drawn around it measure 3.60 x 3.72 m but its label says 3.66 x 3.96 m. The drawn walls are used. Check it.",
+    "Room \"Guest Room\": the walls drawn around it measure 3.46 x 3.72 m but its label says 3.66 x 3.81 m. The drawn walls are used. Check it.",
+    "Room \"Living/dining\": the walls drawn around it measure 3.72 x 4.15 m but its label says 3.66 x 4.57 m. The drawn walls are used. Check it.",
+    "Room \"Passage\": the walls drawn around it measure 1.24 x 15.15 m but its label says 1.22 x 16.69 m. The drawn walls are used. Check it.",
+    "Room \"Pooja Room\": the walls drawn around it measure 1.38 x 2.63 m but its label says 1.52 x 2.59 m. The drawn walls are used. Check it.",
+    "Room \"Store\": the walls drawn around it measure 2.63 x 7.63 m but its label says 2.59 x 8.41 m. The drawn walls are used. Check it.",
+    "Room \"Sit-Out\": the walls drawn around it measure 1.39 x 2.77 m but its label says 1.37 x 3.05 m. The drawn walls are used. Check it.",
+    "Sit-Out has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Ceiling height not found on the elevation pages. Using 2.75 m. Confirm it.",
+    "Room \"Passage\": label says 16.69 x 1.22 m, the walls drawn around it measure about 8.40 x 1.23 m.",
+    "Printed room sizes against the drawn walls: 6 of 7 rooms agree on one scale; 0 rooms checked, 1 disagree by more than 5%."
+  ]
+}

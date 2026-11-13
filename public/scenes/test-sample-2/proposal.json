@@ -1,0 +1,288 @@
+{
+  "version": 1,
+  "source": "drawing-import@1",
+  "rooms": [
+    {
+      "id": "living-dining",
+      "roomType": "living",
+      "label": "Living/dining",
+      "polygon": [
+        {
+          "x": -4.257499798981849,
+          "z": -3.0575077002733386
+        },
+        {
+          "x": 0.19249986172739894,
+          "z": -3.0575077002733386
+        },
+        {
+          "x": 0.19249986172739894,
+          "z": 0.49249264831305106
+        },
+        {
+          "x": -4.257499798981849,
+          "z": 0.49249264831305106
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "master-bed-room",
+      "roomType": "bedroom",
+      "label": "Master Bed Room",
+      "polygon": [
+        {
+          "x": 0.30750011038569,
+          "z": -3.0575077002733386
+        },
+        {
+          "x": 4.257499343495634,
+          "z": -3.0575077002733386
+        },
+        {
+          "x": 4.257499343495634,
+          "z": 0.49249264831305106
+        },
+        {
+          "x": 0.30750011038569,
+          "z": 0.49249264831305106
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "lobby",
+      "roomType": "other",
+      "label": "Lobby",
+      "polygon": [
+        {
+          "x": 0.27249963863210985,
+          "z": 0.6074924414851268
+        },
+        {
+          "x": 4.257499343495634,
+          "z": 0.6074924414851268
+        },
+        {
+          "x": 4.257499343495634,
+          "z": 3.057492441485127
+        },
+        {
+          "x": 0.27249963863210985,
+          "z": 3.057492441485127
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "kitchen",
+      "roomType": "kitchen",
+      "label": "Kitchen",
+      "polygon": [
+        {
+          "x": -4.257499798981849,
+          "z": 0.6074924414851268
+        },
+        {
+          "x": -1.5074999523598602,
+          "z": 0.6074924414851268
+        },
+        {
+          "x": -1.5074999523598602,
+          "z": 3.057492441485127
+        },
+        {
+          "x": -4.257499798981849,
+          "z": 3.057492441485127
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    },
+    {
+      "id": "sit-out",
+      "roomType": "balcony",
+      "label": "Sit-Out",
+      "polygon": [
+        {
+          "x": -3.557499929120768,
+          "z": -4.73750757013442
+        },
+        {
+          "x": -0.4574999198251305,
+          "z": -4.73750757013442
+        },
+        {
+          "x": -0.4574999198251305,
+          "z": -3.28750728661749
+        },
+        {
+          "x": -3.557499929120768,
+          "z": -3.28750728661749
+        }
+      ],
+      "edges": [
+        "railing",
+        "railing",
+        "wall",
+        "railing"
+      ]
+    },
+    {
+      "id": "washroom",
+      "roomType": "bathroom",
+      "label": "Washroom",
+      "polygon": [
+        {
+          "x": -1.3925001591877846,
+          "z": 0.6074924414851268
+        },
+        {
+          "x": 0.1575003009462494,
+          "z": 0.6074924414851268
+        },
+        {
+          "x": 0.1575003009462494,
+          "z": 3.057492441485127
+        },
+        {
+          "x": -1.3925001591877846,
+          "z": 3.057492441485127
+        }
+      ],
+      "edges": [
+        "wall",
+        "wall",
+        "wall",
+        "wall"
+      ]
+    }
+  ],
+  "openings": [
+    {
+      "id": "window-1",
+      "roomId": "washroom",
+      "edge": 2,
+      "type": "window",
+      "centreM": 0.7650000302108204,
+      "widthM": 0.4999999721130889,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "door-1",
+      "roomId": "living-dining",
+      "edge": 2,
+      "type": "door",
+      "centreM": 0.79999959099197,
+      "widthM": 0.7499999581696334,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-2",
+      "roomId": "living-dining",
+      "edge": 2,
+      "type": "door",
+      "centreM": 3.0499999209870854,
+      "widthM": 0.899999767609074,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-3",
+      "roomId": "master-bed-room",
+      "edge": 2,
+      "type": "door",
+      "centreM": 1.9649998721849906,
+      "widthM": 0.899999767609074,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-4",
+      "roomId": "living-dining",
+      "edge": 1,
+      "type": "door",
+      "centreM": 1.800000218447471,
+      "widthM": 0.9000002230952892,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "door-5",
+      "roomId": "lobby",
+      "edge": 2,
+      "type": "door",
+      "centreM": 2.014999960493543,
+      "widthM": 0.9999999442261778,
+      "sillM": 0,
+      "headM": 2.1
+    },
+    {
+      "id": "window-2",
+      "roomId": "kitchen",
+      "edge": 3,
+      "type": "window",
+      "centreM": 1.2149999140153573,
+      "widthM": 1.3000000185912741,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "window-3",
+      "roomId": "master-bed-room",
+      "edge": 0,
+      "type": "window",
+      "centreM": 1.9849993609249532,
+      "widthM": 1.3500001068998262,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "window-4",
+      "roomId": "living-dining",
+      "edge": 3,
+      "type": "window",
+      "centreM": 1.7499999023958113,
+      "widthM": 1.5499995491616034,
+      "sillM": 0.9,
+      "headM": 2.1
+    },
+    {
+      "id": "opening-1",
+      "roomId": "living-dining",
+      "edge": 0,
+      "type": "opening",
+      "centreM": 2.249999646765792,
+      "widthM": 2.199999786200348,
+      "sillM": 0,
+      "headM": 2.1
+    }
+  ],
+  "wallHeightM": 3,
+  "confidence": 0.7,
+  "notes": [
+    "Sit-Out has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Printed room sizes against the drawn walls: 5 of 5 rooms agree on one scale; 5 rooms checked."
+  ]
+}

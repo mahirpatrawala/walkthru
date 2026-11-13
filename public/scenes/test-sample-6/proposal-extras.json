@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "sourceFile": "drawing set",
+  "planPage": 1,
+  "scale": {
+    "ptPerM": 99.99999936584264,
+    "votes": [
+      {
+        "source": "room Living Room short side",
+        "ptPerM": 99.99999313440313
+      },
+      {
+        "source": "room Living Room area",
+        "ptPerM": 99.99999560049392
+      },
+      {
+        "source": "room Living Room long side",
+        "ptPerM": 99.9999980665848
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 99.99999936584264
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 99.99999936584264
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 99.99999936584264
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 99.99999936584264
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 99.99999936584264
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 99.99999936584264
+      },
+      {
+        "source": "room Kitchen short side",
+        "ptPerM": 100.00000266995434
+      },
+      {
+        "source": "room Bath short side",
+        "ptPerM": 100.00000633747405
+      },
+      {
+        "source": "room Kitchen long side",
+        "ptPerM": 100.00000659635779
+      },
+      {
+        "source": "room Bath long side",
+        "ptPerM": 100.00000659635779
+      }
+    ],
+    "agreeing": 13,
+    "disagreementPct": 0.000013461954751042215
+  },
+  "rooms": [
+    {
+      "id": "living-room",
+      "label": "Living Room",
+      "roomType": "living",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 4.2672,
+        "l": 4.4196
+      },
+      "labelAreaM2": 18.85931712,
+      "areaM2": 18.859315699761908,
+      "verified": true
+    },
+    {
+      "id": "bath",
+      "label": "Bath",
+      "roomType": "bathroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 2.3114,
+        "l": 2.5907999999999998
+      },
+      "areaM2": 5.988375970477845,
+      "verified": false,
+      "note": "size not confirmed yet"
+    },
+    {
+      "id": "kitchen",
+      "label": "Kitchen",
+      "roomType": "kitchen",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 1.8288,
+        "l": 2.5907999999999998
+      },
+      "areaM2": 4.7380555391364325,
+      "verified": false,
+      "note": "size not confirmed yet"
+    }
+  ],
+  "ceiling": {
+    "heightM": 2.7432,
+    "method": "text",
+    "page": 1,
+    "candidatesM": [
+      2.7432
+    ],
+    "confidence": 0.97,
+    "verified": true,
+    "source": {
+      "page": 2,
+      "sheet": "WALL 3"
+    },
+    "provenance": "checked against the elevation"
+  },
+  "furniture": [
+    {
+      "id": "sofa-1",
+      "source": "real",
+      "kind": "sofa",
+      "label": "",
+      "box": {
+        "cx": -1.3686996546758032,
+        "cz": -1.6764000045274985,
+        "w": 1.9811999637358004,
+        "d": 0.9144000302127976,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "counter-1",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 2.7563002188952965,
+        "cz": -1.8288002130134868,
+        "w": 1.5239999486294016,
+        "d": 0.6095996132408208,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "counter-2",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": 4.360500210757902,
+        "cz": 4.459999875695527,
+        "w": 0.6200000039317757,
+        "d": 2.300000014585619,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "dining-1",
+      "source": "real",
+      "kind": "dining",
+      "label": "",
+      "box": {
+        "cx": -1.5180398655837928,
+        "cz": -0.196180268578076,
+        "w": 0.9144000302127976,
+        "d": 1.5240002538051847,
+        "yawDeg": 90
+      },
+      "heightM": 0.95,
+      "surfaceHeightM": 0.75
+    }
+  ],
+  "unmapped": [
+    {
+      "label": "Sofa",
+      "sizeM": {
+        "w": 0.9144,
+        "l": 1.9811999999999999
+      },
+      "at": {
+        "x": -1.368703950574268,
+        "z": -1.6737889132023462
+      },
+      "reason": "No outline of the labelled proportions near the label."
+    },
+    {
+      "label": "Dining Table",
+      "sizeM": {
+        "w": 0.9144,
+        "l": 1.524
+      },
+      "at": {
+        "x": -1.5180355765212654,
+        "z": -0.1935689038154221
+      },
+      "reason": "No outline of the labelled proportions near the label."
+    },
+    {
+      "label": "Tv Unit",
+      "at": {
+        "x": -2.918699710403681,
+        "z": 1.9063011095010571
+      },
+      "reason": "No furniture kind for a tv unit."
+    }
+  ],
+  "spawn": {
+    "x": -1.3588996973382654,
+    "z": -1.5258789165528697e-7,
+    "yawDeg": 0
+  },
+  "warnings": [
+    "Kitchen has no door on the drawing and no swing arc was found. Add one in the editor."
+  ]
+}

@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { offSheetReason, sheetArea } from '../src/import/partial';
+import { chooseSpawn } from '../src/import/propose';
 import { createEmptyProperty, validateProperty } from '../src/core/layout-validate';
 import { defaultEdges } from '../src/core/layout-geom';
 import { rasterizeLayout } from '../src/core/layout-raster';
@@ -113,5 +114,15 @@ describe('room list, chip, badge', () => {
     expect(partialRoomInView(l, g, { x: 1, z: 1.5 }, 90)?.id).toBe('guess'); // east, through the doorway at z 1.5
     expect(partialRoomInView(l, g, { x: 1, z: 1.5 }, 270)).toBeNull();
     expect(partialRoomInView(l, g, { x: 3.6, z: 0.4 }, 90)).toBeNull(); // the wall beside the doorway
+  });
+});
+
+describe('start point', () => {
+  it('is never in a partial room, even when it is the largest', () => {
+    const l = layout();
+    l.rooms = l.rooms.map((r) => (r.id === 'guess' ? { ...rect('guess', 4.12, 0, 14, 6, true), edges: r.edges } : r));
+    const sp = chooseSpawn(l, []);
+    expect(sp).not.toBeNull();
+    expect(sp!.x).toBeLessThan(4);
   });
 });

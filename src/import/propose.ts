@@ -396,7 +396,7 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
         }
       }
       // spawn just inside the passage's entry door, facing in
-      const entry = allOpenings.find((o) => passages.some((x) => x.id === o.roomId) && o.type === 'door');
+      const entry = allOpenings.find((o) => passages.some((x) => x.id === o.roomId && !x.partial) && o.type === 'door');
       if (entry) {
         const room = allRooms.find((r) => r.id === entry.roomId)!;
         const p = room.polygon[entry.edge], q = room.polygon[(entry.edge + 1) % room.polygon.length];
@@ -455,7 +455,9 @@ function fmtDims(d: { w: number; l: number }): string {
 export function chooseSpawn(layout: Layout, furniture: ProposalExtras['furniture']): { x: number; z: number; yawDeg: number } | null {
   if (!layout.rooms.length) return null;
   const grid = stampFurniture(rasterizeLayout(layout), furniture);
-  const largest = layout.rooms.reduce((a, b) => (polygonArea(b.polygon) > polygonArea(a.polygon) ? b : a));
+  // a room that is only partly on the drawing is a guess, never a start point (unless nothing else exists)
+  const whole = layout.rooms.filter((r) => !r.partial);
+  const largest = (whole.length ? whole : layout.rooms).reduce((a, b) => (polygonArea(b.polygon) > polygonArea(a.polygon) ? b : a));
   const xs = largest.polygon.map((p) => p.x), zs = largest.polygon.map((p) => p.z);
   const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
   if (cellValue(grid, cx, cz) === GRID_FREE && !furniture.some((f) => pointInBox({ x: cx, z: cz }, f.box))) return { x: cx, z: cz, yawDeg: 0 };
