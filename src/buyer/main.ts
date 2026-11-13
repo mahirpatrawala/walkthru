@@ -18,6 +18,7 @@ import { prefetchPerson } from '../look/people';
 import { tierFromQuery } from '../look/quality';
 import { CHARACTER_URL } from '../types';
 import { createLook, fetchLookFile } from '../look/look';
+import { mountKit } from '../look/kit';
 import type { Look } from '../look/look';
 import { mountLookPanel } from '../look/look-panel';
 import { createInput } from '../engine/controls';
@@ -389,6 +390,7 @@ async function boot(): Promise<void> {
     },
   });
   rooms = createRoomsSheet(document.body, layout, () => { /* nothing to resume */ }, unverifiedRooms);
+  mountKit({ viewer, layout, shell, look, store }); // look-kit: typical Indian-flat fittings (decor only, labelled, 'Plain' removes them)
 
   // ---- spawn
   // The buyer starts inside the chosen room (?room=, else the default: the largest bedroom or living room), just in from its
