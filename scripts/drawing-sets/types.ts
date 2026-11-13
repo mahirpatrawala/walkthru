@@ -40,6 +40,8 @@ export interface SetOptions {
   keyStyle: KeyStyle;
   captionStyle: CaptionStyle;
   elevOnPlanPage: boolean;
+  /** a test can pin the built-in unit: bays, shutters per bay and which hinge signals every bay draws (left to the seed when absent) */
+  unitPin?: { bays?: number; shutters?: number; signals?: HingeSignals };
   internalView: boolean;
   page: 'A4' | 'A3';
   rotation: 0 | 90 | 180 | 270;

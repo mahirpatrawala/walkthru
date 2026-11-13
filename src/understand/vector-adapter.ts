@@ -11,9 +11,9 @@
 import { createHash } from 'node:crypto';
 import { boxCorners } from '../core/geometry';
 import type { Vec2 } from '../types';
-import { proposeWithTrace } from '../import/propose';
 import type { ProposalExtras, RoomFinding, VectorPage } from '../import/types';
-import { analyseTrace } from './text-dims';
+import { understandPages } from './pipeline';
+import { addElevationData } from './write';
 import type { Check, Extracted, Method, Status } from './types';
 import type { UnderstandingDoc } from './review-model';
 import { fmtFtIn } from './review-model';
@@ -35,8 +35,8 @@ const bboxOf = (pts: [number, number][]): Box4 => [R(Math.min(...pts.map((p) => 
 const CONF = { verifiedText: 0.99, verifiedRead: 0.95, twoMethods: 0.6, oneMethod: 0.4, geometry: 0.3, guess: 0.1 };
 
 export function understandVector(pagesIn: VectorPage[], opts: { sceneId: string; sha256: string }): VectorRun {
-  const { result, trace } = proposeWithTrace(pagesIn, 'drawing set', opts.sceneId);
-  const an = analyseTrace(result, trace);
+  const u = understandPages(pagesIn, 'drawing set', opts.sceneId);
+  const { result, trace, analysis: an } = u;
   const { proposal } = result;
   const extras: ProposalExtras = { ...result.extras, sourceFile: 'drawing set' };
   const planPage = trace.planIdx + 1;
@@ -148,9 +148,11 @@ export function understandVector(pagesIn: VectorPage[], opts: { sceneId: string;
     views, dimensions, rooms, openings, items, symbols: [], ceiling, conflicts,
     warnings: [...extras.warnings, ...an.warnings],
   };
+  const base: BaseOutputs = { proposal, extras, designs: { version: 1, source: GENERIC_SOURCE(pagesIn.length), items: {} } };
+  addElevationData(u, doc, base, ex, planPage);
   return {
     doc,
-    base: { proposal, extras, designs: { version: 1, source: GENERIC_SOURCE(pagesIn.length), items: {} } },
+    base,
     pages: trace.pages.map((p, i) => ({ index: i, kind: trace.kinds[i], width: trace.rawPages[i].width, height: trace.rawPages[i].height, phi: -(((p as { rotationDeg?: number }).rotationDeg ?? 0)) })),
   };
 }

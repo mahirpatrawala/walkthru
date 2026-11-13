@@ -40,7 +40,7 @@ export function ceilingTrustFromExtras(extras: unknown): CeilingTrust {
   if (!c || typeof c !== 'object') return { known: true };
   const o = c as { verified?: unknown; provenance?: unknown };
   if (o.verified === true) return { known: true };
-  if (typeof o.provenance === 'string' && /confirmed|corrected|typed/i.test(o.provenance)) return { known: true };
+  if (typeof o.provenance === 'string' && /confirmed|corrected|typed|checked against/i.test(o.provenance)) return { known: true };
   return { known: false };
 }
 let ceilingTrust: CeilingTrust = { known: true };
