@@ -610,6 +610,7 @@ async function boot(): Promise<void> {
       stats: () => look.stats(),
       setTier: (t: 'low' | 'medium' | 'high') => look.setTier(t),
       setHour: (h: number) => look.setHour(h),
+      setPreset: (p: 'morning' | 'afternoon' | 'evening' | 'night') => look.setPreset(p),
       setTrueColours: (on: boolean) => look.setTrueColours(on),
       /** painterly mode (C11c): true opens the painting (resolves with the session), false goes back */
       paint: async (on: boolean) => {

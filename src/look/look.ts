@@ -5,21 +5,25 @@ import type { Viewer } from '../engine/viewer';
 import type { Finishes, Grid, Layout } from '../types';
 import { AssetLoader } from './assets';
 import { buildAoField } from './floor-ao';
+import { DEFAULT_PRESET, PRESET_HOURS, TRUE_GRADE, clampDayHour, gradeAt, parsePreset, presetOfHour } from './grade';
+import type { Grade, InteriorLightKind, LookPreset } from './grade';
+import { InteriorLights } from './interior';
 import { createLookMaterials } from './materials';
 import type { LookMaterials } from './materials';
 import { createPostChain } from './post';
 import type { PostChain } from './post';
-import { FpsWatch, FrameTimer, TIERS, lowerTier, loadSavedTier, readDevice, guessTier, saveTier, stepDown, tierFromQuery } from './quality';
-import type { TierConfig } from './quality';
+import { FpsWatch, FrameTimer, TIERS, lowerTier, loadSavedTier, readDevice, guessTier, saveTier, stepDown, tierFromQuery, toneMapperFromQuery } from './quality';
+import type { TierConfig, ToneMapperName } from './quality';
 import { Reflections } from './reflect';
 import { Sky, chooseBackdrop } from './sky';
 import { sunState } from './sun';
 import type { SunState } from './sun';
-import { DEFAULT_HOUR, parseLookFile } from './types';
+import { parseLookFile } from './types';
 import type { LookFile, Tier } from './types';
 
 export type { Tier } from './types';
 export type { LookFile } from './types';
+export type { LookPreset, InteriorLightKind } from './grade';
 
 export type QualityMode = 'auto' | Tier;
 
@@ -28,7 +32,13 @@ export interface LookStats { tier: Tier; fps: number; drawCalls: number; triangl
 export interface Look {
   readonly tier: Tier;
   setTier(t: Tier): Promise<void>;
-  /** 6..19 */ setHour(h: number): void;
+  /** 6..21 (the sun is modelled to 19:00, after that it is Night) */ setHour(h: number): void;
+  /** morning, afternoon, evening or night (an hour of the same slider); leaves True colours */
+  setPreset(p: LookPreset): void;
+  /** the preset the hour sits on, or null between two of them */
+  readonly preset: LookPreset | null;
+  /** the grade in force: exposure, sky, light colours, how far the interior lights are on */
+  grade(): Grade;
   setTrueColours(on: boolean): void;
   /** call after furniture changes; rebuilds the floor AO, the static shadow map and the cube map */
   refresh(grid: Grid): void;
@@ -62,6 +72,14 @@ export interface Look {
   onChange(cb: () => void): () => void;
   /** C11c: while `fn` is set it draws every frame instead of the look's own render path (the painting). `null` hands the frame back. */
   holdFrame(fn: ((dt: number) => void) | null): void;
+  /**
+   * Interior lights (SPEC 16.5). A fixture is any object whose `userData.walkthruLight` is 'tube' | 'cove' | 'fan' | 'lamp'.
+   * Meshes have their emissive intensity driven, THREE.Lights their intensity, and a small pool of real point lights follows the
+   * walker to the nearest fixtures. This call tags `obj` for you and rescans.
+   */
+  registerInteriorLight(obj: THREE.Object3D, kind: InteriorLightKind): void;
+  /** rescan the scene parts for tagged fixtures (attach(), refresh() and setLayout() do it too) */
+  refreshInteriorLights(): void;
   /** acceptance helpers (SPEC 16.8) */
   debug: LookDebug;
 }
@@ -84,6 +102,7 @@ export interface LookDebug {
   renderNow(): void;
   /** internals for inspection in a browser */
   reflections: unknown;
+  interior: InteriorLights;
   readonly post: PostChain | null;
 }
 
@@ -101,15 +120,11 @@ export async function fetchLookFile(sceneId: string): Promise<LookFile | null> {
 }
 
 const OLD_BACKGROUND = '#EEF0F3';
-/** daylight white for the fill light: D65 to D55, a touch warm so shade reads white, not blue */
-const SKY_DAYLIGHT = new THREE.Color('#F6F3EE');
-const SKY_WARM = new THREE.Color('#FFD9B0');
 /** SPEC 16.5: hemisphere "intensity 1.0" in the spec's units. three's lights are scaled by pi, so 1.0 shows a surface at its own colour. */
 const TRUE_COLOUR_HEMI = Math.PI;
-const EXPOSURE_DEFAULT = 1.3;
 const EXPOSURE_TRUE = 1.0;
-/** the sun's output in three units per unit of sunIntensity() */
-const SUN_GAIN = 4.4;
+/** the hemisphere intensities in grade.ts are for this tier value (medium and high); low is scaled from it */
+const HEMI_REFERENCE = 1.25;
 
 export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: LookFile | null, opts: { tier?: Tier; storage?: Storage | null; hasSplat?: boolean; /** false keeps the flat background colour (the editor's orbit preview) */ backdrop?: boolean } = {}): Promise<Look> {
   const { renderer, scene, camera } = viewer;
@@ -131,7 +146,12 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let tier: Tier = forced ?? lowerTier(guessTier(device), loadSavedTier(storage) ?? 'high');
   let quality: QualityMode = forced ?? 'auto';
   let cfg: TierConfig = TIERS[tier];
-  let hour = lookFile?.hour ?? DEFAULT_HOUR;
+  const toneMapper: ToneMapperName = toneMapperFromQuery(typeof location !== 'undefined' ? location.search : '');
+  const queryPreset = (() => { try { return parsePreset(new URLSearchParams(location.search).get('preset')); } catch { return null; } })();
+  let hour = clampDayHour(lookFile?.hour ?? PRESET_HOURS[queryPreset ?? lookFile?.preset ?? DEFAULT_PRESET]);
+  let grade: Grade = gradeAt(hour);
+  let skyKey = '';
+  const interior = new InteriorLights(scene, layout);
   let trueColours = false;
   let scanVisible = false;
   let post: PostChain | null = null;
@@ -185,10 +205,6 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     sunLight.shadow.normalBias = 0.03;
   }
 
-  function skyColour(): THREE.Color {
-    return SKY_DAYLIGHT.clone().lerp(SKY_WARM, sun.warmth);
-  }
-
   function shadowsOn(): boolean {
     return cfg.shadow !== 'none' && !trueColours && !scanVisible;
   }
@@ -197,8 +213,35 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     if (cfg.shadow === 'static') renderer.shadowMap.needsUpdate = true;
   }
 
+  const threeToneMapping = (): THREE.ToneMapping => (toneMapper === 'aces' ? THREE.ACESFilmicToneMapping : toneMapper === 'neutral' ? THREE.NeutralToneMapping : THREE.AgXToneMapping);
+  const tmp = new THREE.Color();
+  const floorLinear = new THREE.Color();
+  const WARM_AMBIENT = new THREE.Color('#FFD2A0');
+
+  /** the vignette is a CSS gradient over the canvas: free on every tier, and it never touches the canvas pixels */
+  const vignette = opts.backdrop === false || typeof document === 'undefined' || !viewer.canvas.parentElement ? null : (() => {
+    const el = document.createElement('div');
+    el.setAttribute('aria-hidden', 'true');
+    el.dataset.testid = 'look-vignette';
+    el.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .4s;background:radial-gradient(ellipse 78% 74% at 50% 50%, rgba(36,18,6,0) 52%, rgba(36,18,6,.95) 100%)';
+    viewer.canvas.parentElement.insertBefore(el, viewer.canvas.nextSibling);
+    return el;
+  })();
+
+  /** the sky the window shows: the plain graded one (or the broker's own backdrop picture from look.json) */
+  function syncSky(force = false): void {
+    if (opts.backdrop === false || scanVisible) return;
+    const bd = chooseBackdrop(lookFile, hour, trueColours);
+    const key = bd ? `pic|${bd}|${cfg.hdri}` : `plain|${trueColours ? 'true' : hour.toFixed(2)}|${cfg.environment}`;
+    if (!force && key === skyKey) return;
+    skyKey = key;
+    if (bd) void sky.show(bd, cfg).catch((e) => console.warn('[walkthru] backdrop not loaded', e));
+    else sky.showPlain(grade.sky, grade.night ? 14 : sun.elevationDeg, cfg);
+  }
+
   function applyLighting(): void {
     sun = sunState(layout, lookFile, hour);
+    grade = trueColours ? TRUE_GRADE : gradeAt(hour);
     if (scanVisible) {
       // rule 5: exactly as before C11
       hemi.color.copy(oldLights.hemiColour); hemi.groundColor.copy(oldLights.hemiGround); hemi.intensity = oldLights.hemiIntensity;
@@ -211,6 +254,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       renderer.toneMapping = THREE.NoToneMapping;
       renderer.toneMappingExposure = 1;
       renderer.shadowMap.enabled = false;
+      interior.setGrade(TRUE_GRADE);
+      if (vignette) vignette.style.opacity = '0';
       return;
     }
     if (trueColours) {
@@ -218,22 +263,49 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       sunLight.visible = false; sunLight.intensity = 0; sunLight.castShadow = false;
       scene.environmentIntensity = 0;
     } else {
-      hemi.color.copy(skyColour()).multiplyScalar(cfg.skyScale); hemi.groundColor.set(cfg.groundColour).multiplyScalar(cfg.groundScale); hemi.intensity = cfg.hemiIntensity;
-      sunLight.visible = true;
-      sunLight.color.setRGB(sun.colour[0], sun.colour[1], sun.colour[2]);
-      sunLight.intensity = sun.intensity * SUN_GAIN * cfg.sunScale;
-      scene.environmentIntensity = cfg.envIntensity;
-      sunLight.castShadow = shadowsOn();
+      const g = grade;
+      // sky half: the preset's sky light. Ground half: bounce off the floor, so it carries the floor's own colour and the sun's tint
+      floorLinear.set(layout.finishes.floorColor);
+      tmp.setRGB(g.sunColour[0], g.sunColour[1], g.sunColour[2]);
+      hemi.color.setRGB(g.hemiSky[0], g.hemiSky[1], g.hemiSky[2]).multiplyScalar(cfg.skyScale);
+      hemi.groundColor.setRGB(g.hemiGround[0], g.hemiGround[1], g.hemiGround[2]);
+      if (!g.night) hemi.groundColor.lerp(tmp.multiply(floorLinear).multiplyScalar(1.4), 0.25);
+      hemi.groundColor.multiplyScalar(cfg.groundScale);
+      hemi.intensity = g.hemiIntensity * (cfg.hemiIntensity / HEMI_REFERENCE);
+      // tiers with no grade pass (low and medium: no post chain) get the sun's warmth through the sky half of the ambient instead
+      if (!post && !g.night) hemi.color.lerp(tmp.setRGB(g.sunColour[0], g.sunColour[1], g.sunColour[2]), cfg.shadow === 'none' ? 0.3 : 0.18);
+      // a tier with no pooled lights fakes the lamps with a warm lift of the ambient
+      const lamps = Math.max(g.interior.tube, g.interior.cove);
+      if (cfg.interiorLights === 0 && lamps > 0) {
+        hemi.color.lerp(WARM_AMBIENT, 0.35 * lamps);
+        hemi.groundColor.lerp(WARM_AMBIENT, 0.3 * lamps);
+        hemi.intensity *= 1 + 0.55 * lamps;
+      }
+      const sunOn = !g.night && g.sunIntensity > 0.01;
+      sunLight.visible = sunOn;
+      sunLight.color.setRGB(g.sunColour[0], g.sunColour[1], g.sunColour[2]);
+      sunLight.intensity = g.sunIntensity * cfg.sunScale;
+      scene.environmentIntensity = cfg.envIntensity * g.envScale;
+      sunLight.castShadow = shadowsOn() && sunOn;
       fitShadow();
     }
-    const exposure = trueColours ? EXPOSURE_TRUE : EXPOSURE_DEFAULT;
+    // low is a touch brighter: with no sun patch and no real lights it has less to show
+    const exposure = grade.exposure * (cfg.tier === 'low' && !trueColours ? 1.12 : 1);
     // "True colours" is no tone mapping at all: nothing in it is brighter than its own colour, so surfaces show it exactly
-    renderer.toneMapping = post || trueColours ? THREE.NoToneMapping : THREE.NeutralToneMapping;
+    renderer.toneMapping = post || trueColours ? THREE.NoToneMapping : threeToneMapping();
     renderer.toneMappingExposure = exposure;
-    post?.setExposure(exposure);
-    post?.setToneMapping(!trueColours);
+    post?.setToneMapping(!trueColours, toneMapper);
+    if (post && !trueColours) post.setGrade({ exposure, whiteBalance: grade.post.whiteBalance, saturation: grade.post.saturation, contrast: grade.post.contrast, shadowTint: grade.post.shadowTint, highlightTint: grade.post.highlightTint, bloom: cfg.bloom ? grade.post.bloom : 0 });
+    else post?.setExposure(exposure);
     sky.setExposure(exposure);
     sky.setSunAzimuth(sun.planAzimuthDeg);
+    syncSky();
+    interior.setGrade(grade);
+    // look-kit's fixtures (mountKit) switch on with the evening and the night: tube and fan at the tube level, cove at its own
+    const kit = (globalThis as { __walkthruKit?: { setLit?: (kind: string, on: boolean) => void } }).__walkthruKit;
+    if (kit?.setLit) { const on = !trueColours && !scanVisible; kit.setLit('tube', on && grade.interior.tube > 0.2); kit.setLit('fan', on && grade.interior.tube > 0.2); kit.setLit('cove', on && grade.interior.cove > 0.2); }
+    // low tiers have no post chain to carry the vignette, so it is the CSS one on all of them
+    if (vignette) vignette.style.opacity = trueColours ? '0' : String(grade.vignette);
     needsShadowRefresh();
   }
 
@@ -270,7 +342,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     renderer.shadowMap.enabled = shadowsOn();
     // SPEC-GAP: 16.5 names PCFSoftShadowMap for high, but three 0.186 removed it (PCFShadowMap is the soft one now); high widens the filter instead
     renderer.shadowMap.type = THREE.PCFShadowMap;
-    sunLight.shadow.radius = cfg.shadow === 'live' ? 3 : 1.5;
+    sunLight.shadow.radius = cfg.shadow === 'live' ? 4 : 2;
     renderer.shadowMap.autoUpdate = cfg.shadow === 'live';
     if (cfg.shadow !== 'none') {
       if (sunLight.shadow.mapSize.x !== cfg.shadowMapSize) {
@@ -280,6 +352,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       }
     }
     if (prevType !== renderer.shadowMap.type || wasEnabled !== renderer.shadowMap.enabled) setMaterialsDirty();
+    interior.setPoolSize(cfg.interiorLights);
     materials.configure(cfg, { trueColours });
     reflections.setHideList(() => {
       const hide: THREE.Object3D[] = [];
@@ -298,7 +371,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     if (wantPost) {
       if (post) viewer.setRenderOverride(renderFrame);
       else if (!postLoading) {
-        postLoading = createPostChain(viewer, { exposure: trueColours ? EXPOSURE_TRUE : EXPOSURE_DEFAULT, bloom: cfg.bloom })
+        postLoading = createPostChain(viewer, { exposure: trueColours ? EXPOSURE_TRUE : grade.exposure, bloom: cfg.bloom, mapper: toneMapper })
           .then((p) => {
             if (disposed || !TIERS[tier].post) { p.dispose(); return; }
             post = p;
@@ -316,7 +389,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     const usePost = !!post && wantPost;
     if (usePost || wantReflection === 'planar') viewer.setRenderOverride(renderFrame);
     else viewer.setRenderOverride(null);
-    renderer.toneMapping = scanVisible || usePost || trueColours ? THREE.NoToneMapping : THREE.NeutralToneMapping;
+    renderer.toneMapping = scanVisible || usePost || trueColours ? THREE.NoToneMapping : threeToneMapping();
     reflections.setMode(wantReflection);
     if (held) viewer.setRenderOverride(held);
   }
@@ -344,8 +417,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     loadingTier = true;
     const p = (async () => {
       sky.reset();
+      skyKey = '';
       const jobs: Promise<unknown>[] = [
-        opts.backdrop === false ? Promise.resolve() : sky.show(chooseBackdrop(lookFile, hour, trueColours), cfg).catch((e) => console.warn('[walkthru] backdrop not loaded', e)),
         materials.loadTextures(loader, cfg).catch((e) => console.warn('[walkthru] textures not loaded', e)),
       ];
       if (cfg.post) {
@@ -355,6 +428,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       await Promise.all(jobs);
       if (disposed || my !== tier) return;
       materials.configure(cfg, { trueColours });
+      syncSky(true);
       applyLighting();
       needsShadowRefresh();
       reflections.updateCube();
@@ -392,8 +466,9 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   const watch = new FpsWatch(cfg.fpsTarget);
   let bench: FrameTimer | null = null;
   let lastNow = 0;
-  const offFrame = viewer.onFrame(() => {
+  const offFrame = viewer.onFrame((frameDt) => {
     renderer.info.reset();
+    if (!disposed && !scanVisible) interior.update(frameDt, { x: camera.position.x, z: camera.position.z });
     const now = performance.now();
     const dt = lastNow ? (now - lastNow) / 1000 : 0;
     lastNow = now;
@@ -447,30 +522,39 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
         await switchTier(q);
       }
     },
+    get preset() { return presetOfHour(hour); },
+    grade: () => grade,
     setHour(h) {
-      hour = Math.min(19, Math.max(6, h));
+      hour = clampDayHour(h);
       applyLighting();
-      if (opts.backdrop !== false) void sky.show(chooseBackdrop(lookFile, hour, trueColours), cfg).catch(() => {});
       scheduleCube();
       notify();
+    },
+    setPreset(p) {
+      if (trueColours) look.setTrueColours(false);
+      look.setHour(PRESET_HOURS[p]);
     },
     setTrueColours(on) {
       trueColours = on;
       materials.configure(cfg, { trueColours });
       applyTier();
-      if (opts.backdrop !== false) void sky.show(chooseBackdrop(lookFile, hour, trueColours), cfg).then(() => { applyLighting(); }).catch(() => {});
       scheduleCube();
+      notify();
     },
+    registerInteriorLight(obj, kind) { interior.register(obj, kind); interior.scan(true); },
+    refreshInteriorLights() { interior.scan(true); },
     refresh(g) {
       grid = g;
       rebuildAo(g);
       applyShadowFlags();
       needsShadowRefresh();
       scheduleCube();
+      interior.scan(true);
     },
     setScanVisible(v) {
       if (scanVisible === v) return;
       scanVisible = v;
+      skyKey = '';
       if (!v && opts.hasSplat) postAllowed = true;
       materials.setPlain(v);
       applyTier();
@@ -486,6 +570,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     },
     attach(p) {
       parts = { ...parts, ...p };
+      interior.setRoots([parts.shell, parts.furnitureRoot]);
       applyShadowFlags();
       needsShadowRefresh();
     },
@@ -493,6 +578,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       layout = l;
       materials.setWallHeight(l.wallHeightM);
       reflections.setLayout(l);
+      interior.setLayout(l);
       if (g) { grid = g; rebuildAo(g); }
       applyLighting();
       scheduleCube();
@@ -521,11 +607,13 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     onChange(cb) { listeners.add(cb); return () => { listeners.delete(cb); }; },
     holdFrame(fn) {
       held = fn;
+      if (vignette) vignette.style.display = fn ? 'none' : '';
       applyRenderPath();
     },
     debug: {
       reflections,
       get post() { return post; },
+      interior,
       renderNow() {
         if (viewer.renderOverride) viewer.renderOverride(0.016);
         else renderer.render(scene, camera);
@@ -558,6 +646,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       disposed = true;
       offFrame();
       offAo();
+      interior.dispose();
+      vignette?.remove();
       if (cubeTimer) clearTimeout(cubeTimer);
       viewer.setRenderOverride(null);
       post?.dispose();
