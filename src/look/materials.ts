@@ -84,6 +84,9 @@ uniform sampler2D uLkNorm; uniform float uLkNormScale; uniform float uLkNormOn;
 uniform sampler2D uLkRough; uniform vec2 uLkRoughRange; uniform float uLkRoughOn;
 uniform sampler2D uLkAO; uniform vec4 uLkAORect; uniform float uLkAOOn;
 uniform float uLkWallAOOn; uniform float uLkWallH;
+uniform float uLkKit; uniform vec2 uLkKitAxis; uniform vec2 uLkKitOrigin; uniform vec2 uLkKitTile; uniform float uLkKitGrout; uniform vec3 uLkKitGroutCol;
+uniform float uLkKitVar; uniform float uLkKitRoughMin;
+float lkGrout;
 uniform float uLkReflMode; uniform samplerCube uLkCube; uniform sampler2D uLkPlanar;
 uniform mat4 uLkReflVP; uniform vec2 uLkReflSize; uniform float uLkReflStrength; uniform float uLkReflOn;
 vec2 lkUV; vec2 lkUVc; vec2 lkDx; vec2 lkDy;
@@ -94,6 +97,11 @@ void lkSetup() {
   if (uLkMode < 0.5) {
     // floor: one tile of the grid is one print of the texture, a random quarter of it per tile
     lkUVc = vec2(vLkPos.x, -vLkPos.z) / uLkTile;
+    if (uLkKit > 0.5) {
+      // look-kit: the room's own tile grid, aligned to its longest wall and anchored at its corner (SPEC 16.5 floors)
+      vec2 d = vLkPos.xz - uLkKitOrigin;
+      lkUVc = vec2(dot(d, uLkKitAxis), dot(d, vec2(-uLkKitAxis.y, uLkKitAxis.x))) / uLkKitTile;
+    }
     vec2 id = floor(lkUVc);
     vec2 q = step(0.5, vec2(lkHash(id), lkHash(id + 7.3)));
     lkUV = fract(lkUVc) * 0.5 + 0.5 * q;
@@ -128,11 +136,24 @@ if (uLkDetailOn > 0.5 && uLkPlain < 0.5) {
   lkDet = clamp(dot(lkT, vec3(0.2126, 0.7152, 0.0722)) / uLkDetailMean, uLkDetailClamp.x, uLkDetailClamp.y);
 }
 diffuseColor.rgb *= lkDet;
+lkGrout = 0.0;
+if (uLkKit > 0.5) {
+  // a thin grout line between tiles, at least about one pixel wide so it holds up at a distance, and a small per-tile tone shift
+  vec2 lkCell = fract(lkUVc);
+  vec2 lkFw = max(fwidth(lkUVc), vec2(1e-5));
+  vec2 lkDist = min(lkCell, 1.0 - lkCell);
+  vec2 lkHalf = min(max(vec2(uLkKitGrout * 0.5) / uLkKitTile, lkFw * 0.8), vec2(0.08));
+  vec2 lkM = 1.0 - smoothstep(lkHalf - lkFw * 0.6, lkHalf + lkFw * 0.6, lkDist);
+  lkGrout = max(lkM.x, lkM.y);
+  if (uLkPlain < 0.5) diffuseColor.rgb *= 1.0 + (lkHash(floor(lkUVc) + 3.1) - 0.5) * uLkKitVar;
+  diffuseColor.rgb = mix(diffuseColor.rgb, uLkKitGroutCol, lkGrout);
+}
 `;
 const FRAG_ROUGH = /* glsl */ `
 if (uLkRoughOn > 0.5 && uLkPlain < 0.5) {
   roughnessFactor = mix(uLkRoughRange.x, uLkRoughRange.y, textureGrad(uLkRough, lkUV, lkDx, lkDy).g);
 }
+if (uLkKit > 0.5 && uLkPlain < 0.5) roughnessFactor = mix(max(roughnessFactor, uLkKitRoughMin), 0.92, lkGrout);
 `;
 const FRAG_NORMAL = /* glsl */ `
 if (uLkNormOn > 0.5 && uLkPlain < 0.5) {
@@ -151,7 +172,7 @@ const FRAG_AO = /* glsl */ `
   if (uLkReflOn > 0.5 && uLkPlain < 0.5 && uLkReflMode > 0.5) {
     vec3 lkV = normalize(vViewPosition);
     float lkCos = clamp(dot(normal, lkV), 0.0, 1.0);
-    float lkF = 0.04 + (0.55 - 0.04) * pow(1.0 - lkCos, 5.0);
+    float lkF = (0.04 + (0.55 - 0.04) * pow(1.0 - lkCos, 5.0)) * (1.0 - smoothstep(0.35, 0.75, roughnessFactor));
     vec3 lkRefl = vec3(0.0);
     if (uLkReflMode < 1.5) {
       vec3 rv = inverseTransformDirection(reflect(-lkV, normal), viewMatrix);
@@ -172,6 +193,13 @@ const FRAG_AO = /* glsl */ `
 
 // ---------------------------------------------------------------- the cache
 
+/** A room's own tile grid (look-kit, SPEC 16.5 floors). The grid axis u is a unit vector, the origin the room's bounding corner in that frame. */
+export interface FloorKitSpec {
+  color: string; groutColor: string;
+  tileU: number; tileV: number; axisX: number; axisZ: number; originX: number; originZ: number;
+  groutM: number; antiSkid: boolean; matt: boolean;
+}
+
 export interface LookMaterials extends ShellMaterialSet {
   readonly shared: SharedUniforms;
   /** plain = the SPEC 5 look (no detail, AO, gloss, reflections, glass): used while a scan is shown (rule 5) */
@@ -184,6 +212,8 @@ export interface LookMaterials extends ShellMaterialSet {
   /** loads the maps the tier needs. Resolves when they are applied. */
   loadTextures(loader: AssetLoader, cfg: TierConfig): Promise<void>;
   setReflection(mode: ReflectionMode, tex: { cube?: THREE.Texture | null; planar?: THREE.Texture | null }): void;
+  /** a floor material with one room's tile grid: vitrified tiles with thin grout, aligned to the room's longest wall, never stretched */
+  floorKit(spec: FloorKitSpec): THREE.Material;
   /** number of GPU textures this cache holds (stats) */
   textureCount(): number;
   dispose(): void;
@@ -239,6 +269,8 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
       uLkAOOn: { value: kind === 'floor' || kind === 'ceiling' ? 1 : 0 },
       uLkWallAOOn: { value: kind === 'wall' ? 1 : 0 }, uLkWallH: shared.wallH,
       uLkReflMode: shared.reflMode, uLkCube: shared.cube, uLkPlanar: shared.planar,
+      uLkKit: { value: 0 }, uLkKitAxis: { value: new THREE.Vector2(1, 0) }, uLkKitOrigin: { value: new THREE.Vector2(0, 0) }, uLkKitTile: { value: new THREE.Vector2(0.6, 0.6) },
+      uLkKitGrout: { value: 0.0025 }, uLkKitGroutCol: { value: new THREE.Color('#9a9086') }, uLkKitVar: { value: 0.06 }, uLkKitRoughMin: { value: 0 },
       uLkReflVP: shared.reflVP, uLkReflSize: shared.reflSize, uLkReflStrength: shared.reflStrength,
       uLkReflOn: { value: kind === 'floor' && !balcony ? 1 : 0 },
     };
@@ -254,7 +286,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${FRAG_NORMAL}`)
         .replace('#include <aomap_fragment>', `#include <aomap_fragment>\n${FRAG_AO}`);
     };
-    mat.customProgramCacheKey = () => 'walkthru-look-v1';
+    mat.customProgramCacheKey = () => 'walkthru-look-v2';
     const rec: Rec = { kind, balcony, mat, u, plain, look: { roughness: mat.roughness, metalness: mat.metalness }, map: null };
     records.push(rec);
     byKey.set(key, rec);
@@ -273,6 +305,31 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         const tex = makeTileTexture(color, groutColor); // the grout layer, with the sampled colour baked in
         if (tex) { r.mat.map = tex; r.mat.color.set('#ffffff'); r.map = tex; tileTextures.push(tex); }
         set(r, 'uLkTile', new THREE.Vector2(tile.wM, tile.lM));
+      }
+      return r.mat;
+    },
+    floorKit(spec) {
+      const key = `floorkit|${spec.color}|${spec.groutColor}|${spec.tileU}x${spec.tileV}|${spec.axisX.toFixed(4)},${spec.axisZ.toFixed(4)}|${spec.originX.toFixed(3)},${spec.originZ.toFixed(3)}|${spec.antiSkid}|${spec.matt}`;
+      const had = byKey.has(key);
+      const r = make('floor', key, { color: spec.color, roughness: spec.matt ? BALCONY_ROUGHNESS : FLOOR_ROUGHNESS_FLAT, metalness: 0 }, { roughness: 0.35, metalness: 0 }, spec.matt);
+      if (!had) {
+        set(r, 'uLkKit', 1);
+        set(r, 'uLkKitAxis', new THREE.Vector2(spec.axisX, spec.axisZ));
+        set(r, 'uLkKitOrigin', new THREE.Vector2(spec.originX, spec.originZ));
+        set(r, 'uLkKitTile', new THREE.Vector2(spec.tileU, spec.tileV));
+        set(r, 'uLkKitGrout', spec.groutM);
+        // the grout is the floor's own colour pulled darker, so a sampled floor colour stays the mean of the surface
+        set(r, 'uLkKitGroutCol', new THREE.Color(spec.groutColor).multiplyScalar(0.82));
+        set(r, 'uLkKitVar', spec.antiSkid ? 0.12 : 0.06);
+        set(r, 'uLkKitRoughMin', spec.antiSkid ? 0.72 : spec.matt ? 0.6 : 0);
+        // maps that arrived before this room's floor was made
+        const donor = records.find((o) => o !== r && o.kind === 'floor' && o.u.uLkNormOn.value);
+        if (donor) for (const k of ['uLkNorm', 'uLkNormScale', 'uLkNormOn', 'uLkDetail', 'uLkDetailMean', 'uLkDetailClamp', 'uLkDetailOn', 'uLkRough', 'uLkRoughRange', 'uLkRoughOn']) {
+          if (k.startsWith('uLkRough') && spec.matt) continue;
+          r.u[k].value = donor.u[k].value;
+        }
+        if (spec.antiSkid) r.look.metalness = 0;
+        if (cfg) api.configure(cfg, { trueColours });
       }
       return r.mat;
     },
