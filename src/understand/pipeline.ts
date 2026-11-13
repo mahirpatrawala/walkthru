@@ -21,6 +21,6 @@ export function understandPages(pages: VectorPage[], sourceFile = 'input', scene
   const analysis = analyseTrace(result, trace);
   const plan = readPlan(result, trace);
   const elev = understandElevations(result, trace, analysis, plan);
-  applyDimUpgrades(analysis, elev);
+  applyDimUpgrades(analysis, elev, trace.frame ? { cx: trace.frame.cx, cy: trace.frame.cy } : null);
   return { result, trace, analysis, plan, elev };
 }

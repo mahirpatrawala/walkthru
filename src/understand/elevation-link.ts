@@ -451,7 +451,8 @@ export function linkViews(
         const r = implied.lengthM / (w.length * kScale);
         const dev = Math.abs(r - 1);
         const weight = implied.source === 'dimensions' ? 1 : 0.75;
-        wScore = weight * (dev <= 0.025 ? 2.2 : dev <= 0.05 ? 1.4 : dev <= 0.09 ? 0.2 : -2);
+        // a graded score: two walls a few centimetres apart in length are told apart by which one the view matches more closely
+        wScore = weight * (dev <= 0.09 ? 2.4 - 25 * dev : -2);
       }
       const fwd = contentScore(v, feats[wi], w.length, false);
       const rev = contentScore(v, feats[wi], w.length, true) - 1;
@@ -469,7 +470,7 @@ export function linkViews(
   const dfs = (i: number, total: number): void => {
     if (i === ids.length) {
       const rooms = new Set(pick.filter((c): c is Cand => !!c).map((c) => walls[c.wi].roomId));
-      const t = total - 1.0 * Math.max(0, rooms.size - 1);
+      const t = total - 1.5 * Math.max(0, rooms.size - 1);
       if (t > bestTotal) { bestTotal = t; bestPick = [...pick]; }
       return;
     }

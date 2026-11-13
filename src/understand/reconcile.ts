@@ -29,7 +29,7 @@ const hash = (s: string): string => { let h = 2166136261; for (let i = 0; i < s.
  * Dimensions the page's models could not judge, checked against the linked wall's length as a ruler (elevation-read.evaluateDims):
  * the verdicts are put back on the analysis so every list of dimensions agrees with the readings made from them.
  */
-export function applyDimUpgrades(analysis: Analysis, elev: ElevationUnderstanding): void {
+export function applyDimUpgrades(analysis: Analysis, elev: ElevationUnderstanding, frame: { cx: number; cy: number } | null = null): void {
   for (const [viewId, evs] of elev.dimEvals) {
     const page = elev.views.find((v) => v.id === viewId)?.page;
     for (const [id, ev] of evs) {
@@ -39,6 +39,8 @@ export function applyDimUpgrades(analysis: Analysis, elev: ElevationUnderstandin
       if (!d) continue;
       d.status = ev.status; d.verdict.status = ev.status; d.verdict.checks = ev.checks; d.verdict.confidence = ev.confidence;
       if (ev.message) d.verdict.message = ev.message;
+      // an elevation's metres are at the scale it was judged at
+      if (frame && ev.ptPerM) { const w = (p: [number, number]): [number, number] => [(p[0] - frame.cx) / ev.ptPerM!, (p[1] - frame.cy) / ev.ptPerM!]; d.a = w(d.verdict.dim.a); d.b = w(d.verdict.dim.b); }
     }
   }
 }

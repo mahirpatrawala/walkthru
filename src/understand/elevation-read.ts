@@ -43,7 +43,7 @@ export interface ViewRead {
 }
 
 // ---------------------------------------------------------------- dimension verdicts at the view's scale
-export interface DimEval { status: Status; checks: Check[]; message?: string; upgraded: boolean; confidence: number }
+export interface DimEval { status: Status; checks: Check[]; message?: string; upgraded: boolean; confidence: number; /** the ruler an upgraded verdict was made against, page units per metre */ ptPerM?: number }
 
 /** The uncertainty of a scale fitted from dimensions, as C12b's judge reckons it. */
 export const fitDelta = (weight: number, spread: number): number => Math.max(1 / Math.sqrt(Math.max(weight, 1)), spread / 2);
@@ -76,7 +76,7 @@ export function evaluateDims(view: ElevView, scale: ReadScale | null): Map<strin
     out.set(v.dim.id, {
       status: ok ? 'verified' : 'conflict', checks: [...v.checks, { kind: 'geometry', expected: value, got, ok }],
       message: ok ? undefined : `drawing says ${v.dim.run.str}, measures ${(got).toFixed(3)} m at the wall's scale`,
-      upgraded: true, confidence: ok ? (method === 'pdf-text' ? 0.97 : 0.93) : 0.3,
+      upgraded: true, confidence: ok ? (method === 'pdf-text' ? 0.97 : 0.93) : 0.3, ptPerM: ruler.ptPerM,
     });
   }
   return out;
