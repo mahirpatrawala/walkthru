@@ -34,6 +34,9 @@ const TAP_MS = 250;
 const TAP_PX = 8;
 /** Pinch distance that counts as one zoom notch, px. */
 const PINCH_PX_PER_NOTCH = 40;
+/** Two touches that land this close together, within PINCH_WINDOW_MS, are a pinch, not a thumb on each side. */
+const PINCH_START_PX = 150;
+const PINCH_WINDOW_MS = 450;
 /** Elements that keep their own clicks: input never reacts to pointers that start on them. */
 const UI_SELECTOR = 'button, a, input, select, textarea, label, [data-ui]';
 
@@ -236,6 +239,28 @@ class InputImpl implements Input {
       let taken = false;
       try { taken = this.claim(this.evt('down', e)); } catch (err) { console.error('[walkthru] pointer claimant threw', err); }
       if (taken) { this.pointers.set(e.pointerId, { ...base, role: 'claimed' }); return; }
+    }
+
+    // a pinch started near the middle of the screen must not turn one finger into a joystick: when a touch lands next to a
+    // fresh one that has not moved, both become look fingers (one thumb on each side stays walk + look)
+    if (e.pointerType !== 'mouse') {
+      const now = performance.now();
+      for (const [id, q] of this.pointers) {
+        if (q.role === 'claimed' || now - q.startT > PINCH_WINDOW_MS || Math.hypot(q.lastX - q.startX, q.lastY - q.startY) > 12) continue;
+        if (Math.hypot(e.clientX - q.lastX, e.clientY - q.lastY) > PINCH_START_PX) continue;
+        if (q.role === 'joystick') {
+          this.joyId = null;
+          this.joyX = this.joyY = this.joyMag = 0;
+          this.joystick.active = false;
+          this.recompute();
+          q.role = 'look';
+          this.lastPos.set(id, { x: q.lastX, y: q.lastY });
+        }
+        this.pointers.set(e.pointerId, { ...base, role: 'look' });
+        this.lastPos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        this.pinchDist = null;
+        return;
+      }
     }
 
     const r = this.el.getBoundingClientRect();
