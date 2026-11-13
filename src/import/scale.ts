@@ -3,6 +3,7 @@ import type { Px } from '../types';
 import type { ScaleVote, VectorPage } from './types';
 import type { FurnitureLabel, RoomLabel } from './labels';
 import type { WallSet } from './walls';
+import { distPointSeg, pointInRing } from './bitmap';
 
 /** A drawn rectangle: oriented bounding box of a stroke that outlines a piece of furniture. */
 export interface Outline {
@@ -34,6 +35,25 @@ function orientedBox(pts: Px[]): Outline {
   return best ?? { cx: pts[0].x, cy: pts[0].y, a: 0, b: 0, ang: 0, corners: pts, closed: false };
 }
 
+/** Does most of this stroke lie on the wall fills (inside one, or within a fifth of a wall thickness of its edge)? */
+function onWalls(points: Px[], walls: WallSet): boolean {
+  const near = 0.2 * walls.t;
+  let on = 0, n = 0;
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i], b = points[(i + 1) % points.length];
+    for (const f of [0.25, 0.75]) {
+      const p = { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+      n++;
+      for (const w of walls.polys) {
+        const [x0, y0, x1, y1] = w.bbox;
+        if (p.x < x0 - near || p.x > x1 + near || p.y < y0 - near || p.y > y1 + near) continue;
+        if (pointInRing(p, w.ring) || w.ring.some((q, k) => distPointSeg(p, q, w.ring[(k + 1) % w.ring.length]) <= near)) { on++; break; }
+      }
+    }
+  }
+  return n > 0 && on >= 0.7 * n;
+}
+
 /**
  * Closed strokes that look like a piece of furniture. SPEC-GAP: 13.5 says "closed stroke (or fill)". In the reference
  * drawing a bed is an open rectilinear polyline of three sides (the headboard side is drawn separately), so a
@@ -44,7 +64,9 @@ export function collectOutlines(page: VectorPage, walls: WallSet): Outline[] {
   for (const s of page.strokes) {
     const n = s.points.length;
     if (n < 4) continue;
-    if (walls.colors.includes(s.color)) continue;
+    // a stroke drawn in the walls' own colour is an outline of a wall unless it stands clear of them (a drawing in one pen colour draws
+    // furniture and balconies in black too)
+    if (walls.colors.includes(s.color) && onWalls(s.points, walls)) continue;
     const xs = s.points.map((p) => p.x), ys = s.points.map((p) => p.y);
     const w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
     if (w < 3 || h < 3) continue;
@@ -60,7 +82,8 @@ export function collectOutlines(page: VectorPage, walls: WallSet): Outline[] {
       len += Math.hypot(dx, dy);
       ok = Math.abs(dx) < 0.5 || Math.abs(dy) < 0.5;
     }
-    if (ok && len >= 0.7 * 2 * (w + h)) out.push({ ...orientedBox(s.points), closed: false });
+    // three sides of a long rectangle cover only 63% of its perimeter (a balcony drawn open against the building)
+    if (ok && len >= 0.55 * 2 * (w + h)) out.push({ ...orientedBox(s.points), closed: false });
   }
   return out;
 }

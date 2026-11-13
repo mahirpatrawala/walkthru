@@ -6,7 +6,7 @@ import { isYDown, readToVText, vtextBox, wrap180, wrap360 } from './reads';
 import type { TextRead } from './reads';
 import { readGlyphs } from './glyphs';
 import { plausibleText } from './plausible';
-import { findArea, findSize } from './units';
+import { allUnitWords, findArea, findSize } from './units';
 import { fixtureClassOf, furnitureOf, isRoomLabel } from './lexicon';
 import type { GlyphOptions } from './glyphs';
 import { parseLabels } from '../import/labels';
@@ -31,6 +31,38 @@ export function labelLike(str: string): boolean {
   return isRoomLabel(str) || !!furnitureOf(str, false) || !!fixtureClassOf(str) || !!findSize(str) || !!findArea(str);
 }
 
+/** What the glyph reader leaves of a size: the x between two lengths and the unit after them are one or two glyphs, each too short to be text. */
+const FRAGMENTS = new Set([...['x', '×', 'by'], ...allUnitWords()].map((w) => w.toLowerCase().replace(/[.\s]+/g, '')));
+/**
+ * Short reads (x, m, mm, sq, ft, sq m ...) that stand on one line with a read that was kept, close beside it, belong to it:
+ * "3.65 X 4.30 M" is a size and "15.7 SQ M" an area. Without them the numbers are left in the name or lost. A fragment is taken only
+ * next to a kept read of its own size and reading direction, or next to another fragment taken that way.
+ */
+export function unitFragments(all: TextRead[], kept: TextRead[]): TextRead[] {
+  const out: TextRead[] = [];
+  const near = (a: TextRead, b: TextRead): boolean => {
+    if (Math.abs(((a.angle - b.angle + 540) % 360) - 180) > 3) return false;
+    if (Math.abs(a.size - b.size) > 0.35 * Math.max(a.size, b.size)) return false;
+    const r = (a.angle * Math.PI) / 180, u: [number, number] = [Math.cos(r), Math.sin(r)], dn: [number, number] = [-Math.sin(r), Math.cos(r)];
+    const along = (t: TextRead): [number, number] => { const s0 = t.origin[0] * u[0] + t.origin[1] * u[1]; return [s0, s0 + t.length]; };
+    const across = (t: TextRead): number => t.origin[0] * dn[0] + t.origin[1] * dn[1];
+    if (Math.abs(across(a) - across(b)) > 0.3 * Math.min(a.size, b.size)) return false;
+    const [a0, a1] = along(a), [b0, b1] = along(b);
+    return Math.max(a0, b0) - Math.min(a1, b1) <= 1.2 * Math.min(a.size, b.size);
+  };
+  const isKept = new Set(kept);
+  const pool = all.filter((r) => !isKept.has(r) && !r.tentative && FRAGMENTS.has(r.str.toLowerCase().replace(/[.\s]+/g, '')));
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const f of pool) {
+      if (out.includes(f)) continue;
+      if ([...kept, ...out].some((k) => near(f, k) && (k === f || /\d/.test(k.str) || out.includes(k)))) { out.push(f); grew = true; }
+    }
+  }
+  return out;
+}
+
 export interface PageText {
   /** the page with glyph-read strings added as text runs and the strokes they used removed (raw frame, ready to normalise) */
   page: VectorPage;
@@ -51,11 +83,12 @@ export function readPageText(page: VectorPage, opts: GlyphOptions & { glyphs?: b
   // size or area), never as bare lengths, which the dimension stage takes from the reads directly. A page with next to no
   // text is lettered in strokes throughout and takes every plausible string.
   const strokeLettered = page.texts.length < 8;
-  const keep = reads.filter((r) => {
+  const kept = reads.filter((r) => {
     const md = r.glyphs ? r.glyphs.reduce((a, g) => a + g.d, 0) / r.glyphs.length : 1;
     if (r.tentative || !plausibleText(r.str, md)) return false;
     return strokeLettered || labelLike(r.str);
   });
+  const keep = [...kept, ...unitFragments(reads, kept)];
   const texts: VText[] = [...page.texts, ...keep.map((r) => ({ ...readToVText(r, page), src: 'glyph' as const }))];
   // the strokes stay in the linework: taking them out changed the outline of a wardrobe symbol on a real drawing, and C8 has always
   // met stroked lettering as strokes

@@ -21,6 +21,7 @@ import { PASSAGE_OFF_SHEET_REASON, offSheetReason, sheetArea } from './partial';
 import type { RegionResult } from './regions';
 import { collectOutlines, matchOutline, outlineVotes, roomVotes, voteScale } from './scale';
 import { buildOpenings } from './openings';
+import { fitLabelRect, markTaken } from './rect-fit';
 import { buildFurniture } from './furniture';
 import { findCeiling, windowHeightsFromText } from './elevation';
 import { WALL, distPointSeg, pointInRing } from './bitmap';
@@ -248,6 +249,36 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
     return rays;
   };
   const finalRegions: (RegionResult & { polygon: Px[] })[] = [];
+  // where a room drawn from its printed size goes: the position that holds no wall, overlaps no room already found, and has walls flush
+  // against its sides (rect-fit.ts); the importer's old ray placement only when none qualifies
+  const taken = new Uint8Array(bitmap.nx * bitmap.ny);
+  const sizeOf = (poly: Px[]): [number, number] => { const xs = poly.map((p) => p.x), ys = poly.map((p) => p.y); const a = (Math.max(...xs) - Math.min(...xs)) / ptPerM, b = (Math.max(...ys) - Math.min(...ys)) / ptPerM; return [Math.min(a, b), Math.max(a, b)]; };
+  for (const r of regions) {
+    if (!r.polygon) continue;
+    const d = r.label.dims;
+    if (d && scaleConf >= 0.7 && (r.method === 'walls' || r.method === 'walls+strokes')) {
+      const [a, b] = sizeOf(r.polygon); const lo = Math.min(d.w, d.l), hi = Math.max(d.w, d.l);
+      if ((Math.abs(a / lo - 1) > 0.05 || Math.abs(b / hi - 1) > 0.05) && ((a * b) / (lo * hi) > 1.25 || (a * b) / (lo * hi) < 0.8)) continue;
+    }
+    markTaken(taken, bitmap, r.polygon);
+  }
+  const placeRect = (label: RoomLabel, dims: { w: number; l: number }): Px[] => {
+    const rm = rayMap();
+    // a rectangle drawn around the label that is the printed size (a balcony outlined in thin lines) is the room itself
+    const want = [dims.w * ptPerM, dims.l * ptPerM];
+    const drawn = outlines.filter((o) => {
+      if (!(o.a > 0 && o.b > 0)) return false;
+      const dx = label.centre.x - o.cx, dy = label.centre.y - o.cy, cs = Math.cos(o.ang), sn = Math.sin(o.ang);
+      if (Math.abs(dx * cs + dy * sn) > o.a / 2 || Math.abs(-dx * sn + dy * cs) > o.b / 2) return false;
+      const fits = (x: number, y: number): boolean => Math.abs(o.a / x - 1) <= 0.06 && Math.abs(o.b / y - 1) <= 0.06;
+      return fits(want[0], want[1]) || fits(want[1], want[0]);
+    }).sort((x, y) => x.a * x.b - y.a * y.b)[0];
+    if (drawn) { markTaken(taken, rm, drawn.corners); return drawn.corners; }
+    const fit = fitLabelRect(rm, taken, label.centre, dims.w * ptPerM, dims.l * ptPerM, t);
+    const poly = fit && fit.contact >= 0.45 && fit.weakest >= 0.1 ? fit.polygon : labelRect(label, dims, rm, ptPerM);
+    markTaken(taken, rm, poly);
+    return poly;
+  };
   for (const r of regions) {
     if (r.polygon) {
       // a traced outline that disagrees with the size printed in it by more than 5% is a leak or a mis-closed room, not a measurement: the
@@ -262,7 +293,7 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
           // than the printed size) is a leak into the next room, so the printed size is drawn instead. Either way both numbers are kept.
           const ratio = (a * b) / (lo * hi);
           if (ratio > 1.25 || ratio < 0.8) {
-            const rect = labelRect(r.label, d, rayMap(), ptPerM);
+            const rect = placeRect(r.label, d);
             finalRegions.push({ ...r, method: 'label-rect', polygon: rect, areaPt2: Math.abs(polygonArea(rect.map((p) => ({ x: p.x, z: p.y })))), drawn: { w: a, l: b } });
             warnings.push(`Room "${r.label.name}": the walls drawn around it measure ${a.toFixed(2)} x ${b.toFixed(2)} m but its label says ${lo.toFixed(2)} x ${hi.toFixed(2)} m. It is drawn at the printed size. Check it.`);
           } else {
@@ -275,7 +306,7 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
       finalRegions.push(r as RegionResult & { polygon: Px[] }); continue;
     }
     if (!r.label.dims) { warnings.push(`Room "${r.label.name}" is not closed by walls and has no labelled size. Left out. Add it in the editor.`); continue; }
-    const rect = labelRect(r.label, r.label.dims, rayMap(), ptPerM);
+    const rect = placeRect(r.label, r.label.dims);
     finalRegions.push({ ...r, polygon: rect, areaPt2: Math.abs(polygonArea(rect.map((p) => ({ x: p.x, z: p.y })))) });
   }
   for (const r of finalRegions) {

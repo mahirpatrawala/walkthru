@@ -188,8 +188,46 @@ export function parseBlock(block: LabelBlock): RoomLabel | FurnitureLabel | null
   return null;
 }
 
+/** A block of the given lines (all one reading angle), its ink box and centre worked out the way `groupTextBlocks` does. */
+function blockOfLines(lines: LabelLine[], ang: number): LabelBlock {
+  const { u, down } = frame(ang);
+  const rs = lines.flatMap((l) => l.runs);
+  const s0s = rs.map((t) => t.x * u.x + t.y * u.y), cbs = rs.map((t) => t.x * down.x + t.y * down.y);
+  const s0 = Math.min(...s0s), s1 = Math.max(...rs.map((t, i) => s0s[i] + t.width));
+  const c0 = Math.min(...rs.map((t, i) => cbs[i] - 0.75 * t.size)), c1 = Math.max(...rs.map((t, i) => cbs[i] + 0.2 * t.size));
+  const sm = (s0 + s1) / 2, cm = (c0 + c1) / 2;
+  const corners = [[s0, c0], [s1, c0], [s1, c1], [s0, c1]].map(([s, c]) => ({ x: s * u.x + c * down.x, y: s * u.y + c * down.y }));
+  const xs = corners.map((p) => p.x), ys = corners.map((p) => p.y);
+  return { lines, angle: ang, centre: { x: sm * u.x + cm * down.x, y: sm * u.y + cm * down.y }, bbox: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], size: Math.max(...rs.map((t) => t.size)) };
+}
+
+/** A line that is a furniture note with a length on it ("WARDROBE 6'0" RFT", "W/R 2.7M", "BED 6'0"X6'6"") or a lone key letter or number. */
+function strayLine(text: string): 'furniture' | 'tag' | null {
+  const t = text.trim();
+  if (/^[A-Za-z0-9]$/.test(t)) return 'tag';
+  if (isSizeToken(t) || !/\d/.test(t)) return null;
+  return furnitureOf(t.replace(/[=:].*$/, '').replace(/\d.*$/, '').trim() || t, true) ? 'furniture' : null;
+}
+
+/**
+ * A room's name block can pick up a line that is not part of it: a furniture note set between the name and the size ("BEDROOM",
+ * "WARDROBE 6'0" RFT", "11'6"X12'0""), or the letter of an elevation key marker above the name. Left in, the note rides in the room's
+ * name (or makes the label unreadable as a room). Such a line leaves the block when the rest still names a room; a furniture note
+ * becomes a furniture label of its own, a lone key letter is dropped. Blocks with no room name in them are never touched.
+ */
+export function splitStray(block: LabelBlock): LabelBlock[] {
+  if (block.lines.length < 2) return [block];
+  const stray = block.lines.map((l) => strayLine(l.text));
+  if (!stray.some(Boolean)) return [block];
+  const keep = block.lines.filter((_, i) => !stray[i]);
+  if (!keep.some((l) => !isSizeToken(l.text) && isRoomLabel(l.text))) return [block];
+  const out: LabelBlock[] = [blockOfLines(keep, block.angle)];
+  block.lines.forEach((l, i) => { if (stray[i] === 'furniture') out.push(blockOfLines([l], block.angle)); });
+  return out;
+}
+
 export function parseLabels(texts: VText[]): { rooms: RoomLabel[]; furniture: FurnitureLabel[]; blocks: LabelBlock[] } {
-  const blocks = groupTextBlocks(texts);
+  const blocks = groupTextBlocks(texts).flatMap(splitStray);
   const rooms: RoomLabel[] = []; const furniture: FurnitureLabel[] = [];
   for (const b of blocks) {
     const p = parseBlock(b);

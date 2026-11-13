@@ -184,3 +184,9 @@ export function parseRunningLength(text: string): { m: number; index: number; le
 }
 /** True when a running-length marker is present at all (even with no readable number). */
 export function hasRunningMarker(text: string): boolean { return RUN_BARE_MARK.test(normalise(text)); }
+
+/** Every unit marker, area marker, separator and running-length marker the lexicon knows, cut into its pieces ("sq. m" gives sq and m). */
+export function allUnitWords(): string[] {
+  const words = [...U.feet, ...U.inches, ...U.mm, ...U.cm, ...U.metres, ...U.areaFeet, ...U.areaMetres, ...U.separators, ...RUN_MARKERS.flatMap((g) => g.words)];
+  return [...new Set(words.flatMap((w) => w.split(/[.\s/]+/)).map((w) => w.toLowerCase()).filter((w) => /^[a-z×²0-9]+$/.test(w)))];
+}

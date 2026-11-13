@@ -19,6 +19,18 @@ export interface Understood {
   result: ImportResult; trace: ProposeTrace; analysis: Analysis; plan: PlanRead; elev: ElevationUnderstanding;
 }
 
+/** A room nobody named ("Room 4") that holds a bed, a hob or a toilet is typed from what is drawn in it. Its name stays "Room N": a type is evidence, a name would be invented. */
+export const isUnnamedRoom = (label: string): boolean => /^room( \d+)?$/i.test(label.trim());
+export function typeUnlabelledRooms(result: ImportResult, plan: PlanRead): void {
+  for (const r of result.proposal.rooms) {
+    const t = plan.roomTypes.get(r.id);
+    if (!t || r.roomType !== 'other' || !isUnnamedRoom(r.label ?? '')) continue;
+    r.roomType = t;
+    const f = result.extras.rooms.find((x) => x.id === r.id);
+    if (f) f.roomType = t;
+  }
+}
+
 export function understandPages(pages: VectorPage[], sourceFile = 'input', sceneId = 'scene'): Understood {
   let { result, trace } = proposeWithTrace(pages, sourceFile, sceneId);
   // printed room sizes against the walls drawn around them: a scale where the importer had none, and honest statuses (SPEC 17.5, label area)
@@ -28,6 +40,7 @@ export function understandPages(pages: VectorPage[], sourceFile = 'input', scene
   applyLabelGeometry(result, analysis, lg);
   applyUnits(result);
   const plan = readPlan(result, trace);
+  typeUnlabelledRooms(result, plan);
   const elev = understandElevations(result, trace, analysis, plan);
   applyDimUpgrades(analysis, elev, trace.frame ? { cx: trace.frame.cx, cy: trace.frame.cy } : null);
   return { result, trace, analysis, plan, elev };
