@@ -43,7 +43,11 @@ export function roomsSummary(layout: Layout, unverified: UnverifiedRooms = {}): 
   };
 }
 
-export interface RoomsSheet { open(): void; close(): void; toggle(): void; isOpen(): boolean }
+export interface RoomsSheet {
+  open(): void; close(): void; toggle(): void; isOpen(): boolean;
+  /** the lived-in decor label (SPEC 16.2 rule 4): shown under the footer while that mode is on, `null` hides it */
+  setDecorNote(text: string | null): void;
+}
 
 export function createRoomsSheet(
   parent: HTMLElement, layout: Layout, onClose: () => void, unverified: UnverifiedRooms = {},
@@ -69,6 +73,9 @@ export function createRoomsSheet(
   }
   el('p', 'wt-carpet', s.carpetLine, card);
   el('p', 'wt-rooms-foot', s.footer, card);
+  const decorNote = el('p', 'wt-rooms-foot wt-rooms-decor', undefined, card);
+  decorNote.dataset.testid = 'rooms-decor-note';
+  decorNote.hidden = true;
 
   const close = (): void => {
     if (back.hidden) return;
@@ -83,5 +90,6 @@ export function createRoomsSheet(
     close,
     toggle() { if (back.hidden) back.hidden = false; else close(); },
     isOpen: () => !back.hidden,
+    setDecorNote(text) { decorNote.textContent = text ?? ''; decorNote.hidden = !text; },
   };
 }

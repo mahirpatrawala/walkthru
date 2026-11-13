@@ -44,7 +44,9 @@ import { createMeasureMode } from './measure';
 import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
-import { mountSceneTag, sceneTagText } from './scene-tag';
+import { mountSceneTag, sceneOrigin, sceneTagText } from './scene-tag';
+import { createLivedIn, mountLivedInToggle } from '../look/lived-in';
+import type { LivedIn } from '../look/lived-in';
 import { mountPartialBadge, partialRoomInView } from './partial-badge';
 import {
   HINT_KEY, clampHeightCm, createFurnitureStore, distanceToBox, roomChipText, safeStorage,
@@ -274,6 +276,7 @@ async function boot(): Promise<void> {
   let picker: ReturnType<typeof createHeightPicker>;
   let rooms: ReturnType<typeof createRoomsSheet>;
   let scanHandle: SplatHandle | null = null;
+  let livedIn: LivedIn | null = null;
   let scanVisible = false;
 
   const hud = createHud(document.body, {
@@ -322,7 +325,7 @@ async function boot(): Promise<void> {
   // C12f: the optional AI photo (SPEC 17.14). The button exists only if the server says the feature is on; nothing else loads until it is tapped.
   mountAiPhoto({
     host: hud.root, viewer, layout, items: () => store.all(), toast: (t) => hud.toast(t),
-    withoutCharacter: (fn) => { const was = character.object.visible; character.setVisible(false); try { return fn(); } finally { character.setVisible(was); } },
+    withoutCharacter: (fn) => { const was = character.object.visible; character.setVisible(false); livedIn?.setSuppressed(true); try { return fn(); } finally { character.setVisible(was); livedIn?.setSuppressed(!!scanHandle && scanVisible); } },
   });
 
   const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms });
@@ -389,6 +392,8 @@ async function boot(): Promise<void> {
     },
   });
   rooms = createRoomsSheet(document.body, layout, () => { /* nothing to resume */ }, unverifiedRooms);
+  // optional "Lived-in" decor (SPEC 16.6.7): a switch in the look sheet, a label in the rooms sheet; on by default only for made-up sample homes
+  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
 
   // ---- spawn
   // The buyer starts inside the chosen room (?room=, else the default: the largest bedroom or living room), just in from its
@@ -428,6 +433,7 @@ async function boot(): Promise<void> {
     scanHandle.setVisible(v);
     shell.visible = !(property.splat.mode === 'replace' && v);
     look?.setScanVisible(v); // rule 5 of SPEC 16.2: with a scan shown the look steps back
+    livedIn?.setSuppressed(v); // and the added decor steps back with it
     hud.setScanButton(v ? 'on' : 'off');
   }
   async function loadScan(): Promise<void> {
