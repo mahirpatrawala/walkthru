@@ -4,7 +4,7 @@ import { formatLength } from '../core/units';
 import type { Vec3 } from '../types';
 import type { BuyerContext, BuyerMode, OverlayHandle } from './context';
 
-export const MEASURE_COLOR = '#2F6BFF';
+export const MEASURE_COLOR = '#1E6B73'; // the brand teal: the colour of "measured"
 const TAG = 'measure';
 
 /** What the label says when a point sits in a room whose size is not measured on the drawing (honesty: no number then). */

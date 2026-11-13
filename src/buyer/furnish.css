@@ -13,13 +13,13 @@
 /* verdict bar: the one line that answers "does it fit", with the actions beside it */
 .wtf-bar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px 10px 14px; background: var(--wt-card, #fff); border-radius: 12px;
-  box-shadow: var(--wt-shadow, 0 2px 12px rgba(0,0,0,.16)); border-left: 6px solid #c5cad3;
+  box-shadow: var(--wt-shadow, 0 2px 12px rgba(0,0,0,.16)); border-left: 6px solid #CDBFAF;
 }
 .wtf-bar[data-tone="good"] { border-left-color: var(--wt-good, #1E9E5A); }
 .wtf-bar[data-tone="warn"] { border-left-color: var(--wt-warn, #E0A100); }
 .wtf-bar[data-tone="bad"] { border-left-color: var(--wt-bad, #D64545); }
 .wtf-text { flex: 1 1 220px; min-width: 0; }
-.wtf-msg { font-size: 16px; font-weight: 700; line-height: 1.3; color: var(--wt-ink, #1A1A1A); }
+.wtf-msg { font-family: var(--wt-display, inherit); font-size: 16px; font-weight: 700; line-height: 1.3; color: var(--wt-ink, #1A1A1A); }
 .wtf-bar[data-tone="none"] .wtf-msg { font-size: 14px; font-weight: 600; color: var(--wt-muted, #6B7280); }
 .wtf-hint { margin-top: 2px; font-size: 12px; color: var(--wt-muted, #6B7280); }
 
@@ -27,15 +27,15 @@
 .wtf-actions { display: flex; flex: 1 1 auto; justify-content: flex-end; gap: 8px; }
 .wtf-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px;
-  font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  font: inherit; font-family: var(--wt-display, inherit); font-size: 15px; font-weight: 700; cursor: pointer;
 }
-.wtf-btn.is-ghost { background: #f1f3f7; color: var(--wt-ink, #1A1A1A); }
-.wtf-btn.is-ghost:hover { background: #e6e9f0; }
-.wtf-btn.is-primary { flex: 1 1 auto; min-width: 96px; background: var(--wt-accent, #2F6BFF); color: #fff; }
-.wtf-btn.is-primary:hover:not(:disabled) { background: #2559d9; }
-.wtf-btn.is-primary:disabled { background: #b9c2d6; color: #fff; cursor: not-allowed; }
-.wtf-btn.is-danger { background: #fdf1f1; color: var(--wt-bad, #D64545); }
-.wtf-btn.is-danger:hover { background: #fae3e3; }
+.wtf-btn.is-ghost { background: var(--wt-paper-2, #EFE5D3); color: var(--wt-ink, #1A1A1A); }
+.wtf-btn.is-ghost:hover { background: #E6DAC5; }
+.wtf-btn.is-primary { flex: 1 1 auto; min-width: 96px; background: var(--wt-accent, #B2472B); color: #fff; }
+.wtf-btn.is-primary:hover:not(:disabled) { background: var(--wt-accent-dark, #8F3720); }
+.wtf-btn.is-primary:disabled { background: #CDBFAF; color: #fff; cursor: not-allowed; }
+.wtf-btn.is-danger { background: #FBEAE4; color: var(--wt-bad, #D64545); }
+.wtf-btn.is-danger:hover { background: #F6DCD3; }
 .wtf-btn[data-act="move"] { flex: 1 1 auto; }
 
 /* the tray */
@@ -47,17 +47,17 @@
   min-height: 32px; padding: 0 2px; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 600; color: var(--wt-muted, #6B7280); cursor: pointer;
   text-decoration: underline; text-underline-offset: 3px;
 }
-.wtf-link.is-strong { color: var(--wt-accent, #2F6BFF); text-decoration: none; font-weight: 700; font-size: 14px; }
+.wtf-link.is-strong { color: var(--wt-accent, #B2472B); text-decoration: none; font-weight: 700; font-size: 14px; }
 .wtf-link.is-armed { color: var(--wt-bad, #D64545); }
 .wtf-cards { display: flex; gap: 8px; overflow-x: auto; padding: 2px 12px 4px 4px; scroll-snap-type: x proximity; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
 .wtf-item {
-  flex: 0 0 auto; width: 118px; min-height: 84px; padding: 8px 8px 8px 10px; box-sizing: border-box; border: 1.5px solid #e3e6ec; border-radius: 12px;
-  background: #fafbfc; color: var(--wt-ink, #1A1A1A); font: inherit; text-align: left; cursor: pointer; scroll-snap-align: start;
+  flex: 0 0 auto; width: 118px; min-height: 84px; padding: 8px 8px 8px 10px; box-sizing: border-box; border: 1.5px solid var(--wt-line, #E4D8C6); border-radius: 12px;
+  background: #FBF6EC; color: var(--wt-ink, #1A1A1A); font: inherit; text-align: left; cursor: pointer; scroll-snap-align: start;
   display: flex; flex-direction: column; align-items: flex-start; gap: 2px; transition: border-color 0.12s, background 0.12s, transform 0.08s;
 }
-.wtf-item:hover { border-color: var(--wt-accent, #2F6BFF); background: #fff; }
+.wtf-item:hover { border-color: var(--wt-accent, #B2472B); background: #fff; }
 .wtf-item:active { transform: scale(0.97); }
-.wtf-item-icon { color: var(--wt-accent, #2F6BFF); line-height: 0; margin-bottom: 2px; }
+.wtf-item-icon { color: var(--wt-accent, #B2472B); line-height: 0; margin-bottom: 2px; }
 .wtf-item-name { font-size: 13px; font-weight: 700; line-height: 1.2; }
 .wtf-item-size { font-size: 11px; line-height: 1.25; color: var(--wt-muted, #6B7280); }
 

@@ -38,7 +38,7 @@ const LINE_Y = 0.04;
 const OUTLINE_RIBBON_M = 0.035;
 /** A pointer press this close to the footprint (m) still grabs the item: fingers are not precise. */
 const GRAB_SLACK_M = 0.15;
-export const LINE_COLOR = '#2F6BFF';
+export const LINE_COLOR = '#1E6B73';
 
 /** Yaw after turning by `deltaDeg`, wrapped into [0, 360). Positive turns counter-clockwise seen from above. */
 export function rotateYaw(yawDeg: number, deltaDeg: number): number {

@@ -1,0 +1,38 @@
+/* walkthru brand: one set of tokens for the buyer HUD, the start page and the editor.
+   Colour: terracotta (the action colour), teal (the "measured / trusted" colour), ochre (warmth, never text on light), warm paper and ink.
+   Contrast checked (WCAG, text on its fill): white on clay 5.5, white on teal 6.2 / dark teal 7.6, ink on paper 13.9, muted on paper 5.5,
+   clay on card 5.4, ochre-ink on card 5.8. The verdict colours of SPEC 2 (good, warn, bad) are unchanged.
+   Type: Bricolage Grotesque for display (wordmark, headings, chips, buttons), the system UI font for everything you read. */
+:root {
+  --wt-clay: #B2472B;
+  --wt-clay-dark: #8F3720;
+  --wt-clay-soft: #F6DDD2;
+  --wt-teal: #1E6B73;
+  --wt-teal-dark: #17545B;
+  --wt-teal-soft: #DCEEEE;
+  --wt-ochre: #E3A33A;
+  --wt-ochre-ink: #7F5200;
+  --wt-ochre-soft: #FAEBC8;
+  --wt-paper: #F7F0E4;
+  --wt-paper-2: #EFE5D3;
+  --wt-line: #E4D8C6;
+  --wt-ink: #2B211C;
+  --wt-muted: #6B5E55;
+  --wt-card: #FFFDF8;
+
+  /* the names the rest of the app already uses */
+  --wt-accent: var(--wt-clay);
+  --wt-accent-dark: var(--wt-clay-dark);
+  --wt-good: #1E9E5A;
+  --wt-warn: #E0A100;
+  --wt-bad: #D64545;
+
+  --wt-radius: 14px;
+  --wt-shadow: 0 2px 12px rgba(70, 38, 20, 0.18);
+  --wt-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --wt-display: 'Bricolage Grotesque', 'Avenir Next', 'Trebuchet MS', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* the wordmark: a small door-in-a-house mark and the name in the display face */
+.wt-brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--wt-display); font-weight: 800; font-size: 20px; letter-spacing: -0.02em; color: var(--wt-ink); text-decoration: none; }
+.wt-brand-mark { width: 26px; height: 26px; flex: none; }

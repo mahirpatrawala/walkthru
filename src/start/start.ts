@@ -6,6 +6,8 @@ import { defaultStartRoom, startableRooms } from '../core/start-rooms';
 import { polygonArea } from '../core/geometry';
 import { formatArea } from '../core/units';
 import { planSvg } from './plan-svg';
+import { heroSvg } from './hero-art';
+import { BRAND_MARK } from '../brand/mark';
 import type { SceneEntry, SceneIndex } from './manifest';
 
 function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string, parent?: HTMLElement): HTMLElementTagNameMap[K] {
@@ -53,10 +55,19 @@ export async function mountStart(): Promise<void> {
   document.body.appendChild(root);
   document.title = 'walkthru';
 
+  // the hero is static, so it is on screen before the list of homes arrives; a light line stands in for the gallery
+  renderHero(root);
+  const wait = h('p', 'ws-loading', LOADING_LINES[0], root);
+  wait.dataset.testid = 'start-loading';
+  let lineNo = 0;
+  const lineTimer = setInterval(() => { lineNo = (lineNo + 1) % LOADING_LINES.length; wait.textContent = LOADING_LINES[lineNo]; }, 2200);
+
   let index: SceneIndex;
   try {
     index = await loadIndex();
   } catch (err) {
+    clearInterval(lineTimer);
+    root.replaceChildren();
     const box = h('div', 'ws-empty', undefined, root);
     h('h1', undefined, 'Could not load the homes.', box);
     h('p', undefined, err instanceof Error ? err.message : String(err), box);
@@ -66,6 +77,7 @@ export async function mountStart(): Promise<void> {
     return;
   }
 
+  clearInterval(lineTimer);
   const route = (): void => {
     const q = new URLSearchParams(location.search);
     const home = index.scenes.find((s) => s.id === q.get('home'));
@@ -92,11 +104,44 @@ function link(a: HTMLAnchorElement, go: Go): void {
 
 // ---------------------------------------------------------------- step 1: the gallery
 
+/** Lines for the wait before the homes arrive. A light touch of humour, never at the cost of what is actually happening. */
+export const LOADING_LINES = [
+  'Measuring twice, cutting never…',
+  'Unrolling the floor plans…',
+  'Asking the walls how thick they are…',
+  'Checking the sofa will fit through the door…',
+];
+
+function renderHero(root: HTMLElement): void {
+  const hero = h('header', 'ws-hero', undefined, root);
+  hero.dataset.testid = 'start-hero';
+  const nav = h('div', 'ws-nav', undefined, hero);
+  const brand = h('span', 'wt-brand', undefined, nav);
+  brand.innerHTML = `${BRAND_MARK}<span>walkthru</span>`; // a fixed string from src/brand/mark.ts
+  const copy = h('div', 'ws-hero-copy', undefined, hero);
+  h('span', 'ws-eyebrow', 'ghar baithe, flat dekho', copy);
+  const title = h('h1', undefined, undefined, copy);
+  title.append('Walk through a flat ');
+  h('em', undefined, 'before', title);
+  title.append(' you visit it');
+  h('p', 'ws-lead', 'Your floor plan becomes a 3D home you can walk around, sit in and measure. Sizes come from the drawing, and anything it does not show is marked as not measured.', copy);
+  const points = h('ul', 'ws-points', undefined, copy);
+  for (const t of ['Real sizes from the plan', 'Lie on the bed, sit on the sofa', 'Check if your furniture fits']) h('li', undefined, t, points);
+  const cta = h('a', 'ws-cta', 'Choose a home', copy);
+  cta.href = '#homes';
+  cta.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('homes')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  const art = h('div', 'ws-hero-art', undefined, hero);
+  art.setAttribute('aria-hidden', 'true');
+  art.innerHTML = heroSvg(); // generated from numbers in hero-art.ts, no page data in it
+}
+
 function renderGallery(root: HTMLElement, index: SceneIndex, go: Go): void {
-  document.title = 'walkthru';
-  const head = h('header', 'ws-head', undefined, root);
-  h('h1', undefined, 'walkthru', head);
-  h('p', 'ws-lead', 'Pick a home, choose a room to start in, and walk through it in 3D.', head);
+  document.title = 'walkthru · Walk through a flat before you visit it';
+  renderHero(root);
+  const section = h('div', 'ws-section', undefined, root);
+  section.id = 'homes';
+  h('h2', undefined, 'Pick a home', section);
+  h('p', undefined, 'Choose a room to start in, then walk.', section);
 
   if (index.scenes.length === 0) {
     h('p', 'ws-empty', 'There are no homes here yet.', root);
@@ -118,6 +163,7 @@ function renderGallery(root: HTMLElement, index: SceneIndex, go: Go): void {
     const parts = [plural(rooms.length, 'room', 'rooms')];
     if (partial > 0) parts.push(`${partial} partly on the drawing`);
     h('p', 'ws-meta', parts.join(' · '), body);
+    h('span', 'ws-open', 'Walk through', body);
     link(a, go);
   }
   h('p', 'ws-fine', 'Plans are redrawn from each home’s layout. Sizes come from the floor plan. Sample drawings are made up to show how it works.', root);
@@ -137,6 +183,8 @@ function renderPicker(root: HTMLElement, s: SceneEntry, requested: string | null
   const back = h('a', 'ws-back', '← All homes', top);
   back.href = '/';
   link(back, go);
+  const brand = h('span', 'wt-brand', undefined, top);
+  brand.innerHTML = `${BRAND_MARK}<span>walkthru</span>`;
 
   const wrap = h('div', 'ws-pick', undefined, root);
   wrap.dataset.testid = 'start-room';
