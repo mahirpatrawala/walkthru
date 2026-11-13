@@ -5,6 +5,7 @@ import { formatArea } from '../core/units';
 import type { Layout } from '../types';
 import { el } from './hud';
 import type { UnverifiedRooms } from './store';
+import { PARTIAL_NOTE } from './store';
 
 /** The footer when some colour was sampled from phone video (SPEC 2.1). */
 export const ROOMS_FOOTER = 'Sizes from the floor plan. Colours approximate (from phone video).';
@@ -17,7 +18,7 @@ export function sizesNote(layout: Layout): string {
 }
 
 export interface RoomsSummary {
-  rows: { id: string; label: string; sqft: number; m2: string; text: string }[];
+  rows: { id: string; label: string; sqft: number; m2: string; text: string; partial: boolean; reason?: string }[];
   carpet: { sqft: number; m2: string; text: string };
   /** "Carpet area (rooms, excluding balcony): 267 sq ft · 24.8 m²" */
   carpetLine: string;
@@ -28,14 +29,15 @@ export function roomsSummary(layout: Layout, unverified: UnverifiedRooms = {}): 
   const rows = layout.rooms.map((r) => {
     const a = formatArea(polygonArea(r.polygon));
     const note = unverified[r.id];
-    return { id: r.id, label: r.label, sqft: a.sqft, m2: a.m2, text: note ? `Not measured (${note})` : a.text };
+    return { id: r.id, label: r.label, sqft: a.sqft, m2: a.m2, text: r.partial ? PARTIAL_NOTE : note ? `Not measured (${note})` : a.text, partial: !!r.partial, ...(r.partial ? { reason: r.partial.reason } : {}) };
   });
   const carpet = formatArea(carpetAreaM2(layout));
-  const anyUnverified = layout.rooms.some((r) => unverified[r.id]);
+  const flagged = (r: Layout['rooms'][number]): boolean => !!unverified[r.id] || !!r.partial;
+  const anyUnverified = layout.rooms.some(flagged);
   return {
     rows, carpet,
     carpetLine: anyUnverified
-      ? `Carpet area: can't be confirmed. ${layout.rooms.filter((r) => unverified[r.id]).map((r) => r.label).join(', ')} not measured on the drawing.`
+      ? `Carpet area: can't be confirmed. ${layout.rooms.filter(flagged).map((r) => r.label).join(', ')} not measured on the drawing.`
       : `Carpet area (rooms, excluding balcony): ${carpet.text}`,
     footer: sizesNote(layout),
   };
@@ -59,7 +61,11 @@ export function createRoomsSheet(
   for (const r of s.rows) {
     const row = el('div', 'wt-room-row', undefined, card);
     el('span', undefined, r.label, row);
-    el('span', 'wt-room-area', r.text, row);
+    const area = el('span', 'wt-room-area', r.text, row);
+    if (r.partial) {
+      row.classList.add('is-partial'); area.classList.add('is-partial');
+      if (r.reason) el('div', 'wt-room-why', r.reason, card);
+    }
   }
   el('p', 'wt-carpet', s.carpetLine, card);
   el('p', 'wt-rooms-foot', s.footer, card);

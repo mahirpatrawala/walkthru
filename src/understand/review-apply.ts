@@ -55,7 +55,9 @@ export function resizeRoom(room: RoomTag, a: number, b: number): RoomTag {
   const square = Math.abs(bb.dx - bb.dz) <= 0.02 * Math.max(bb.dx, bb.dz);
   const [nx, nz] = square ? [a, b] : bb.dx > bb.dz ? [long, short] : [short, long];
   const fx = bb.dx > 0 ? nx / bb.dx : 1, fz = bb.dz > 0 ? nz / bb.dz : 1;
-  return { ...room, polygon: room.polygon.map((p) => ({ x: round3(bb.x0 + (p.x - bb.x0) * fx), z: round3(bb.z0 + (p.z - bb.z0) * fz) })) };
+  // a broker who types the size has taken the guess over: the room is no longer marked as partly on the drawing
+  const { partial: _guess, ...kept } = room;
+  return { ...kept, polygon: room.polygon.map((p) => ({ x: round3(bb.x0 + (p.x - bb.x0) * fx), z: round3(bb.z0 + (p.z - bb.z0) * fz) })) };
 }
 const edgeLen = (room: RoomTag, e: number): number => { const p = room.polygon[e], q = room.polygon[(e + 1) % room.polygon.length]; return Math.hypot(q.x - p.x, q.z - p.z); };
 /** After a room changed size, an opening on one of its edges must still fit on the edge. */

@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import type { EdgeFrame, Finishes, Layout, RoomTag, Vec2 } from '../types';
 import { computeEdgeFrames, computeTunnels, computeWallPieces, pieceRect } from '../core/layout-geom';
+import { pointInPolygon } from '../core/geometry';
 
 // ---------------------------------------------------------------- small geometry builder
 
@@ -97,6 +98,53 @@ export function makeTileTexture(floorColor: string, groutColor: string): THREE.T
   return t;
 }
 
+// ---------------------------------------------------------------- rooms that are only partly on the drawing
+
+/**
+ * A room tagged `partial` is a guess: its shape is not on the drawing. It is drawn as "beyond your drawing": a neutral hatched floor
+ * (no tile, no finish, no ruler), a low solid footing with a faint ghost panel above it instead of full walls, and no ceiling. It
+ * stays walkable (collision is the layout's, unchanged). The same look marks the doorway where the drawing ends.
+ */
+export const PARTIAL_LOOK = {
+  floor: '#DCE2E8', hatch: '#8EA0B3', ghost: '#6E8296', plinthM: 0.3, ghostOpacity: 0.16, veilOpacity: 0.32, hatchTileM: 0.6,
+} as const;
+
+/** A 128 px tile of diagonal hatching that repeats without a seam. Null without a DOM (Node). */
+export function makeHatchTexture(): THREE.Texture | null {
+  if (!hasDom()) return null;
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const g = c.getContext('2d');
+  if (!g) return null;
+  g.fillStyle = PARTIAL_LOOK.floor;
+  g.fillRect(0, 0, 128, 128);
+  g.strokeStyle = PARTIAL_LOOK.hatch;
+  g.lineWidth = 5;
+  g.lineCap = 'butt';
+  g.beginPath();
+  for (const k of [-128, 0, 128]) { g.moveTo(k, 128); g.lineTo(k + 128, 0); g.moveTo(k + 64, 192); g.lineTo(k + 192, 64); g.moveTo(k - 64, 64); g.lineTo(k + 64, -64); }
+  g.stroke();
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = THREE.RepeatWrapping;
+  t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
+function partialMaterials(): { floor: THREE.Material; plinth: THREE.Material; ghost: THREE.Material; veil: THREE.Material } {
+  const tex = makeHatchTexture();
+  const floor = new THREE.MeshBasicMaterial({ color: tex ? '#ffffff' : PARTIAL_LOOK.floor, toneMapped: false });
+  if (tex) floor.map = tex;
+  const plinth = new THREE.MeshBasicMaterial({ color: '#8C9BAB', toneMapped: false });
+  const ghost = new THREE.MeshBasicMaterial({ color: PARTIAL_LOOK.ghost, transparent: true, opacity: PARTIAL_LOOK.ghostOpacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false });
+  const veil = ghost.clone() as THREE.MeshBasicMaterial;
+  veil.opacity = PARTIAL_LOOK.veilOpacity;
+  for (const m of [floor, plinth, ghost, veil]) m.userData.partialLook = true;
+  return { floor, plinth, ghost, veil };
+}
+
 // ---------------------------------------------------------------- build
 
 function polygonFace(room: RoomTag, y: number, up: boolean, uvOf: (p: Vec2) => [number, number]): Buf {
@@ -162,15 +210,21 @@ export function buildShell(layout: Layout, opts?: ShellOptions): THREE.Group {
     return m;
   };
 
+  const partialIds = new Set(layout.rooms.filter((r) => r.partial).map((r) => r.id));
+  let pm: ReturnType<typeof partialMaterials> | null = null;
+  const partialMats = (): ReturnType<typeof partialMaterials> => (pm ??= partialMaterials());
+  const hatchUv = (p: Vec2): [number, number] => [p.x / PARTIAL_LOOK.hatchTileM, p.z / PARTIAL_LOOK.hatchTileM];
+
   for (const room of layout.rooms) {
     if (room.polygon.length < 3) continue;
-    const floor = new THREE.Mesh(toGeometry(polygonFace(room, 0, true, uvOf)), floorMat(room));
+    const isPartial = partialIds.has(room.id);
+    const floor = new THREE.Mesh(toGeometry(polygonFace(room, 0, true, isPartial ? hatchUv : uvOf)), isPartial ? partialMats().floor : floorMat(room));
     floor.name = `floor:${room.id}`;
     floor.userData.roomId = room.id;
     floor.receiveShadow = true;
     group.add(floor);
 
-    if (room.roomType !== 'balcony') {
+    if (room.roomType !== 'balcony' && !isPartial) {
       const ceil = new THREE.Mesh(
         toGeometry(polygonFace(room, layout.wallHeightM, false, uvOf)),
         set ? set.ceiling(fin.ceilingColor) : new THREE.MeshStandardMaterial({ color: fin.ceilingColor, roughness: 0.95 }),
@@ -182,17 +236,35 @@ export function buildShell(layout: Layout, opts?: ShellOptions): THREE.Group {
     }
   }
 
+  // a doorway the importer added between a room that is on the drawing and one that is not is where the drawing ends, not a door
+  const roomBeyond = (t: (typeof tunnels)[number], f: EdgeFrame): RoomTag | null => {
+    const u = (t.u0 + t.u1) / 2, o = t.depth + 0.25;
+    const pt = { x: f.a.x + f.dir.x * u + f.out.x * o, z: f.a.z + f.dir.z * u + f.out.z * o };
+    return layout.rooms.find((r) => r.id !== t.roomId && pointInPolygon(pt, r.polygon)) ?? null;
+  };
+  const edgeTunnels = new Set<number>();
+  if (partialIds.size) {
+    tunnels.forEach((t, n) => {
+      if (!t.passable || t.type !== 'opening') return;
+      const f = frameOf.get(`${t.roomId}:${t.edge}`);
+      if (!f) return;
+      const beyond = roomBeyond(t, f);
+      if (beyond && partialIds.has(beyond.id) !== partialIds.has(t.roomId)) edgeTunnels.add(n);
+    });
+  }
+
   // thresholds: the floor under every passable hole
   tunnels.forEach((t, n) => {
     if (!t.passable || t.depth < 0.005) return;
     const f = frameOf.get(`${t.roomId}:${t.edge}`);
     const room = layout.rooms.find((r) => r.id === t.roomId);
     if (!f || !room) return;
+    const hatched = partialIds.has(t.roomId) || edgeTunnels.has(n);
     const b = newBuf();
     const c = localRect(f, t.u0, t.u1, 0, t.depth);
     addQuad(b, [[c[0].x, 0, c[0].z], [c[1].x, 0, c[1].z], [c[2].x, 0, c[2].z], [c[3].x, 0, c[3].z]], [0, 1, 0],
-      c.map((p) => uvOf(p)));
-    const mesh = new THREE.Mesh(toGeometry(b), floorMat(room));
+      c.map((p) => (hatched ? hatchUv(p) : uvOf(p))));
+    const mesh = new THREE.Mesh(toGeometry(b), hatched ? partialMats().floor : floorMat(room));
     mesh.name = `threshold:${n}`;
     mesh.receiveShadow = true;
     mesh.userData.roomId = t.roomId;
@@ -201,21 +273,50 @@ export function buildShell(layout: Layout, opts?: ShellOptions): THREE.Group {
 
   // walls per room, railings together
   const wallBufs = new Map<string, Buf>();
+  const ghostBufs = new Map<string, Buf>();
   const rail = newBuf();
   for (const p of pieces) {
     const f = frameOf.get(`${p.roomId}:${p.edge}`);
     if (!f) continue;
     if (p.kind === 'railing') {
       addBox(rail, pieceRect(f, p), p.y0, p.y1);
+    } else if (partialIds.has(p.roomId)) {
+      // a low footing, solid; everything above it is the ghost panel
+      const cut = PARTIAL_LOOK.plinthM;
+      if (p.y0 < cut) {
+        let b = wallBufs.get(p.roomId);
+        if (!b) { b = newBuf(); wallBufs.set(p.roomId, b); }
+        addBox(b, pieceRect(f, p), p.y0, Math.min(p.y1, cut));
+      }
+      if (p.y1 > cut) {
+        let b = ghostBufs.get(p.roomId);
+        if (!b) { b = newBuf(); ghostBufs.set(p.roomId, b); }
+        addBox(b, pieceRect(f, p), Math.max(p.y0, cut), p.y1);
+      }
     } else {
       let b = wallBufs.get(p.roomId);
       if (!b) { b = newBuf(); wallBufs.set(p.roomId, b); }
       addBox(b, pieceRect(f, p), p.y0, p.y1);
     }
   }
+  for (const [id, b] of ghostBufs) {
+    if (b.pos.length === 0) continue;
+    const m = new THREE.Mesh(toGeometry(b), partialMats().ghost);
+    m.name = `ghost:${id}`;
+    m.userData.roomId = id;
+    m.renderOrder = 2;
+    group.add(m);
+  }
   for (const room of layout.rooms) {
     const b = wallBufs.get(room.id);
     if (!b || b.pos.length === 0) continue;
+    if (partialIds.has(room.id)) {
+      const m = new THREE.Mesh(toGeometry(b), partialMats().plinth);
+      m.name = `walls:${room.id}`;
+      m.userData.roomId = room.id;
+      group.add(m);
+      continue;
+    }
     const m = new THREE.Mesh(
       toGeometry(b),
       set ? set.wall(room.wallColor ?? fin.wallColor) : new THREE.MeshStandardMaterial({ color: room.wallColor ?? fin.wallColor, roughness: 0.9 }),
@@ -257,6 +358,22 @@ export function buildShell(layout: Layout, opts?: ShellOptions): THREE.Group {
     const m = new THREE.Mesh(toGeometry(fr), set ? set.frame(fin.frameColor) : new THREE.MeshStandardMaterial({ color: fin.frameColor, roughness: 0.7 }));
     m.castShadow = true;
     m.name = 'frames';
+    group.add(m);
+  }
+  // the drawing's edge: a faint panel across each added doorway, so it does not read as a real, drawn door
+  const veil = newBuf();
+  for (const n of edgeTunnels) {
+    const t = tunnels[n];
+    const f = frameOf.get(`${t.roomId}:${t.edge}`);
+    if (!f) continue;
+    const c = localRect(f, t.u0, t.u1, t.depth / 2, t.depth / 2);
+    const nn: V3 = [-f.out.x, 0, -f.out.z];
+    addQuad(veil, [[c[0].x, 0, c[0].z], [c[1].x, 0, c[1].z], [c[1].x, t.headM, c[1].z], [c[0].x, t.headM, c[0].z]], nn);
+  }
+  if (veil.pos.length > 0) {
+    const m = new THREE.Mesh(toGeometry(veil), partialMats().veil);
+    m.name = 'drawing-edge';
+    m.renderOrder = 2;
     group.add(m);
   }
   if (pane.pos.length > 0) {

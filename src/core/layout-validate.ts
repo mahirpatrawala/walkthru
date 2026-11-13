@@ -280,6 +280,7 @@ function parseRoom(v: unknown, path: string): RoomTag {
   };
   if (isStr(v.wallColor)) room.wallColor = v.wallColor;
   if (isStr(v.floorColor)) room.floorColor = v.floorColor;
+  if (isObj(v.partial) && isStr(v.partial.reason)) room.partial = { reason: v.partial.reason };
   return room;
 }
 

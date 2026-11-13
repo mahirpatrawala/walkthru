@@ -63,7 +63,10 @@
           "wall",
           "wall",
           "wall"
-        ]
+        ],
+        "partial": {
+          "reason": "Only its 9'0\" width is on your drawing. Its far wall is off the sheet, so the rest of this room is a guess."
+        }
       },
       {
         "id": "passage",
@@ -92,7 +95,10 @@
           "wall",
           "wall",
           "wall"
-        ]
+        ],
+        "partial": {
+          "reason": "This passage runs off the edge of your drawing. Only part of it is shown, and where it ends is a guess."
+        }
       }
     ],
     "openings": [
