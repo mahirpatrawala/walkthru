@@ -30,12 +30,12 @@ const near = (a: Pt, b: Pt, d: number): boolean => Math.hypot(a[0] - b[0], a[1] 
 const within = (v: number, t: number, rel: number, abs = 0): boolean => Math.abs(v - t) <= Math.max(rel * Math.abs(t), abs);
 const rot = (p: Pt, r: number): Pt => (r === 0 ? p : r === 90 ? [-p[1], p[0]] : r === 180 ? [-p[0], -p[1]] : [p[1], -p[0]]);
 
-export interface Align { rot: 0 | 90 | 180 | 270; dx: number; dz: number; inliers: number }
+export interface Align { rot: 0 | 90 | 180 | 270; dx: number; dz: number; inliers: number; scale?: number }
 /** Find the rotation (quarter turns only) and shift that bring the predicted rooms onto the truth rooms. */
-export function alignRooms(pred: { polygon: Pt[]; roomType: string }[], truth: { polygonM: Pt[]; roomType: string }[]): Align | null {
+export function alignRooms(pred: { polygon: Pt[]; roomType: string }[], truth: { polygonM: Pt[]; roomType: string }[], scale = 1): Align | null {
   let best: Align | null = null;
   for (const r of [0, 90, 180, 270] as const) {
-    const P = pred.map((q) => ({ poly: q.polygon.map((p) => rot(p, r)), type: q.roomType }));
+    const P = pred.map((q) => ({ poly: q.polygon.map((p) => { const t = rot(p, r); return [t[0] * scale, t[1] * scale] as Pt; }), type: q.roomType }));
     for (const p of P) {
       const ps = sides(p.poly), pc = centroid(p.poly);
       for (const t of truth) {
@@ -50,13 +50,13 @@ export function alignRooms(pred: { polygon: Pt[]; roomType: string }[], truth: {
           const k = truth.findIndex((u, i) => !used.has(i) && near([c[0] + dx, c[1] + dz], centroid(u.polygonM), 0.45) && Math.abs(qs[1] / sides(u.polygonM)[1] - 1) < 0.2);
           if (k >= 0) { used.add(k); inl++; }
         }
-        if (!best || inl > best.inliers || (inl === best.inliers && r === 0 && best.rot !== 0)) best = { rot: r, dx, dz, inliers: inl };
+        if (!best || inl > best.inliers || (inl === best.inliers && r === 0 && best.rot !== 0)) best = { rot: r, dx, dz, inliers: inl, scale };
       }
     }
   }
   return best;
 }
-const apply = (a: Align, p: Pt): Pt => { const q = rot(p, a.rot); return [q[0] + a.dx, q[1] + a.dz]; };
+const apply = (a: Align, p: Pt): Pt => { const q = rot(p, a.rot); const k = a.scale ?? 1; return [q[0] * k + a.dx, q[1] * k + a.dz]; };
 
 /**
  * C12b: when no room was found there is nothing to align the predicted frame with, and every plan dimension would count as a
@@ -133,6 +133,13 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   const al = pr.length && trRooms.length ? alignRooms(pr, trRooms.map((r) => ({ polygonM: r.polygonM, roomType: r.roomType }))) : null;
   S.aligned = !!al && al.inliers > 0;
   // rooms give the frame when there are any; failing that, the dimension lines do (the alignment is used for positions only)
+  // the link only needs the right room and the right side: a plan drawn at the wrong scale may still be lined up by a uniform factor for that
+  let alLink = al && al.inliers > 0 ? al : null;
+  if (!alLink && pr.length && trRooms.length) {
+    const sizes = pr.map((q) => sides(q.polygon)[1]).sort((a, b) => a - b), tsz = trRooms.map((r) => r.lengthM).sort((a, b) => a - b);
+    const k = tsz[tsz.length - 1] / sizes[sizes.length - 1];
+    if (k > 0.4 && k < 2.5) { const a2 = alignRooms(pr, trRooms.map((r) => ({ polygonM: r.polygonM, roomType: r.roomType })), k); if (a2 && a2.inliers > 0) alLink = a2; }
+  }
   const alDim = alignByDimensions(pred.dimensions ?? [], trDims);
   const alUse = alDim ?? (al && al.inliers > 0 ? al : null);
   const A = (p: Pt): Pt => (alUse ? apply(alUse, p) : p);
@@ -263,12 +270,12 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
         let ok = near(AR(q.wall.at), m, 0.35);
         // The wall is the right one when it is in the right room and looks the same way. (A sheet stretched along one axis, or a plan
         // that is not to scale, moves a wall's middle by more than a position check allows without changing which wall it is.)
-        if (!ok && al && q.wall.normal && q.wall.roomAt) {
-          const n = rot(q.wall.normal, al.rot);
+        if (!ok && alLink && q.wall.normal && q.wall.roomAt) {
+          const n = rot(q.wall.normal, alLink.rot);
           const [tx, tz] = [p[(e + 1) % p.length][0] - p[e][0], p[(e + 1) % p.length][1] - p[e][1]];
           const tl = Math.hypot(tx, tz) || 1;
           const tn: Pt = [tz / tl, -tx / tl];
-          const c = AR(q.wall.roomAt);
+          const c = apply(alLink, q.wall.roomAt);
           const nearest = trRooms.reduce((a, b) => (Math.hypot(centroid(b.polygonM)[0] - c[0], centroid(b.polygonM)[1] - c[1]) < Math.hypot(centroid(a.polygonM)[0] - c[0], centroid(a.polygonM)[1] - c[1]) ? b : a));
           ok = nearest.id === room.id && n[0] * tn[0] + n[1] * tn[1] > 0.9;
         }

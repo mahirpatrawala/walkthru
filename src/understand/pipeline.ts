@@ -10,6 +10,7 @@ import { readPlan } from './plan-read';
 import type { PlanRead } from './plan-read';
 import { understandElevations } from './elevations';
 import type { ElevationUnderstanding } from './elevations';
+import { applyDimUpgrades } from './reconcile';
 
 export interface Understood {
   result: ImportResult; trace: ProposeTrace; analysis: Analysis; plan: PlanRead; elev: ElevationUnderstanding;
@@ -20,5 +21,6 @@ export function understandPages(pages: VectorPage[], sourceFile = 'input', scene
   const analysis = analyseTrace(result, trace);
   const plan = readPlan(result, trace);
   const elev = understandElevations(result, trace, analysis, plan);
+  applyDimUpgrades(analysis, elev);
   return { result, trace, analysis, plan, elev };
 }
