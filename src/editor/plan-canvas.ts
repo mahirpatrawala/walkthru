@@ -241,13 +241,20 @@ export function createPlanCanvas(
       const cx = room.polygon.reduce((s, p) => s + p.x, 0) / room.polygon.length;
       const cz = room.polygon.reduce((s, p) => s + p.z, 0) / room.polygon.length;
       const s = toScreen({ x: cx, z: cz });
+      // a light halo keeps the label readable over the plan image's own printed text
+      g.lineJoin = 'round';
+      g.lineWidth = 4;
+      g.strokeStyle = 'rgba(255,255,255,0.88)';
       g.font = '600 12px system-ui, sans-serif';
       g.fillStyle = 'rgba(20,22,28,0.92)';
+      g.strokeText(room.label, s.x, s.y - 7);
       g.fillText(room.label, s.x, s.y - 7);
       g.font = '11px system-ui, sans-serif';
       g.fillStyle = 'rgba(20,22,28,0.72)';
       const unv = editorUnverifiedNote(room.id);
-      g.fillText(unv ? `${formatArea(area).text} · not measured` : formatArea(area).text, s.x, s.y + 8);
+      const areaText = unv ? `${formatArea(area).text} · not measured` : formatArea(area).text;
+      g.strokeText(areaText, s.x, s.y + 8);
+      g.fillText(areaText, s.x, s.y + 8);
     }
 
     // spawn

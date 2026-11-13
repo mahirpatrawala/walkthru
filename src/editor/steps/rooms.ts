@@ -328,8 +328,9 @@ function mountRooms(panel: HTMLElement, ctx: EditorContext, host: EditorHost): v
   }
 
   function proposalBlock(): HTMLElement {
+    // no proposal: an empty node, not an empty bordered card
+    if (!hasProposal) return h('div', {});
     const box = h('div', { class: 'card' });
-    if (!hasProposal) return box;
     box.append(
       h('h3', { text: 'Proposal' }),
       h('p', { class: 'muted small', text: 'This scene has a proposal.json from an automatic pipeline or a drawing import. Load it, then correct it here.' }),
