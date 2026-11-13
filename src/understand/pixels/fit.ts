@@ -20,7 +20,7 @@ export interface ScaleFit {
 export const REL_TOL = 0.02, ABS_TOL_M = 0.0254;
 export const tolM = (m: number, rel = REL_TOL): number => Math.max(rel * Math.abs(m), ABS_TOL_M);
 
-const dimOk = (d: Pair, sx: number, sy: number): boolean => Math.abs(d.px / (d.axis === 'x' ? sx : sy) - d.m) <= tolM(d.m);
+const dimOk = (d: Pair, sx: number, sy: number, rel = REL_TOL): boolean => Math.abs(d.px / (d.axis === 'x' ? sx : sy) - d.m) <= tolM(d.m, rel);
 /** Which way round the printed lengths fit the drawn sides (0: a on x, 1: b on x), or -1 when neither does. Smaller error wins. */
 export function labelFit(l: LabelPair, sx: number, sy: number, rel = REL_TOL): { orient: 0 | 1 | -1; /** the orientation with the smaller error, whether or not it fits */ best: 0 | 1; err: number } {
   const e0 = Math.max(Math.abs(l.wPx / sx - l.a) / l.a, Math.abs(l.hPx / sy - l.b) / l.b), e1 = Math.max(Math.abs(l.wPx / sx - l.b) / l.b, Math.abs(l.hPx / sy - l.a) / l.a);
@@ -32,10 +32,10 @@ export function labelFit(l: LabelPair, sx: number, sy: number, rel = REL_TOL): {
   return { orient: ok(o) ? o : -1, best: o, err: Math.min(e0, e1) };
 }
 interface Hit { dims: Pair[]; labels: { l: LabelPair; orient: 0 | 1 }[] }
-const hitsOf = (e: Evidence, sx: number, sy: number): Hit => {
+const hitsOf = (e: Evidence, sx: number, sy: number, rel = REL_TOL): Hit => {
   const labels: Hit['labels'] = [];
-  for (const l of e.labels) { const f = labelFit(l, sx, sy); if (f.orient >= 0) labels.push({ l, orient: f.orient as 0 | 1 }); }
-  return { dims: e.dims.filter((d) => dimOk(d, sx, sy)), labels };
+  for (const l of e.labels) { const f = labelFit(l, sx, sy, rel); if (f.orient >= 0) labels.push({ l, orient: f.orient as 0 | 1 }); }
+  return { dims: e.dims.filter((d) => dimOk(d, sx, sy, rel)), labels };
 };
 const weight = (h: Hit): number => h.dims.length + 2 * h.labels.length;
 /** Least squares on the agreeing items. Iso: one scale. Axis: one per direction. */
@@ -47,7 +47,7 @@ function refine(h: Hit, aniso: boolean, start: [number, number]): [number, numbe
   if (!aniso) { const n = acc.x[0] + acc.y[0], d = acc.x[1] + acc.y[1]; return d ? [n / d, n / d] : start; }
   return [acc.x[1] ? acc.x[0] / acc.x[1] : start[0], acc.y[1] ? acc.y[0] / acc.y[1] : start[1]];
 }
-function search(e: Evidence, aniso: boolean): { sx: number; sy: number; hit: Hit } | null {
+function search(e: Evidence, aniso: boolean, rel = REL_TOL): { sx: number; sy: number; hit: Hit } | null {
   const hyps: [number, number][] = [];
   if (!aniso) {
     for (const d of e.dims) { const s = d.px / d.m; hyps.push([s, s]); }
@@ -61,8 +61,8 @@ function search(e: Evidence, aniso: boolean): { sx: number; sy: number; hit: Hit
   for (const [sx0, sy0] of hyps) {
     if (!(sx0 > 0 && sy0 > 0) || !Number.isFinite(sx0 + sy0)) continue;
     if (aniso && (sx0 / sy0 > 1.6 || sy0 / sx0 > 1.6)) continue;
-    let h = hitsOf(e, sx0, sy0), sx = sx0, sy = sy0;
-    for (let it = 0; it < 3; it++) { const [rx, ry] = refine(h, aniso, [sx, sy]); const h2 = hitsOf(e, rx, ry); if (weight(h2) < weight(h)) break; sx = rx; sy = ry; h = h2; }
+    let h = hitsOf(e, sx0, sy0, rel), sx = sx0, sy = sy0;
+    for (let it = 0; it < 3; it++) { const [rx, ry] = refine(h, aniso, [sx, sy]); const h2 = hitsOf(e, rx, ry, rel); if (weight(h2) < weight(h)) break; sx = rx; sy = ry; h = h2; }
     const better = !best || weight(h) > weight(best.hit) || (weight(h) === weight(best.hit) && h.dims.length > best.hit.dims.length);
     if (better) best = { sx, sy, hit: h };
   }
@@ -82,8 +82,8 @@ function summarise(e: Evidence, r: { sx: number; sy: number; hit: Hit }): { inli
 }
 
 /** The best scale for the evidence: one isotropic scale, or one per direction when the picture is stretched on one axis. */
-export function fitScale(e: Evidence): ScaleFit | null {
-  const iso = search(e, false);
+export function fitScale(e: Evidence, rel = REL_TOL): ScaleFit | null {
+  const iso = search(e, false, rel);
   if (!iso) return null;
   const si = summarise(e, iso);
   const total = e.dims.length + e.labels.length;
@@ -91,7 +91,7 @@ export function fitScale(e: Evidence): ScaleFit | null {
   const fracIso = weight(iso.hit) / (weightTotal || 1);
   const mkIso = (over: Partial<ScaleFit> = {}): ScaleFit => ({ sx: iso.sx, sy: iso.sy, mode: 'iso', ...si, notToScale: false, aniso: false, ...over });
   if (total >= 4 && fracIso < 0.9) {
-    const ax = search(e, true);
+    const ax = search(e, true, rel);
     if (ax) {
       const sa = summarise(e, ax);
       const fracAx = weight(ax.hit) / (weightTotal || 1);
@@ -102,7 +102,7 @@ export function fitScale(e: Evidence): ScaleFit | null {
   return mkIso();
 }
 /** The scale with everything that belongs to `owner` left out. */
-export const looFit = (e: Evidence, owner: string): ScaleFit | null => fitScale({ dims: e.dims.filter((p) => p.owner !== owner), labels: e.labels.filter((p) => p.owner !== owner) });
+export const looFit = (e: Evidence, owner: string, rel = REL_TOL): ScaleFit | null => fitScale({ dims: e.dims.filter((p) => p.owner !== owner), labels: e.labels.filter((p) => p.owner !== owner) }, rel);
 
 export const scaleFor = (f: ScaleFit, axis: 'x' | 'y' | 'any'): number => (axis === 'y' ? f.sy : axis === 'x' ? f.sx : (f.sx + f.sy) / 2);
 /** How far (metres) the pixels can be trusted to say a length: about two pixels at each end of a measured line. */

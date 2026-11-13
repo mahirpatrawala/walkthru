@@ -2,38 +2,62 @@
   "_note": "Generic vocabulary only: ordinary room words, Indian builder-brochure terms and common abbreviations. Never a name, a project or a firm. Lower case, at most 3 tokens per entry. Punctuation is ignored when matching (m.bed = m bed = mbed).",
   "types": {
     "bedroom": [
-      "bedroom", "bed room", "bed", "br", "mbr", "m bed", "m.bed", "master", "guest", "kids", "kid", "children", "child",
-      "son", "daughter", "parents", "parent", "grandparents", "grandparent", "servant", "maid", "nursery", "sleeping",
-      "master bedroom", "dorm"
+      "bedroom", "bed room", "bed", "br", "mbr", "m bed", "m.bed", "master", "guest", "kids", "kid", "children",
+      "child", "son", "daughter", "parents", "parent", "grandparents", "grandparent", "servant", "maid", "nursery",
+      "sleeping", "master bedroom", "dorm", "m bedroom", "m.bedroom", "mbedroom", "m bed room", "m.bed room",
+      "mbed room", "master bed room", "c bedroom", "c bed room", "bed rm", "bed room 1", "br 1", "mstr bedroom",
+      "master br", "guest bedroom", "kids bedroom", "kids room", "guest room"
     ],
     "living": [
       "living", "hall", "drawing", "lounge", "family", "liv", "l/d", "living/dining", "dining", "drawing room",
-      "living room", "sitting", "great room"
+      "living room", "sitting", "great room", "liv/din", "living dining", "drawing dining", "drawing/dining", "d/d",
+      "living area", "lounge area", "hall room"
     ],
-    "kitchen": ["kitchen", "kit", "pantry", "kitchenette", "cooking"],
+    "kitchen": ["kitchen", "kit", "pantry", "kitchenette", "cooking", "kit area", "open kitchen", "dry kitchen", "wet kitchen"],
     "bathroom": [
       "toilet", "bath", "bathroom", "wc", "w.c.", "washroom", "wash room", "wash", "powder", "c.toilet", "m.toilet",
-      "att. toilet", "attached toilet", "lavatory", "lav", "restroom", "shower", "common toilet"
+      "att. toilet", "attached toilet", "lavatory", "lav", "restroom", "shower", "common toilet",
+      "toilet & dressing", "toilet dressing", "bath dressing", "wc dressing", "toilets", "w c", "w.c", "att toilet",
+      "attach toilet", "m toilet", "c toilet", "common bath", "toilet 1", "bathrooms"
     ],
     "balcony": [
-      "balcony", "terrace", "deck", "sit-out", "sit out", "verandah", "veranda", "utility", "dry balcony", "wash area",
-      "wash balcony", "dry yard", "utility area", "service balcony", "service area", "open terrace"
+      "balcony", "terrace", "deck", "sit-out", "sit out", "verandah", "veranda", "utility", "dry balcony",
+      "wash area", "wash balcony", "dry yard", "utility area", "service balcony", "service area", "open terrace",
+      "dry terr", "dry terrace", "terr", "dry bal", "bal", "balc", "enc balcony", "enclosed balcony", "open balcony",
+      "wash yard", "service yard", "utility room", "u/s", "utility bal", "serv balcony", "chowk", "angan",
+      "courtyard", "court yard", "open court", "sunken court", "lawn", "garden", "patio", "porch", "sit-out area",
+      "standing balcony", "dry area"
     ],
     "other": [
       "passage", "lobby", "foyer", "corridor", "store", "storage room", "pooja", "puja", "mandir", "prayer", "study",
       "dress", "dressing", "entrance", "entry", "gallery", "vestibule", "walk in closet", "wic", "library", "office",
-      "home office", "gym", "laundry", "garage", "parking", "staircase", "landing", "lift lobby", "foyer area", "hallway"
+      "home office", "gym", "laundry", "garage", "parking", "staircase", "landing", "lift lobby", "foyer area",
+      "hallway", "walk in wardrobe", "walk-in wardrobe", "w i w", "dress area", "dressing area", "dressing room",
+      "puja room", "pooja room", "prayer room", "study room", "store room", "stores", "utility store",
+      "servant room", "servant toilet", "entrance lobby", "lobby area", "drying area", "study area", "reading room",
+      "family lounge", "mud room", "pantry store", "entry foyer", "drying yard", "tv room", "media room",
+      "guest foyer", "wardrobe room"
     ]
   },
   "roomWords": ["room", "rm"],
   "nonBedroomQualifiers": [
     "store", "storage", "pooja", "puja", "study", "media", "tv", "game", "gym", "theatre", "theater", "laundry",
     "wash", "pantry", "library", "office", "workshop", "music", "play", "prayer", "meditation", "yoga", "sports",
-    "electrical", "meter", "pump", "garage", "car", "lift", "stair", "lobby", "dining", "living", "drawing", "kitchen",
-    "bath", "toilet", "dress", "dressing", "utility", "servant", "sewing", "hobby", "art", "dark", "panel", "server",
-    "conference", "meeting", "board", "reception", "waiting", "common", "family", "puja"
+    "electrical", "meter", "pump", "garage", "car", "lift", "stair", "lobby", "dining", "living", "drawing",
+    "kitchen", "bath", "toilet", "dress", "dressing", "utility", "servant", "sewing", "hobby", "art", "dark",
+    "panel", "server", "conference", "meeting", "board", "reception", "waiting", "common", "family", "puja",
+    "transformer", "substation", "solar", "generator", "dg", "ups", "telecom", "fire", "control", "security",
+    "guard", "maintenance", "accounts", "admin", "clubhouse", "club", "bike", "cycle", "trash", "garbage", "refuse",
+    "motor", "water", "tank", "sump", "sewage", "stp", "hvac", "plant", "machine", "entrance", "entry", "passage",
+    "corridor"
   ],
   "qualifierStopWords": ["the", "a", "an", "of", "no", "number", "for", "with", "and", "att", "attached"],
-  "nonRoomWords": ["duct", "shaft", "lift", "stair", "ots", "pipe", "sunk", "chajja", "ledge", "niche", "mep"],
-  "titleCaseKeep": []
+  "nonRoomWords": [
+    "duct", "shaft", "lift", "stair", "ots", "pipe", "sunk", "chajja", "ledge", "niche", "mep", "lifts", "elevator",
+    "lft", "escalator", "ramp", "typical", "solar", "transformer", "panel", "legend", "notes", "note", "north",
+    "disclaimer", "schedule", "sheet", "chimney", "pit", "slab", "beam", "column", "hatch", "manhole", "stp", "sump",
+    "ug", "oht", "fcu", "ahu", "vent", "dn"
+  ],
+  "titleCaseKeep": [],
+  "qualifierEnders": ["inclusive", "incl", "including", "includes", "with", "alongwith", "having", "attached", "att"]
 }

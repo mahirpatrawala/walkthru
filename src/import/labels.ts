@@ -36,8 +36,44 @@ interface Run { t: VText; s0: number; s1: number; c0: number; c1: number; cb: nu
 
 const isSizeToken = isSizeOnly;
 
+const NUM_RUN = /^\d{3,5}$|^\d+\.\d+$/;
+/**
+ * A size written over several runs: "3800" with "x4125" under it (or "3800 x" with "4125"). The x is the evidence that the two belong
+ * together, so a lone dimension-line number near a label is never pulled in. Returns the runs with each such pair joined into one
+ * "3800 x 4125" run (at the first run's position, as wide as the wider one).
+ */
+export function joinSizeFragments(texts: VText[]): VText[] {
+  const used = new Set<number>(); const out: VText[] = [];
+  const lead = (t: VText): boolean => NUM_RUN.test(t.str.trim()) || /^\d{3,5}\s*[x×]$|^\d+\.\d+\s*[x×]$/i.test(t.str.trim());
+  const tail = (t: VText): boolean => /^[x×]\s*\d{3,5}$|^[x×]\s*\d+\.\d+$/i.test(t.str.trim());
+  const tailNum = (t: VText): boolean => NUM_RUN.test(t.str.trim());
+  texts.forEach((a, i) => {
+    if (used.has(i) || !lead(a)) return;
+    const wantTail = !/[x×]$/i.test(a.str.trim());
+    let best = -1, bestD = Infinity;
+    texts.forEach((b, j) => {
+      if (j === i || used.has(j) || Math.abs(((b.angle - a.angle + 540) % 360) - 180) > 1) return;
+      if (!(wantTail ? tail(b) : tailNum(b))) return;
+      const k = Math.min(a.size, b.size);
+      const dy = b.y - a.y, dx = Math.abs((b.x + b.width / 2) - (a.x + a.width / 2));
+      // under it (about one line down) or beside it on the same baseline
+      const stacked = dy > 0.5 * k && dy < 2.4 * k && dx < 1.6 * Math.max(a.width, b.width);
+      const beside = Math.abs(dy) < 0.4 * k && b.x - (a.x + a.width) < 1.5 * k && b.x > a.x;
+      if (!stacked && !beside) return;
+      const d = Math.hypot(dx, dy); if (d < bestD) { bestD = d; best = j; }
+    });
+    if (best < 0) return;
+    const b = texts[best]; used.add(i); used.add(best);
+    const bs = b.str.trim().replace(/^[x×]\s*/i, '');
+    out.push({ ...a, str: wantTail ? `${a.str.trim()} x ${bs}` : `${a.str.trim().replace(/\s*[x×]$/i, '')} x ${b.str.trim()}`, width: Math.max(a.width, b.width) });
+  });
+  texts.forEach((t, i) => { if (!used.has(i)) out.push(t); });
+  return out;
+}
+
 /** Group text runs into blocks: same angle, stacked lines, and a size or area line ends the block unless more size lines follow. */
-export function groupTextBlocks(texts: VText[]): LabelBlock[] {
+export function groupTextBlocks(textsIn: VText[]): LabelBlock[] {
+  const texts = joinSizeFragments(textsIn);
   const runs: (Run & { ang: number })[] = [];
   for (const t of texts) {
     if (!t.str.trim()) continue;
@@ -133,9 +169,13 @@ export function parseBlock(block: LabelBlock): RoomLabel | FurnitureLabel | null
     }
   }
   const head = nameLines[0] ?? '';
-  const full = nameLines.join(' ').replace(/\s+/g, ' ').trim();
+  // dimension text never rides along in a room's name: a loose 3 to 5 digit number or a lone x left by a size split over lines
+  const clean = (t: string): string => { const c = t.replace(/(^|\s)[x×]?\s*\d{3,5}(?=\s|$)/gi, ' ').replace(/(^|\s)[x×](?=\s|$)/gi, ' ').replace(/\s+/g, ' ').trim(); return c || t; };
+  const full = clean(nameLines.join(' ').replace(/\s+/g, ' ').trim());
   const f = furnitureOf(head, !!dims);
-  if (f) {
+  // a bed, study or dressing label with a room-sized size is the room, not the furniture ("BED 12'0"X10'0"" is not a 12 foot bed)
+  const roomSized = !!dims && Math.min(dims.w, dims.l) >= 2.0 && Math.max(dims.w, dims.l) >= 2.4;
+  if (f && !(roomSized && ['bed', 'study', 'dressing'].includes(f.entry.key))) {
     const key = f.entry.key;
     const name = f.entry.displayName ?? titleCase(head.replace(/=.*$/, '').trim());
     // an unsized, unmarked "WARDROBE" still carries its running length when a later line gave one

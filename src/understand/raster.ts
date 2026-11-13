@@ -29,6 +29,7 @@ import type { Evidence, LineDim, ScaleFit } from './pixels/fit';
 import { isTitleBlockText } from './pixels/privacy';
 import { tagImage } from './pixels/lineage';
 import { buildOutputs } from './pixels/write';
+import { readRasterLocal } from './raster-local';
 import { LAYOUT_SCHEMA, PLAN_SCHEMA, VIEW_CHOICES } from './vision/prompts';
 import type { LayoutRead, PlanRead, VisionProvider } from './vision/provider';
 import { visionNotice } from './notice';
@@ -90,7 +91,8 @@ export async function readRasterPages(pages: RasterPage[], opts: RasterOptions):
   };
   const stage = async <T>(name: string, f: () => Promise<T> | T): Promise<T> => { const t0 = Date.now(); try { return await f(); } finally { stages.push({ stage: name, ms: Date.now() - t0 }); } };
   const send = (r: SentRecord): void => { sent.push(r); opts.onSend?.(r); };
-  if (!prov) return refused(u, NOTE_REFUSE_OFF, sent, stages, emptyCost(), false);
+  // vision off: the local path reads the picture with Tesseract and pixels alone (everything it says starts unverified)
+  if (!prov) return readRasterLocal(pages, {});
   if (!pages.length) return refused(u, 'No page was given.', sent, stages, emptyCost(), true);
 
   // ---- 1. clean every page and find its views (local, free)

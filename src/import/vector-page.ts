@@ -67,9 +67,20 @@ export function textCentre(t: VText): Px {
 const isPlanWord = (str: string): boolean => pageKindWords(str).includes('plan');
 const isElevWord = (str: string): boolean => { const k = pageKindWords(str); return k.includes('elevation') || k.includes('section'); };
 
+/**
+ * A page whose drawing is a picture placed in the PDF. C8's rule wants the picture to cover half the page, but a brochure page often
+ * carries a plan picture that covers a quarter of it beside vector text and a table. What marks it is the lack of linework: a vector
+ * plan is hundreds of strokes, a picture's page has a handful (the text and tables are text and a few fills). Generic: no word,
+ * no layout, only picture area against stroke count.
+ */
+export function isPictureOfPlan(page: VectorPage): boolean {
+  if (page.imageCoverage > 0.5 && page.strokes.length + page.fills.length < 200) return true;
+  return page.imageCoverage >= 0.12 && page.strokes.length < 60;
+}
+
 /** Step 1. */
 export function classifyPage(page: VectorPage): PageKind {
-  if (page.imageCoverage > 0.5 && page.strokes.length + page.fills.length < 200) return 'raster';
+  if (isPictureOfPlan(page)) return 'raster';
   if (page.texts.some((t) => isPlanWord(t.str) && !isElevWord(t.str))) return 'plan';
   if (page.texts.some((t) => isElevWord(t.str))) return 'elevation';
   return 'other';

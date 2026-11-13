@@ -112,6 +112,12 @@ function sizeFromParts(a: string, b: string): { w: number; l: number } | null {
   const w = parseLengthLoose(a, bareA), l = parseLengthLoose(b, bareB);
   if (!w || !l) return null;
   if (w.kind === 'bare-m' && l.kind === 'bare-m' && (w.m > 60 || l.m > 60)) return null;
+  // two bare numbers with a side over 8: no flat has a room 8 m long on a side but 8 to 30 feet is ordinary, so they are feet
+  if (w.kind === 'bare-m' && l.kind === 'bare-m' && Math.max(w.m, l.m) > 8) {
+    const wf = parseLengthLoose(a, 'ft'), lf = parseLengthLoose(b, 'ft');
+    if (wf && lf && Math.max(wf.m, lf.m) <= 12) return { w: wf.m, l: lf.m };
+    return null;
+  }
   return { w: w.m, l: l.m };
 }
 

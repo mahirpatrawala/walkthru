@@ -62,6 +62,7 @@ const roomWordSet = new Set(R.roomWords.flatMap(tokens));
 const nonBedroomQualifiers = new Set(R.nonBedroomQualifiers.flatMap(tokens));
 const qualifierStop = new Set(R.qualifierStopWords.flatMap(tokens));
 const nonRoomWords = new Set(R.nonRoomWords.flatMap(tokens));
+const qualifierEnders = new Set(R.qualifierEnders.flatMap(tokens));
 
 /** Typed room words in a label, in reading order. */
 function roomMatches(toks: string[]): { type: RoomType; start: number; end: number }[] {
@@ -74,9 +75,17 @@ function roomMatches(toks: string[]): { type: RoomType; start: number; end: numb
  * known non-bedroom word (STORE, POOJA, STUDY, MEDIA...).
  */
 export function roomTypeOf(text: string): RoomType {
-  const toks = tokens(text);
+  let toks = tokens(text);
+  if (toks.some((t) => nonRoomWords.has(t))) return 'other';
+  // "MASTER BEDROOM INCLUSIVE OF ENCLOSED BALCONY" is a bedroom: what comes after "inclusive of", "with", "incl." is a part of it
+  const cut = toks.findIndex((t, i) => i > 0 && qualifierEnders.has(t) && (roomMatches(toks.slice(0, i)).length > 0 || toks.slice(0, i).some((x) => roomWordSet.has(x))));
+  if (cut > 0) toks = toks.slice(0, cut);
   const typed = roomMatches(toks);
-  if (typed.length) return typed[typed.length - 1].type;
+  if (typed.length) {
+    // a toilet with a dressing or wardrobe area is a toilet: the sanitary word outranks the storage word beside it
+    if (typed.some((m) => m.type === 'bathroom') && typed.every((m) => m.type === 'bathroom' || m.type === 'other')) return 'bathroom';
+    return typed[typed.length - 1].type;
+  }
   const at = toks.findIndex((t) => roomWordSet.has(t));
   if (at > 0) {
     const quals = toks.slice(0, at).filter((t) => !/^\d+$/.test(t) && !qualifierStop.has(t));
