@@ -15,7 +15,7 @@ import { outlineGeometry } from '../src/buyer/overlays';
 import { roomsSummary } from '../src/buyer/rooms';
 import {
   HEIGHT_KEY, actionFor, clampHeightCm, createFurnitureStore, distanceToBox, loadHeightCm, loadPlaced, nearestInteractable,
-  nearestPresetIndex, parsePlaced, placedKey, roomChipText, saveHeightCm, savePlaced, tintForHeightCm,
+  nearestPresetIndex, parsePlaced, placedKey, roomChipText, saveHeightCm, savePlaced, tintForHeightCm, wallBetween,
 } from '../src/buyer/store';
 import type { StorageLike } from '../src/buyer/store';
 import { GRID_VOID } from '../src/types';
@@ -36,6 +36,24 @@ const empty = buildTruthProperty('empty');
 const layout = empty.layout;
 const bed = furnished.furniture.find((f) => f.kind === 'bed')!;
 const sofa = furnished.furniture.find((f) => f.kind === 'sofa')!;
+
+describe('items behind a wall are not offered', () => {
+  const g = createGrid(0, 0, 40, 40);
+  // a full-height wall along x = 1.0, 10 cm thick, over z 0..2
+  for (let j = 0; j < 40; j++) for (let i = 20; i < 22; i++) g.cells[j * g.nx + i] = 250;
+  const box = { cx: 1.4, cz: 1.0, w: 0.5, d: 0.5, yawDeg: 0 };
+  const side: FurnitureItem = { ...bed, id: 'side', box };
+  it('wallBetween sees the wall, and not an open line', () => {
+    expect(wallBetween(g, { x: 0.7, z: 1.0 }, box)).toBe(true);
+    expect(wallBetween(g, { x: 1.7, z: 1.0 }, box)).toBe(false);
+    expect(wallBetween(g, { x: 1.4, z: 1.0 }, box)).toBe(false); // inside
+  });
+  it('nearestInteractable skips it only when given the grid', () => {
+    expect(nearestInteractable([side], { x: 0.7, z: 1.0 }, 1.0)?.item.id).toBe('side');
+    expect(nearestInteractable([side], { x: 0.7, z: 1.0 }, 1.0, g)).toBeNull();
+    expect(nearestInteractable([side], { x: 1.7, z: 1.0 }, 1.0, g)?.item.id).toBe('side');
+  });
+});
 
 describe('nearest interactable (within 1.0 m of the footprint)', () => {
   it('picks the bed when standing 0.6 m from its side, the sofa near the east wall', () => {

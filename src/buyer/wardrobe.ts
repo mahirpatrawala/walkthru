@@ -15,7 +15,7 @@ import type { FurnitureKit } from '../look/furniture-materials';
 import type { WardrobeDesign } from '../look/furniture-real';
 import type { BuyerContext } from './context';
 import { toneColor } from './overlays';
-import { distanceToBox } from './store';
+import { distanceToBox, wallBetween } from './store';
 import type { FurnitureStoreImpl } from './store';
 import { setSwingProvider } from './wardrobe-hooks';
 import { REPLACED_NAMES, buildWardrobeModel } from './wardrobe-model';
@@ -418,7 +418,8 @@ export function createWardrobes(deps: { ctx: BuyerContext; store: FurnitureStore
     let nd = Infinity;
     for (const rec of recs.values()) {
       const d = distanceToBox(p, rec.item.box);
-      if (d < nd) { nd = d; near = rec; }
+      // a wardrobe behind a wall is in another room: no chips for it (unless it was left open)
+      if (d < nd && (anyOpen(rec) || !wallBetween(ctx.grid(), p, rec.item.box))) { nd = d; near = rec; }
     }
     const walking = ctx.mode() === 'walk';
     const show = walking && near !== null && (nd <= CHIP_RADIUS_M || anyOpen(near));

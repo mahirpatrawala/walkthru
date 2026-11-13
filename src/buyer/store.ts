@@ -1,13 +1,14 @@
 // Owned by C3. Pure helpers (nearest interactable, room chip text, height + placed-items persistence) and the
 // FurnitureStore (SPEC 7.1). three is used only for meshes and runs under Node; `localStorage` is always injected.
 import * as THREE from 'three';
+import { cellValue } from '../core/grid-codec';
 import { roomAt } from '../core/layout-geom';
 import { polygonArea } from '../core/geometry';
 import { stampFurniture } from '../core/layout-raster';
 import { formatArea } from '../core/units';
 import { buildFurnitureMesh } from '../engine/furniture';
 import {
-  HEIGHT_MAX_CM, HEIGHT_MIN_CM, HEIGHT_PRESETS_CM, HEIGHT_TINTS,
+  GRID_TALL_CM, HEIGHT_MAX_CM, HEIGHT_MIN_CM, HEIGHT_PRESETS_CM, HEIGHT_TINTS,
 } from '../types';
 import type { Box, FurnitureItem, FurnitureKind, Grid, Layout, Vec2 } from '../types';
 import type { FurnitureStore } from './context';
@@ -178,16 +179,38 @@ export function distanceToBox(pt: Vec2, box: Box): number {
 }
 
 /**
+ * True when a full-height cell (a wall, the void between rooms, a tall cupboard) lies on the straight line from `pt`
+ * to the footprint `box`. Prompts and chips for an item behind a wall must not appear: the buyer is in another room.
+ * The box's own cells are skipped by stopping 6 cm short of its edge.
+ */
+export function wallBetween(grid: Grid, pt: Vec2, box: Box): boolean {
+  const dist = distanceToBox(pt, box);
+  if (dist <= 0.06) return false;
+  const dx = box.cx - pt.x;
+  const dz = box.cz - pt.z;
+  const len = Math.hypot(dx, dz);
+  if (len < 1e-6) return false;
+  const step = grid.cellM / 2;
+  for (let t = 0; t < len; t += step) {
+    const p = { x: pt.x + (dx * t) / len, z: pt.z + (dz * t) / len };
+    if (distanceToBox(p, box) <= 0.06) return false;
+    if (cellValue(grid, p.x, p.z) >= GRID_TALL_CM) return true;
+  }
+  return false;
+}
+
+/**
  * The nearest item whose footprint is within `maxM` of the point (or that contains it). Ties (overlapping items)
- * go to the one whose centre is nearer.
+ * go to the one whose centre is nearer. With a `grid`, items behind a wall are skipped.
  */
 export function nearestInteractable(
-  items: FurnitureItem[], pt: Vec2, maxM: number = INTERACT_RADIUS_M,
+  items: FurnitureItem[], pt: Vec2, maxM: number = INTERACT_RADIUS_M, grid?: Grid,
 ): { item: FurnitureItem; distM: number } | null {
   let best: { item: FurnitureItem; distM: number; centre: number } | null = null;
   for (const item of items) {
     const distM = distanceToBox(pt, item.box);
     if (distM > maxM) continue;
+    if (grid && wallBetween(grid, pt, item.box)) continue;
     const centre = Math.hypot(pt.x - item.box.cx, pt.z - item.box.cz);
     if (!best || distM < best.distM - 1e-9 || (Math.abs(distM - best.distM) <= 1e-9 && centre < best.centre)) {
       best = { item, distM, centre };

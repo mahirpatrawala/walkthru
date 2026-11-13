@@ -65,7 +65,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   const seats = extras.seats;
   const cardOf = (item: FurnitureItem, H: number) => seats?.card(item, H) ?? checkFor(item, H);
   const nearest = (): { item: FurnitureItem; distM: number } | null =>
-    nearestInteractable(seats ? [...ctx.furniture.all(), ...seats.items()] : ctx.furniture.all(), ctx.character.position);
+    nearestInteractable(seats ? [...ctx.furniture.all(), ...seats.items()] : ctx.furniture.all(), ctx.character.position, undefined, ctx.grid());
   const freeToStand = (): boolean => {
     const s = ctx.character.state;
     return s === 'idle' || s === 'walk' || s === 'jog';

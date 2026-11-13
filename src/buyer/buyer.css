@@ -30,7 +30,7 @@ html, body {
 /* room chip, top left */
 .wt-chip {
   position: absolute; left: calc(12px + var(--wt-safe-l)); top: calc(12px + var(--wt-safe-t));
-  max-width: calc(100vw - 96px - var(--wt-safe-l) - var(--wt-safe-r));
+  max-width: calc(100vw - 96px - var(--wt-safe-l) - var(--wt-safe-r)); box-sizing: border-box;
   padding: 10px 14px; min-height: 20px; background: var(--wt-card); border-radius: 12px; box-shadow: var(--wt-shadow);
   font-size: 14px; font-weight: 600; line-height: 1.3;
 }
