@@ -88,8 +88,17 @@ input:disabled { background: #f3f4f6; }
 .toast.warn { background: #92400e; } .toast.error { background: #991b1b; }
 
 @media (max-width: 900px) {
-  .cols { grid-template-columns: 1fr; grid-template-rows: auto minmax(320px, 1fr) auto; }
+  /* narrow screens: the page scrolls as a whole, so no step, button or panel is cut off */
+  html, body { height: auto; }
+  #editor { height: auto; min-height: 100%; }
+  .topbar { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
+  .topbar .grow { flex-basis: 100%; height: 0; }
+  .scene-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cols { display: flex; flex-direction: column; min-height: auto; }
+  .side, .right { overflow: visible; }
   .side { border-right-width: 0; border-bottom-width: 1px; }
+  .stage { height: 62vh; min-height: 340px; flex: 0 0 auto; }
   .steps { flex-direction: row; flex-wrap: wrap; }
+  .stepbtn { width: auto; }
   .right { border-left-width: 0; border-top-width: 1px; }
 }
