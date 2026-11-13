@@ -20,6 +20,8 @@ export interface ScaleVote { source: string; ptPerM: number }
 export interface RoomFinding {
   id: string; label: string; roomType: RoomType; method: 'walls' | 'walls+strokes' | 'label-rect';
   confidence: number; labelDims?: { w: number; l: number }; labelAreaM2?: number; areaM2: number;
+  /** the walls drawn around the label measured this (metres) and disagreed with the printed size by more than 5%: the room is drawn at the printed size and the disagreement is a conflict for the broker */
+  drawnDims?: { w: number; l: number };
 }
 export interface CeilingFinding {
   heightM: number; method: 'text' | 'geometry' | 'default'; page: number | null;
@@ -32,6 +34,8 @@ export interface ProposalExtras {
   sourceFile: string;                 // file name only, never a path
   planPage: number;
   scale: { ptPerM: number; votes: ScaleVote[]; agreeing: number; disagreementPct: number };
+  /** several flats on one sheet (a floor plate, a page of unit plans): which rooms belong to which. Absent for a single flat */
+  units?: { id: string; label: string; roomIds: string[] }[];
   rooms: RoomFinding[];
   ceiling: CeilingFinding;
   /** designed furniture found on the plan, world metres */

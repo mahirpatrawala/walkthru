@@ -144,7 +144,20 @@ export function selectWalls(page: VectorPage): WallSet {
   }
   const rejected: { color: string; reason: string }[] = [];
   const colors: string[] = []; const polys: WallPoly[] = [];
+  // Floors, rooms and glass are fills too, and a colour-filled brochure has far more floor than wall. A wall is the dark one: when a
+  // dark colour qualifies, a colour much lighter than it is a floor, and near-white is the paper or a window, never a wall.
+  const lum = (hex: string): number => { const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(hex); return m ? (0.2126 * parseInt(m[1], 16) + 0.7152 * parseInt(m[2], 16) + 0.0722 * parseInt(m[3], 16)) / 255 : 0.5; };
+  // wall pieces of a built-up plan are rectilinear outlines (L, T, frames), not long rectangles: their area is a small part of their
+  // bounding box. A floor fill is most of its box. This is the second way for a colour to count as walls.
+  const hollow = (list: Cand[]): number => median(list.map((c) => c.area / Math.max(1e-6, (c.bbox[2] - c.bbox[0]) * (c.bbox[3] - c.bbox[1]))));
+  const qualifies = (list: Cand[]): boolean => {
+    const total = list.reduce((s, c) => s + c.area, 0); const aspect = median(list.map((c) => c.long / c.short));
+    return total >= pageArea * (aspect >= 5 ? 0.001 : 0.003) && (aspect >= 3 || total >= pageArea * 0.03 || (total >= pageArea * 0.01 && hollow(list) <= 0.55));
+  };
+  const darkest = Math.min(1, ...[...byColor].filter(([, l]) => qualifies(l)).map(([c]) => lum(c)));
   for (const [color, list] of byColor) {
+    if (lum(color) >= 0.93) { rejected.push({ color, reason: 'near white: paper or glass, not a wall' }); continue; }
+    if (darkest <= 0.6 && lum(color) >= 0.75 && lum(color) >= darkest + 0.3) { rejected.push({ color, reason: 'much lighter than the dark fills: a floor, not a wall' }); continue; }
     const total = list.reduce((s, c) => s + c.area, 0);
     const aspect = median(list.map((c) => c.long / c.short));
     // SPEC-GAP: 13.5 asks for 0.3% of the page, but the 13.10 fixture's 0.12 m partitions total 0.13% of an A4 page at
@@ -152,7 +165,7 @@ export function selectWalls(page: VectorPage): WallSet {
     // which glyphs and hatching never are) only need 0.1%.
     const minShare = aspect >= 5 ? 0.001 : 0.003;
     if (total < pageArea * minShare) { rejected.push({ color, reason: `under ${(minShare * 100).toFixed(1)}% of the page` }); continue; }
-    if (!(aspect >= 3 || total >= pageArea * 0.03)) { rejected.push({ color, reason: `not elongated (median aspect ${aspect.toFixed(1)})` }); continue; }
+    if (!(aspect >= 3 || total >= pageArea * 0.03 || (total >= pageArea * 0.01 && hollow(list) <= 0.55))) { rejected.push({ color, reason: `not elongated (median aspect ${aspect.toFixed(1)})` }); continue; }
     colors.push(color);
     for (const c of list) polys.push({ ring: c.ring, color: c.color, area: c.area, bbox: c.bbox, isRect: c.isRect, long: c.long, short: c.short });
   }

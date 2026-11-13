@@ -17,6 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import type { ImportErrorCode, VectorPage } from '../../import/types';
+import { isPictureOfPlan } from '../../import/vector-page';
 import type { PageMeta, PagesFile } from '../page-geometry';
 import { progressOf, buildRows } from '../review-model';
 import type { UnderstandingDoc } from '../review-model';
@@ -117,7 +118,7 @@ export function makeRunner(cfg: RunConfig = {}): JobRunner {
     const sha256 = sha.digest('hex');
     const vectorPages: VectorPage[] = [];
     for (const p of pdfs) for (const pg of p.pages) vectorPages.push({ ...pg, index: vectorPages.length });
-    const isRasterPage = (p: VectorPage): boolean => p.imageCoverage > 0.5 && p.strokes.length + p.fills.length < 200;
+    const isRasterPage = (p: VectorPage): boolean => isPictureOfPlan(p);
     hooks.stageEnd('read', 'done', `${pdfs.length} PDF${pdfs.length === 1 ? '' : 's'}, ${imageFiles.length} picture${imageFiles.length === 1 ? '' : 's'}, ${vectorPages.length} PDF page${vectorPages.length === 1 ? '' : 's'}`);
 
     // ---------------------------------------------------------------- render
@@ -179,6 +180,11 @@ export function makeRunner(cfg: RunConfig = {}): JobRunner {
       }
     }
 
+    // a PDF whose plan is a picture placed in it: the vector read found no rooms, so the picture is read instead
+    if (doc && !doc.rooms.length && pdfPics.some((p) => isRasterPage(p.vec!.page))) {
+      doc = null; base = null; meta.length = 0; route = 'picture';
+      hooks.warning('The PDF holds its plan as a picture, so it is read as a picture.');
+    }
     if (!doc || !base) {
       // the raster path: pictures, and scanned PDF pages
       const rasterPics = [...pdfPics.filter((p) => isRasterPage(p.vec!.page)), ...imagePics];

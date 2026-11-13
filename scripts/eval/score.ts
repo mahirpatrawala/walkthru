@@ -158,7 +158,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   S.fields.rooms.pred += pr.length;
   pr.forEach((q, i) => {
     const k = roomHit.get(i);
-    if (k === undefined) { verifiedCheck(q.status, false); return; }
+    if (k === undefined) { if (process.env.SCORE_DEBUG && q.status === 'verified') console.log('  unmatched verified room', q.label, sides(q.polygon).map((v) => v.toFixed(2)).join('x')); verifiedCheck(q.status, false); return; }
     const t = trRooms[k];
     const typed = q.roomType === t.roomType;
     if (typed) { S.fields.rooms.tp++; S.fields.rooms.right++; }
@@ -167,6 +167,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
     const areaOk = within(area, t.areaM2, 0.03);
     if (sizeOk) S.fields.roomSize.right++;
     if (areaOk) S.fields.roomArea.right++;
+    if (process.env.SCORE_DEBUG && q.status === 'verified' && !(sizeOk && areaOk)) console.log('  WRONG verified room', q.label, `${qs.toFixed(2)}x${ql.toFixed(2)}`, 'truth', `${t.widthM.toFixed(2)}x${t.lengthM.toFixed(2)}`);
     verifiedCheck(q.status, sizeOk && areaOk);
     credit(q.status, sizeOk); credit(q.status, areaOk); credit(q.status, typed);
   });

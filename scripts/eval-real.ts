@@ -11,7 +11,7 @@ import path from 'node:path';
 import { execFile, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { addLabel, blankLabel, scoreLabelSet, summariseLabel } from './eval/label-score';
-import type { LabelPrediction, LabelScore, LabelTruth } from './eval/label-score';
+import type { LabelPredRoom, LabelPrediction, LabelScore, LabelTruth } from './eval/label-score';
 import { ocrFloor } from './eval/ocr-floor';
 import type { OcrFloor } from './eval/ocr-floor';
 
@@ -53,6 +53,21 @@ export async function runSet(s: RealSet, opts: { ocr?: boolean } = {}): Promise<
     const { ImportError } = await import('../src/import/types');
     try {
       const pages = await loadVectorPages(new Uint8Array(fs.readFileSync(s.file)));
+      // a PDF whose plan is a picture placed in it goes down the picture path, as the app routes it
+      const { isPictureOfPlan } = await import('../src/import/vector-page');
+      if (pages.length && pages.every(isPictureOfPlan)) {
+        const { renderPdf, loadGray } = await import('../src/understand/server/run');
+        const { readRasterPages } = await import('../src/understand/raster');
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'walkthru-pdfpic-'));
+        try {
+          const files = await renderPdf(s.file, dir, 200);
+          const run = await readRasterPages(await Promise.all(files.map(async (f, i) => ({ id: `p${i + 1}`, image: await loadGray(f) }))), { provider: null });
+          const pred: LabelPrediction = run.status === 'ok' ? predictionOfRaster(run) : { attempted: false, error: run.reason, rooms: [] };
+          const res: RealResult = { ...base, path: 'raster', seconds: (Date.now() - t0) / 1000, outcome: run.status === 'ok' ? `ok, ${pred.rooms.length} rooms (picture in PDF, local)` : `refused: ${run.reason}`, error: run.reason, score: scoreLabelSet(pred, s.truth) };
+          if (run.status === 'ok') res.read = { rooms: pred.rooms.map((x) => ({ label: x.label, type: x.roomType, sides: x.sides, status: x.status, labelDims: x.labelDims, method: x.method })), warnings: run.understanding.warnings, unmapped: [], dims: 0 };
+          return res;
+        } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+      }
       const u = understandPages(pages, 'input', 'eval');
       const r = u.result; const an = u.analysis;
       const unnamed = (l: string): boolean => /^room( \d+)?$/i.test(l.trim());
@@ -77,6 +92,7 @@ export async function runSet(s: RealSet, opts: { ocr?: boolean } = {}): Promise<
   const { decodeImage } = await import('../src/understand/pixels/image');
   const { readRasterPages } = await import('../src/understand/raster');
   let outcome = '', error: string | undefined;
+  let run: import('../src/understand/raster').RasterRun | undefined;
   try {
     let image;
     const bytes = new Uint8Array(fs.readFileSync(s.file));
@@ -85,13 +101,27 @@ export async function runSet(s: RealSet, opts: { ocr?: boolean } = {}): Promise<
       execFileSync('sips', ['-s', 'format', 'png', s.file, '--out', tmp], { stdio: 'ignore' });
       image = decodeImage(new Uint8Array(fs.readFileSync(tmp)));
     }
-    const run = await readRasterPages([{ id: 'p1', image }], { provider: null });
+    run = await readRasterPages([{ id: 'p1', image }], { provider: null });
     outcome = `${run.status}${run.reason ? `: ${run.reason}` : ''}`; if (run.status !== 'ok') error = run.reason;
   } catch (e) { outcome = `crash: ${(e as Error).message}`; error = outcome; }
-  const pred: LabelPrediction = { attempted: false, error: error ?? outcome, rooms: [] };
+  const pred: LabelPrediction = run && run.status === 'ok' ? predictionOfRaster(run) : { attempted: false, error: error ?? outcome, rooms: [] };
+  if (pred.attempted) outcome = `ok, ${pred.rooms.length} rooms (local)`;
   const res: RealResult = { ...base, path: 'raster', seconds: (Date.now() - t0) / 1000, outcome, error, score: scoreLabelSet(pred, s.truth) };
+  if (run && pred.attempted) res.read = { rooms: pred.rooms.map((x) => ({ label: x.label, type: x.roomType, sides: x.sides, status: x.status, labelDims: x.labelDims, method: x.method })), warnings: run.understanding.warnings, unmapped: [], dims: run.understanding.dimensions.length };
   if (opts.ocr) res.ocr = await ocrFloor(s.file, s.truth);
   return res;
+}
+
+/** A finished raster run as the label scorer's prediction. */
+export function predictionOfRaster(run: import('../src/understand/raster').RasterRun): LabelPrediction {
+  const u = run.understanding; const ex = run.result?.extras.rooms ?? [];
+  const worst = (...st: string[]): LabelPredRoom['status'] => (st.includes('conflict') ? 'conflict' : st.every((x) => x === 'verified' || x === 'confirmed' || x === 'corrected') ? 'verified' : 'unverified');
+  const rooms: LabelPredRoom[] = u.rooms.map((r) => {
+    const e = ex.find((x) => x.id === r.id);
+    const a = r.width.value, b = r.length.value;
+    return { label: r.label.value, roomType: r.roomType.value, sides: [Math.min(a, b), Math.max(a, b)], areaM2: r.area.value, status: worst(r.width.status, r.length.status, r.area.status), labelDims: e?.labelDims, method: e?.method };
+  });
+  return { attempted: true, rooms };
 }
 
 const runChild = (id: string, outFile: string, root: string, timeoutS: number, ocr: boolean): Promise<void> => new Promise((resolve) => {
@@ -141,7 +171,8 @@ async function main(): Promise<void> {
     else if (fs.existsSync(f + '.fail')) console.log(`${s.id}: no result (${fs.readFileSync(f + '.fail', 'utf8').split('\n')[0]})`);
   }
   console.log(formatReal(results, sets));
-  console.log(perSetTable(results));
+  // per-set rows only for development sets: held-out sets are scored in aggregate and never inspected one by one
+  console.log(perSetTable(results.filter((r) => r.split === 'dev')));
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) void main();
 
