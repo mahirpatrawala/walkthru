@@ -18,6 +18,7 @@
 .wt-look-switch input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--wt-accent); flex: none; }
 .wt-look-switch small { display: block; color: var(--wt-muted); font-size: 12px; }
 .wt-look-seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 6px; }
+.wt-look-seg + .wt-look-slider { margin-top: 10px; }
 .wt-look-seg-b {
   min-height: 40px; border: 1px solid #d5d9e0; border-radius: 10px; background: #fff; color: var(--wt-ink); font-size: 13px; font-weight: 600; cursor: pointer;
 }

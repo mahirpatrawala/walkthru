@@ -385,7 +385,8 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
       trueColours = o.trueColours;
       for (const r of records) {
         if (r.kind === 'floor' && !r.balcony) r.look.roughness = r.u.uLkRoughOn.value ? 0.15 : FLOOR_ROUGHNESS_FLAT;
-        if (r.kind === 'railing') { r.look.metalness = c.environment ? 0.6 : 0.2; r.look.roughness = 0.4; }
+        // nearly matt: the plain sky gives a metal little to reflect, and a railing at metalness 0.6 (or 0.35) went black against the window
+        if (r.kind === 'railing') { r.look.metalness = c.environment ? 0.12 : 0.1; r.look.roughness = 0.5; }
         if (r.map) r.map.anisotropy = c.anisotropy;
         // colour truth beats gloss: "True colours" shows no reflections
         r.u.uLkReflOn.value = r.kind === 'floor' && !r.balcony && !o.trueColours ? 1 : 0;

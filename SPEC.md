@@ -2222,8 +2222,8 @@ Realism must never fake a fact.
 2. **Sampled colours win.** A wall or floor colour sampled from the video is the mean colour of that surface's material. Textures add only relief and small variation around that mean (16.5). Default finishes are used only where nothing was sampled.
 3. **Colour-true lighting is always one tap away.** The default light is warm late afternoon because it looks like a home; a "True colours" switch sets neutral white light at exposure 1 so surfaces show their sampled colours.
 4. **Anything decorative is labelled.** Three things in the scene are not facts about the property, and each has a fixed label wherever it is controlled or first seen:
-   - the view outside: "View outside is illustrative."
-   - the sun: "Light direction is illustrative." (or "Sun direction is approximate." when the broker has set north, 16.4)
+   - the view outside: "Outside the window is a plain sky, not the real view." (16.11; it was "View outside is illustrative." when the view was a picture of a city)
+   - the sun: "Sun direction assumed: the drawing has no north arrow." (or "Sun direction is approximate." when the broker has set north, 16.4; 16.11)
    - furniture style: "Furniture style is illustrative. Sizes are exact."
    The character: no label (it is obviously a stand-in), but its height stays exact.
 5. With a scan (splat) shown, the look steps back: no tone mapping, no post-processing, exposure 1, exactly as today, so the scan's captured colours are not altered.
@@ -2281,9 +2281,11 @@ export interface LookFile {
   floorNumber?: number;
   /** compass bearing of the plan's -z direction, degrees clockwise from north. Absent = unknown. */
   northDeg?: number;
-  /** default hour for the time slider, 6..19. Default 16.5. */
+  /** default hour for the time slider, 6..21 (16.11). Absent = the Afternoon preset. */
   hour?: number;
-  /** broker's choice of backdrop, overriding floorNumber */
+  /** default preset, 16.11; `hour` wins when both are set */
+  preset?: 'morning' | 'afternoon' | 'evening' | 'night';
+  /** broker's choice of backdrop picture; the only way a picture (rather than the plain graded sky) is shown, 16.11 */
   backdrop?: 'rooftop_day' | 'rooftop_night' | 'sky';
 }
 ```
@@ -2570,6 +2572,26 @@ Rooms used to be empty white boxes with a generic tile. `src/look/kit/` adds the
 - `build.ts`: low-poly geometry merged by material (about a dozen draw calls for a flat; the fan blades are one instanced mesh that turns slowly, still under reduced motion). `materials.ts`: the kit's few materials. `index.ts`: `mountKit({ viewer, layout, shell, look, store })`, one call from `buyer/main.ts`.
 - Floors are a look-material feature (`floorKit` in `look/materials.ts`): the shader draws the room's own grid, a thin grout line at least a pixel wide, a per-tile tone shift of about 6 % around the sampled colour, and the marble detail per tile.
 - Lights: the glowing parts carry `userData.walkthruLight = 'tube' | 'cove' | 'fan'` and are off (emissive 0) by default. `mountKit(...).setLit(kind, on)` drives them.
+
+### 16.12 look-light: time of day, grade, plain sky, interior lights (13 Nov 2026)
+
+This section supersedes the parts of 16.5 it names (tone mapping, sun and time of day, "Outside the windows", bloom) and the 16.2 rule 4 wording of the view and sun labels. Everything else in 16.5 stands. Files: `src/look/grade.ts` (pure), `interior.ts`, `sky.ts`, `post.ts`, `look.ts`, `look-panel.ts`, `quality.ts`.
+
+**Presets.** One slider (6:00 to 21:00) and four presets that are four hours of it: Morning 8:30, Afternoon 15:00, Evening 17:48 (golden hour), Night 20:30; plus the neutral "True colours" switch (unchanged: white light, linear, nothing graded, sun and lights off). `grade.ts` holds one table of keyframes (sun colour and strength, sky half and ground half of the ambient light, exposure, window sky, white balance, saturation, contrast, split tone, bloom, vignette, how far the interior lights are on) and a smooth blend between them (`gradeAt(hour)`). The default is **Afternoon** (`DEFAULT_PRESET`), chosen because it is bright enough to read every room and keeps the colours close to the finishes; Evening is one tap away and is the "mood" shot. `look.json` may set `preset` or `hour`; `?preset=evening` overrides both for checking. `Look` gains `setPreset(p)`, `preset` (null between two presets) and `grade()`; `setHour` takes 6 to 21.
+
+**Sun direction.** The importer and the understand step record no north arrow anywhere (checked 13 Nov 2026), so today every flat takes the unknown-north path of 16.5 (the sun enters through the widest outdoor opening, sweeping with the hour). Only `look.json` `northDeg` gives a known north. The look panel therefore shows, whenever north is unknown: "Sun direction assumed: the drawing has no north arrow." (replaces "Light direction is illustrative."). With `northDeg` set it says "Sun direction is approximate." Sunlight comes through the real window openings: the wall boxes cast the sun's shadow map (medium: one static 1024 map re-rendered on change; high: 2048, filter radius 4, every frame; low: none). After 19:06 the sun is off and nothing casts a sun shadow.
+
+**Tone mapping and grade.** ACES filmic (`THREE.ACESFilmicToneMapping`, or `ToneMappingMode.ACES_FILMIC` in the high chain), picked by looking at the same son-bedroom view under all three: AgX was muted and hazy, Neutral turned the golden hour a flat garish orange, ACES kept a warm vivid light with a creamy window. Compare with `?tonemap=agx|aces|neutral`. The high chain is render, N8AO, then one effect pass: exposure and per-preset white balance, bloom (threshold 0.95 with a soft knee, so only windows, lights and the sun patch glow), tone mapping, then a grade effect (saturation, contrast about 18% grey, cool tint in the shadows and warm in the highlights: the ochre and teal of the reference). Medium and low have no post chain, so the same mood comes from the light colours themselves (warm sun, cool sky fill, floor-coloured bounce) and the tone mapper. The vignette is a CSS gradient over the canvas on every tier (free, never touches canvas pixels). Interior bounce: the hemisphere's ground half takes the floor colour (`finishes.floorColor`) mixed with the sun tint, so a red floor warms the walls, and N8AO and the grid AO stay. Sizes, geometry and the sampled finishes are never touched (rule 1 and 2 of 16.2); "True colours" is still the colour-truth mode.
+
+**The view outside (honesty fix).** The invented city picture is gone from the default. The window shows a plain graded sky made in code (`skyPixels`: zenith, mid, horizon, a soft haze below the horizon with no hard line, and a broad glow towards the sun), used as the background and (medium, high) the PMREM environment. It costs no download (the three `view_*` pictures and HDRIs stay in `public/look/` but are only used when `look.json` names a `backdrop`, a broker's own choice). Label: "Outside the window is a plain sky, not the real view." (look panel, and the 3-second toast when a window first fills 8% of the screen).
+
+**Interior lights, the API for fixtures.** A fixture declares itself by scene-graph convention: `object.userData.walkthruLight = 'tube' | 'cove' | 'fan' | 'lamp'` on a Mesh, a Light or a Group (a group's meshes and lights follow its kind unless they declare their own), or with `look.registerInteriorLight(obj, kind)` which sets it for you. `look.refreshInteriorLights()` rescans; `attach()`, `refresh()` and `setLayout()` rescan on their own, so fixtures added to the shell or furniture root before `look.attach({ shell })` are found. What the time of day then does, with `level` 0..1 from `grade.interior` (tube, fan and lamp follow the tube level; cove its own: 0 in the morning and afternoon, about 0.25 tube and 0.5 cove in the evening, 1 at night):
+- a Mesh: `material.emissiveIntensity = fullOn * level` (`fullOn` is the value the material had when first seen, so set `emissive` and a full-on `emissiveIntensity` and leave the rest to the look);
+- a THREE.Light: `intensity = fullOn * level`, hidden at level 0;
+- a small POOL of real point lights (0 on low, 2 on medium, 4 on high) that moves, with a 0.25 s fade, to the fixtures nearest the walker, preferring the walker's own room, so a flat of 30 fixtures costs the same as one of 3. The pooled light sits at the fixture's world bounding-box centre, lowered to just under its bottom face (for a cove at the top of its box); for a long strip or a ring, tag one small empty `Object3D` at the spot you want the light and set `userData.walkthruPool = true` on a THREE.Light you want pooled instead of driven.
+With no tagged fixtures at all, each non-balcony room gets one virtual ceiling light so Evening and Night still light the rooms. The low tier has no real lights: it lifts the ambient warm by the lamp level instead. Pooled lights cast no shadow (a wall does not stop their floor pool: acceptable for a stylised view, and they prefer the walker's room).
+
+**Phone cost.** No new download on any tier (the sky is generated, 256 x 128 half-float). Low: no shadows, no post, no real interior lights, CSS vignette. Medium (the usual phone tier): one static shadow map as before (re-rendered only when the hour or furniture changes), up to 2 pooled lights only in Evening and Night, no post. High: the extra grade effect is a handful of ALU per pixel on top of the old exposure pass.
 
 ---
 

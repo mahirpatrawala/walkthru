@@ -1,6 +1,8 @@
 // Owned by C11a. SPEC 16.5 "look-panel.ts": one HUD button (a sun) opening a small sheet with the time slider, the
 // "True colours" switch, the quality picker, the sampled-colour swatches and the illustrative labels.
-import { dayPart, formatHour } from './sun';
+import { LOOK_PRESETS, PRESET_LABEL, dayPartLabel } from './grade';
+import type { LookPreset } from './grade';
+import { formatHour } from './sun';
 import type { Look, QualityMode } from './look';
 import { HOUR_MAX, HOUR_MIN, LABEL_FURNITURE, LABEL_VIEW } from './types';
 import './look.css';
@@ -53,6 +55,18 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
   const timeRow = h('div', 'wt-look-row', undefined, sheet);
   h('span', 'wt-look-k', 'Time of day', timeRow);
   const timeText = h('span', 'wt-look-v', '', timeRow);
+  const presetRow = h('div', 'wt-look-seg', undefined, sheet);
+  presetRow.setAttribute('role', 'group');
+  presetRow.setAttribute('aria-label', 'Time of day presets');
+  presetRow.dataset.testid = 'look-presets';
+  const presetButtons = new Map<LookPreset, HTMLButtonElement>();
+  for (const p of LOOK_PRESETS) {
+    const b = h('button', 'wt-look-seg-b', PRESET_LABEL[p], presetRow);
+    b.type = 'button';
+    b.dataset.preset = p;
+    b.addEventListener('click', () => { look.setPreset(p); sync(); });
+    presetButtons.set(p, b);
+  }
   const slider = h('input', 'wt-look-slider', undefined, sheet);
   slider.type = 'range';
   slider.min = String(HOUR_MIN);
@@ -121,7 +135,12 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
   const sync = (): void => {
     const hr = look.hour;
     slider.value = String(hr);
-    timeText.textContent = `${formatHour(hr)} · ${dayPart(hr)}`;
+    timeText.textContent = `${formatHour(hr)} · ${dayPartLabel(hr)}`;
+    for (const [p, b] of presetButtons) {
+      const on = !look.trueColours && look.preset === p;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
     const label = look.sun().label;
     sunLabel.textContent = look.trueColours ? 'Sun is off in True colours.' : label;
     sunNote.textContent = label;

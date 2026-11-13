@@ -30,6 +30,8 @@ export interface TierConfig {
   /** scales the hemisphere's sky half. Low darkens the sky half and lightens the ground half: floors stay under walls, a cheap stand-in for bounce light */
   skyScale: number;
   groundScale: number;
+  /** pooled real point lights for the interior fixtures (tube, cove): none on low, which fakes them with a warm ambient lift */
+  interiorLights: number;
   /** multiplies the sun's intensity: with no shadow map the sun lights every floor evenly, so low turns it down */
   sunScale: number;
 }
@@ -37,17 +39,27 @@ export interface TierConfig {
 export const TIERS: Record<Tier, TierConfig> = {
   low: {
     tier: 'low', fpsTarget: 30, pixelRatioCap: 1.0, shadow: 'none', shadowMapSize: 0, hdri: 'backdrop', environment: false,
-    reflection: 'none', fullTextures: false, anisotropy: 4, bloom: false, post: false, hemiIntensity: 1.0, envIntensity: 0, groundColour: '#F4F0EA', skyScale: 0.74, groundScale: 2.4, sunScale: 0.1,
+    reflection: 'none', fullTextures: false, anisotropy: 4, bloom: false, post: false, hemiIntensity: 1.0, envIntensity: 0, groundColour: '#F4F0EA', skyScale: 0.74, groundScale: 2.4, sunScale: 0.1, interiorLights: 0,
   },
   medium: {
     tier: 'medium', fpsTarget: 50, pixelRatioCap: 1.5, shadow: 'static', shadowMapSize: 1024, hdri: '1k', environment: true,
-    reflection: 'cube', fullTextures: true, anisotropy: 4, bloom: false, post: false, hemiIntensity: 1.25, envIntensity: 0.12, groundColour: '#D2CCC2', skyScale: 1, groundScale: 2.0, sunScale: 1,
+    reflection: 'cube', fullTextures: true, anisotropy: 4, bloom: false, post: false, hemiIntensity: 1.25, envIntensity: 0.12, groundColour: '#D2CCC2', skyScale: 1, groundScale: 2.0, sunScale: 1, interiorLights: 2,
   },
   high: {
     tier: 'high', fpsTarget: 55, pixelRatioCap: 2.0, shadow: 'live', shadowMapSize: 2048, hdri: '2k', environment: true,
-    reflection: 'planar', fullTextures: true, anisotropy: 8, bloom: true, post: true, hemiIntensity: 1.25, envIntensity: 0.12, groundColour: '#D2CCC2', skyScale: 1, groundScale: 2.0, sunScale: 1,
+    reflection: 'planar', fullTextures: true, anisotropy: 8, bloom: true, post: true, hemiIntensity: 1.25, envIntensity: 0.12, groundColour: '#D2CCC2', skyScale: 1, groundScale: 2.0, sunScale: 1, interiorLights: 4,
   },
 };
+
+/** Which tone mapper rolls the light off. ACES is the default: AgX read muted and hazy and Neutral garish orange when compared by eye on the same flat (`?tonemap=agx|aces|neutral`). */
+export type ToneMapperName = 'agx' | 'aces' | 'neutral';
+export const DEFAULT_TONE_MAPPER: ToneMapperName = 'aces';
+export function toneMapperFromQuery(search: string): ToneMapperName {
+  try {
+    const v = new URLSearchParams(search).get('tonemap');
+    return v === 'agx' || v === 'aces' || v === 'neutral' ? v : DEFAULT_TONE_MAPPER;
+  } catch { return DEFAULT_TONE_MAPPER; }
+}
 
 export const TIER_ORDER: Tier[] = ['low', 'medium', 'high'];
 export const TIER_STORAGE_KEY = 'walkthru:tier';
