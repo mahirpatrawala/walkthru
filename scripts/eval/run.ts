@@ -106,7 +106,9 @@ export async function loadFolder(root: string): Promise<EvalSet[]> {
     if (!fs.statSync(dir).isDirectory()) continue;
     const metaP = path.join(dir, 'meta.json'), truthP = path.join(dir, 'truth.json');
     const meta = fs.existsSync(metaP) ? JSON.parse(fs.readFileSync(metaP, 'utf8')) : {};
-    const truth: TruthLite = fs.existsSync(truthP) ? JSON.parse(fs.readFileSync(truthP, 'utf8')) : {};
+    let truth: TruthLite = fs.existsSync(truthP) ? JSON.parse(fs.readFileSync(truthP, 'utf8')) : {};
+    // a label-v1 truth (rooms read off printed labels, no geometry) is scored by eval-real.ts; here it counts as an empty truth so this harness only checks for crashes
+    if ((truth as { schema?: string }).schema === 'label-v1') truth = {};
     const split = meta.split === 'held-out' ? 'held-out' : 'dev';
     const set: EvalSet = { id: name, split, firm: String(meta.firm ?? name), origin: meta.synthetic ? 'synthetic' : 'real', truth };
     const pdf = path.join(dir, 'drawing.pdf');
