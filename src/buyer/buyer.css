@@ -199,3 +199,10 @@ html, body {
   padding: 4px 10px; background: rgba(26, 26, 26, 0.78); color: #fff; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.3;
   pointer-events: none;
 }
+
+/* phones: the mode bar and toasts sit under the room chip (and the scene tag) instead of on top of it */
+@media (max-width: 600px) {
+  .wt-top { top: calc(12px + var(--wt-safe-t) + 62px); padding-left: calc(12px + var(--wt-safe-l)); }
+  .wt-hud:has(.wt-scene-tag) .wt-top { top: calc(12px + var(--wt-safe-t) + 88px); }
+  .wt-hint { top: calc(112px + var(--wt-safe-t)); }
+}
