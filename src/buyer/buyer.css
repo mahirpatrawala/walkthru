@@ -108,7 +108,7 @@ html, body {
 }
 .wt-screen.is-hiding { opacity: 0; pointer-events: none; }
 .wt-screen-card { width: 100%; max-width: 420px; text-align: center; }
-.wt-screen-art { width: 148px; height: 112px; margin: 0 auto 10px; display: block; }
+.wt-screen-art { width: 176px; height: 133px; margin: 0 auto 10px; display: block; }
 .wt-screen h1 { font-family: var(--wt-display); font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 4px; }
 .wt-screen .wt-sub { color: var(--wt-muted); font-size: 15px; margin: 0 0 22px; }
 .wt-progress { height: 6px; background: var(--wt-line); border-radius: 3px; overflow: hidden; }

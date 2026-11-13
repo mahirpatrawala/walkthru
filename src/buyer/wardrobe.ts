@@ -32,7 +32,7 @@ const OPEN_SECONDS = 0.7;
 const ARC_Y = 0.014;
 const ARC_HALF_M = 0.011;
 const LINE_Y = 0.05;
-const ARC_COLOR = '#2F6BFF';
+const ARC_COLOR = '#1E6B73';
 /** The Open / Close chips show within this distance of a wardrobe's footprint. */
 const CHIP_RADIUS_M = 1.6;
 /** The card hides when the buyer is further than this from the wardrobe. */
