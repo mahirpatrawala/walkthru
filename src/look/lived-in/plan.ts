@@ -16,6 +16,7 @@ import { computeEdgeFrames } from '../../core/layout-geom';
 import { boxAxes, boxCorners, distanceToPolygon, distanceToSegment, mulberry32, pointInBox, pointInPolygon } from '../../core/geometry';
 import { cellIndex } from '../../core/grid-codec';
 import { furnitureLook } from '../furniture-real';
+import { tubeSites, TUBE_LEN_M } from '../kit/rules';
 
 export type DecorKind =
   | 'cushion' | 'throw' | 'books' | 'lamp' | 'cooker' | 'dabbas' | 'fruit' | 'jug'
@@ -210,6 +211,8 @@ class Planner {
     this.whole = layout.rooms.filter((r) => !r.partial && r.polygon.length >= 3);
     this.partial = layout.rooms.filter((r) => r.partial);
     this.items = input.items.filter((i) => i.source === 'real');
+    // the kit's wall battens hang at 2.05 m: high wall decor (clock, picture) keeps clear of them
+    this.tubes = tubeSites(input.layout, this.items);
     this.walk = new Walk(input.grid, CHARACTER_RADIUS_M);
     for (const o of layout.openings) {
       if (o.type === 'window') continue;
@@ -387,8 +390,12 @@ class Planner {
   // ---- wall pieces
 
   /** wall edges of whole rooms, with the stretches of them that something occupies */
+  private tubes: { roomId: string; edge: number; u: number; lengthM: number }[] = [];
   private wallBlocks(f: EdgeFrame, bottomY: number): { u0: number; u1: number }[] {
     const out: { u0: number; u1: number }[] = [];
+    if (bottomY > 1.0) for (const t of this.tubes) {
+      if (t.roomId === f.roomId && t.edge === f.edge) out.push({ u0: t.u - (t.lengthM || TUBE_LEN_M) / 2 - 0.15, u1: t.u + (t.lengthM || TUBE_LEN_M) / 2 + 0.15 });
+    }
     for (const o of this.input.layout.openings) {
       if (o.roomId !== f.roomId || o.edge !== f.edge) continue;
       out.push({ u0: o.centreM - o.widthM / 2 - 0.1, u1: o.centreM + o.widthM / 2 + 0.1 });

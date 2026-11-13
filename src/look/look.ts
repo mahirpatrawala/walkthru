@@ -275,11 +275,14 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       // tiers with no grade pass (low and medium: no post chain) get the sun's warmth through the sky half of the ambient instead
       if (!post && !g.night) hemi.color.lerp(tmp.setRGB(g.sunColour[0], g.sunColour[1], g.sunColour[2]), cfg.shadow === 'none' ? 0.3 : 0.18);
       // a tier with no pooled lights fakes the lamps with a warm lift of the ambient
+      // the room lights are on at night: every tier gets a warm ambient fill (a lit Indian room is evenly bright, tube lights are
+      // diffuse); tiers with pooled point lights need less of it because the pools add the local pools of light
       const lamps = Math.max(g.interior.tube, g.interior.cove);
-      if (cfg.interiorLights === 0 && lamps > 0) {
-        hemi.color.lerp(WARM_AMBIENT, 0.35 * lamps);
-        hemi.groundColor.lerp(WARM_AMBIENT, 0.3 * lamps);
-        hemi.intensity *= 1 + 0.55 * lamps;
+      if (lamps > 0) {
+        const pooled = cfg.interiorLights > 0;
+        hemi.color.lerp(WARM_AMBIENT, (pooled ? 0.25 : 0.35) * lamps);
+        hemi.groundColor.lerp(WARM_AMBIENT, (pooled ? 0.25 : 0.3) * lamps);
+        hemi.intensity *= 1 + (pooled ? 2.2 : 2.8) * lamps;
       }
       const sunOn = !g.night && g.sunIntensity > 0.01;
       sunLight.visible = sunOn;
