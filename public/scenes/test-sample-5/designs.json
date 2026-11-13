@@ -1,5 +1,24 @@
 {
   "version": 1,
-  "source": "Imported drawing set, 1 page",
-  "items": {}
+  "source": "Imported drawing set, 5 pages",
+  "items": {
+    "bed-1": {
+      "surfaceHeightM": 0.5588,
+      "bed": {
+        "baseTopM": 0.4064
+      },
+      "sources": {
+        "surfaceHeightM": {
+          "page": 2,
+          "sheet": "",
+          "text": "1' 4\" + 6\""
+        },
+        "baseTopM": {
+          "page": 2,
+          "sheet": "",
+          "text": "1' 4\""
+        }
+      }
+    }
+  }
 }
