@@ -14,3 +14,12 @@ export interface Extracted<T> {
 }
 /** May the buyer see this value as a fact? (SPEC 17.1 table) */
 export const isFact = (s: Status): boolean => s === 'verified' || s === 'confirmed' || s === 'corrected';
+
+/** A built-in unit read from an elevation: the general form of the wardrobe in designs.json (SPEC 17.6). */
+export interface UnitDesign {
+  bays: Extracted<number>; bayWidths: Extracted<number>[];
+  shuttersPerBay: Extracted<number>[]; hinge: Extracted<'left' | 'right' | 'outer-edges' | 'unknown'>[];
+  drawerStrip?: Extracted<number>; baseGap?: Extracted<number>; loft?: Extracted<number>;
+  handle?: { y: Extracted<number>; length: Extracted<number> };
+  interior?: { bay: number; zonesBottomUp: { kind: string; height: Extracted<number> }[] }[];
+}

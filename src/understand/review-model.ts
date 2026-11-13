@@ -6,17 +6,12 @@
 // C12c writers are not there yet. They are declared here with the 17.6 shapes, plus one optional field (`ceiling`, the plan-level
 // wall height). C12c can move them into `types.ts`; nothing here depends on where they live.
 import { formatArea } from '../core/units';
-import type { Extracted, Method, SourceRef, Status } from './types';
+import type { Extracted, Method, SourceRef, Status, UnitDesign } from './types';
 import { isFact } from './types';
 import { parseLengthLoose, parseSizeLoose } from './units';
 
 // ---------------------------------------------------------------- the file shapes (17.6)
-export interface UnitDesign {
-  bays: Extracted<number>; bayWidths: Extracted<number>[];
-  shuttersPerBay: Extracted<number>[]; hinge: Extracted<'left' | 'right' | 'outer-edges' | 'unknown'>[];
-  drawerStrip?: Extracted<number>; baseGap?: Extracted<number>; loft?: Extracted<number>;
-  handle?: { y: Extracted<number>; length: Extracted<number> };
-}
+export type { UnitDesign };
 export type Pt2 = [number, number];
 export interface UnderstandingDoc {
   version: 1;
@@ -126,7 +121,7 @@ export function allExtracted(doc: UnderstandingDoc): Anyx[] {
   for (const i of doc.items) {
     add(i.kind); add(i.label); add(i.box.w); add(i.box.d); add(i.height); add(i.surfaceHeight);
     const u = i.unit;
-    if (u) { add(u.bays); u.bayWidths.forEach(add); u.shuttersPerBay.forEach(add); u.hinge.forEach(add); add(u.drawerStrip); add(u.baseGap); add(u.loft); add(u.handle?.y); add(u.handle?.length); }
+    if (u) { add(u.bays); u.bayWidths.forEach(add); u.shuttersPerBay.forEach(add); u.hinge.forEach(add); add(u.drawerStrip); add(u.baseGap); add(u.loft); add(u.handle?.y); add(u.handle?.length); for (const b of u.interior ?? []) for (const z of b.zonesBottomUp) add(z.height); }
   }
   for (const s of doc.symbols) add(s.class);
   for (const e of doc.elevations ?? []) { add(e.wall); add(e.ceiling); e.levels.forEach(add); }

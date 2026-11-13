@@ -2,7 +2,7 @@
 // Counters add up across sets; rates and the bar check come from `summarise`.
 import { isFact } from '../../src/understand/types';
 import type { Status } from '../../src/understand/types';
-import type { Prediction, Pt, TruthLite } from './types';
+import type { PredElevation, Prediction, Pt, TruthLite } from './types';
 import { FIELDS } from './bars';
 import type { Variant } from './bars';
 
@@ -112,6 +112,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   count('heights', heightTruth.length);
   count('unitBays', trElev.reduce((a, e) => a + e.units.length, 0));
   count('hinge', trElev.reduce((a, e) => a + e.units.reduce((b, u) => b + u.hinge.length, 0), 0));
+  count('unitParts', trElev.reduce((a, e) => a + e.units.length * 4, 0));
   count('conflicts', trDims.filter((d) => d.planted).length);
   // everything the walk-through needs from the drawing, for the broker-share count
   const needed = trRooms.length * 3 + (T.openings ?? []).length + (T.items ?? []).length + trDims.length + heightTruth.length + trElev.reduce((a, e) => a + e.units.length, 0);
@@ -122,6 +123,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   notAttempted('furniture', pred.items); notAttempted('fixtures', pred.symbols); notAttempted('elevLink', pred.elevations);
   notAttempted('heights', pred.elevations ?? pred.ceiling); notAttempted('unitBays', pred.elevations?.some((e) => e.units) ? pred.elevations : undefined);
   notAttempted('hinge', pred.elevations?.some((e) => e.units) ? pred.elevations : undefined);
+  notAttempted('unitParts', pred.elevations?.some((e) => e.units) ? pred.elevations : undefined);
   const verifiedCheck = (status: Status, ok: boolean): void => { if (status === 'verified' || status === 'confirmed' || status === 'corrected') { S.verified.n++; if (!ok) S.verified.wrong++; } };
   const credit = (status: Status, ok: boolean): void => { if (ok && isFact(status)) S.values.facts++; };
 
@@ -236,8 +238,21 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
 
   // ---- elevations
   const pe = pred.elevations ?? [];
+  const matchedE = new Set<PredElevation>();
+  // pairing: by caption; a view whose caption could not be read is paired with the truth view on the same page, top to bottom
+  const pairOf = new Map<(typeof trElev)[number], PredElevation>();
+  for (const t of trElev) {
+    const q = pe.find((x) => !matchedE.has(x) && x.caption && (norm(x.caption) === norm(t.caption) || norm(x.caption) === norm(t.tag)));
+    if (q) { matchedE.add(q); pairOf.set(t, q); }
+  }
+  const pages = [...new Set(trElev.map((t) => t.page))];
+  for (const pg of pages) {
+    const tl = trElev.filter((t) => t.page === pg && !pairOf.has(t));
+    const ql = pe.filter((x) => !x.caption && !matchedE.has(x) && x.page !== undefined && x.page + 1 === pg).sort((a, b) => (a.top ?? 0) - (b.top ?? 0));
+    tl.forEach((t, i) => { if (ql[i]) { matchedE.add(ql[i]); pairOf.set(t, ql[i]); } });
+  }
   trElev.forEach((t) => {
-    const q = pe.find((x) => norm(x.caption) === norm(t.caption) || norm(x.caption) === norm(t.tag));
+    const q = pairOf.get(t);
     if (!q) return;
     if (t.wall && q.wall) {
       const room = trRooms.find((r) => r.id === t.wall!.roomId);
@@ -249,20 +264,49 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
     }
     q.units?.forEach((u, k) => {
       const tu = t.units[k];
-      if (!tu) return;
+      if (!tu) { verifiedCheck(u.status, false); return; }
       const ok = u.bays === tu.bays && u.shuttersPerBay.join() === tu.shuttersPerBay.join();
       if (ok) S.fields.unitBays.right++;
       verifiedCheck(u.status, ok); credit(u.status, ok);
-      u.hinge.forEach((h, j) => { if (h === tu.hinge[j]) S.fields.hinge.right++; });
+      u.hinge.forEach((h, j) => {
+        const hok = h === tu.hinge[j];
+        if (hok) S.fields.hinge.right++;
+        // a side marked verified must be the right side (the honesty bar): unknown and conflict are never claims
+        const hs = u.hingeStatus?.[j];
+        if (hs && h !== 'unknown' && h !== 'conflict') verifiedCheck(hs, hok);
+      });
+      const parts: [keyof NonNullable<typeof u.partStatus>, number | undefined, number | undefined][] = [
+        ['drawerStripM', u.drawerStripM, tu.drawerStripM], ['baseGapM', u.baseGapM, tu.baseGapM], ['loftM', u.loftM, tu.loftM], ['heightM', u.heightM, tu.heightM],
+      ];
+      for (const [name, got, want] of parts) {
+        const pok = got !== undefined && want !== undefined && Math.abs(got - want) <= 0.02;
+        if (pok) S.fields.unitParts.right++;
+        const ps = u.partStatus?.[name];
+        if (ps && got !== undefined) verifiedCheck(ps, pok);
+      }
     });
+    // heights: each predicted level is paired with the nearest unused truth level of its kind (a wall can hold two windows)
+    const truthLevels: { kind: string; v: number }[] = [
+      ...t.levels.filter((l) => l.kind === 'sill' || l.kind === 'head').map((l) => ({ kind: l.kind, v: l.heightM })),
+      ...(t.bed ? [{ kind: 'bed-base', v: t.bed.baseTopM }, { kind: 'mattress-top', v: t.bed.mattressTopM }, { kind: 'headboard-top', v: t.bed.headboardTopM }] : []),
+    ];
+    const usedL = new Set<number>();
     for (const h of q.heights ?? []) {
       if (h.kind === 'ceiling') continue; // counted once per set below
-      const truthV = h.kind === 'ceiling' ? t.ceilingM : h.kind === 'bed-base' ? t.bed?.baseTopM : h.kind === 'mattress-top' ? t.bed?.mattressTopM : h.kind === 'headboard-top' ? t.bed?.headboardTopM : t.levels.find((l) => l.kind === h.kind)?.heightM;
-      const ok = truthV !== undefined && Math.abs(h.v - truthV) <= 0.02;
+      let bestK = -1, bestD = Infinity;
+      truthLevels.forEach((l, i) => { if (usedL.has(i) || l.kind !== h.kind) return; const d = Math.abs(l.v - h.v); if (d < bestD) { bestD = d; bestK = i; } });
+      const ok = bestK >= 0 && bestD <= 0.02;
+      if (bestK >= 0) usedL.add(bestK);
       if (ok) S.fields.heights.right++;
       verifiedCheck(h.status, ok); credit(h.status, ok);
     }
   });
+  // a view that matches no elevation of the truth (a misread caption, a block taken for a view): whatever it claims as a fact is wrong
+  for (const q of pe) {
+    if (matchedE.has(q)) continue;
+    for (const h of q.heights ?? []) if (h.kind !== 'ceiling') verifiedCheck(h.status, false);
+    for (const u of q.units ?? []) verifiedCheck(u.status, false);
+  }
   // the ceiling: the set-level value, or the best of those read off the elevations; counted once
   const ceilings = [...(pred.ceiling ? [pred.ceiling] : []), ...pe.flatMap((q) => (q.heights ?? []).filter((h) => h.kind === 'ceiling').map((h) => ({ v: h.v, status: h.status })))];
   if (trElev.length && ceilings.length) {

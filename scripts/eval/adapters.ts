@@ -3,7 +3,8 @@ import { proposeFromPages, proposeWithTrace } from '../../src/import/propose';
 import { ImportError } from '../../src/import/types';
 import type { VectorPage } from '../../src/import/types';
 import { furnitureOf } from '../../src/understand/lexicon';
-import type { Prediction, PredDim, PredItem, PredOpening, PredSymbol, Pt } from './types';
+import type { Prediction, PredDim, PredElevation, PredItem, PredOpening, PredSymbol, Pt } from './types';
+import type { Status } from '../../src/understand/types';
 import { analyseTrace } from '../../src/understand/text-dims';
 import { understandPages } from '../../src/understand/pipeline';
 import type { Understood } from '../../src/understand/pipeline';
@@ -149,5 +150,39 @@ export function predictionOf(u: Understood, seconds: number): Prediction {
   const dimensions: PredDim[] = an.dims.map((d) => ({ string: d.string, a: d.a, b: d.b, view: d.role, status: d.status }));
   const pred: Prediction = { attempted: true, rooms, openings, items, symbols, dimensions, seconds };
   if (r.extras.ceiling.method !== 'default') pred.ceiling = { v: r.extras.ceiling.heightM, status: 'unverified' };
+  pred.elevations = elevationsOf(u);
   return pred;
+}
+
+const statusOfAll = (...xs: ({ status: Status } | undefined)[]): Status => {
+  const s = xs.filter((x): x is { status: Status } => !!x).map((x) => x.status);
+  if (s.includes('conflict')) return 'conflict';
+  if (s.includes('unverified')) return 'unverified';
+  return s.length ? 'verified' : 'unverified';
+};
+
+/** The elevation stage's reads as the harness's PredElevation list (one per view with a caption it read). */
+export function elevationsOf(u: Understood): PredElevation[] {
+  const out: PredElevation[] = [];
+  for (const v of u.elev.views) {
+    const link = u.elev.links.find((l) => l.view === v.id);
+    const rd = u.elev.reads.find((x) => x.view === v.id);
+    const pe: PredElevation = { caption: v.caption?.text ?? '', linkConfidence: link?.confidence, page: v.page, top: v.box[1] };
+    if (link?.wall) pe.wall = { at: [link.wall.mid.x, link.wall.mid.z] };
+    if (rd) {
+      const nameOf: Record<string, string> = { ceiling: 'ceiling', sill: 'sill', head: 'head', 'bed-base': 'bed-base', 'mattress-top': 'mattress-top', 'headboard-top': 'headboard-top' };
+      pe.heights = rd.levels.filter((l) => nameOf[l.kind]).map((l) => ({ kind: nameOf[l.kind], v: l.e.value, status: l.e.status }));
+      pe.units = rd.units.map((un) => ({
+        bays: un.design.bays.value,
+        shuttersPerBay: un.design.shuttersPerBay.map((e) => e.value),
+        hinge: un.design.hinge.map((h) => (h.status === 'conflict' ? 'conflict' : h.value)),
+        status: statusOfAll(un.design.bays, ...un.design.shuttersPerBay),
+        drawerStripM: un.design.drawerStrip?.value, loftM: un.design.loft?.value, baseGapM: un.design.baseGap?.value, heightM: un.height?.value,
+        hingeStatus: un.design.hinge.map((h) => h.status),
+        partStatus: { drawerStripM: un.design.drawerStrip?.status, loftM: un.design.loft?.status, baseGapM: un.design.baseGap?.status, heightM: un.height?.status },
+      }));
+    }
+    out.push(pe);
+  }
+  return out;
 }

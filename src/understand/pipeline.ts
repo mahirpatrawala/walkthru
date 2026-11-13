@@ -8,14 +8,17 @@ import { analyseTrace } from './text-dims';
 import type { Analysis } from './text-dims';
 import { readPlan } from './plan-read';
 import type { PlanRead } from './plan-read';
+import { understandElevations } from './elevations';
+import type { ElevationUnderstanding } from './elevations';
 
 export interface Understood {
-  result: ImportResult; trace: ProposeTrace; analysis: Analysis; plan: PlanRead;
+  result: ImportResult; trace: ProposeTrace; analysis: Analysis; plan: PlanRead; elev: ElevationUnderstanding;
 }
 
 export function understandPages(pages: VectorPage[], sourceFile = 'input', sceneId = 'scene'): Understood {
   const { result, trace } = proposeWithTrace(pages, sourceFile, sceneId);
   const analysis = analyseTrace(result, trace);
   const plan = readPlan(result, trace);
-  return { result, trace, analysis, plan };
+  const elev = understandElevations(result, trace, analysis, plan);
+  return { result, trace, analysis, plan, elev };
 }

@@ -1,26 +1,142 @@
 {
   "_note": "Title-block and caption words, and the notes drawn on built-in units. Generic drafting vocabulary only.",
   "kinds": {
-    "plan": ["plan", "layout", "furniture layout", "floor plan", "key plan"],
-    "elevation": ["elevation", "elev", "view", "wall a", "wall b", "wall c", "wall d", "internal"],
-    "section": ["section", "sec"],
-    "detail": ["detail", "details", "typical detail", "node"],
-    "notes": ["notes", "legend", "schedule", "general notes", "specification"]
+    "plan": [
+      "plan",
+      "layout",
+      "furniture layout",
+      "floor plan",
+      "key plan"
+    ],
+    "elevation": [
+      "elevation",
+      "elev",
+      "view",
+      "wall a",
+      "wall b",
+      "wall c",
+      "wall d",
+      "internal"
+    ],
+    "section": [
+      "section",
+      "sec"
+    ],
+    "detail": [
+      "detail",
+      "details",
+      "typical detail",
+      "node"
+    ],
+    "notes": [
+      "notes",
+      "legend",
+      "schedule",
+      "general notes",
+      "specification"
+    ]
   },
-  "weakKindWords": ["layout", "view", "internal", "wall a", "wall b", "wall c", "wall d", "sec", "node", "detail", "details", "typical detail"],
+  "weakKindWords": [
+    "layout",
+    "view",
+    "internal",
+    "wall a",
+    "wall b",
+    "wall c",
+    "wall d",
+    "sec",
+    "node",
+    "detail",
+    "details",
+    "typical detail"
+  ],
   "unitNotes": {
-    "openable": ["openable", "shutter openable", "hinged", "swing"],
-    "sliding": ["sliding", "slider"],
-    "drawer": ["drawer", "drawers"],
-    "loft": ["loft", "loft shutter"],
-    "hanging": ["hanging", "hanging space"],
-    "shelf": ["shelf", "open shelf", "shelves"],
-    "mattress": ["mattress"],
-    "headboard": ["headboard", "head board", "bed head"],
-    "skirting": ["skirting"]
+    "openable": [
+      "openable",
+      "shutter openable",
+      "hinged",
+      "swing"
+    ],
+    "sliding": [
+      "sliding",
+      "slider"
+    ],
+    "drawer": [
+      "drawer",
+      "drawers"
+    ],
+    "loft": [
+      "loft",
+      "loft shutter"
+    ],
+    "hanging": [
+      "hanging",
+      "hanging space"
+    ],
+    "shelf": [
+      "shelf",
+      "open shelf",
+      "shelves"
+    ],
+    "mattress": [
+      "mattress"
+    ],
+    "headboard": [
+      "headboard",
+      "head board",
+      "bed head"
+    ],
+    "skirting": [
+      "skirting"
+    ]
   },
-  "ceiling": ["ceiling", "clg", "c.h.", "ch", "height", "ht", "ffl", "slab", "false ceiling", "fc"],
-  "sill": ["sill", "sill level"],
-  "head": ["lintel", "head", "head level"],
-  "notToScale": ["not to scale", "not scaled", "to be scaled", "do not scale", "nts", "fit to paper"]
+  "ceiling": [
+    "ceiling",
+    "clg",
+    "c.h.",
+    "ch",
+    "height",
+    "ht",
+    "ffl",
+    "slab",
+    "false ceiling",
+    "fc"
+  ],
+  "sill": [
+    "sill",
+    "sill level"
+  ],
+  "head": [
+    "lintel",
+    "head",
+    "head level"
+  ],
+  "notToScale": [
+    "not to scale",
+    "not scaled",
+    "to be scaled",
+    "do not scale",
+    "nts",
+    "fit to paper"
+  ],
+  "captionWords": [
+    "elevation",
+    "elev",
+    "wall",
+    "view",
+    "section",
+    "sec",
+    "side"
+  ],
+  "internalWords": [
+    "internal",
+    "interior",
+    "inside",
+    "inner"
+  ],
+  "handleWords": [
+    "handle",
+    "knob",
+    "pull"
+  ]
 }
