@@ -24,9 +24,12 @@ import { step as finishes } from './steps/finishes';
 import { step as furniture } from './steps/furniture';
 import { step as scan } from './steps/scan';
 import { step as spawn } from './steps/spawn';
+import { step as review } from '../understand/review-step';
 
 /** E1 to E8 in order (SPEC 2.2). finishes, furniture, spawn are C6; scan is C7. */
 export const STEPS: EditorStep[] = [media, scale, rooms, openings, finishes, furniture, scan, spawn];
+// C12e: "Check the drawing" (SPEC 17.9) goes in before Rooms. The eight steps above are unchanged.
+STEPS.splice(STEPS.indexOf(rooms), 0, review);
 
 declare global {
   interface Window { __editor?: unknown }

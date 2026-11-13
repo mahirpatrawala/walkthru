@@ -98,3 +98,20 @@ export async function readCrops(
   }
   return { reads };
 }
+
+/**
+ * A PNG of one region of one PDF page, cut with poppler's pdftocairo (already a dependency of S1). `box` is in raw page units, y down,
+ * as `normalisedBoxToRaw` returns it. The crop is not turned upright: a reader that wants upright text rotates it itself.
+ */
+export async function renderPdfCrop(pdfPath: string, pageIndex: number, box: [number, number, number, number], dpi = 400): Promise<Uint8Array> {
+  const k = dpi / 72;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'walkthru-crop-'));
+  try {
+    const x = Math.max(0, Math.floor(box[0] * k)), y = Math.max(0, Math.floor(box[1] * k));
+    const w = Math.max(8, Math.ceil((box[2] - box[0]) * k)), h = Math.max(8, Math.ceil((box[3] - box[1]) * k));
+    const out = path.join(dir, 'crop');
+    const r = await run('pdftocairo', ['-png', '-singlefile', '-r', String(dpi), '-f', String(pageIndex + 1), '-l', String(pageIndex + 1), '-x', String(x), '-y', String(y), '-W', String(w), '-H', String(h), pdfPath, out], 30000);
+    if (!r.ok) throw new Error('pdftocairo failed');
+    return new Uint8Array(fs.readFileSync(`${out}.png`));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}

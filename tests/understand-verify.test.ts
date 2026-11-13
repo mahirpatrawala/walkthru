@@ -73,10 +73,10 @@ describe('geometry', () => {
 });
 
 describe('chains', () => {
-  it('members that sum to the overall verify one another when there is no scale, and a chain that does not sum is a conflict', () => {
+  it('members that sum to the overall do not verify one another (rounded strings cancel), and a chain that does not sum is a conflict', () => {
     n = 0;
     const good = [dim("5'0\"", 1.524, { chain: 'c' }), dim("7'0\"", 2.1336, { chain: 'c' }), dim("12'0\"", 3.6576, { overall: true, spans: ['d0', 'd1'] })];
-    expect(status(good)).toEqual(['verified', 'verified', 'verified']);
+    expect(status(good)).toEqual(['unverified', 'unverified', 'unverified']);
     n = 0;
     const bad = [dim("5'0\"", 1.524, { chain: 'c' }), dim("8'0\"", 2.4384, { chain: 'c' }), dim("12'0\"", 3.6576, { overall: true, spans: ['d0', 'd1'] })];
     expect(status(bad)).toEqual(['conflict', 'conflict', 'conflict']);

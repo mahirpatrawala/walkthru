@@ -3,8 +3,10 @@ import { proposeFromPages, proposeWithTrace } from '../../src/import/propose';
 import { ImportError } from '../../src/import/types';
 import type { VectorPage } from '../../src/import/types';
 import { furnitureOf } from '../../src/understand/lexicon';
-import type { Prediction, PredDim, PredItem, PredOpening, Pt } from './types';
+import type { Prediction, PredDim, PredItem, PredOpening, PredSymbol, Pt } from './types';
 import { analyseTrace } from '../../src/understand/text-dims';
+import { understandPages } from '../../src/understand/pipeline';
+import type { Understood } from '../../src/understand/pipeline';
 
 export type PipelineInput =
   | { kind: 'vector'; id: string; pages: VectorPage[] }
@@ -106,3 +108,46 @@ export const c12bPipeline: Pipeline = (input) => {
     return { attempted: false, error: e instanceof ImportError ? `${e.code}: ${e.message}` : `error: ${(e as Error).message}`, seconds: (Date.now() - t0) / 1000 };
   }
 };
+
+/**
+ * C12c: the whole vector pipeline (any wall style, rooms without labels, symbols, elevations). Statuses come from the C12b analysis
+ * for rooms and dimensions; plan symbols and everything measured from geometry alone are `unverified`.
+ */
+export const c12cPipeline: Pipeline = (input) => {
+  const t0 = Date.now();
+  let pages: VectorPage[];
+  if (input.kind === 'raster') pages = Array.from({ length: input.pageCount }, (_, i) => ({ index: i, width: input.width, height: input.height, fills: [], strokes: [], texts: [], imageCoverage: 1 }));
+  else pages = input.pages;
+  try {
+    const u: Understood = understandPages(pages, 'input', 'eval');
+    return predictionOf(u, (Date.now() - t0) / 1000);
+  } catch (e) {
+    return { attempted: false, error: e instanceof ImportError ? `${e.code}: ${e.message}` : `error: ${(e as Error).message}`, seconds: (Date.now() - t0) / 1000 };
+  }
+};
+
+export function predictionOf(u: Understood, seconds: number): Prediction {
+  const { result: r, analysis: an, plan } = u;
+  const unnamed = (label: string): boolean => /^room( \d+)?$/i.test(label.trim());
+  const rooms = r.proposal.rooms.map((x) => ({
+    label: x.label ?? '', roomType: (unnamed(x.label ?? '') && x.roomType === 'other' ? plan.roomTypes.get(x.id) : undefined) ?? x.roomType,
+    polygon: x.polygon.map((p): Pt => [p.x, p.z]), status: an.roomStatus.get(x.id) ?? ('unverified' as const),
+  }));
+  const openings: PredOpening[] = r.proposal.openings.map((o) => {
+    const room = r.proposal.rooms.find((x) => x.id === o.roomId)!;
+    const a = room.polygon[o.edge], b = room.polygon[(o.edge + 1) % room.polygon.length];
+    const L = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    return { type: o.type, at: [a.x + ((b.x - a.x) / L) * o.centreM, a.z + ((b.z - a.z) / L) * o.centreM], widthM: o.widthM, status: 'unverified' };
+  });
+  const items: PredItem[] = r.extras.furniture.map((f) => ({ cls: clsOfLabel(f.label ?? '', f.kind), box: { cx: f.box.cx, cz: f.box.cz, w: f.box.w, d: f.box.d }, status: 'unverified' }));
+  for (const s of plan.symbols) {
+    if (!s.furniture) continue;
+    if (items.some((i) => i.cls === s.cls && Math.hypot(i.box.cx - s.box.cx, i.box.cz - s.box.cz) < 0.6)) continue;
+    items.push({ cls: s.cls, box: { cx: s.box.cx, cz: s.box.cz, w: s.box.w, d: s.box.d }, status: 'unverified' });
+  }
+  const symbols: PredSymbol[] = plan.symbols.map((s) => ({ cls: s.cls, at: [(s.bboxM[0] + s.bboxM[2]) / 2, (s.bboxM[1] + s.bboxM[3]) / 2] as Pt, status: 'unverified' as const }));
+  const dimensions: PredDim[] = an.dims.map((d) => ({ string: d.string, a: d.a, b: d.b, view: d.role, status: d.status }));
+  const pred: Prediction = { attempted: true, rooms, openings, items, symbols, dimensions, seconds };
+  if (r.extras.ceiling.method !== 'default') pred.ceiling = { v: r.extras.ceiling.heightM, status: 'unverified' };
+  return pred;
+}

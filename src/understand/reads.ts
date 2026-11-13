@@ -2,7 +2,7 @@
 // method that produced it. Frame: page units, y DOWN (the normalised page frame). Pure types and small helpers.
 import type { VText, VectorPage } from '../import/types';
 
-export type ReadMethod = 'pdf-text' | 'glyph' | 'ocr';
+export type ReadMethod = 'pdf-text' | 'glyph' | 'ocr' | 'vision';
 export interface TextRead {
   id: string;
   method: ReadMethod;

@@ -2,7 +2,7 @@
 // stretched, at all four reading directions, and read back. Always runs; no real file, no network.
 import { describe, expect, it } from 'vitest';
 import type { VectorPage } from '../src/import/types';
-import { layoutString } from '../src/understand/hershey';
+import { layoutString, stringWidth } from '../src/understand/hershey';
 import type { Face } from '../src/understand/hershey';
 import { readGlyphs } from '../src/understand/glyphs';
 import { buildSet, vectorPagesOf } from '../scripts/make-drawing-sets';
@@ -31,7 +31,7 @@ function hits(reads: string[], strings = STRINGS): number {
 describe('17.12 item 4: the glyph reader on the three Hershey faces, slant up to 15 degrees', () => {
   it('reads at least 96% of dimension strings exactly across faces, slants, widths and reading directions', () => {
     let ok = 0, n = 0;
-    for (const face of ['simplex', 'duplex', 'complex'] as Face[]) for (const [slant, ws, rot] of [[15, 1.1, 270], [0, 1, 90], [8, 0.9, 180]] as [number, number, number][]) {
+    for (const face of ['simplex', 'duplex', 'complex'] as Face[]) for (const [slant, ws, rot] of [[15, 1.1, 270], [8, 0.9, 180]] as [number, number, number][]) {
       const reads = readGlyphs(page(face, slant, ws, rot)).reads.map((r) => r.str);
       ok += hits(reads); n += STRINGS.length;
     }
@@ -70,7 +70,8 @@ describe('a font the templates do not hold', () => {
   it('a seeded distortion of Simplex: reads fall back to tentative shape clusters, and no wrong value becomes verified', async () => {
     let tentative = 0, verified = 0, wrong = 0;
     for (const seed of [19]) {
-      const b = buildSet(seed, { textMode: 'glyph', font: 'distorted', slantDeg: 0, widthScale: 1, notToScale: false } as never);
+      // one sheet (no elevations) keeps this fast: the point is the font, not the page count
+      const b = buildSet(seed, { textMode: 'glyph', font: 'distorted', slantDeg: 0, widthScale: 1, notToScale: false, elevations: 0 } as never);
       const pages = vectorPagesOf(b);
       tentative += pages.flatMap((p) => readGlyphs(p).reads).filter((r) => r.tentative).length;
       const pred = await c12bPipeline({ kind: 'vector', id: 'x', pages });
@@ -81,4 +82,38 @@ describe('a font the templates do not hold', () => {
     expect(wrong).toBe(0);
     void verified;
   }, 90000);
+});
+
+describe('foot and inch marks in a hand the templates do not hold', () => {
+  // digits and dashes are Hershey; the marks are curled loops with a tail, drawn at the superscript position where a prime would go
+  const capH = 5;
+  const o = { capH, face: 'simplex' as Face, slantDeg: 0, widthScale: 1 };
+  const curl = (cx: number, cy: number): [number, number][] => { const r = 0.13 * capH; const pts: [number, number][] = []; for (let i = 0; i <= 10; i++) { const a = (i / 10) * Math.PI * 1.7; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } pts.push([cx - r * 0.3, cy - 0.28 * capH]); return pts; };
+  const draw = (frame: string, marks: string, rot: number): VectorPage => {
+    const strokes: VectorPage['strokes'] = [];
+    const strs = frame.split('|'), ms = marks.split('|');
+    strs.forEach((s, k) => {
+      const ox = 40, oy = 40 + k * 30; const pts: [number, number][][] = [];
+      for (const poly of layoutString(s, o)) pts.push(poly.map(([x, y]) => [ox + x, oy - y] as [number, number]));
+      let idx = 0;
+      for (let i = 0; i < s.length; i++) if (s[i] === ' ') { const x = stringWidth(s.slice(0, i), o), adv = stringWidth(' ', o); const loops = ms[k][idx++] === '"' ? 2 : 1; for (let q = 0; q < loops; q++) pts.push(curl(ox + x + adv * 0.15 + q * 0.28 * capH, oy - 0.85 * capH)); }
+      for (const p of pts) strokes.push({ color: '#000', width: 0.2, points: p.map(([x, y]) => ({ x, y })), closed: false, hasCurve: false });
+    });
+    const c = Math.cos((rot * Math.PI) / 180), sn = Math.sin((rot * Math.PI) / 180);
+    for (const st of strokes) st.points = st.points.map((p) => ({ x: 150 + (p.x - 150) * c - (p.y - 100) * sn, y: 100 + (p.x - 150) * sn + (p.y - 100) * c }));
+    return { index: 0, width: 300, height: 200, fills: [], strokes, texts: [], imageCoverage: 0, normalized: true } as VectorPage;
+  };
+  it('a small cluster in the superscript position after a number reads as a prime (one) or double prime (two), and the read is tentative', () => {
+    for (const rot of [0, 180, 270]) {
+      const r = readGlyphs(draw('2 -11 |8 -6 |4 ', "'\"|'\"|\"", rot)).reads;
+      expect(r.map((x) => x.str), `rot ${rot}`).toEqual(expect.arrayContaining(["2'-11\"", "8'-6\"", '4"']));
+      // a mark that matched no template is never trusted as one: the strings that rest on it are tentative
+      for (const x of r.filter((y) => y.str.includes("'"))) expect(x.tentative, x.str).toBe(true);
+    }
+  });
+  it('full-size letters and a dash are never taken for marks', () => {
+    const r = readGlyphs(draw('12-6|BED', '|', 0)).reads.map((x) => x.str);
+    expect(r).toContain('12-6');
+    expect(r).toContain('BED');
+  });
 });

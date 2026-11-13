@@ -26,7 +26,7 @@ export interface DimVerdict {
   /** value read, metres */ valueM: number;
   /** length measured on the page at the independent scale, metres (null when there is no scale) */ measuredM: number | null;
   status: Status;
-  method: 'pdf-text' | 'glyph' | 'ocr';
+  method: 'pdf-text' | 'glyph' | 'ocr' | 'vision';
   confidence: number;
   checks: Check[];
   message?: string;
@@ -41,7 +41,7 @@ export interface ModelInfo {
 }
 export interface PageVerdict { page: number; models: ModelInfo[]; verdicts: DimVerdict[] }
 
-const methodOf = (d: DimLine): DimVerdict['method'] => (d.run.parts.every((p) => p.method === 'pdf-text') ? 'pdf-text' : d.run.parts.some((p) => p.method === 'ocr') ? 'ocr' : 'glyph');
+const methodOf = (d: DimLine): DimVerdict['method'] => (d.run.parts.every((p) => p.method === 'pdf-text') ? 'pdf-text' : d.run.parts.some((p) => p.method === 'vision') ? 'vision' : d.run.parts.some((p) => p.method === 'ocr') ? 'ocr' : 'glyph');
 const tentativeIn = (d: DimLine): boolean => d.run.parts.some((p) => p.tentative);
 const mid = (d: DimLine): [number, number] => [(d.a[0] + d.b[0]) / 2, (d.a[1] + d.b[1]) / 2];
 
@@ -122,7 +122,7 @@ function judge(d: DimLine, fit: ScaleFit | null, model: number): DimVerdict {
     if (tight < 0.25 * tolH) { v.message = 'the scale is not tight enough to check this length'; return v; }
     const ok = Math.abs(got - value) <= tight;
     v.checks.push({ kind: 'geometry', expected: value, got, ok });
-    if (ok) { v.status = 'verified'; v.confidence = method === 'pdf-text' ? 0.99 : 0.95; }
+    if (ok) { v.status = 'verified'; v.confidence = method === 'pdf-text' ? 0.99 : method === 'vision' ? 0.9 : 0.95; }
     else { v.status = 'conflict'; v.confidence = 0.3; v.message = `drawing says ${d.run.str}, measures ${fmtM(got)}`; }
   }
   return v;
@@ -149,10 +149,9 @@ function chainChecks(dims: DimLine[], verdicts: DimVerdict[]): void {
       const v = byDim.get(x.id)!;
       const own = x === d ? d.run.parsed.m : x.run.parsed.m;
       v.checks.push({ kind: 'chain', expected: d.run.parsed.m, got: sum, ok });
-      if (ok) {
-        // the strings agree with each other: enough on their own when nothing else was available
-        if (v.status === 'unverified') { v.status = 'verified'; v.confidence = v.method === 'pdf-text' ? 0.99 : 0.95; }
-      } else if (v.status === 'unverified') {
+      // Agreement of the strings with each other is recorded but never verifies on its own: rounded strings cancel inside a chain
+      // too often (and on a sheet that is not to scale it is all there is), so a length is verified only against the geometry.
+      if (!ok && v.status === 'unverified') {
         v.status = 'conflict'; v.confidence = 0.3;
         v.message = `the chain does not sum: ${fmtM(sum)} against ${d.run.str} (this string: ${x.run.str})`;
       }

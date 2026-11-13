@@ -3,7 +3,9 @@
 // Pure TypeScript. The harness and the later chunks (C12c writers) call this; nothing here touches the network.
 import type { ImportResult } from '../import/types';
 import type { ProposeTrace } from '../import/propose';
-import { findDimensions } from './dimensions';
+import { findDimensions, numericRepair, unreadDimensionLines } from './dimensions';
+import type { TextRead } from './reads';
+import { parseLengthLoose } from './units';
 import { withoutReadStrokes } from './text-pdf';
 import type { DimLine } from './dimensions';
 import { fitScale } from './scale-fit';
@@ -29,11 +31,14 @@ export interface Analysis {
 const PLAN_PAD = 0.3;
 
 /** Everything the text stage knows about an import. */
-export function analyseTrace(result: ImportResult, trace: ProposeTrace): Analysis {
+export function analyseTrace(result: ImportResult, trace: ProposeTrace, extra?: TextRead[][]): Analysis {
   const warnings: string[] = [];
   const all: DimLine[] = [];
   trace.pages.forEach((pg, i) => {
-    const dims = i === trace.planIdx && trace.planDims.length ? trace.planDims : findDimensions(withoutReadStrokes(pg, trace.reads[i]), trace.reads[i]);
+    // strings another reader supplied (routeUnread) join the page's own reads as candidates
+    const more = extra?.[i] ?? [];
+    const rs = more.length ? [...trace.reads[i], ...more] : trace.reads[i];
+    const dims = i === trace.planIdx && trace.planDims.length && !more.length ? trace.planDims : findDimensions(withoutReadStrokes(pg, trace.reads[i]), rs);
     for (const d of dims) d.page = i;
     all.push(...dims);
   });
@@ -132,7 +137,9 @@ export function analyseTrace(result: ImportResult, trace: ProposeTrace): Analysi
   };
   const sx = axisScale(false), sy = axisScale(true);
   for (const q of pending) {
-    const w = (p: [number, number]): [number, number] => [(p[0] - cx) / (q.role === 'plan' ? sx : frameScale()), (p[1] - cy) / (q.role === 'plan' ? sy : frameScale())];
+    // an elevation's metres are at the scale of its own dimension model, not the plan's
+    const own = q.role === 'elevation' && q.v.model >= 0 ? q.pv.models[q.v.model].fit.ptPerM : 0;
+    const w = (p: [number, number]): [number, number] => [(p[0] - cx) / (q.role === 'plan' ? sx : own || frameScale()), (p[1] - cy) / (q.role === 'plan' ? sy : own || frameScale())];
     out.push({ string: q.d.run.str, a: w(q.d.a), b: w(q.d.b), role: q.role, status: q.v.status, page: q.page, verdict: q.v });
   }
   if (demoted) warnings.push(`${demoted} dimension(s) were left unverified: the plan shares its sheet with an elevation and nothing says which scale is the plan's.`);
@@ -156,10 +163,82 @@ export function analyseTrace(result: ImportResult, trace: ProposeTrace): Analysi
       const checks = [sideCheck(lo, Math.min(bw, bh)), sideCheck(hi, Math.max(bw, bh)), labelAreaCheck(lo * hi, bw * bh)];
       if (f.labelAreaM2) checks.push(labelAreaCheck(f.labelAreaM2, bw * bh));
       // an area label that disagrees with the size label (a printed 150 sq ft against 11'0"x12'6") is a conflict the broker sees
-      roomStatus.set(f.id, checks.every((c) => c.ok) ? 'verified' : 'conflict');
+      // Sizes alone say nothing of where the room is: a polygon that is the right size but sits somewhere else (or was cut to the label)
+      // passes them. A room is verified only when a dimension line spans its extent along each axis, at the same place on the sheet.
+      const cx0 = trace.frame!.cx, cy0 = trace.frame!.cy, kk = trace.frame!.ptPerM;
+      const X0 = Math.min(...xs) * kk + cx0, X1 = Math.max(...xs) * kk + cx0, Y0 = Math.min(...zs) * kk + cy0, Y1 = Math.max(...zs) * kk + cy0;
+      const span = (horizontal: boolean): boolean => all.some((d) => {
+        if (d.page !== trace.planIdx || (d.angle < 45 || d.angle > 135) !== horizontal) return false;
+        const a = horizontal ? Math.min(d.a[0], d.b[0]) : Math.min(d.a[1], d.b[1]), b = horizontal ? Math.max(d.a[0], d.b[0]) : Math.max(d.a[1], d.b[1]);
+        const lo = horizontal ? X0 : Y0, hi = horizontal ? X1 : Y1, tol = 0.02 * (hi - lo) + 1.0;
+        return Math.abs(a - lo) <= tol && Math.abs(b - hi) <= tol;
+      });
+      const anchored = span(true) && span(false);
+      roomStatus.set(f.id, !checks.every((c) => c.ok) ? 'conflict' : anchored ? 'verified' : 'unverified');
     }
   }
   for (const pv of verdicts) for (const m of pv.models) if (m.notToScale) warnings.push(`Page ${pv.page + 1}: dimensions in one area do not agree on a scale. That part may not be drawn to scale.`);
   void extractDimension;
   return { dims: out, pages: verdicts, planFit: planDimsFit, roomStatus, warnings };
+}
+
+
+// ---------------------------------------------------------------- unreadable dimension crops go to another reader
+/** The crop-reading half of C12d's VisionProvider (and of an OCR engine wrapped to the same shape). */
+export interface CropReader {
+  readStrings(crops: { id: string; png: Uint8Array; hint?: 'dimension' | 'label' | 'note' }[]): Promise<{ id: string; text: string; box?: [number, number, number, number]; confidence: number }[]>;
+}
+export interface RouteOptions {
+  reader: CropReader;
+  /** what the answers are called: a vision model's or a local OCR engine's */
+  method: 'vision' | 'ocr';
+  /** a PNG of one page region, page units y down (rotation is the reader's business; `angle` is the string's direction) */
+  render: (page: number, box: [number, number, number, number], angle: number) => Promise<Uint8Array>;
+  /** most crops per page (the cost cap) */
+  maxPerPage?: number;
+  /** drop answers that carry no box (SPEC 17.8: an answer without one is dropped); on for vision, off for OCR */
+  requireBox?: boolean;
+}
+export interface RouteResult { extra: TextRead[][]; asked: number; answered: number; reasons: Record<string, number> }
+
+/**
+ * Find the dimension lines whose string was not read (or was read in part), crop each, ask the reader, and hand back the answers as
+ * reads placed on those lines. They are candidates only: tentative, never verified without the geometry check, and an answer that is
+ * not a length is thrown away. Feed `extra` to `analyseTrace`.
+ */
+export async function routeUnread(trace: ProposeTrace, opts: RouteOptions): Promise<RouteResult> {
+  const extra: TextRead[][] = trace.pages.map(() => []);
+  const reasons: Record<string, number> = {};
+  let asked = 0, answered = 0;
+  const requireBox = opts.requireBox ?? opts.method === 'vision';
+  for (let i = 0; i < trace.pages.length; i++) {
+    const pg = withoutReadStrokes(trace.pages[i], trace.reads[i]);
+    const dims = findDimensions(pg, trace.reads[i]);
+    const lines = unreadDimensionLines(pg, trace.reads[i], dims, opts.maxPerPage ?? 40).slice(0, opts.maxPerPage ?? 40);
+    if (!lines.length) continue;
+    const crops: { id: string; png: Uint8Array; hint: 'dimension' }[] = [];
+    for (const l of lines) { crops.push({ id: `${i}:${l.id}`, png: await opts.render(i, l.box, l.angle), hint: 'dimension' }); reasons[l.reason] = (reasons[l.reason] ?? 0) + 1; }
+    asked += crops.length;
+    const answers = await opts.reader.readStrings(crops);
+    for (const a of answers) {
+      const l = lines.find((x) => `${i}:${x.id}` === a.id);
+      const text = a.text.trim();
+      if (!l || !text || (requireBox && !a.box)) continue;
+      const fixed = numericRepair(text);
+      if (!parseLengthLoose(fixed)) continue;
+      answered++;
+      // reading direction: along the line; a vertical line's string reads upward
+      const theta = l.angle > 45 && l.angle < 135 ? 270 : 0;
+      const size = l.cap / 0.72, len = fixed.length * 0.55 * size;
+      const r = (theta * Math.PI) / 180;
+      const u: [number, number] = [Math.cos(r), Math.sin(r)], dn: [number, number] = [-Math.sin(r), Math.cos(r)];
+      const m: [number, number] = [(l.a[0] + l.b[0]) / 2, (l.a[1] + l.b[1]) / 2];
+      const up = 1.2 * l.cap - 0.5 * l.cap;
+      const origin: [number, number] = [m[0] - u[0] * len / 2 - dn[0] * up, m[1] - u[1] * len / 2 - dn[1] * up];
+      const pts: [number, number][] = ([[0, 0], [len, 0], [len, l.cap], [0, l.cap]] as [number, number][]).map(([p, c]) => [origin[0] + u[0] * p - dn[0] * c, origin[1] + u[1] * p - dn[1] * c] as [number, number]);
+      const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+      extra[i].push({ id: `x-${a.id}`, method: opts.method, str: fixed, bbox: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], angle: theta, size, origin, length: len, confidence: Math.min(0.6, a.confidence), tentative: true });
+    }
+  }
+  return { extra, asked, answered, reasons };
 }

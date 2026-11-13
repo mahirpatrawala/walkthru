@@ -13,7 +13,7 @@ import { pageKindWords } from '../understand/lexicon';
 import { parseLabels } from './labels';
 import type { FurnitureLabel, RoomLabel } from './labels';
 import { bridgeGaps, selectWalls, wallBitmap } from './walls';
-import { barrierSegments, findRegions, pxSizeFor } from './regions';
+import { barrierSegments, findRegions, pxSizeFor, snapLines } from './regions';
 import { doorsFromArcs, findDoorArcs, findPassages, wallLessJunctions } from './passage';
 import type { DoorArc } from './passage';
 import { formatFtIn } from '../core/units';
@@ -22,9 +22,12 @@ import { collectOutlines, matchOutline, outlineVotes, roomVotes, voteScale } fro
 import { buildOpenings } from './openings';
 import { buildFurniture } from './furniture';
 import { findCeiling, windowHeightsFromText } from './elevation';
-import { WALL } from './bitmap';
+import { WALL, distPointSeg, pointInRing } from './bitmap';
 import { pageReads, readPageText, readsToNormalised, withoutReadStrokes } from '../understand/text-pdf';
 import { findDimensions } from '../understand/dimensions';
+import { deriveLineWalls } from '../understand/walls-lines';
+import { findUnlabelledRegions } from '../understand/rooms-unlabelled';
+import type { LineWalls } from '../understand/walls-lines';
 import type { DimLine } from '../understand/dimensions';
 import { fitModels } from '../understand/scale-fit';
 import type { ScaleFit } from '../understand/scale-fit';
@@ -45,6 +48,13 @@ export interface ProposeTrace {
   planWalls: [number, number, number, number] | null;
   planDims: DimLine[]; planFit: ScaleFit | null;
   rawPages: VectorPage[];
+  /** C12c: the plan page as the wall stage saw it (wall bands added as fills, the strokes that drew them removed); same as pages[planIdx] for filled walls */
+  plan?: ReturnType<typeof normalizePage>;
+  /** C12c: set when walls were found as lines (double-line, hatch or mixed) */
+  lineWalls?: LineWalls | null;
+  /** C12c: the wall stage's own products, for the symbol stage (yaw of furniture from the nearest wall) */
+  walls?: ReturnType<typeof selectWalls>;
+  wallBitmap?: Bitmap;
 }
 
 const slug = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'room';
@@ -122,14 +132,18 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
   const pages = pagesIn.map(normalizePage);
   const kinds = pages.map((p) => classifyPage(p));
   const planIdx = pickPlanPage(pages, kinds, opts.planPage);
-  const plan = pages[planIdx];
+  const plan0 = pages[planIdx];
+  // C12c: walls drawn as lines (double-line, hatch, or mixed with filled walls) become filled bands the rest of the importer reads
+  const fillWalls = selectWalls(plan0);
+  const lineWalls = useText ? deriveLineWalls(plan0, fillWalls) : null;
+  const plan = (lineWalls?.page ?? plan0) as ReturnType<typeof normalizePage>;
   const elevations = pages.filter((_, k) => kinds[k] === 'elevation');
   const reads = pages.map((p, i) => pageReads(p, readsToNormalised(textPages[i].glyphReads, pagesRaw[i], p)));
-  const trace: ProposeTrace = { pages, kinds, planIdx, reads, frame: null, planWalls: null, planDims: [], planFit: null, rawPages: pagesRaw };
+  const trace: ProposeTrace = { pages, kinds, planIdx, reads, frame: null, planWalls: null, planDims: [], planFit: null, rawPages: pagesRaw, plan, lineWalls };
   const finish = (result: ImportResult): { result: ImportResult; trace: ProposeTrace } => ({ result, trace });
 
   // ---- walls, labels
-  const walls = selectWalls(plan);
+  const walls = lineWalls ? selectWalls(plan) : fillWalls;
   const empty = (msg: string): ImportResult => ({
     proposal: { version: 1, source: 'drawing-import@1', rooms: [], openings: [], wallHeightM: 2.75, confidence: 0, notes: [...warnings, msg] },
     extras: {
@@ -144,7 +158,7 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
   let dimHint: ScaleFit | null = null;
   let dimModels: ReturnType<typeof fitModels> = [];
   if (useText) {
-    const dims = findDimensions(withoutReadStrokes(plan, reads[planIdx]), reads[planIdx]);
+    const dims = findDimensions(withoutReadStrokes(plan0, reads[planIdx]), reads[planIdx]);
     for (const d of dims) d.page = planIdx;
     const w = walls.bbox;
     const pad = 0.3 * Math.max(w[2] - w[0], w[3] - w[1]);
@@ -167,6 +181,18 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
   const wallsOnly = wallBitmap(plan, walls, pxSizeFor(plan, t));
   const gaps = bridgeGaps(walls, wallsOnly);
   const { regions, bitmap } = findRegions(plan, walls, gaps, roomLabels);
+  // C12c: closed spaces no label claimed become unnamed rooms (typed later from what is drawn inside)
+  if (useText) {
+    const claimed = [...roomLabels.map((l) => l.centre), ...regions.filter((r) => r.polygon).map((r) => r.label.centre)];
+    // door evidence: an unnamed space is a room only when a door, window or opening (a bridged gap) opens onto it, and it is closed
+    // by at least two such spaces' worth of drawing (a bare wall diagram with nothing else on it stays at no rooms)
+    const near = (r: RegionResult): boolean => !!r.polygon && gaps.some((g) => { const m = { x: (g.a.x + g.b.x) / 2, y: (g.a.y + g.b.y) / 2 }; return pointInRing(m, r.polygon!) || r.polygon!.some((p, i) => { const q = r.polygon![(i + 1) % r.polygon!.length]; return distPointSeg(m, p, q) <= 1.2 * t; }); });
+    const unl = findUnlabelledRegions(bitmap, walls, claimed, snapLines(walls, gaps, [])).filter(near);
+    if (unl.length < 1 || (!roomLabels.length && !reads[planIdx].some((r) => r.str.trim().length > 0))) unl.length = 0;
+    unl.forEach((r, k) => { r.label.name = unl.length > 1 || regions.length ? `Room ${regions.length + k + 1}` : 'Room'; });
+    regions.push(...unl);
+    if (unl.length) warnings.push(`${unl.length} closed space(s) with no label were added as unnamed rooms. Name them in the editor.`);
+  }
 
   // ---- scale votes
   const outlines = collectOutlines(plan, walls);
@@ -373,6 +399,7 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
     ...(windowHeights ? { windowHeights } : {}), spawn, warnings,
   };
   trace.frame = { cx: cxPt, cy: cyPt, ptPerM };
+  trace.walls = walls; trace.wallBitmap = bitmap;
   return finish({ proposal, extras });
 }
 

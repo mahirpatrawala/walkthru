@@ -258,7 +258,7 @@ function makeRows(rc: RC[]): RC[][] {
     rows.forEach((r, k) => {
       const lo = Math.max(c.v0, r.v0 - 0.2 * r.h), hi = Math.min(c.v1, r.v1 + 0.3 * r.h);
       const ov = hi - lo;
-      const inside = c.v0 >= r.v0 - 0.15 * r.h && c.v1 <= r.v1 + 0.3 * r.h;
+      const inside = c.v0 >= r.v0 - 0.45 * r.h && c.v1 <= r.v1 + 0.3 * r.h;
       if ((ov >= 0.6 * Math.min(h, r.h) && h >= 0.45 * r.h) || (h < 0.5 * r.h && inside)) { if (ov > bestO) { bestO = ov; best = k; } }
     });
     if (best < 0) rows.push({ items: [c], v0: c.v0, v1: c.v1, h });
@@ -359,7 +359,17 @@ function quoteFallback(items: Item[], cands: Template[], baseline: number, H: nu
   const quote = cands.find((t) => t.ch === "'" && t.face === 'simplex'), dquote = cands.find((t) => t.ch === '"' && t.face === 'simplex');
   if (!quote || !dquote) return items;
   // a piece of mark size that hangs in the upper part of the line
-  const markLike = (it: Item): boolean => !it.t && it.comps.length === 1 && it.comps[0].c.size <= 0.55 * H && it.comps[0].v1 <= baseline - 0.35 * H;
+  // Whatever the shape was matched as (a grave accent, a comma, a stray letter), a lone small piece hanging in the superscript zone
+  // beside a number is a foot or inch mark: structure, not shape, decides. Digits and letters of full size never qualify.
+  const markLike = (it: Item): boolean => !(it.t && /['"]/.test(it.ch) && it.d <= 0.045) && it.comps.length === 1 && it.comps[0].c.size <= 0.55 * H && it.comps[0].v1 <= baseline - 0.35 * H && it.comps[0].v0 <= baseline - 0.5 * H;
+  // two primes side by side are a double prime, however the pieces were matched
+  const merged: Item[] = [];
+  for (const it of items) {
+    const prev = merged[merged.length - 1];
+    if (prev && prev.ch === "'" && it.ch === "'" && it.u0 - prev.u1 < 10 && it.u0 - prev.u1 > -4) merged[merged.length - 1] = { ...prev, ch: '"', t: dquote, d: Math.max(prev.d, it.d, 0.09), comps: [...prev.comps, ...it.comps], u1: Math.max(prev.u1, it.u1) };
+    else merged.push(it);
+  }
+  items = merged;
   const out: Item[] = [];
   for (let i = 0; i < items.length; i++) {
     const it = items[i];

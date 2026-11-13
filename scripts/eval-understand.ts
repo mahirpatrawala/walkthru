@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { buildSet, rasterDims } from './eval/synthetic';
 import type { EvalSet } from './eval/run';
 import { formatReport, loadFolder, runEval, wrongVerified } from './eval/run';
-import { c12bPipeline, c8Pipeline, oraclePipeline } from './eval/adapters';
+import { c12bPipeline, c12cPipeline, c8Pipeline, oraclePipeline } from './eval/adapters';
 import type { TruthLite } from './eval/types';
 
 export async function syntheticSets(n: number): Promise<{ sets: EvalSet[]; truths: Map<string, TruthLite> }> {
@@ -32,7 +32,7 @@ async function main(): Promise<void> {
   const real = await loadFolder(dir);
   const sets = [...syn.sets, ...real.filter((r) => r.origin === 'real')];
   const truthOf = (id: string): TruthLite => syn.truths.get(id) ?? real.find((r) => r.id === id)!.truth;
-  const pipeline = which === 'oracle' ? oraclePipeline(truthOf) : which === 'c12b' ? c12bPipeline : c8Pipeline;
+  const pipeline = which === 'oracle' ? oraclePipeline(truthOf) : which === 'c12c' ? c12cPipeline : which === 'c12b' ? c12bPipeline : c8Pipeline;
   const rep = await runEval(sets, pipeline);
   console.log(formatReport(rep, `Pipeline: ${which}. ${syn.sets.length} synthetic sets, ${real.filter((r) => r.origin === 'real').length} real sets from ${fs.existsSync(dir) ? dir : `${dir} (absent)`}`));
   const wv = wrongVerified(rep);

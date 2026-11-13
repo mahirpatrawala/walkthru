@@ -7,7 +7,7 @@ import type { TextRead } from './reads';
 import { readGlyphs } from './glyphs';
 import { plausibleText } from './plausible';
 import { findArea, findSize } from './units';
-import { fixtureClassOf, furnitureOf, isRoomLabel, pageKindWords } from './lexicon';
+import { fixtureClassOf, furnitureOf, isRoomLabel } from './lexicon';
 import type { GlyphOptions } from './glyphs';
 import { parseLabels } from '../import/labels';
 
@@ -26,9 +26,9 @@ export function pdfReads(page: VectorPage): TextRead[] {
   return out;
 }
 
-/** A string C8's label code would use: a room or furniture word, a fixture, a size or an area (not a bare length). */
+/** A string C8's label code would use: a room or furniture word, a fixture, a size or an area (not a bare length, not a caption word). */
 export function labelLike(str: string): boolean {
-  return isRoomLabel(str) || !!furnitureOf(str, false) || !!fixtureClassOf(str) || !!findSize(str) || !!findArea(str) || pageKindWords(str).length > 0;
+  return isRoomLabel(str) || !!furnitureOf(str, false) || !!fixtureClassOf(str) || !!findSize(str) || !!findArea(str);
 }
 
 export interface PageText {
@@ -80,6 +80,21 @@ function rotateWith(phiDeg: number, W: number, H: number): { map: (x: number, y:
   const corners = [rot(0, 0), rot(W, 0), rot(0, H), rot(W, H)];
   const minX = Math.min(...corners.map((q) => q[0])), minY = Math.min(...corners.map((q) => q[1]));
   return { map: (x, y) => { const r = rot(x, y); return [r[0] - minX, r[1] - minY]; }, dAngle: -phiDeg };
+}
+
+/** A box of the normalised page as a box of the raw page (y down), for cutting a crop out of the page as it was drawn. */
+export function normalisedBoxToRaw(box: [number, number, number, number], raw: VectorPage, norm: VectorPage): [number, number, number, number] {
+  const rotationDeg = (norm as { rotationDeg?: number }).rotationDeg ?? 0;
+  const phi = -rotationDeg;
+  const rad = (phi * Math.PI) / 180;
+  const c = Math.round(Math.cos(rad)), s = Math.round(Math.sin(rad));
+  const W = raw.width, H = raw.height;
+  const rot = (x: number, y: number): [number, number] => [c * x + s * y, -s * x + c * y];
+  const corners = [rot(0, 0), rot(W, 0), rot(0, H), rot(W, H)];
+  const minX = Math.min(...corners.map((q) => q[0])), minY = Math.min(...corners.map((q) => q[1]));
+  const inv = (xn: number, yn: number): [number, number] => { const a = xn + minX, b = yn + minY; return [c * a - s * b, s * a + c * b]; };
+  const pts = [inv(box[0], box[1]), inv(box[2], box[1]), inv(box[0], box[3]), inv(box[2], box[3])];
+  return [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[1]))];
 }
 
 /** Glyph reads (raw y-down frame) moved into the frame of the same page after normalisation. */

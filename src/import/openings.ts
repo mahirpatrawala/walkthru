@@ -90,8 +90,10 @@ export function buildOpenings(
     const widthM = g.widthPt / ptPerM;
     const type = classifyGap(g, page, t);
     // SPEC-GAP: 13.5 drops gaps over 2.0 m. That is a door limit; the reference's son-room window is 2.14 m, so windows may be 3.0 m.
-    const maxW = type === 'window' ? 3.0 : 2.0;
-    if (widthM > maxW || widthM < 0.55) { warnings.push(`A gap ${widthM.toFixed(2)} m wide was left out. ${type === 'window' ? 'Windows' : 'Doors'} are 0.55 to ${maxW.toFixed(1)} m. Check the scale or add it by hand.`); return; }
+    // C12c: a ventilator is 0.35 to 0.55 m and a sliding door (a gap with no swing) is up to 2.6 m
+    const maxW = type === 'window' ? 3.0 : type === 'opening' ? 2.6 : 2.0;
+    const minW = type === 'window' ? 0.35 : 0.55;
+    if (widthM > maxW || widthM < minW) { warnings.push(`A gap ${widthM.toFixed(2)} m wide was left out. ${type === 'window' ? 'Windows' : 'Doors'} are ${minW.toFixed(2)} to ${maxW.toFixed(1)} m. Check the scale or add it by hand.`); return; }
     const A = toWorld(g.a), B = toWorld(g.b);
     const M = { x: (A.x + B.x) / 2, z: (A.z + B.z) / 2 };
     const gl = Math.hypot(B.x - A.x, B.z - A.z) || 1;

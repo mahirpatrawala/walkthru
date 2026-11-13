@@ -451,3 +451,61 @@ export function splitViews(page: VectorPage): { boxes: [number, number, number, 
     },
   };
 }
+
+// ---------------------------------------------------------------- dimension lines whose string could not be read
+export interface UnreadLine {
+  id: string;
+  a: Pt; b: Pt;
+  /** reading direction of the string that belongs on the line, degrees, 0 to 180 (the line's own direction) */
+  angle: number;
+  cap: number;
+  /** where the string should be: the line's middle, a few text heights to either side; page units, y down */
+  box: [number, number, number, number];
+  reason: 'no-string' | 'incomplete' | 'unparsed';
+}
+
+/**
+ * Terminated dimension lines with no usable string: nothing read, only a fragment that is not a length, or a string with lettering
+ * left unread beside it. These are the crops worth sending to another reader (OCR, a vision model): their answers are candidates and
+ * only the geometry check can make one a fact.
+ */
+export function unreadDimensionLines(page: VectorPage, reads: TextRead[], dims: DimLine[], max = 60): UnreadLine[] {
+  const ctx = buildCtx(page);
+  ctx.segs = straightSegs(page, 0.95 * Math.max(page.width, page.height));
+  const caps = dims.map((d) => d.run.cap).sort((a, b) => a - b);
+  const cap = caps.length ? caps[caps.length >> 1] : Math.max(2.5, 0.0045 * Math.max(page.width, page.height));
+  const out: UnreadLine[] = [];
+  const boxOf = (a: Pt, b: Pt, ang: number): [number, number, number, number] => {
+    const u: Pt = [Math.cos(ang * D2R), Math.sin(ang * D2R)], n: Pt = [-u[1], u[0]];
+    const m: Pt = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const half = Math.max(hypot(b[0] - a[0], b[1] - a[1]) / 2, 5 * cap), side = 3.5 * cap;
+    const pts: Pt[] = [[-half, -side], [half, -side], [half, side], [-half, side]].map(([p, q]) => [m[0] + u[0] * p + n[0] * q, m[1] + u[1] * p + n[1] * q]);
+    return [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[1]))];
+  };
+  const ownLines = new Set(dims.map((d) => `${d.line.a[0].toFixed(0)},${d.line.a[1].toFixed(0)}|${d.line.b[0].toFixed(0)},${d.line.b[1].toFixed(0)}`));
+  for (const d of dims) if (d.incomplete) out.push({ id: `u-${d.id}`, a: d.a, b: d.b, angle: d.angle, cap: d.run.cap, box: boxOf(d.a, d.b, d.angle), reason: 'incomplete' });
+  for (const s of ctx.segs) {
+    if (out.length >= max) break;
+    if (s.len < 8 * cap) continue;
+    const key = `${s.a[0].toFixed(0)},${s.a[1].toFixed(0)}|${s.b[0].toFixed(0)},${s.b[1].toFixed(0)}`;
+    const key2 = `${s.b[0].toFixed(0)},${s.b[1].toFixed(0)}|${s.a[0].toFixed(0)},${s.a[1].toFixed(0)}`;
+    if (ownLines.has(key) || ownLines.has(key2)) continue;
+    const u: Pt = [s.ux, s.uy], n: Pt = [-s.uy, s.ux];
+    const m: Pt = [(s.a[0] + s.b[0]) / 2, (s.a[1] + s.b[1]) / 2];
+    // a string already sits on it (read, or read as something that is not a length)?
+    const covered = reads.some((r) => {
+      const c: Pt = [(r.bbox[0] + r.bbox[2]) / 2, (r.bbox[1] + r.bbox[3]) / 2];
+      const along = (c[0] - m[0]) * u[0] + (c[1] - m[1]) * u[1], perp = (c[0] - m[0]) * n[0] + (c[1] - m[1]) * n[1];
+      return Math.abs(along) <= s.len / 2 + cap && Math.abs(perp) <= 3 * cap && angDiff(((r.angle % 180) + 180) % 180, s.ang) < 3 && /\d/.test(r.str) && !!parseLengthLoose(numericRepair(r.str));
+    });
+    if (covered) continue;
+    const A0 = findAnchor(ctx, s.a, u, 0, Math.max(2.5 * cap, 3), cap, new Set([s.i]), s.ang);
+    const A1 = findAnchor(ctx, s.a, u, s.len, Math.max(2.5 * cap, 3), cap, new Set([s.i]), s.ang);
+    const real = (a: Anchor | null): boolean => !!a && a.kind !== 'extension';
+    if (!real(A0) || !real(A1)) continue;
+    // lettering of any kind near the middle that is not a length: a fragment
+    const near = reads.some((r) => { const c: Pt = [(r.bbox[0] + r.bbox[2]) / 2, (r.bbox[1] + r.bbox[3]) / 2]; return Math.abs((c[0] - m[0]) * u[0] + (c[1] - m[1]) * u[1]) <= s.len / 2 + cap && Math.abs((c[0] - m[0]) * n[0] + (c[1] - m[1]) * n[1]) <= 3 * cap && /\d/.test(r.str); });
+    out.push({ id: `u-${s.i}`, a: s.a, b: s.b, angle: s.ang, cap, box: boxOf(s.a, s.b, s.ang), reason: near ? 'unparsed' : 'no-string' });
+  }
+  return out;
+}
