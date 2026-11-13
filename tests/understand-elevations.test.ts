@@ -1,7 +1,9 @@
 // C12c: elevation linking, reading, reconciling and the files they feed, on the synthetic drawing sets (SPEC 17.12 items 7, 9, 10, 11).
 // No real drawing and no network: every set is drawn by scripts/drawing-sets from its seed, with its truth beside it.
 import { describe, expect, it } from 'vitest';
-import { buildSet, vectorPagesOf } from '../scripts/make-drawing-sets';
+import fs from 'node:fs';
+import { buildSet, pdfOf, vectorPagesOf } from '../scripts/make-drawing-sets';
+import { loadVectorPages } from '../src/import/pdfjs-adapter';
 import { understandPages } from '../src/understand/pipeline';
 import { understandVector } from '../src/understand/vector-adapter';
 import { applyReview } from '../src/understand/review-apply';
@@ -164,5 +166,27 @@ describe('the ceiling carries its source (and a guessed one is never printed as 
     const said = placementMessage(spec, partial, 2.59, false);
     expect(said).not.toContain('2.59');
     expect(said).toMatch(/not confirmed/);
+  });
+});
+
+describe('a real PDF written by the generator', () => {
+  it('reads the same elevations through pdf.js as from the in-memory pages', async () => {
+    const b = buildSet(23, { unitPin: { bays: 3, shutters: 2, signals: 'both' }, plantWrong: 0, roundShare: 0, chains: true });
+    const pages = await loadVectorPages(pdfOf(b));
+    const u = understandPages(pages, 'x', 'y');
+    const sc = scoreSet(predictionOf(u, 0), b.truth as unknown as TruthLite);
+    expect(sc.fields.elevLink.right).toBe(sc.fields.elevLink.expected);
+    expect(sc.fields.unitBays.right).toBe(sc.fields.unitBays.expected);
+    expect(sc.fields.hinge.right).toBe(sc.fields.hinge.expected);
+    expect(sc.verified.wrong).toBe(0);
+  }, 90_000);
+});
+
+describe('the shipped scene whose ceiling no elevation checked', () => {
+  it('says so in proposal-extras.json, so the buyer verdict does not quote the wall height as fact', () => {
+    const p = 'public/scenes/son-bedroom/proposal-extras.json';
+    if (!fs.existsSync(p)) return;
+    const extras = JSON.parse(fs.readFileSync(p, 'utf8'));
+    expect(ceilingTrustFromExtras(extras).known).toBe(false);
   });
 });

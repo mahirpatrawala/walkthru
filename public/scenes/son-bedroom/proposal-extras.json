@@ -102,7 +102,9 @@
       2.7143157982353916,
       2.7874881883665097
     ],
-    "confidence": 0.5
+    "confidence": 0.5,
+    "verified": false,
+    "note": "no printed ceiling dimension has been checked against an elevation yet; the wall height in property.json (8'-6\") is the designer's figure, not measured"
   },
   "furniture": [
     {
@@ -227,7 +229,7 @@
   },
   "warnings": [
     "Master Room: only its 9'0\" width is on the drawing. Its far wall is off the sheet, so 12'0\" (and the printed 106 sq ft, which does not equal 12'0\"x9'0\" = 108) cannot be checked.",
-    "Label says 150 sq ft but 11'0\"\u00d712'6\" is 137.5 sq ft. The drawn walls agree with 11'0\"\u00d712'6\".",
+    "Label says 150 sq ft but 11'0\"×12'6\" is 137.5 sq ft. The drawn walls agree with 11'0\"×12'6\".",
     "Room \"Son Room\" is not closed by walls on the drawing. Drawn as a rectangle of its labelled size. Check it.",
     "Room \"Master Room\" is not closed by walls on the drawing. Drawn as a rectangle of its labelled size. Check it.",
     "Master Room has no door on the drawing. A door 0.84 m wide was placed where its swing arc hinges on the wall.",

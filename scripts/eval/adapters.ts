@@ -69,7 +69,7 @@ export function oraclePipeline(truthOf: (id: string) => import('./types').TruthL
         wall: e.wall ? { at: wallMid(t, e.wall) } : undefined,
         heights: [{ kind: 'ceiling', v: e.ceilingM, status: 'verified' as const }, ...e.levels.filter((l) => l.kind === 'sill' || l.kind === 'head').map((l) => ({ kind: l.kind, v: l.heightM, status: 'verified' as const })),
           ...(e.bed ? [{ kind: 'bed-base', v: e.bed.baseTopM, status: 'verified' as const }, { kind: 'mattress-top', v: e.bed.mattressTopM, status: 'verified' as const }, { kind: 'headboard-top', v: e.bed.headboardTopM, status: 'verified' as const }] : [])],
-        units: e.units.map((u) => ({ bays: u.bays, shuttersPerBay: u.shuttersPerBay, hinge: u.hinge, status: 'verified' as const })),
+        units: e.units.map((u) => ({ bays: u.bays, shuttersPerBay: u.shuttersPerBay, hinge: u.hinge, status: 'verified' as const, drawerStripM: u.drawerStripM, loftM: u.loftM, baseGapM: u.baseGapM, heightM: u.heightM })),
       })),
     };
   };

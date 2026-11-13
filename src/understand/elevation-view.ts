@@ -70,15 +70,19 @@ export function clusterLinework(page: VectorPage, gap: number, skip?: { stroke?:
   interface It { kind: 'stroke' | 'fill'; i: number; b: Box4 }
   const items: It[] = [];
   const frameW = 0.6 * page.width, frameH = 0.6 * page.height;
+  // the sheet's border: a box round everything, or a ruling line along the edge of the sheet
+  const border = (b: Box4): boolean => (b[2] - b[0] > frameW && b[3] - b[1] > frameH)
+    || (b[2] - b[0] > 0.7 * page.width && (b[1] < 0.1 * page.height || b[3] > 0.9 * page.height))
+    || (b[3] - b[1] > 0.7 * page.height && (b[0] < 0.1 * page.width || b[2] > 0.9 * page.width));
   page.strokes.forEach((s, i) => {
     if (s.points.length < 2) return;
     const b = strokeBox(s);
-    if (b[2] - b[0] > frameW && b[3] - b[1] > frameH) return;
+    if (border(b)) return;
     if (skip?.stroke?.(i, b)) return;
     items.push({ kind: 'stroke', i, b });
   });
   page.fills.forEach((f, i) => {
-    if (f.bbox[2] - f.bbox[0] > frameW && f.bbox[3] - f.bbox[1] > frameH) return;
+    if (border(f.bbox)) return;
     if (skip?.fill?.(i, f.bbox)) return;
     items.push({ kind: 'fill', i, b: f.bbox });
   });
