@@ -2,6 +2,7 @@ node_modules
 dist
 .cache
 public/scenes/*/scene.*
+public/scenes/index.json
 public/scenes/sample-room
 .vercel
 .env*

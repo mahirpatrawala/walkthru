@@ -29,6 +29,8 @@ import type { PropertyFile, Vec2 } from '../types';
 import { ModeManager, createBuyerContext } from './context';
 import type { BuyerContext, BuyerModeId } from './context';
 import { createFurnishMode } from './furnish';
+import { chooseSpawn } from '../core/spawn';
+import { resolveStartRoom } from '../core/start-rooms';
 import { createGridOverlay } from './debug';
 import type { GridOverlay } from './debug';
 import { createHeightPicker } from './height';
@@ -41,6 +43,7 @@ import { mountAiPhoto } from '../photo/mount';
 import { createMeasureMode } from './measure';
 import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
+import { mountHomeLink } from './home-link';
 import { mountSceneTag, sceneTagText } from './scene-tag';
 import {
   HINT_KEY, clampHeightCm, createFurnitureStore, distanceToBox, roomChipText, safeStorage,
@@ -89,7 +92,9 @@ async function fetchExtras(sceneId: string): Promise<ReturnType<typeof unverifie
 // ---------------------------------------------------------------- page boot
 
 const params = new URLSearchParams(location.search);
-const sceneId = (params.get('scene') ?? 'test-flat-empty').trim();
+// src/buyer/entry.ts only loads this file when ?scene= names a home; with no scene the start page opens instead
+const sceneId = (params.get('scene') ?? '').trim();
+const requestedRoom = params.get('room');
 const debug = params.get('debug') === '1';
 const storage = safeStorage();
 const isTouch = ((): boolean => {
@@ -280,6 +285,7 @@ async function boot(): Promise<void> {
   hud.setVisible(false);
   const tagText = sceneTagText(property);
   if (tagText) mountSceneTag(hud.root, tagText);
+  mountHomeLink(hud.root);
   // C11c: the painterly mode is a lazy chunk, fetched only when the buyer taps "Show as a painting"
   type PaintSession = import('../look/painterly/index').PaintingSession;
   let painting: PaintSession | null = null;
@@ -383,10 +389,14 @@ async function boot(): Promise<void> {
   rooms = createRoomsSheet(document.body, layout, () => { /* nothing to resume */ }, unverifiedRooms);
 
   // ---- spawn
+  // The buyer starts inside the chosen room (?room=, else the default: the largest bedroom or living room), just in from its
+  // main door and facing into it. property.spawn is only the fallback for a layout with no room to stand in.
   {
-    const sp = property.spawn;
-    let at: Vec2 = { x: sp.x, z: sp.z };
     const g = store.grid();
+    const room = resolveStartRoom(layout, requestedRoom, unverifiedRooms);
+    const smart = room ? chooseSpawn(layout, room.id, g) : null;
+    const sp = smart ?? property.spawn;
+    let at: Vec2 = { x: sp.x, z: sp.z };
     if (!circleFree(g, at.x, at.z, CHARACTER_RADIUS_M)) {
       const free = nearestFree(g, at.x, at.z, CHARACTER_RADIUS_M, 4);
       if (free) at = free; else console.warn('[walkthru] the spawn point is not on a free cell and none is near it');

@@ -206,3 +206,6 @@ html, body {
   .wt-hud:has(.wt-scene-tag) .wt-top { top: calc(12px + var(--wt-safe-t) + 88px); }
   .wt-hint { top: calc(112px + var(--wt-safe-t)); }
 }
+
+/* "All homes" link in the button column: a link styled as a round button */
+a.wt-home-link { text-decoration: none; margin-top: 4px; }

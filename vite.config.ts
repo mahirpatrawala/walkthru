@@ -6,6 +6,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { walkthruMediaApi } from './src/media/server/media-api';
 import { walkthruUnderstandApi } from './src/understand/server/plugin';
 import { walkthruPhotoApi } from './src/photo/server/plugin';
+import { scanScenes, writeSceneIndex } from './scripts/make-scene-index';
 
 const SCENES_DIR = path.resolve(import.meta.dirname, 'public/scenes');
 const ID_RE = /^[a-z0-9-]{1,40}$/;
@@ -92,9 +93,30 @@ function walkthruDevApi(): Plugin {
   };
 }
 
+/**
+ * The start page's list of homes (public/scenes/index.json). Dev: answered fresh from the folders on every request, so a new
+ * scene folder shows up without a restart. Build: written into public/scenes before the public folder is copied, so a plain
+ * `vite build` has it too (`npm run make:room` writes the same file).
+ */
+function walkthruSceneIndex(): Plugin {
+  return {
+    name: 'walkthru-scene-index',
+    configResolved(config) {
+      if (config.command === 'build') writeSceneIndex(SCENES_DIR);
+    },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (new URL(req.url ?? '/', 'http://localhost').pathname !== '/scenes/index.json') return next();
+        res.setHeader('cache-control', 'no-cache');
+        send(res, 200, scanScenes(SCENES_DIR));
+      });
+    },
+  };
+}
+
 export default defineConfig({
   // media API first: the scene API answers 404 for /api/scenes/... routes it does not know
-  plugins: [walkthruMediaApi(), walkthruUnderstandApi(), walkthruPhotoApi(), walkthruDevApi()],
+  plugins: [walkthruSceneIndex(), walkthruMediaApi(), walkthruUnderstandApi(), walkthruPhotoApi(), walkthruDevApi()],
   build: {
     // three + Spark are one big chunk; that is expected for this prototype
     chunkSizeWarningLimit: 4000,
