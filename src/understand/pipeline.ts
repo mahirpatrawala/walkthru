@@ -10,6 +10,7 @@ import { readPlan } from './plan-read';
 import type { PlanRead } from './plan-read';
 import { labelGeometry } from './label-geometry';
 import { applyLabelGeometry, needsRescale } from './label-apply';
+import { applyUnits } from './flat-units';
 
 export interface Understood {
   result: ImportResult; trace: ProposeTrace; analysis: Analysis; plan: PlanRead;
@@ -22,6 +23,7 @@ export function understandPages(pages: VectorPage[], sourceFile = 'input', scene
   if (needsRescale(result, lg)) { ({ result, trace } = proposeWithTrace(pages, sourceFile, sceneId, { ptPerM: lg.ptPerM! })); lg = labelGeometry(result, trace); }
   const analysis = analyseTrace(result, trace);
   applyLabelGeometry(result, analysis, lg);
+  applyUnits(result);
   const plan = readPlan(result, trace);
   return { result, trace, analysis, plan };
 }

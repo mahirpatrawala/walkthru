@@ -24,8 +24,8 @@
       "balcony", "terrace", "deck", "sit-out", "sit out", "verandah", "veranda", "utility", "dry balcony",
       "wash area", "wash balcony", "dry yard", "utility area", "service balcony", "service area", "open terrace",
       "dry terr", "dry terrace", "terr", "dry bal", "bal", "balc", "enc balcony", "enclosed balcony", "open balcony",
-      "wash yard", "service yard", "utility room", "u/s", "utility bal", "serv balcony", "chowk", "angan",
-      "courtyard", "court yard", "open court", "sunken court", "lawn", "garden", "patio", "porch", "sit-out area",
+      "wash yard", "service yard", "utility room", "u/s", "utility bal", "serv balcony", 
+      "patio", "porch", "sit-out area",
       "standing balcony", "dry area"
     ],
     "other": [
@@ -34,8 +34,8 @@
       "home office", "gym", "laundry", "garage", "parking", "staircase", "landing", "lift lobby", "foyer area",
       "hallway", "walk in wardrobe", "walk-in wardrobe", "w i w", "dress area", "dressing area", "dressing room",
       "puja room", "pooja room", "prayer room", "study room", "store room", "stores", "utility store",
-      "servant room", "servant toilet", "entrance lobby", "lobby area", "drying area", "study area", "reading room",
-      "family lounge", "mud room", "pantry store", "entry foyer", "drying yard", "tv room", "media room",
+      "entrance lobby", "lobby area", "drying area", "study area", "reading room",
+      "family lounge", "mud room", "pantry store", "angan", "chowk", "courtyard", "court yard", "open court", "sunken court", "lawn", "garden", "entry foyer", "drying yard", "tv room", "media room",
       "guest foyer", "wardrobe room"
     ]
   },

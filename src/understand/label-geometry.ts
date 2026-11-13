@@ -17,6 +17,7 @@ export interface LabelMeasure {
   /** the finding's id in the importer's proposal */ id: string; label: string;
   printed: { w: number; l: number };
   /** the walls around the label, page units */ spanPt: { w: number; h: number } | null;
+  /** the walls' box around the label, page units */ boxPt: [number, number, number, number] | null;
 }
 export interface LabelGeometry {
   fit: ScaleFit | null; measures: LabelMeasure[];
@@ -24,7 +25,8 @@ export interface LabelGeometry {
   /** page units per metre fitted from labels and walls, when at least three rooms agree on one */
   ptPerM: number | null;
 }
-const VERIFY_REL = 0.02, FIT_REL = 0.03, CONFLICT_REL = 0.05;
+// the verified band is the inner half of the 2% tolerance (as verify.ts does for dimensions): what is called checked must be right with room to spare
+const VERIFY_REL = 0.01, FIT_REL = 0.03, CONFLICT_REL = 0.05;
 
 export function labelGeometry(result: ImportResult, trace: ProposeTrace): LabelGeometry {
   const none: LabelGeometry = { fit: null, measures: [], status: new Map(), notes: new Map(), ptPerM: null };
@@ -46,7 +48,7 @@ export function labelGeometry(result: ImportResult, trace: ProposeTrace): LabelG
     used.add(l.block.lines.map((q) => q.text).join('|'));
     const sp = roomSpans(mask, bm.nx, bm.ny, [l.centre.x / bm.px, l.centre.y / bm.px], Math.max(1.5, 0.45 * (l.block.size / bm.px)), cap);
     const ok = sp.left !== null && sp.right !== null && sp.up !== null && sp.down !== null && sp.right > sp.left && sp.down > sp.up;
-    measures.push({ id: f.id, label: f.label, printed: { w: f.labelDims.w, l: f.labelDims.l }, spanPt: ok ? { w: (sp.right! - sp.left!) * bm.px, h: (sp.down! - sp.up!) * bm.px } : null });
+    measures.push({ id: f.id, label: f.label, printed: { w: f.labelDims.w, l: f.labelDims.l }, spanPt: ok ? { w: (sp.right! - sp.left!) * bm.px, h: (sp.down! - sp.up!) * bm.px } : null, boxPt: ok ? [sp.left! * bm.px, sp.up! * bm.px, sp.right! * bm.px, sp.down! * bm.px] : null });
   }
   const ev: Evidence = { dims: [], labels: measures.filter((m) => m.spanPt).map((m) => ({ id: m.id, owner: m.id, wPx: m.spanPt!.w, hPx: m.spanPt!.h, a: m.printed.w, b: m.printed.l })) };
   const fit = ev.labels.length >= 4 ? fitScale(ev, FIT_REL) : null;
@@ -59,7 +61,15 @@ export function labelGeometry(result: ImportResult, trace: ProposeTrace): LabelG
     if (!loo?.ok || loo.spread >= 0.08) continue;
     const o = labelFit({ id: m.id, owner: m.id, wPx: m.spanPt.w, hPx: m.spanPt.h, a: m.printed.w, b: m.printed.l }, loo.sx, loo.sy).best;
     const [mx, my] = o === 0 ? [m.printed.w, m.printed.l] : [m.printed.l, m.printed.w];
-    if (agrees(m.spanPt.w, mx, loo, 'x', VERIFY_REL) && agrees(m.spanPt.h, my, loo, 'y', VERIFY_REL)) out.status.set(m.id, 'verified');
+    // sizes alone say nothing of where a room is: a right-sized polygon in the wrong place is not verified. The room must sit on the walls measured.
+    const room = result.proposal.rooms.find((r) => r.id === m.id);
+    const fr = trace.frame!;
+    const placed = !!room && !!m.boxPt && (() => {
+      const xs = room.polygon.map((p) => p.x * fr.ptPerM + fr.cx), ys = room.polygon.map((p) => p.z * fr.ptPerM + fr.cy);
+      const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+      return Math.abs(cx - (m.boxPt![0] + m.boxPt![2]) / 2) <= 0.2 * m.spanPt!.w && Math.abs(cy - (m.boxPt![1] + m.boxPt![3]) / 2) <= 0.2 * m.spanPt!.h;
+    })();
+    if (agrees(m.spanPt.w, mx, loo, 'x', VERIFY_REL) && agrees(m.spanPt.h, my, loo, 'y', VERIFY_REL)) { if (placed) out.status.set(m.id, 'verified'); }
     else if (clearlyWrong(m.spanPt.w, mx, loo, 'x', CONFLICT_REL) || clearlyWrong(m.spanPt.h, my, loo, 'y', CONFLICT_REL)) {
       out.status.set(m.id, 'conflict');
       out.notes.set(m.id, `label says ${mx.toFixed(2)} x ${my.toFixed(2)} m, the walls drawn around it measure about ${(m.spanPt.w / loo.sx).toFixed(2)} x ${(m.spanPt.h / loo.sy).toFixed(2)} m`);

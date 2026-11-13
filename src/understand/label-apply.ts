@@ -4,6 +4,12 @@ import type { ImportResult } from '../import/types';
 import type { LabelGeometry } from './label-geometry';
 import type { Analysis } from './text-dims';
 
+/** Adds a warning to the import's extras and the proposal's notes (often the same array: it is added once then). */
+export function addNote(result: ImportResult, msg: string, front = false): void {
+  const a = result.extras.warnings; const b = (result.proposal.notes ??= []);
+  for (const list of a === b ? [a] : [a, b]) { if (front) list.unshift(msg); else list.push(msg); }
+}
+
 /** The importer's scale was a guess (no agreeing votes) and the labels-and-walls fit gives a different one. */
 export function needsRescale(result: ImportResult, lg: LabelGeometry): boolean {
   if (!lg.ptPerM) return false;
@@ -27,9 +33,9 @@ export function applyLabelGeometry(result: ImportResult, analysis: Analysis, lg:
       analysis.roomStatus.set(id, 'conflict');
       const f = result.extras.rooms.find((r) => r.id === id);
       const note = `Room "${f?.label ?? id}": ${lg.notes.get(id) ?? 'the printed size and the drawn walls disagree'}.`;
-      result.extras.warnings.push(note); (result.proposal.notes ??= []).push(note);
+      addNote(result, note);
     } else if (st === 'verified' && (!have || have === 'unverified')) { verified++; analysis.roomStatus.set(id, 'verified'); }
   }
   const msg = `Printed room sizes against the drawn walls: ${lg.fit.inliers} of ${lg.fit.total} rooms agree on one scale; ${verified} room${verified === 1 ? '' : 's'} checked${conflicts ? `, ${conflicts} disagree by more than 5%` : ''}.`;
-  result.extras.warnings.push(msg); (result.proposal.notes ??= []).push(msg);
+  addNote(result, msg);
 }

@@ -237,9 +237,10 @@ describe('what leaves the machine', () => {
 });
 
 describe('the whole path, no network', () => {
-  it('vision off: nothing is sent and the picture is refused in words', async () => {
+  it('vision off: nothing is sent; the local reader runs, and a picture it cannot read is refused in words', async () => {
     const tw = buildTwin(buildSet(2));
     const run = await readRasterPages(tw.pages, { provider: null });
+    // the synthetic twin's lettering is stroke text that Tesseract cannot read (or no Tesseract is installed): either way, refused in words
     expect(run.status).toBe('refused');
     expect(run.reason).toMatch(/Vision is off/);
     expect(run.sent).toEqual([]);

@@ -4,5 +4,5 @@ export const VISION_NOTICE_TITLE = 'Drawings are sent to an AI service';
 export const VISION_NOTICE = 'To read a picture of a plan, small pieces of the drawing are sent to an AI model provider (Google Gemini, or Anthropic Claude if chosen). '
   + 'Only the plan itself and tight crops of dimension text are sent. Title blocks, notes, names and contact details are blanked out before sending. '
   + 'Nothing is kept by this tool outside the project folder. Turn vision off to keep every drawing on this computer.';
-export const NO_VISION_NOTICE = 'Vision is off. Nothing leaves this computer. A picture of a plan cannot be read without it.';
+export const NO_VISION_NOTICE = 'Vision is off. Nothing leaves this computer. A picture of a plan is read here with local text recognition (Tesseract) when it is installed: you get a draft layout to correct, and nothing from it counts as checked until the walls agree with it or you confirm it.';
 export const visionNotice = (on: boolean): string => (on ? VISION_NOTICE : NO_VISION_NOTICE);

@@ -34,6 +34,8 @@ export interface ProposalExtras {
   sourceFile: string;                 // file name only, never a path
   planPage: number;
   scale: { ptPerM: number; votes: ScaleVote[]; agreeing: number; disagreementPct: number };
+  /** several flats on one sheet (a floor plate, a page of unit plans): which rooms belong to which. Absent for a single flat */
+  units?: { id: string; label: string; roomIds: string[] }[];
   rooms: RoomFinding[];
   ceiling: CeilingFinding;
   /** designed furniture found on the plan, world metres */

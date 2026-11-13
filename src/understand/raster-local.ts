@@ -35,7 +35,8 @@ export const LOCAL_NOTICE = 'Vision is off. Nothing leaves this computer. The pi
 const NO_OCR = 'Vision is off, and no local text reader (Tesseract) is installed, so this picture of a plan cannot be read. Install Tesseract, turn vision on, or trace the plan in the editor.';
 
 /** Printed-size band the geometry check allows (the fraction of a printed length), and the band where a disagreement is called wrong. */
-const VERIFY_REL = 0.02, FIT_REL = 0.03, CONFLICT_REL = 0.05;
+// the verified band is the inner half of the 2% tolerance (as verify.ts does for dimensions): what is called checked must be right with room to spare
+const VERIFY_REL = 0.01, FIT_REL = 0.03, CONFLICT_REL = 0.05;
 
 export interface LocalLabel {
   id: string; name: string; text: string; cands: SizeCand[]; areaM2?: number; rect: Rect; lineH: number;
@@ -68,6 +69,8 @@ function frameOf(toImage: Mat3): Frame {
 }
 
 const SIZEY = /\d/;
+/** The short side of an ordinary room of each kind, metres: the one outside reference a self-consistent misreading cannot fake. */
+const TYPICAL_SHORT_SIDE: Record<string, number> = { bedroom: 3.3, living: 3.4, kitchen: 2.4, bathroom: 1.6, balcony: 1.5 };
 const r2c = (r: { cands: SizeCand[] }): SizeCand[] => r.cands;
 /** Words OCR made up after a room name ("TOILET BP KT-T od") go: keep the name up to its last word the room lexicon knows. */
 export function keepRoomWords(name: string): string {
@@ -84,6 +87,7 @@ export function labelFromRead(br: BlockRead, id: string): LocalLabel | null {
   if (lines.length > 6 || joined.length > 80 || isTitleBlockText(joined)) return null;
   // sizes: the block as text (a size split over lines joins up), and each line read with the digit whitelist
   const reads: SizeCand[][] = [ocrSizeCandidates(joined)];
+  for (const t of br.more) { const j2 = t.split('\n').map(ocrNormalise).filter(Boolean).join(' '); if (j2) reads.push(ocrSizeCandidates(j2)); }
   for (const l of br.lines) for (const d of l.digits) if (SIZEY.test(d)) reads.push(ocrSizeCandidates(d));
   // a size split over two lines ("3800" then "x4125") reads as one when the lines are joined, in each reading
   const nRead = Math.max(0, ...br.lines.map((l) => l.digits.length));
@@ -196,8 +200,7 @@ export async function readRasterLocal(pages: LocalPage[], opts: { jobs?: number;
     // no agreement to stand on: the median of what each room says, good enough to place a room, never to call it a fact
     const ratios = ev.labels.flatMap((l) => { const o = labelFit(l, 1, 1).best; return [l.wPx / (o === 0 ? l.a : l.b), l.hPx / (o === 0 ? l.b : l.a)]; });
     let s = med(ratios);
-    const SHORT_SIDE: Record<string, number> = { bedroom: 3.3, living: 3.4, kitchen: 2.4, bathroom: 1.6, balcony: 1.5 };
-    const priors = rooms0.map((l) => { const m = meas.get(l.id); const t = roomTypeOf(l.name); return m && SHORT_SIDE[t] ? Math.min(m.w, m.h) / SHORT_SIDE[t] : null; }).filter((x): x is number => x !== null);
+    const priors = rooms0.map((l) => { const m = meas.get(l.id); const t = roomTypeOf(l.name); return m && TYPICAL_SHORT_SIDE[t] ? Math.min(m.w, m.h) / TYPICAL_SHORT_SIDE[t] : null; }).filter((x): x is number => x !== null);
     if (!ratios.length && priors.length >= 2) {
       // no printed size at all (a plan with the sizes left off): an ordinary flat's rooms, short side by room type, give a rough scale
       s = med(priors);
@@ -222,6 +225,9 @@ export async function readRasterLocal(pages: LocalPage[], opts: { jobs?: number;
   const medLong = med(longs);
   let gated = fallback;
   if (!fallback && longs.length >= 3 && (medLong < 1.8 || medLong > 8.5)) { gated = true; u.warnings.push(`The printed room sizes read as a median longest side of ${medLong.toFixed(1)} m, which is not an ordinary flat. Nothing is marked as checked.`); }
+  // and by kind: a bedroom is not 10 m across and a toilet not 5 m (feet read as metres, a unit misread for the whole plan)
+  const kindRatios = rooms0.filter((l) => l.cands[0] && TYPICAL_SHORT_SIDE[roomTypeOf(l.name)]).map((l) => Math.min(l.cands[0].w, l.cands[0].l) / TYPICAL_SHORT_SIDE[roomTypeOf(l.name)]);
+  if (!gated && kindRatios.length >= 3 && (med(kindRatios) < 0.55 || med(kindRatios) > 1.7)) { gated = true; u.warnings.push('The printed sizes are not the sizes of ordinary rooms of those kinds (a bedroom or a toilet far too big or too small): the unit of the sizes may be misread. Nothing is marked as checked.'); }
   // the rows of the size table that no name matched: a row goes to the drawn room of the same kind whose walls its size fits best
   // (within 8%) and fits better than every other candidate. The geometry chose it, so geometry cannot also vouch for it.
   if (waiting.length) {

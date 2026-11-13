@@ -23,7 +23,7 @@ export async function ocrBinary(): Promise<string | null> {
 export const ocrAvailable = async (): Promise<boolean> => (await ocrBinary()) !== null;
 
 export const SIZE_WHITELIST = `0123456789.,xX'"-/ `;
-export interface BlockRead { rect: Rect; lineH: number; /** the block as text, lines joined with \n */ text: string; /** each line read alone with the size whitelist (empty when the block did not earn a second read) */ lines: { rect: Rect; digits: string[] }[] }
+export interface BlockRead { rect: Rect; lineH: number; /** the block as text, lines joined with \n */ text: string; /** the same block read again at another size and padding: a second opinion */ more: string[]; /** each line read alone with the size whitelist (empty when the block did not earn a second read) */ lines: { rect: Rect; digits: string[] }[] }
 
 async function readPng(bin: string, png: Uint8Array, dir: string, name: string, psm: string, whitelist?: string): Promise<string> {
   const f = path.join(dir, `${name}.png`);
@@ -57,7 +57,17 @@ export async function readBlocks(g: Gray, blocks: TextBlock[], opts: { jobs?: nu
   const work = async (): Promise<void> => {
     for (let i = next++; i < blocks.length; i = next++) {
       const b = blocks[i];
-      const text = await readPng(bin, enlarged(g, b.rect, b.lineH), dir, `b${i}`, b.lines.length > 1 ? '6' : '7');
+      const psm = b.lines.length > 1 ? '6' : '7';
+      const text = await readPng(bin, enlarged(g, b.rect, b.lineH), dir, `b${i}`, psm);
+      // a second read, larger and with more room around the block (a size that touches a furniture line reads better with air around it)
+      const more: string[] = [];
+      if (!opts.second || opts.second(text)) {
+        // Tesseract is fragile about size: the same block at four sizes gives four chances, and a size they agree on is likelier right
+        for (const [k, target] of [64, 80, 100, 120].entries()) {
+          const t2 = await readPng(bin, enlarged(g, b.rect, b.lineH, k % 2 ? 0.45 : 0.7, target), dir, `b${i}m${k}`, psm);
+          if (t2) more.push(t2);
+        }
+      }
       const lines: BlockRead['lines'] = [];
       if (!opts.second || opts.second(text)) {
         for (let k = 0; k < b.lines.length; k++) {
@@ -73,7 +83,7 @@ export async function readBlocks(g: Gray, blocks: TextBlock[], opts: { jobs?: nu
           lines.push({ rect: r, digits: d });
         }
       }
-      out[i] = { rect: b.rect, lineH: b.lineH, text, lines };
+      out[i] = { rect: b.rect, lineH: b.lineH, text, more, lines };
     }
   };
   try { await Promise.all(Array.from({ length: Math.max(1, jobs) }, work)); } finally { fs.rmSync(dir, { recursive: true, force: true }); }
