@@ -90,7 +90,10 @@ export class FollowCamera {
    * The boom collision rule still applies.
    */
   focusOn(centre: Vec3, distance: number, pitchDeg: number, yawDeg?: number): void {
-    const dist = clamp(distance, 0.5, 8);
+    // a portrait phone sees a much narrower slice: pull back so the whole bed or sofa stays in frame (never past the 8 m cap)
+    const aspect = this.camera.aspect > 0 ? this.camera.aspect : 1.6;
+    const fit = aspect < 1 ? clamp(0.75 / aspect, 1, 1.7) : 1;
+    const dist = clamp(distance * fit, 0.5, 8);
     const pitch = clamp(pitchDeg, PITCH_MIN_DEG, 85);
     this.focus = {
       centre: { ...centre },

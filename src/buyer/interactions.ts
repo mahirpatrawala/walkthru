@@ -111,7 +111,9 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
       // three-quarter view from the foot end, on the side the buyer stood
       const y = (b.yawDeg * Math.PI) / 180;
       const side = ((a.approach.x - b.cx) * Math.cos(y) - (a.approach.z - b.cz) * Math.sin(y)) >= 0 ? 1 : -1;
-      ctx.camera.focusOn({ x: b.cx, y: a.item.surfaceHeightM, z: b.cz }, Math.max(2.2, 1.2 * len), 50, b.yawDeg + 180 + 30 * side);
+      // a tall, narrow (portrait) screen frames a bed best looking straight along its length; a wide one from three-quarters
+      const swing = ctx.viewer.camera.aspect < 0.8 ? 6 : 30;
+      ctx.camera.focusOn({ x: b.cx, y: a.item.surfaceHeightM, z: b.cz }, Math.max(2.2, 1.2 * len), 50, b.yawDeg + 180 + swing * side);
     } else if (a.action === 'sit' && seats?.isSeat(a.item)) {
       // a chair often has its front against a desk or a wall: look from the first heading, front first, whose camera spot is clear
       const g = ctx.grid();
