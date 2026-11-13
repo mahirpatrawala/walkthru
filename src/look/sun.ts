@@ -1,7 +1,7 @@
 // Owned by C11a. SPEC 16.5 "Sun and time of day". Pure: no three, no DOM.
 import { computeEdgeFrames, roomAt } from '../core/layout-geom';
 import type { Layout, Vec2 } from '../types';
-import { DEFAULT_HOUR, HOUR_MAX, HOUR_MIN, LABEL_SUN_KNOWN, LABEL_SUN_UNKNOWN } from './types';
+import { DEFAULT_HOUR, LABEL_SUN_KNOWN, LABEL_SUN_UNKNOWN } from './types';
 import type { LookFile } from './types';
 
 const RAD = Math.PI / 180;
@@ -14,7 +14,10 @@ export const SUN_BASE_OFFSET_DEG = 30;
 /** the unknown-north sun sweeps this far either side of the opening's normal across the day */
 export const SUN_SWEEP_DEG = 50;
 
-export const clampHour = (h: number): number => Math.min(HOUR_MAX, Math.max(HOUR_MIN, h));
+/** the sun is modelled between 6:00 and 19:00; the look slider may go later (Night), where the sun is simply off */
+const SUN_HOUR_MIN = 6;
+const SUN_HOUR_MAX = 19;
+export const clampHour = (h: number): number => Math.min(SUN_HOUR_MAX, Math.max(SUN_HOUR_MIN, h));
 
 export function sunElevationDeg(hour: number): number {
   const h = clampHour(hour);
