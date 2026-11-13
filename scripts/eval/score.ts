@@ -56,7 +56,7 @@ export function alignRooms(pred: { polygon: Pt[]; roomType: string }[], truth: {
   }
   return best;
 }
-const apply = (a: Align, p: Pt): Pt => { const q = rot(p, a.rot); const k = a.scale ?? 1; return [q[0] * k + a.dx, q[1] * k + a.dz]; };
+export const apply = (a: Align, p: Pt): Pt => { const q = rot(p, a.rot); const k = a.scale ?? 1; return [q[0] * k + a.dx, q[1] * k + a.dz]; };
 
 /**
  * C12b: when no room was found there is nothing to align the predicted frame with, and every plan dimension would count as a

@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 import { boxCorners } from '../core/geometry';
 import type { Vec2 } from '../types';
 import type { ProposalExtras, RoomFinding, VectorPage } from '../import/types';
-import { understandPages } from './pipeline';
+import { isUnnamedRoom, understandPages } from './pipeline';
 import { addElevationData } from './write';
 import type { Check, Extracted, Method, Status } from './types';
 import type { UnderstandingDoc } from './review-model';
@@ -99,7 +99,7 @@ export function understandVector(pagesIn: VectorPage[], opts: { sceneId: string;
       return ex(`room.${n}.${room.id}`, v, method, status, conf, box, { unit: n === 'area' ? 'm2' : 'm', checks, ...(labelText ? { text: labelText } : {}), ...(alternatives ? { alternatives } : {}) });
     };
     const labelEx = ex(`room.label.${room.id}`, room.label ?? room.id, 'pdf-text', 'unverified', CONF.oneMethod, box);
-    const typeEx = ex(`room.type.${room.id}`, room.roomType, 'derived', 'unverified', CONF.oneMethod, box, { derivedFrom: { ids: [labelEx.id], how: 'room words in the label' } });
+    const typeEx = ex(`room.type.${room.id}`, room.roomType, 'derived', 'unverified', CONF.oneMethod, box, { derivedFrom: { ids: [labelEx.id], how: isUnnamedRoom(room.label ?? '') ? 'the furniture and fixtures drawn in it' : 'room words in the label' } });
     rooms.push({ id: room.id, label: labelEx, roomType: typeEx, polygonM: room.polygon.map((p): [number, number] => [p.x, p.z]), width: size('width', w), length: size('length', l), area: size('area', area) });
     if (status === 'conflict') conflicts.push({ id: hash(`conflict.room.${room.id}`), field: `rooms.${room.id}.size`, values: [labelText ?? '', `${fmtFtIn(w)} x ${fmtFtIn(l)}`], message: `The label says ${labelText ?? 'a different size'}, but the walls measure ${fmtFtIn(w)} x ${fmtFtIn(l)}.` });
   }
