@@ -7,6 +7,11 @@ import type { BuyerContext, BuyerMode, OverlayHandle } from './context';
 export const MEASURE_COLOR = '#2F6BFF';
 const TAG = 'measure';
 
+/** What the label says when a point sits in a room whose size is not measured on the drawing (honesty: no number then). */
+export function notMeasuredLabel(rooms: string[]): string {
+  return `Not measured (${rooms.join(', ')})`;
+}
+
 export const MEASURE_TEXT = {
   first: 'Tap the first point',
   second: 'Tap the second point',
@@ -58,6 +63,9 @@ export function createMeasureMode(ctx: BuyerContext): MeasureMode {
     } else {
       clearDrawing();
       lastResult = measureResult(pts[0], pts[1]);
+      // a wall-to-wall distance in a room whose outline was only a label's size is not a measurement
+      const unmeasured = ctx.notMeasuredNear?.(pts.map((q) => ({ x: q.x, z: q.z }))) ?? [];
+      if (unmeasured.length > 0) lastResult = { meters: lastResult.meters, label: notMeasuredLabel(unmeasured) };
       handles.push(ctx.overlays.line(pts[0], pts[1], lastResult.label, MEASURE_COLOR, TAG));
       ctx.hud.setModeBar(MEASURE_TEXT.again, exit);
     }

@@ -196,6 +196,22 @@ function disposeGroup(g: THREE.Object3D): void {
   });
 }
 
+/**
+ * In a room whose size is not measured on the drawing, the wall distances behind a verdict are not measurements. A
+ * "fits" or "tight" verdict becomes an amber "Not measured" one with no clearance numbers or lines; "blocked" stays
+ * blocked (an overlap with another item is real) but says its room is not measured.
+ */
+export function honestPlacement(r: PlacementResult, name: string, rooms: string[]): PlacementResult {
+  if (rooms.length === 0) return r;
+  const who = `${rooms.join(' and ')} ${rooms.length > 1 ? 'are' : 'is'} not measured on the drawing`;
+  if (r.verdict === 'blocked') return { ...r, message: `${r.message} Not measured: ${who}, so this may differ in the real flat.` };
+  return {
+    ...r, tone: 'warn',
+    message: `${name}: not measured. ${who}, so its fit and spaces cannot be checked here.`,
+    clearanceM: { front: 3, back: 3, left: 3, right: 3 },
+  };
+}
+
 export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishSession {
   const store = ctx.furniture as StoreX;
   const R = CHARACTER_RADIUS_M;
@@ -238,7 +254,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishS
   };
 
   const check = (s: { id: string; spec: CatalogItem; box: Box }): PlacementResult =>
-    checkPlacement(gridWithout(s.id), s.spec, s.box, ceilingM());
+    honestPlacement(checkPlacement(gridWithout(s.id), s.spec, s.box, ceilingM()), s.spec.name, ctx.notMeasuredNear?.([{ x: s.box.cx, z: s.box.cz }]) ?? []);
 
   const verdictOf = (): FurnishVerdict | null => {
     const s = subject();

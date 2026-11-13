@@ -310,7 +310,7 @@ async function boot(): Promise<void> {
   let paintBusy = false;
   if (look) mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); } });
 
-  const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes });
+  const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
   const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
   const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) });

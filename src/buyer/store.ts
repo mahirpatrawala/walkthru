@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { cellValue } from '../core/grid-codec';
 import { roomAt } from '../core/layout-geom';
-import { polygonArea } from '../core/geometry';
+import { distanceToPolygon, polygonArea } from '../core/geometry';
 import { stampFurniture } from '../core/layout-raster';
 import { formatArea } from '../core/units';
 import { buildFurnitureMesh } from '../engine/furniture';
@@ -241,6 +241,20 @@ export function standardHeightNote(
 // ---------------------------------------------------------------- room chip
 
 export { unverifiedRoomsFromExtras } from '../core/room-trust';
+
+/**
+ * Labels of the not-measured rooms (see `UnverifiedRooms`) that any of the points lies in or within `radiusM` of.
+ * The radius covers a point on a wall face. Used so a distance or a fit verdict that rests on an unmeasured room
+ * outline says "Not measured" instead of showing a number as if it came from the drawing.
+ */
+export function unmeasuredRoomsNear(layout: Layout, unverified: UnverifiedRooms, pts: Vec2[], radiusM = 0.3): string[] {
+  const out: string[] = [];
+  for (const room of layout.rooms) {
+    if (!unverified[room.id]) continue;
+    if (pts.some((pt) => distanceToPolygon(pt, room.polygon) <= radiusM)) out.push(room.label);
+  }
+  return out;
+}
 import type { UnverifiedRooms } from '../core/room-trust';
 export type { UnverifiedRooms } from '../core/room-trust';
 

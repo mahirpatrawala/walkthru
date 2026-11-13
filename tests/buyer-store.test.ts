@@ -10,13 +10,14 @@ import { createGrid } from '../src/core/grid-codec';
 import { ModeManager } from '../src/buyer/context';
 import type { BuyerMode } from '../src/buyer/context';
 import { cellColor } from '../src/buyer/debug';
-import { measureResult } from '../src/buyer/measure';
+import { measureResult, notMeasuredLabel } from '../src/buyer/measure';
+import { honestPlacement } from '../src/buyer/furnish';
 import { outlineGeometry } from '../src/buyer/overlays';
 import { roomsSummary } from '../src/buyer/rooms';
 import { sceneTagText } from '../src/buyer/scene-tag';
 import {
   HEIGHT_KEY, actionFor, clampHeightCm, createFurnitureStore, distanceToBox, loadHeightCm, loadPlaced, nearestInteractable,
-  nearestPresetIndex, parsePlaced, placedKey, roomChipText, saveHeightCm, savePlaced, tintForHeightCm, wallBetween, standardHeightNote, STANDARD_HEIGHT_NOTE,
+  nearestPresetIndex, parsePlaced, placedKey, roomChipText, saveHeightCm, savePlaced, tintForHeightCm, wallBetween, standardHeightNote, STANDARD_HEIGHT_NOTE, unmeasuredRoomsNear,
 } from '../src/buyer/store';
 import type { StorageLike } from '../src/buyer/store';
 import { GRID_VOID } from '../src/types';
@@ -147,6 +148,31 @@ describe('a standard height is never presented as drawn', () => {
   it('says so for a real counter whose height the design does not source', () => {
     expect(standardHeightNote({ ...counter, id: 'c2' }, designs)).toBe(STANDARD_HEIGHT_NOTE);
     expect(standardHeightNote({ ...counter, id: 'c3' }, designs)).toBe(STANDARD_HEIGHT_NOTE);
+  });
+});
+
+describe('numbers that rest on a room nobody measured say so', () => {
+  const unv = { passage: 'runs off the drawing' };
+  it('finds the unmeasured rooms near a point, including a point on the wall face', () => {
+    expect(unmeasuredRoomsNear(layout, unv, [{ x: 2, z: 5.7 }])).toEqual(['Passage']);
+    expect(unmeasuredRoomsNear(layout, unv, [{ x: 2, z: 5.06 }])).toEqual(['Passage']); // in the doorway gap, 6 cm from it
+    expect(unmeasuredRoomsNear(layout, unv, [{ x: 2, z: 2 }])).toEqual([]);
+    expect(unmeasuredRoomsNear(layout, {}, [{ x: 2, z: 5.7 }])).toEqual([]);
+  });
+  it('the measure label drops the number', () => {
+    expect(notMeasuredLabel(['Passage'])).toBe('Not measured (Passage)');
+    expect(notMeasuredLabel(['Master Room', 'Passage'])).toBe('Not measured (Master Room, Passage)');
+  });
+  it('a fit verdict in such a room becomes "Not measured" with no clearance numbers; a real overlap stays blocked', () => {
+    const fits = { verdict: 'fits', reason: 'ok', tone: 'good', message: 'King bed fits. 44 cm walking space on the left.', clearanceM: { front: 1, back: 0.2, left: 0.44, right: 1 } } as const;
+    const out = honestPlacement(fits, 'King bed', ['Master Room']);
+    expect(out.tone).toBe('warn');
+    expect(out.message).toMatch(/^King bed: not measured\. Master Room is not measured on the drawing/);
+    expect(out.message).not.toMatch(/\d+ cm/);
+    expect(Object.values(out.clearanceM).every((m) => m === 3)).toBe(true);
+    const blocked = { verdict: 'blocked', reason: 'collides', tone: 'bad', message: 'King bed does not fit here.', clearanceM: fits.clearanceM } as const;
+    expect(honestPlacement(blocked, 'King bed', ['Master Room']).message).toMatch(/does not fit here\. Not measured: Master Room is not measured/);
+    expect(honestPlacement(fits, 'King bed', [])).toBe(fits);
   });
 });
 

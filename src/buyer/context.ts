@@ -5,6 +5,8 @@ import type { Viewer } from '../engine/viewer';
 import type { Character } from '../engine/character';
 import type { Input, PointerEvt } from '../engine/controls';
 import type { FollowCamera } from '../engine/camera';
+import { unmeasuredRoomsNear } from './store';
+import type { UnverifiedRooms } from './store';
 
 export type BuyerModeId = 'walk' | 'measure' | 'furnish' | 'pose';
 export interface BuyerMode { id: BuyerModeId; enter(): void; exit(): void; update(dt: number): void }
@@ -45,6 +47,8 @@ export interface BuyerContext {
   raycast(e: PointerEvt): { point: Vec3; object: THREE.Object3D } | null;
   /** ray against the floor plane y = 0 */
   raycastFloor(e: PointerEvt): Vec2 | null;
+  /** labels of the rooms near these floor points whose size is not measured on the drawing (empty for most homes) */
+  notMeasuredNear?(pts: Vec2[]): string[];
 }
 
 // ---------------------------------------------------------------- C3 additions (everything above is the SPEC 7.1 contract)
@@ -121,6 +125,8 @@ export interface ContextDeps {
   /** parent of the furniture meshes (raycast target) */
   furnitureRoot: THREE.Object3D;
   modes: ModeManager;
+  /** rooms whose size was not measured (drawing import), id -> reason; omitted when every room is measured */
+  unverifiedRooms?: UnverifiedRooms;
 }
 
 /** Builds the BuyerContext handed to every mode (SPEC 7.1). */
@@ -142,6 +148,7 @@ export function createBuyerContext(d: ContextDeps): BuyerContext {
     grid: () => d.furniture.grid(),
     gridWithout: (ids) => d.furniture.gridWithout(ids),
     heightM: () => d.character.heightM,
+    notMeasuredNear: (pts) => (d.unverifiedRooms ? unmeasuredRoomsNear(d.property.layout, d.unverifiedRooms, pts) : []),
     setMode: (id) => { d.modes.set(id); },
     mode: () => d.modes.id,
     raycast(e) {
