@@ -459,6 +459,8 @@ export function buildSet(seed: number, overrides: Partial<SetOptions> = {}): Bui
     page: { size: o.page, widthPt: rotated ? page.h : page.w, heightPt: rotated ? page.w : page.h, rotationDeg: rotation, pages: pages.length },
     planPtPerM: S, planPage: 1, rooms: roomTruth, openings, items: itemTruth, symbols: F.symbols, dimensions: dimsOut, ceilingM: H, elevations, elevationKey: key,
     wallBBoxM: [Math.min(...allX), Math.min(...allZ), Math.max(...allX), Math.max(...allZ)], notToScale: o.notToScale,
+    planFrame: { ox, oy, S, stretch },
+    textBlocksPt: [[page.w - 24 - 230, page.h - 24 - 62, page.w - 24, page.h - 24], ...(o.noise ? [[24, page.h - 24 - 52, 24 + 230, page.h - 24] as [number, number, number, number]] : [])],
     plantedWrong: dimsOut.filter((d) => d.planted).map((d) => d.id), roundedStrings: dimsOut.filter((d) => d.rounded).map((d) => d.id),
   };
   void wallThickness; void mkRect;

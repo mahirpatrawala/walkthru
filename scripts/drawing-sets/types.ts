@@ -4,7 +4,7 @@ import type { RoomType } from '../../src/types';
 
 export type WallStyle = 'fill-dark' | 'fill-grey' | 'fill-two-grey' | 'double' | 'hatch';
 export type TextMode = 'real' | 'glyph' | 'mixed';
-export type Font = 'simplex' | 'duplex' | 'complex';
+export type Font = 'simplex' | 'duplex' | 'complex' | 'distorted';
 export type UnitsOpt = 'ftin' | 'mm' | 'm';
 export type FtinFormat = 'dash' | 'tight' | 'space' | 'fraction';
 export type LabelStyle = 'brochure' | 'designer' | 'none';
@@ -114,6 +114,10 @@ export interface SetTruth {
   elevationKey: { at: { x: number; z: number }; style: KeyStyle; tags: { tag: string; edge: number }[] } | null;
   /** truth-frame bounding box of the wall fills, metres */
   wallBBoxM: [number, number, number, number];
+  /** design-frame point (pt) of a truth-frame point (m) on the plan page: x = ox + X*S, y = oy + Z*S*stretch */
+  planFrame: { ox: number; oy: number; S: number; stretch: number };
+  /** page 1, design frame (pt, y down): the title block and the notes block, for the privacy checks */
+  textBlocksPt: [number, number, number, number][];
   notToScale: boolean;
   /** ids of the dimension strings made wrong on purpose / rounded on purpose */
   plantedWrong: string[]; roundedStrings: string[];

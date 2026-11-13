@@ -12,10 +12,10 @@ export function unverifiedRoomsFromExtras(extras: unknown): UnverifiedRooms {
   const out: UnverifiedRooms = {};
   const rooms = (extras as { rooms?: unknown } | null)?.rooms;
   if (!Array.isArray(rooms)) return out;
-  for (const r of rooms as { id?: unknown; method?: unknown; verified?: unknown }[]) {
+  for (const r of rooms as { id?: unknown; method?: unknown; verified?: unknown; note?: unknown }[]) {
     if (typeof r?.id !== 'string') continue;
     if (r.method === 'label-rect' && r.verified !== true) out[r.id] = 'label size only';
-    else if (r.verified === false) out[r.id] = 'runs off the drawing';
+    else if (r.verified === false) out[r.id] = typeof r.note === 'string' && r.note.length > 0 && r.note.length <= 60 ? r.note : 'runs off the drawing';
   }
   return out;
 }

@@ -1,5 +1,5 @@
 // C12a: score a pipeline on synthetic sets and on real sets from a folder outside the repo (SPEC 17.11).
-//   tsx scripts/eval-understand.ts [--synthetic 24] [--dir ~/walkthru-tools/drawings] [--json out.json] [--pipeline c8|oracle]
+//   tsx scripts/eval-understand.ts [--synthetic 24] [--dir ~/walkthru-tools/drawings] [--json out.json] [--pipeline c8|c12b|oracle]
 // Real sets: <dir>/<set>/{drawing.pdf | drawing.png | drawing.jpg}, truth.json (partial is fine), meta.json {split, firm}.
 // Synthetic sets are generated in memory from seeds 1..N; 24 are the fixed sets of `npm test`.
 import fs from 'node:fs';
@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { buildSet, rasterDims } from './eval/synthetic';
 import type { EvalSet } from './eval/run';
 import { formatReport, loadFolder, runEval, wrongVerified } from './eval/run';
-import { c8Pipeline, oraclePipeline } from './eval/adapters';
+import { c12bPipeline, c8Pipeline, oraclePipeline } from './eval/adapters';
 import type { TruthLite } from './eval/types';
 
 export async function syntheticSets(n: number): Promise<{ sets: EvalSet[]; truths: Map<string, TruthLite> }> {
@@ -32,7 +32,7 @@ async function main(): Promise<void> {
   const real = await loadFolder(dir);
   const sets = [...syn.sets, ...real.filter((r) => r.origin === 'real')];
   const truthOf = (id: string): TruthLite => syn.truths.get(id) ?? real.find((r) => r.id === id)!.truth;
-  const pipeline = which === 'oracle' ? oraclePipeline(truthOf) : c8Pipeline;
+  const pipeline = which === 'oracle' ? oraclePipeline(truthOf) : which === 'c12b' ? c12bPipeline : c8Pipeline;
   const rep = await runEval(sets, pipeline);
   console.log(formatReport(rep, `Pipeline: ${which}. ${syn.sets.length} synthetic sets, ${real.filter((r) => r.origin === 'real').length} real sets from ${fs.existsSync(dir) ? dir : `${dir} (absent)`}`));
   const wv = wrongVerified(rep);

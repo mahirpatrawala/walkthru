@@ -89,15 +89,27 @@ export function jpegRoundTrip(g: Gray, quality: number): Gray {
   return { width: g.width, height: g.height, data: out };
 }
 
-/** Projective warp by a small camera tilt, uneven light, blur and sensor noise: a phone photo of a printed sheet. */
-export function phonePhoto(g: Gray, warpDeg: number, seed: number): Gray {
-  const r = mulberry32(seed);
-  const { width: w, height: h } = g;
+/** Where the sheet's corners land in a phone photo. Consumes two draws from `r`. */
+function phoneCorners(w: number, h: number, warpDeg: number, r: () => number): { src: [number, number][]; dst: [number, number][] } {
   const t = Math.tan((warpDeg * Math.PI) / 180);
   // destination corners: the top edge shrinks and the sides lean, by up to warpDeg of tilt
   const j = (): number => (r() - 0.5) * 0.4;
   const src: [number, number][] = [[0, 0], [w, 0], [w, h], [0, h]];
   const dst: [number, number][] = [[w * (0.04 + t * (1 + j())), h * (0.03 + t * 0.6)], [w * (0.96 - t * (1 + j())), h * (0.03 + t * 0.2)], [w * (0.97 - t * 0.2), h * 0.97], [w * (0.03 + t * 0.2), h * (0.97 - t * 0.3)]];
+  return { src, dst };
+}
+/** The map (rasterised page pixels -> photo pixels) that `phonePhoto` applied for these arguments. */
+export function phoneForward(w: number, h: number, warpDeg: number, seed: number): number[] {
+  const { src, dst } = phoneCorners(w, h, warpDeg, mulberry32(seed));
+  const H = homography(src, dst);
+  return [...H, 1];
+}
+
+/** Projective warp by a small camera tilt, uneven light, blur and sensor noise: a phone photo of a printed sheet. */
+export function phonePhoto(g: Gray, warpDeg: number, seed: number): Gray {
+  const r = mulberry32(seed);
+  const { width: w, height: h } = g;
+  const { src, dst } = phoneCorners(w, h, warpDeg, r);
   const H = homography(dst, src); // maps destination pixel -> source pixel
   const out = new Uint8ClampedArray(w * h);
   const nl = (x: number, y: number): number => 0.82 + 0.18 * (x / w) - 0.12 * Math.hypot(x / w - 0.5, y / h - 0.5);

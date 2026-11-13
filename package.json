@@ -17,7 +17,11 @@
     "test:local": "WALKTHRU_LOCAL=1 vitest run --no-file-parallelism tests/*.local.test.ts",
     "ml:apply": "tsx scripts/ml-apply.ts",
     "make:sets": "tsx scripts/make-drawing-sets.ts",
-    "eval:understand": "tsx scripts/eval-understand.ts"
+    "eval:understand": "tsx scripts/eval-understand.ts",
+    "eval:raster": "tsx scripts/eval-raster.ts",
+    "understand:raster": "tsx scripts/understand-raster.ts",
+    "smoke:vision": "tsx scripts/vision-smoke.ts",
+    "fetch:hershey": "tsx scripts/fetch-hershey.ts"
   },
   "dependencies": {
     "@sparkjsdev/spark": "2.4.0",

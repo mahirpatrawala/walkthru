@@ -1,6 +1,6 @@
 // C12a: drawing primitives (design frame: points, x right, y down), text in real or stroke form, and the number formats.
 import type { Font, FtinFormat, SetOptions } from './types';
-import { GLYPH_ADVANCE, GLYPH_SPACE, strokeText } from './glyphs';
+import { strokeText, strokeWidth } from './glyphs';
 
 export type Prim =
   | { t: 'fill'; color: string; pts: [number, number][]; rect?: boolean }
@@ -24,14 +24,7 @@ const CAP = 0.72;
 export interface TextStyle { mode: 'real' | 'glyph'; font: Font; slantDeg: number; widthScale: number }
 export function textWidth(s: string, size: number, st: TextStyle): number {
   if (st.mode === 'real') return realTextWidth(s, size);
-  let w = 0;
-  const capH = size * CAP;
-  for (const ch of s) {
-    const known = ch === ' ' ? 0 : /[0-9A-Za-z'"=\-./,():½×]/.test(ch) ? 1 : 0;
-    const sc = ch !== ch.toUpperCase() ? 0.78 : 1;
-    w += (known ? GLYPH_ADVANCE * sc : GLYPH_SPACE) * (capH / 6) * st.widthScale;
-  }
-  return w;
+  return strokeWidth(s, size * CAP, st.font, st.slantDeg, st.widthScale);
 }
 
 export class Canvas {

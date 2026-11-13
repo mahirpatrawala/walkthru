@@ -4,7 +4,11 @@ import type { Vec2, Px, LayoutProposal, FurnitureItem, RoomType } from '../types
 /** Page units: PDF points after normalisation. x right, y DOWN, text reads left to right. */
 export interface VFill { color: string; /** closed rings, first is the outer */ rings: Px[][]; area: number; bbox: [number, number, number, number] }
 export interface VStroke { color: string; width: number; /** polyline; curves flattened to <= 0.5 pt error */ points: Px[]; closed: boolean; hasCurve: boolean }
-export interface VText { str: string; x: number; y: number; width: number; size: number; /** degrees, 0 after normalisation for the dominant direction */ angle: number }
+export interface VText {
+  str: string; x: number; y: number; width: number; size: number; /** degrees, 0 after normalisation for the dominant direction */ angle: number;
+  /** C12b: set when the run was read from stroke glyphs rather than found as PDF text */
+  src?: 'glyph';
+}
 export interface VectorPage {
   index: number; width: number; height: number;
   fills: VFill[]; strokes: VStroke[]; texts: VText[];
@@ -40,7 +44,7 @@ export interface ProposalExtras {
 }
 export interface ImportResult { proposal: LayoutProposal; extras: ProposalExtras }
 
-export type ImportErrorCode = 'no-plan-page' | 'raster-plan' | 'pdfjs-shape' | 'vision-not-configured';
+export type ImportErrorCode = 'no-plan-page' | 'raster-plan' | 'pdfjs-shape' | 'vision-not-configured' | 'image-unreadable' | 'vision-failed';
 export class ImportError extends Error {
   readonly code: ImportErrorCode;
   constructor(code: ImportErrorCode, message?: string) {

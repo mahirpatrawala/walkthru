@@ -1,9 +1,10 @@
 // C12a: pipelines under test, each reduced to a Prediction. `c8` is the importer of SPEC 13 as it stands.
-import { proposeFromPages } from '../../src/import/propose';
+import { proposeFromPages, proposeWithTrace } from '../../src/import/propose';
 import { ImportError } from '../../src/import/types';
 import type { VectorPage } from '../../src/import/types';
 import { furnitureOf } from '../../src/understand/lexicon';
-import type { Prediction, PredItem, PredOpening, Pt } from './types';
+import type { Prediction, PredDim, PredItem, PredOpening, Pt } from './types';
+import { analyseTrace } from '../../src/understand/text-dims';
 
 export type PipelineInput =
   | { kind: 'vector'; id: string; pages: VectorPage[] }
@@ -27,7 +28,8 @@ export const c8Pipeline: Pipeline = (input) => {
     pages = Array.from({ length: input.pageCount }, (_, i) => ({ index: i, width: input.width, height: input.height, fills: [], strokes: [], texts: [], imageCoverage: 1 }));
   } else pages = input.pages;
   try {
-    const r = proposeFromPages(pages, 'input', 'eval');
+    // C12b: the importer as it stood before it read stroke text or dimension lines, so the C8 column stays the C8 baseline
+    const r = proposeFromPages(pages, 'input', 'eval', { understandText: false });
     const rooms = r.proposal.rooms.map((x) => ({ label: x.label ?? '', roomType: x.roomType, polygon: x.polygon.map((p): Pt => [p.x, p.z]), status: 'unverified' as const }));
     const openings: PredOpening[] = r.proposal.openings.map((o) => {
       const room = r.proposal.rooms.find((x) => x.id === o.roomId)!;
@@ -74,3 +76,33 @@ function wallMid(t: import('./types').TruthLite, w: { roomId: string; edge: numb
   const p = r.polygonM, e = w.edge;
   return [(p[e][0] + p[(e + 1) % p.length][0]) / 2, (p[e][1] + p[(e + 1) % p.length][1]) / 2];
 }
+
+/**
+ * C12b: the C8 importer with stroke text read, plus dimension strings found, fitted against a scale and given honest statuses
+ * (SPEC 17.5). Rooms are verified only through label checks against the dimension-fitted scale.
+ */
+export const c12bPipeline: Pipeline = (input) => {
+  const t0 = Date.now();
+  let pages: VectorPage[];
+  if (input.kind === 'raster') {
+    pages = Array.from({ length: input.pageCount }, (_, i) => ({ index: i, width: input.width, height: input.height, fills: [], strokes: [], texts: [], imageCoverage: 1 }));
+  } else pages = input.pages;
+  try {
+    const { result: r, trace } = proposeWithTrace(pages, 'input', 'eval');
+    const an = analyseTrace(r, trace);
+    const rooms = r.proposal.rooms.map((x) => ({ label: x.label ?? '', roomType: x.roomType, polygon: x.polygon.map((p): Pt => [p.x, p.z]), status: an.roomStatus.get(x.id) ?? ('unverified' as const) }));
+    const openings: PredOpening[] = r.proposal.openings.map((o) => {
+      const room = r.proposal.rooms.find((x) => x.id === o.roomId)!;
+      const a = room.polygon[o.edge], b = room.polygon[(o.edge + 1) % room.polygon.length];
+      const L = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+      return { type: o.type, at: [a.x + ((b.x - a.x) / L) * o.centreM, a.z + ((b.z - a.z) / L) * o.centreM], widthM: o.widthM, status: 'unverified' };
+    });
+    const items: PredItem[] = r.extras.furniture.map((f) => ({ cls: clsOfLabel(f.label ?? '', f.kind), box: { cx: f.box.cx, cz: f.box.cz, w: f.box.w, d: f.box.d }, status: 'unverified' }));
+    const dimensions: PredDim[] = an.dims.map((d) => ({ string: d.string, a: d.a, b: d.b, view: d.role, status: d.status }));
+    const pred: Prediction = { attempted: true, rooms, openings, items, dimensions, seconds: (Date.now() - t0) / 1000 };
+    if (r.extras.ceiling.method !== 'default') pred.ceiling = { v: r.extras.ceiling.heightM, status: 'unverified' };
+    return pred;
+  } catch (e) {
+    return { attempted: false, error: e instanceof ImportError ? `${e.code}: ${e.message}` : `error: ${(e as Error).message}`, seconds: (Date.now() - t0) / 1000 };
+  }
+};

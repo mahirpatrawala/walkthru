@@ -9,6 +9,7 @@ import { rasterizeLayout, stampFurniture } from '../core/layout-raster';
 import { ImportError } from './types';
 import type { CeilingFinding, ImportResult, PageKind, ProposalExtras, RoomFinding, ScaleVote, VectorPage } from './types';
 import { classifyPage, normalizePage, roomLabelCount } from './vector-page';
+import { pageKindWords } from '../understand/lexicon';
 import { parseLabels } from './labels';
 import type { FurnitureLabel, RoomLabel } from './labels';
 import { bridgeGaps, selectWalls, wallBitmap } from './walls';
@@ -22,9 +23,29 @@ import { buildOpenings } from './openings';
 import { buildFurniture } from './furniture';
 import { findCeiling, windowHeightsFromText } from './elevation';
 import { WALL } from './bitmap';
+import { pageReads, readPageText, readsToNormalised, withoutReadStrokes } from '../understand/text-pdf';
+import { findDimensions } from '../understand/dimensions';
+import type { DimLine } from '../understand/dimensions';
+import { fitModels } from '../understand/scale-fit';
+import type { ScaleFit } from '../understand/scale-fit';
+import type { TextRead } from '../understand/reads';
 import type { Bitmap } from './bitmap';
 
-export interface ProposeOptions { /** 0-based page index to use as the plan */ planPage?: number }
+export interface ProposeOptions {
+  /** 0-based page index to use as the plan */ planPage?: number;
+  /** C12b: read stroke text (exploded CAD lettering) and use dimension lines for the scale. On by default. */
+  understandText?: boolean;
+}
+/** What the text and dimension stage found while importing, for callers that want more than the proposal (C12b, the harness). */
+export interface ProposeTrace {
+  pages: ReturnType<typeof normalizePage>[]; kinds: PageKind[]; planIdx: number;
+  reads: TextRead[][];
+  /** frame of the proposal: world metres = (page units - centre) / ptPerM */
+  frame: { cx: number; cy: number; ptPerM: number } | null;
+  planWalls: [number, number, number, number] | null;
+  planDims: DimLine[]; planFit: ScaleFit | null;
+  rawPages: VectorPage[];
+}
 
 const slug = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'room';
 const MIN_PATHS = 20;
@@ -88,12 +109,24 @@ function pickPlanPage(pages: ReturnType<typeof normalizePage>[], kinds: PageKind
 }
 
 export function proposeFromPages(pagesIn: VectorPage[], sourceFile: string, sceneId: string, opts: ProposeOptions = {}): ImportResult {
+  return proposeWithTrace(pagesIn, sourceFile, sceneId, opts).result;
+}
+
+export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sceneId: string, opts: ProposeOptions = {}): { result: ImportResult; trace: ProposeTrace } {
   const warnings: string[] = [];
+  const useText = opts.understandText !== false;
+  // C12b: stroke text becomes ordinary text runs before the page is turned upright, so a drawing lettered in exploded CAD
+  // strokes reads like one with real text, and its reading direction can level the sheet
+  const textPages = pagesRaw.map((p) => (useText ? readPageText(p) : { page: p, glyphReads: [], consumed: 0 }));
+  const pagesIn = textPages.map((t) => t.page);
   const pages = pagesIn.map(normalizePage);
   const kinds = pages.map((p) => classifyPage(p));
   const planIdx = pickPlanPage(pages, kinds, opts.planPage);
   const plan = pages[planIdx];
   const elevations = pages.filter((_, k) => kinds[k] === 'elevation');
+  const reads = pages.map((p, i) => pageReads(p, readsToNormalised(textPages[i].glyphReads, pagesRaw[i], p)));
+  const trace: ProposeTrace = { pages, kinds, planIdx, reads, frame: null, planWalls: null, planDims: [], planFit: null, rawPages: pagesRaw };
+  const finish = (result: ImportResult): { result: ImportResult; trace: ProposeTrace } => ({ result, trace });
 
   // ---- walls, labels
   const walls = selectWalls(plan);
@@ -105,8 +138,21 @@ export function proposeFromPages(pagesIn: VectorPage[], sourceFile: string, scen
       warnings: [...warnings, msg],
     },
   });
-  if (!walls.colors.length || !walls.polys.length) return empty('No walls found on the plan page. Trace the plan in the editor.');
+  if (!walls.colors.length || !walls.polys.length) return finish(empty('No walls found on the plan page. Trace the plan in the editor.'));
   const t = walls.t;
+  // C12b: dimension lines on the plan give an independent scale (RANSAC over their printed lengths)
+  let dimHint: ScaleFit | null = null;
+  let dimModels: ReturnType<typeof fitModels> = [];
+  if (useText) {
+    const dims = findDimensions(withoutReadStrokes(plan, reads[planIdx]), reads[planIdx]);
+    for (const d of dims) d.page = planIdx;
+    const w = walls.bbox;
+    const pad = 0.3 * Math.max(w[2] - w[0], w[3] - w[1]);
+    const inPlan = dims.filter((d) => { const mx = (d.a[0] + d.b[0]) / 2, my = (d.a[1] + d.b[1]) / 2; return mx >= w[0] - pad && mx <= w[2] + pad && my >= w[1] - pad && my <= w[3] + pad && !d.run.parts.some((q) => q.tentative); });
+    dimModels = fitModels(inPlan.map((d) => ({ id: d.id, lenPt: d.lengthPt, valueM: d.run.parsed.m, group: d.chain ?? d.id, source: 'dimension' as const })));
+    dimHint = dimModels[0]?.fit ?? null;
+    trace.planDims = dims; trace.planFit = dimHint; trace.planWalls = walls.bbox;
+  }
   const { rooms: allRoomLabels, furniture: furnLabels } = parseLabels(plan.texts);
   const inFrame = (p: Px): boolean => {
     const m = 2 * t;
@@ -133,6 +179,15 @@ export function proposeFromPages(pagesIn: VectorPage[], sourceFile: string, scen
     if (o) votes.push(...outlineVotes(o, l, `${l.key.toUpperCase()} ${fmtDims(l.dims)}`));
   }
   for (const r of regions) if (r.polygon && r.method !== 'label-rect') votes.push(...roomVotes(r.label, r.polygon, r.areaPt2));
+  // the dimension fit votes once per agreeing dimension (at most six), so it outweighs a couple of stray labels but not a consensus
+  // A page that holds a plan and an elevation at two scales gives two dimension models. The plan's is the one the room and
+  // furniture labels agree with; with no label to say, and more than one model, the importer takes none of them.
+  {
+    const labelScale = voteScale(votes)?.ptPerM;
+    const elevOnPlan = reads[planIdx].some((r) => pageKindWords(r.str).some((k) => k === 'elevation' || k === 'section'));
+    const pick = labelScale ? dimModels.find((m) => Math.abs(m.fit.ptPerM / labelScale - 1) <= 0.03) : dimModels.length === 1 && !elevOnPlan ? dimModels[0] : undefined;
+    if (pick && (pick.fit.inliers.length >= 4 || labelScale)) { dimHint = pick.fit; for (let k = 0; k < Math.min(pick.fit.inliers.length, 6); k++) votes.push({ source: 'dimension lines', ptPerM: pick.fit.ptPerM }); } else dimHint = null;
+  }
   let ptPerM: number; let scaleConf: number;
   const result = voteScale(votes);
   let agreeing = 0; let disagreementPct = 0; let usedVotes = votes;
@@ -317,7 +372,8 @@ export function proposeFromPages(pagesIn: VectorPage[], sourceFile: string, scen
     rooms: [...draft.map((d) => d.region), ...extraFindings], ceiling, furniture: items, unmapped: fr.unmapped,
     ...(windowHeights ? { windowHeights } : {}), spawn, warnings,
   };
-  return { proposal, extras };
+  trace.frame = { cx: cxPt, cy: cyPt, ptPerM };
+  return finish({ proposal, extras });
 }
 
 function fmtDims(d: { w: number; l: number }): string {

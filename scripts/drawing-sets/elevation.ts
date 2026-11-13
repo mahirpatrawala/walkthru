@@ -5,7 +5,7 @@ import type { Furnished } from './symbols';
 import type { Layout, LRoom, Rng } from './layout';
 import { snapDim } from './layout';
 import type { Canvas, TextStyle, WallPaint } from './draw';
-import { drawWallRect, fmtLen } from './draw';
+import { drawWallRect, fmtLen, textWidth as strokeAwareWidth } from './draw';
 
 const FT = 0.3048;
 export type WallSide = 'N' | 'E' | 'S' | 'W';
@@ -112,7 +112,7 @@ export function drawElevation(
     for (const y of [y0, y1]) { cv.line(black, 0.3, [xPt - 2.5, y + 2.5], [xPt + 2.5, y - 2.5]); }
     cv.text(d.s, xPt + textSide * 1.6, (y0 + y1) / 2 + textWidthOf(d.s, tsz, dimsText) / 2, tsz, dimsText, -90, 'start');
   };
-  const textWidthOf = (s: string, size: number, st: TextStyle): number => (st.mode === 'real' ? size * 0.55 * s.length : size * 0.72 / 6 * 5.2 * st.widthScale * s.length);
+  const textWidthOf = (s: string, size: number, st: TextStyle): number => (st.mode === 'real' ? size * 0.55 * s.length : strokeAwareWidth(s, size, st));
   const hdim = (yPt: number, u0: number, u1: number, chain: string, kind: TruthDimension['kind'], role: 'member' | 'overall' = 'member'): void => {
     const d = addDim(kind, chain, [u0, 0], [u1, 0], u1 - u0, role);
     const x0 = f.X(u0), x1 = f.X(u1);

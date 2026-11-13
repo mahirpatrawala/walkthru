@@ -58,6 +58,32 @@ export function alignRooms(pred: { polygon: Pt[]; roomType: string }[], truth: {
 }
 const apply = (a: Align, p: Pt): Pt => { const q = rot(p, a.rot); return [q[0] + a.dx, q[1] + a.dz]; };
 
+/**
+ * C12b: when no room was found there is nothing to align the predicted frame with, and every plan dimension would count as a
+ * miss (and a wrong verified value) however well it was read. The dimension lines carry the frame too: a shift that brings at
+ * least three predicted plan strings onto truth strings of the same text is the shift. Quarter turns are not searched here
+ * (a sheet is turned upright by its own text before dimensions are read). Rooms still need `alignRooms`.
+ */
+export function alignByDimensions(pred: { string: string; a: Pt; b: Pt; view: string }[], truth: { string: string; a: [number, number]; b: [number, number]; view: string }[]): Align | null {
+  const P = pred.filter((q) => q.view === 'plan'), T = truth.filter((t) => t.view === 'plan');
+  let best: Align | null = null;
+  for (const r of [0, 90, 180, 270] as const) {
+    const mids = P.map((q) => rot([(q.a[0] + q.b[0]) / 2, (q.a[1] + q.b[1]) / 2], r));
+    for (let i = 0; i < P.length; i++) for (const t of T) {
+      if (P[i].string !== t.string) continue;
+      const dx = (t.a[0] + t.b[0]) / 2 - mids[i][0], dz = (t.a[1] + t.b[1]) / 2 - mids[i][1];
+      const used = new Set<number>();
+      let n = 0;
+      for (let j = 0; j < P.length; j++) {
+        const k = T.findIndex((t2, q) => !used.has(q) && t2.string === P[j].string && near([mids[j][0] + dx, mids[j][1] + dz], [(t2.a[0] + t2.b[0]) / 2, (t2.a[1] + t2.b[1]) / 2], 0.3));
+        if (k >= 0) { used.add(k); n++; }
+      }
+      if (!best || n > best.inliers || (n === best.inliers && r === 0 && best.rot !== 0)) best = { rot: r, dx, dz, inliers: n };
+    }
+  }
+  return best && best.inliers >= 3 ? best : null;
+}
+
 // ---------------------------------------------------------------- scoring
 const F1 = (t: Tally): number => (t.pred === 0 || t.expected === 0 || t.tp === 0 ? 0 : (2 * (t.tp / t.pred) * (t.tp / t.expected)) / ((t.tp / t.pred) + (t.tp / t.expected)));
 export const F1_FIELDS = new Set(['rooms', 'openings', 'furniture', 'fixtures']);
@@ -103,12 +129,17 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   const pr = pred.rooms ?? [];
   const al = pr.length && trRooms.length ? alignRooms(pr, trRooms.map((r) => ({ polygonM: r.polygonM, roomType: r.roomType }))) : null;
   S.aligned = !!al && al.inliers > 0;
-  const A = (p: Pt): Pt => (al ? apply(al, p) : p);
+  // rooms give the frame when there are any; failing that, the dimension lines do (the alignment is used for positions only)
+  const alDim = alignByDimensions(pred.dimensions ?? [], trDims);
+  const alUse = alDim ?? (al && al.inliers > 0 ? al : null);
+  const A = (p: Pt): Pt => (alUse ? apply(alUse, p) : p);
+  // everything but dimensions keeps the room alignment
+  const AR = (p: Pt): Pt => (al ? apply(al, p) : p);
   const roomHit = new Map<number, number>(); // pred index -> truth index
   if (al) {
     const used = new Set<number>();
     pr.forEach((q, i) => {
-      const poly = q.polygon.map(A); const c = centroid(poly);
+      const poly = q.polygon.map(AR); const c = centroid(poly);
       let bestK = -1, bestD = 0.6;
       trRooms.forEach((t, k) => { if (used.has(k)) return; const d = Math.hypot(c[0] - centroid(t.polygonM)[0], c[1] - centroid(t.polygonM)[1]); if (d < bestD) { bestD = d; bestK = k; } });
       if (bestK >= 0) { used.add(bestK); roomHit.set(i, bestK); }
@@ -135,7 +166,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   S.fields.openings.pred += po.length;
   const usedO = new Set<number>();
   for (const q of po) {
-    const at = A(q.at);
+    const at = AR(q.at);
     const k = (T.openings ?? []).findIndex((t, i) => !usedO.has(i) && t.type === q.type && near(at, [t.at.x, t.at.z], 0.45));
     if (k < 0) { verifiedCheck(q.status, false); continue; }
     usedO.add(k);
@@ -150,7 +181,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   S.fields.furniture.pred += pi.length;
   const usedI = new Set<number>();
   for (const q of pi) {
-    const c = A([q.box.cx, q.box.cz]);
+    const c = AR([q.box.cx, q.box.cz]);
     const k = (T.items ?? []).findIndex((t, i) => !usedI.has(i) && t.cls === q.cls && near(c, [t.box.cx, t.box.cz], 0.5));
     if (k < 0) { verifiedCheck(q.status, false); continue; }
     usedI.add(k);
@@ -165,7 +196,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   S.fields.fixtures.pred += ps.length;
   const usedS = new Set<number>();
   for (const q of ps) {
-    const at = A(q.at);
+    const at = AR(q.at);
     const k = trFix.findIndex((t, i) => !usedS.has(i) && t.cls === q.cls && near(at, [(t.bboxM[0] + t.bboxM[2]) / 2, (t.bboxM[1] + t.bboxM[3]) / 2], 0.5));
     if (k >= 0) { usedS.add(k); S.fields.fixtures.tp++; S.fields.fixtures.right++; }
     verifiedCheck(q.status, k >= 0);
@@ -174,18 +205,34 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   // ---- dimension strings
   const pd = pred.dimensions ?? [];
   const usedD = new Set<number>();
-  trDims.forEach((t) => {
+  // Pairing: a predicted dimension may fit several truth dimensions that print the same string (three "3' 2\"" in one elevation, one of
+  // them printed 2 inches off). The pairs are made globally, closest length first, so a string is judged against the dimension it
+  // was measured on and not against whichever twin comes first in the list.
+  type Cand = { ti: number; pi: number; gap: number };
+  const cands: Cand[] = [];
+  const lenOf = (a: Pt, b: Pt): number => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  trDims.forEach((t, ti) => {
     const mid: Pt = [(t.a[0] + t.b[0]) / 2, (t.a[1] + t.b[1]) / 2];
-    const k = pd.findIndex((q, i) => !usedD.has(i) && q.string === t.string && (t.view === 'plan' ? q.view === 'plan' && near(A([(q.a[0] + q.b[0]) / 2, (q.a[1] + q.b[1]) / 2]), mid, 0.5) : q.view === 'elevation'));
-    if (k < 0) return;
-    usedD.add(k);
+    pd.forEach((q, pi) => {
+      if (q.string !== t.string) return;
+      if (t.view === 'plan' ? !(q.view === 'plan' && near(A([(q.a[0] + q.b[0]) / 2, (q.a[1] + q.b[1]) / 2]), mid, 0.5)) : q.view !== 'elevation') return;
+      cands.push({ ti, pi, gap: Math.abs(lenOf(q.a, q.b) - lenOf(t.a as Pt, t.b as Pt)) });
+    });
+  });
+  cands.sort((x, y) => x.gap - y.gap);
+  const usedT = new Set<number>();
+  for (const c of cands) {
+    if (usedT.has(c.ti) || usedD.has(c.pi)) continue;
+    usedT.add(c.ti); usedD.add(c.pi);
+    const t = trDims[c.ti]; const k = c.pi;
     S.fields.dimStrings.right++;
     const geometryOk = Math.abs(t.shownM - t.valueM) <= Math.max(0.02 * t.valueM, 0.0254);
+    if (process.env.SCORE_DEBUG && !geometryOk && (pd[k].status === 'verified')) console.log('  verified but geometry off', JSON.stringify(t.string), 'shown', t.shownM, 'value', t.valueM, 'planted', t.planted);
     verifiedCheck(pd[k].status, geometryOk);
     credit(pd[k].status, geometryOk);
     if (t.planted && pd[k].status === 'conflict') S.fields.conflicts.right++;
-  });
-  pd.forEach((q, i) => { if (!usedD.has(i)) verifiedCheck(q.status, false); });
+  }
+  pd.forEach((q, i) => { if (!usedD.has(i)) { if (process.env.SCORE_DEBUG && (q.status === 'verified' || q.status === 'confirmed' || q.status === 'corrected')) console.log('  unmatched verified dim', q.view, JSON.stringify(q.string), q.a.map((v) => v.toFixed(2)).join(','), 'cands', trDims.filter((t) => t.string === q.string).map((t) => `${t.view}@${((t.a[0] + t.b[0]) / 2).toFixed(2)},${((t.a[1] + t.b[1]) / 2).toFixed(2)}`).join(' ')); verifiedCheck(q.status, false); } });
 
   // ---- elevations
   const pe = pred.elevations ?? [];
@@ -197,7 +244,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
       if (room) {
         const p = room.polygonM, e = t.wall.edge;
         const m: Pt = [(p[e][0] + p[(e + 1) % p.length][0]) / 2, (p[e][1] + p[(e + 1) % p.length][1]) / 2];
-        if (near(A(q.wall.at), m, 0.35)) S.fields.elevLink.right++;
+        if (near(AR(q.wall.at), m, 0.35)) S.fields.elevLink.right++;
       }
     }
     q.units?.forEach((u, k) => {

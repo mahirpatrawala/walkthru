@@ -1,0 +1,4 @@
+{
+  "_note": "Words that mark text as title-block, notes or contact matter rather than plan content. Generic drafting vocabulary only; used to drop such strings from a model's answer and to flag them. The picture itself is cleaned by shape (pixels/views.ts), not by words.",
+  "words": ["drawn by", "checked by", "approved by", "reviewed by", "sheet no", "drawing no", "dwg no", "drg no", "revision", "client", "architect", "designer", "consultant", "engineer", "signature", "copyright", "all rights reserved", "email", "phone", "tel", "mobile", "address", "website", "www", "contact", "project title", "project name", "issued for", "issue date", "date"]
+}
