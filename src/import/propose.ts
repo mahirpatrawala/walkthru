@@ -39,6 +39,8 @@ export interface ProposeOptions {
   /** 0-based page index to use as the plan */ planPage?: number;
   /** C12b: read stroke text (exploded CAD lettering) and use dimension lines for the scale. On by default. */
   understandText?: boolean;
+  /** a scale (page units per metre) measured from outside the importer (printed room sizes against drawn walls); used only when the importer's own votes give less than two agreeing sources */
+  ptPerM?: number;
 }
 /** What the text and dimension stage found while importing, for callers that want more than the proposal (C12b, the harness). */
 export interface ProposeTrace {
@@ -222,7 +224,13 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
   if (result) {
     ptPerM = result.ptPerM; agreeing = result.agreeing; disagreementPct = result.disagreementPct; usedVotes = result.votes;
     scaleConf = agreeing >= 4 ? 0.9 : agreeing === 3 ? 0.8 : agreeing === 2 ? 0.7 : 0.4;
-    if (agreeing < 2) warnings.push('Scale rests on one label. Check a door width.');
+    if (agreeing < 2 && opts.ptPerM) {
+      ptPerM = opts.ptPerM; scaleConf = 0.7; agreeing = 3; disagreementPct = 0;
+      usedVotes = [{ source: 'room labels against drawn walls', ptPerM }];
+    } else if (agreeing < 2) warnings.push('Scale rests on one label. Check a door width.');
+  } else if (opts.ptPerM) {
+    ptPerM = opts.ptPerM; scaleConf = 0.7;
+    usedVotes = [{ source: 'room labels against drawn walls', ptPerM }];
   } else {
     ptPerM = t / 0.23; scaleConf = 0.2;
     warnings.push('No dimensions found. Scale guessed from wall thickness.');
@@ -240,7 +248,31 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
   };
   const finalRegions: (RegionResult & { polygon: Px[] })[] = [];
   for (const r of regions) {
-    if (r.polygon) { finalRegions.push(r as RegionResult & { polygon: Px[] }); continue; }
+    if (r.polygon) {
+      // a traced outline that disagrees with the size printed in it by more than 5% is a leak or a mis-closed room, not a measurement: the
+      // room is drawn at its printed size and the two numbers are kept for the broker (SPEC 17.1: nothing is picked silently)
+      const d = r.label.dims;
+      if (d && scaleConf >= 0.7 && (r.method === 'walls' || r.method === 'walls+strokes')) {
+        const xs = r.polygon.map((p) => p.x), ys = r.polygon.map((p) => p.y);
+        const [a, b] = [Math.min(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / ptPerM, Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / ptPerM];
+        const lo = Math.min(d.w, d.l), hi = Math.max(d.w, d.l);
+        if (Math.abs(a / lo - 1) > 0.05 || Math.abs(b / hi - 1) > 0.05) {
+          // a modest difference keeps the traced walls and is flagged; a gross one (the outline holds a quarter more or a fifth less area
+          // than the printed size) is a leak into the next room, so the printed size is drawn instead. Either way both numbers are kept.
+          const ratio = (a * b) / (lo * hi);
+          if (ratio > 1.25 || ratio < 0.8) {
+            const rect = labelRect(r.label, d, rayMap(), ptPerM);
+            finalRegions.push({ ...r, method: 'label-rect', polygon: rect, areaPt2: Math.abs(polygonArea(rect.map((p) => ({ x: p.x, z: p.y })))), drawn: { w: a, l: b } });
+            warnings.push(`Room "${r.label.name}": the walls drawn around it measure ${a.toFixed(2)} x ${b.toFixed(2)} m but its label says ${lo.toFixed(2)} x ${hi.toFixed(2)} m. It is drawn at the printed size. Check it.`);
+          } else {
+            finalRegions.push({ ...r, polygon: r.polygon, drawn: { w: a, l: b } });
+            warnings.push(`Room "${r.label.name}": the walls drawn around it measure ${a.toFixed(2)} x ${b.toFixed(2)} m but its label says ${lo.toFixed(2)} x ${hi.toFixed(2)} m. The drawn walls are used. Check it.`);
+          }
+          continue;
+        }
+      }
+      finalRegions.push(r as RegionResult & { polygon: Px[] }); continue;
+    }
     if (!r.label.dims) { warnings.push(`Room "${r.label.name}" is not closed by walls and has no labelled size. Left out. Add it in the editor.`); continue; }
     const rect = labelRect(r.label, r.label.dims, rayMap(), ptPerM);
     finalRegions.push({ ...r, polygon: rect, areaPt2: Math.abs(polygonArea(rect.map((p) => ({ x: p.x, z: p.y })))) });
@@ -284,7 +316,7 @@ export function proposeWithTrace(pagesRaw: VectorPage[], sourceFile: string, sce
     const conf = r.method === 'walls' ? 0.9 : r.method === 'walls+strokes' ? 0.7 : 0.4;
     draft.push({
       tag,
-      region: { id, label: r.label.name, roomType: r.label.roomType, method: r.method, confidence: conf, labelDims: r.label.dims, labelAreaM2: r.label.areaM2, areaM2: polygonArea(poly) },
+      region: { id, label: r.label.name, roomType: r.label.roomType, method: r.method, confidence: conf, labelDims: r.label.dims, labelAreaM2: r.label.areaM2, areaM2: polygonArea(poly), ...(r.drawn ? { drawnDims: r.drawn } : {}) },
     });
   }
   const tags = draft.map((d) => d.tag);

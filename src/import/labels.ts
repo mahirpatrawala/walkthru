@@ -163,9 +163,10 @@ export function parseBlock(block: LabelBlock): RoomLabel | FurnitureLabel | null
     else if (ar && area === undefined && !sz) area = ar.m2;
     else if (!sizeOnly) {
       // a name line, possibly with a trailing size ("BED 5'0"X6'0"")
-      const s = findSize(ln.text);
-      if (s && !dims) dims = { w: s.w, l: s.l };
-      nameLines.push(stripSize(ln.text));
+      // (a name can carry the size twice, in metres and in feet: every size goes out of the name, the first one is the label's)
+      let nm = ln.text;
+      for (let guard = 0; guard < 4; guard++) { const s = findSize(nm); if (!s) break; if (!dims) dims = { w: s.w, l: s.l }; nm = stripSize(nm); }
+      nameLines.push(nm);
     }
   }
   const head = nameLines[0] ?? '';

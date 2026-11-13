@@ -8,14 +8,20 @@ import { analyseTrace } from './text-dims';
 import type { Analysis } from './text-dims';
 import { readPlan } from './plan-read';
 import type { PlanRead } from './plan-read';
+import { labelGeometry } from './label-geometry';
+import { applyLabelGeometry, needsRescale } from './label-apply';
 
 export interface Understood {
   result: ImportResult; trace: ProposeTrace; analysis: Analysis; plan: PlanRead;
 }
 
 export function understandPages(pages: VectorPage[], sourceFile = 'input', sceneId = 'scene'): Understood {
-  const { result, trace } = proposeWithTrace(pages, sourceFile, sceneId);
+  let { result, trace } = proposeWithTrace(pages, sourceFile, sceneId);
+  // printed room sizes against the walls drawn around them: a scale where the importer had none, and honest statuses (SPEC 17.5, label area)
+  let lg = labelGeometry(result, trace);
+  if (needsRescale(result, lg)) { ({ result, trace } = proposeWithTrace(pages, sourceFile, sceneId, { ptPerM: lg.ptPerM! })); lg = labelGeometry(result, trace); }
   const analysis = analyseTrace(result, trace);
+  applyLabelGeometry(result, analysis, lg);
   const plan = readPlan(result, trace);
   return { result, trace, analysis, plan };
 }

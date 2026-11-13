@@ -13,6 +13,8 @@ export interface RegionResult {
   areaPt2: number;
   /** barrier strokes that closed this region (for railing edges) */
   barrierSegments: [Px, Px][];
+  /** set when the traced outline was set aside because it disagreed with the printed size by more than 5%: what the walls measured, metres */
+  drawn?: { w: number; l: number };
 }
 
 interface Line { h: boolean; c: number; lo: number; hi: number }

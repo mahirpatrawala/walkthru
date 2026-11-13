@@ -20,6 +20,8 @@ export interface ScaleVote { source: string; ptPerM: number }
 export interface RoomFinding {
   id: string; label: string; roomType: RoomType; method: 'walls' | 'walls+strokes' | 'label-rect';
   confidence: number; labelDims?: { w: number; l: number }; labelAreaM2?: number; areaM2: number;
+  /** the walls drawn around the label measured this (metres) and disagreed with the printed size by more than 5%: the room is drawn at the printed size and the disagreement is a conflict for the broker */
+  drawnDims?: { w: number; l: number };
 }
 export interface CeilingFinding {
   heightM: number; method: 'text' | 'geometry' | 'default'; page: number | null;
