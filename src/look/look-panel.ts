@@ -70,7 +70,9 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
   tc.dataset.testid = 'look-true-colours';
   const tcText = h('span', undefined, undefined, tcRow);
   h('b', undefined, 'True colours', tcText);
-  h('small', undefined, 'Neutral white light, so surfaces show the colours measured from the video.', tcText);
+  h('small', undefined, look.finishes.source === 'sampled'
+    ? 'Neutral white light, so surfaces show the colours measured from the video.'
+    : 'Neutral white light, so surfaces show their plain colours. This home has no colours measured from a video.', tcText);
 
   // quality
   const qRow = h('div', 'wt-look-row', undefined, sheet);
