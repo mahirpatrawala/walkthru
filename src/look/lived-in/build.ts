@@ -151,7 +151,7 @@ function canvasTexture(w: number, h: number, draw: (c: CanvasRenderingContext2D,
 /** A flat-woven dhurrie: a border, bands and rows of diamonds in the palette. */
 function rugTexture(tone: number, seed: number): THREE.Texture | null {
   const rnd = mulberry32(seed);
-  const main = TONES[tone % TONES.length] === CREAM ? '#C4623F' : TONES[tone % TONES.length];
+  const main = TONES[tone % TONES.length] === TONES[6] ? '#C4623F' : TONES[tone % TONES.length];
   const accent = TONES[(tone + 2 + Math.floor(rnd() * 3)) % TONES.length];
   return canvasTexture(256, 384, (c, w, h) => {
     c.fillStyle = '#EFE3CD'; c.fillRect(0, 0, w, h);
@@ -198,7 +198,7 @@ const tone = (p: DecorPiece, shift = 0): string => TONES[(p.tone + shift) % TONE
 
 const BUILD: Record<DecorPiece['kind'], Builder> = {
   cushion(p, parts, _kit, seg) {
-    const main = tone(p) === CREAM ? tone(p, 1) : tone(p);
+    const main = tone(p) === TONES[6] ? tone(p, 1) : tone(p);
     const g = pillow(p.w, p.height, p.d, seg.s > 8 ? 8 : 5);
     // the cushion leans back against the pillow or backrest, pivoting on its bottom edge
     g.rotateX(-(p.tiltDeg ?? 0) * DEG);
@@ -306,7 +306,7 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
       const top = kit.texturedMat(tex, 1);
       parts.mesh(geo, [side, side, top, side, side, side], false);
     } else {
-      parts.mesh(geo, kit.mat({ hex: TONES[p.tone % 8] === CREAM ? '#C4623F' : TONES[p.tone % 8], rough: 1, metal: 0 }), false);
+      parts.mesh(geo, kit.mat({ hex: TONES[p.tone % 8] === TONES[6] ? '#C4623F' : TONES[p.tone % 8], rough: 1, metal: 0 }), false);
     }
   },
   shoes(p, parts) {
