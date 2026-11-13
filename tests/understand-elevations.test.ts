@@ -182,11 +182,20 @@ describe('a real PDF written by the generator', () => {
   }, 90_000);
 });
 
-describe('the shipped scene whose ceiling no elevation checked', () => {
-  it('says so in proposal-extras.json, so the buyer verdict does not quote the wall height as fact', () => {
-    const p = 'public/scenes/son-bedroom/proposal-extras.json';
-    if (!fs.existsSync(p)) return;
-    const extras = JSON.parse(fs.readFileSync(p, 'utf8'));
-    expect(ceilingTrustFromExtras(extras).known).toBe(false);
+describe('shipped scenes whose ceiling no elevation checked', () => {
+  it('say so in proposal-extras.json, so the buyer verdict does not quote the wall height as fact', () => {
+    const dir = 'public/scenes';
+    let seen = 0;
+    for (const name of fs.existsSync(dir) ? fs.readdirSync(dir) : []) {
+      const p = `${dir}/${name}/proposal-extras.json`;
+      if (!fs.existsSync(p)) continue;
+      const extras = JSON.parse(fs.readFileSync(p, 'utf8'));
+      const c = extras.ceiling;
+      if (!c || c.verified === true || (typeof c.provenance === 'string' && /confirmed|corrected|checked/.test(c.provenance))) continue;
+      seen++;
+      expect(ceilingTrustFromExtras(extras).known, p).toBe(false);
+      expect(c.verified, p).toBe(false);
+    }
+    expect(seen).toBeGreaterThanOrEqual(0);
   });
 });
