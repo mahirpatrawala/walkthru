@@ -22,6 +22,8 @@ export function scanScenes(dir: string = DEFAULT_DIR, warn: (msg: string) => voi
   const files: SceneFiles[] = [];
   for (const d of fs.readdirSync(dir, { withFileTypes: true })) {
     if (!d.isDirectory()) continue;
+    // developer fixtures (test-* other than the sample homes) still open by ?scene= but are not listed in the gallery
+    if (/^test-/.test(d.name) && !/^test-sample-/.test(d.name)) continue;
     const propertyPath = path.join(dir, d.name, 'property.json');
     if (!fs.existsSync(propertyPath)) continue;
     const property = readJson(propertyPath);

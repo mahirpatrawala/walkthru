@@ -1,44 +1,5 @@
 {
   "version": 1,
-  "source": "Imported drawing set, 2 pages",
-  "items": {
-    "wardrobe-1": {
-      "heightM": 2.1336,
-      "wardrobe": {
-        "bays": 2,
-        "shuttersPerBay": 2,
-        "drawerStripM": 0,
-        "baseGapM": 0,
-        "frontColor": "#d9d4ca",
-        "handleColor": "#8c8c8c",
-        "handleYM": 1,
-        "handleLenM": 0.3
-      },
-      "sources": {
-        "heightM": {
-          "page": 1,
-          "sheet": "WALL 2",
-          "text": "7'-0\""
-        },
-        "bays": {
-          "page": 1,
-          "sheet": "WALL 2",
-          "text": ""
-        },
-        "bayWidths": [
-          {
-            "page": 1,
-            "sheet": "WALL 2",
-            "text": "3'-0\""
-          },
-          {
-            "page": 1,
-            "sheet": "WALL 2",
-            "text": "3'-0\""
-          }
-        ],
-        "shutterColour": "default look, not read from the drawing"
-      }
-    }
-  }
+  "source": "Imported drawing set, 4 pages",
+  "items": {}
 }

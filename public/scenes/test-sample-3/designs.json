@@ -1,5 +1,34 @@
 {
   "version": 1,
-  "source": "Imported drawing set, 4 pages",
-  "items": {}
+  "source": "Imported drawing set, 6 pages",
+  "items": {
+    "bed-2": {
+      "surfaceHeightM": 0.55,
+      "bed": {
+        "baseTopM": 0.4
+      },
+      "sources": {
+        "surfaceHeightM": {
+          "page": 2,
+          "sheet": "ELEVATION-1",
+          "text": "400 + 150"
+        },
+        "baseTopM": {
+          "page": 2,
+          "sheet": "ELEVATION-1",
+          "text": "400"
+        }
+      }
+    },
+    "wardrobe-2": {
+      "heightM": 2.438,
+      "sources": {
+        "heightM": {
+          "page": 3,
+          "sheet": "ELEVATION-2",
+          "text": "2438"
+        }
+      }
+    }
+  }
 }

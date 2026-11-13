@@ -90,10 +90,12 @@ describe('the manifest', () => {
     }
   });
 
-  it('lists every real scene folder in the repo', () => {
+  it('lists every scene folder in the repo except developer fixtures (test-* other than test-sample-*)', () => {
     const ids = scanScenes(scenesDir, () => {}).scenes.map((s) => s.id);
     for (const d of fs.readdirSync(scenesDir, { withFileTypes: true })) {
-      if (d.isDirectory() && fs.existsSync(path.join(scenesDir, d.name, 'property.json'))) expect(ids).toContain(d.name);
+      if (!d.isDirectory() || !fs.existsSync(path.join(scenesDir, d.name, 'property.json'))) continue;
+      const fixture = /^test-/.test(d.name) && !/^test-sample-/.test(d.name);
+      if (fixture) expect(ids).not.toContain(d.name); else expect(ids).toContain(d.name);
     }
   });
 });

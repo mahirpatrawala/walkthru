@@ -21,9 +21,9 @@ import type { PropertyFile } from '../src/types';
 export const SAMPLES: { n: number; seed: number; title: string }[] = [
   { n: 1, seed: 1, title: 'Sample 1 BHK' },
   { n: 2, seed: 32, title: 'Sample 1 BHK (metric drawing)' },
-  { n: 3, seed: 45, title: 'Sample 2 BHK' },
-  { n: 4, seed: 9, title: 'Sample 2 BHK with utility room' },
-  { n: 5, seed: 60, title: 'Sample 3 BHK with pooja room' },
+  { n: 3, seed: 93, title: 'Sample 2 BHK (metric drawing)' },
+  { n: 4, seed: 195, title: 'Sample 2 BHK with utility room' },
+  { n: 5, seed: 191, title: 'Sample 3 BHK with pooja room' },
   { n: 6, seed: 42, title: 'Sample studio flat' },
 ];
 
