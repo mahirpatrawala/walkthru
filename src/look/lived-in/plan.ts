@@ -231,9 +231,9 @@ class Planner {
     for (const ch of `${roomId}|${what}|${this.counter}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
     return h >>> 0;
   }
-  private push(p: Omit<DecorPiece, 'id' | 'seed' | 'tone'>, key = ''): DecorPiece {
+  private push(p: Omit<DecorPiece, 'id' | 'seed' | 'tone'>, key = '', tone?: number): DecorPiece {
     const seed = this.seedFor(p.roomId, `${p.kind}${key}`);
-    const piece: DecorPiece = { ...p, id: `${p.kind}-${this.counter++}`, seed, tone: Math.floor(mulberry32(seed)() * 8) };
+    const piece: DecorPiece = { ...p, id: `${p.kind}-${this.counter++}`, seed, tone: tone ?? Math.floor(mulberry32(seed)() * 8) };
     this.pieces.push(piece);
     return piece;
   }
@@ -460,7 +460,7 @@ class Planner {
       }
       const rod = Math.min(o.headM + 0.12, H - 0.12);
       const bottom = under > 0 ? Math.max(under + 0.05, o.sillM - 0.1) : 0.06;
-      if (rod - bottom < 0.5 || (under > 0 && under >= o.sillM - 0.05)) continue;
+      if (rod - bottom < 0.5 || under > o.sillM + 0.1) continue;
       // no door in the curtain's stretch of the wall
       const doorHere = this.doors.some((d) => d.frame === f && d.opening.centreM + d.opening.widthM / 2 > u0 - 0.1 && d.opening.centreM - d.opening.widthM / 2 < u1 + 0.1);
       if (doorHere) continue;
@@ -534,9 +534,11 @@ class Planner {
     if (!room) return;
     const { w, d } = it.box;
     const S = it.surfaceHeightM;
-    const on = (kind: DecorKind, lx: number, lz: number, y: number, pw: number, pd: number, height: number, yawOffset = 0, tiltDeg?: number): void => {
+    // one colour story per host: the two cushions on a bed match, the throw is another note of the palette
+    const hostTone = Math.floor(mulberry32(this.seedFor(room.id, it.id))() * 8);
+    const on = (kind: DecorKind, lx: number, lz: number, y: number, pw: number, pd: number, height: number, yawOffset = 0, tiltDeg?: number, toneShift = 0): void => {
       const c = world(it.box, lx, lz);
-      this.push({ kind, roomId: room.id, place: 'surface', hostId: it.id, x: c.x, y, z: c.z, yawDeg: it.box.yawDeg + yawOffset, w: pw, d: pd, height, ...(tiltDeg !== undefined ? { tiltDeg } : {}) }, it.id);
+      this.push({ kind, roomId: room.id, place: 'surface', hostId: it.id, x: c.x, y, z: c.z, yawDeg: it.box.yawDeg + yawOffset, w: pw, d: pd, height, ...(tiltDeg !== undefined ? { tiltDeg } : {}) }, it.id, (hostTone + toneShift) % 8);
     };
     if (it.kind === 'bed') {
       if (w < 0.8 || d < 1.5) return;
@@ -544,7 +546,7 @@ class Planner {
       const md = it.inner ? Math.min(it.inner.d, d - 0.01) : d - 0.03;
       const xs = mw >= 1.2 ? [-mw / 4, mw / 4] : [0];
       xs.forEach((x, k) => on('cushion', x, -d / 2 + 0.66, S, 0.38, 0.14, 0.38, k ? 6 : -6, 16));
-      on('throw', 0, md / 2 - 0.27, S + 0.026, Math.min(mw * 0.88, 1.5), 0.34, 0.03);
+      on('throw', 0, md / 2 - 0.27, S + 0.026, Math.min(mw * 0.88, 1.5), 0.34, 0.03, 0, undefined, 3);
       return;
     }
     if (it.kind === 'sofa') {
@@ -554,7 +556,7 @@ class Planner {
       const e = w / 2 - aw - 0.22;
       on('cushion', -e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, 8, 14);
       on('cushion', e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, -8, 14);
-      if (w >= 1.8) on('throw', 0.05, d / 2 - 0.3, seatTop, 0.5, 0.34, 0.035, 6);
+      if (w >= 1.8) on('throw', 0.05, d / 2 - 0.3, seatTop, 0.5, 0.34, 0.035, 6, undefined, 3);
       return;
     }
     if (it.kind === 'dining') {

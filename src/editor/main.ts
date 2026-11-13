@@ -1,6 +1,7 @@
 // Owned by C5. The editor page: step list, plan canvas, 3D preview, step panel, validation, Save and "Open as buyer".
 // SPEC 2.2. The object handed to every step is an EditorHost (context.ts); C6 and C7 steps only use the EditorContext part.
 import './editor.css';
+import { BRAND_MARK } from '../brand/mark';
 import { createGrid } from '../core/grid-codec';
 import { ceilingTrustFromExtras, setCeilingTrust, setEditorUnverified, unverifiedRoomsFromExtras } from '../core/room-trust';
 import { rasterizeLayout, stampFurniture } from '../core/layout-raster';
@@ -43,7 +44,8 @@ function boot(): void {
   const startId = urlScene && sceneIdValid(urlScene) ? urlScene : 'new-flat';
 
   // ---------------------------------------------------------------- page frame
-  const title = h('span', { class: 'brand', text: 'walkthru editor' });
+  const title = h('span', { class: 'brand wt-brand' });
+  title.innerHTML = `${BRAND_MARK}<span>walkthru <small>editor</small></span>`; // a fixed string from src/brand/mark.ts, no page data in it
   const sceneLabel = h('span', { class: 'scene-label' });
   const status = h('span', { class: 'status muted small' });
   const previewBtn = h('button', { class: 'btn', text: '3D preview', title: 'Swap the plan for the live 3D shell' });

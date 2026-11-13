@@ -211,7 +211,7 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
   },
   throw(p, parts) {
     const bands = 7;
-    const a = tone(p), b = CREAM;
+    const a = tone(p) === TONES[6] ? tone(p, 1) : tone(p), b = CREAM;
     for (let i = 0; i < bands; i++) {
       const z0 = -p.d / 2 + (p.d * i) / bands, z1 = -p.d / 2 + (p.d * (i + 1)) / bands;
       parts.add(box(-p.w / 2, p.w / 2, 0, p.height, z0, z1), i % 2 === 0 ? a : b, 0.97);
@@ -242,8 +242,8 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
   },
   cooker(p, parts, _kit, seg) {
     const r = 0.105;
-    parts.add(cyl(r, r, 0, 0.17, seg.s), STEEL, 0.38, 0.7);
-    parts.add(cyl(r + 0.008, r + 0.008, 0.17, 0.03, seg.s), STEEL, 0.32, 0.75);
+    parts.add(cyl(r, r, 0, 0.17, seg.s), STEEL, 0.4, 0.45);
+    parts.add(cyl(r + 0.008, r + 0.008, 0.17, 0.03, seg.s), STEEL, 0.35, 0.5);
     parts.add(cyl(0.022, 0.022, 0.2, 0.014, 8), '#2A2724', 0.7);
     parts.add(cyl(0.011, 0.011, 0.214, 0.018, 8), '#2A2724', 0.7);
     parts.add(box(r, r + 0.075, 0.17, 0.188, -0.018, 0.018), '#2A2724', 0.7);
@@ -253,11 +253,11 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
     const radii = [0.095, 0.085, 0.075], hs = [0.09, 0.085, 0.07];
     let y = 0;
     radii.forEach((r, i) => {
-      parts.add(cyl(r, r, y, hs[i], seg.s), STEEL, 0.35, 0.75);
-      parts.add(cyl(r + 0.006, r + 0.006, y + hs[i] - 0.012, 0.012, seg.s), STEEL, 0.3, 0.8);
+      parts.add(cyl(r, r, y, hs[i], seg.s), STEEL, 0.38, 0.5);
+      parts.add(cyl(r + 0.006, r + 0.006, y + hs[i] - 0.012, 0.012, seg.s), STEEL, 0.35, 0.5);
       y += hs[i];
     });
-    parts.add(cyl(0.014, 0.018, y, 0.03, 8), STEEL, 0.3, 0.8);
+    parts.add(cyl(0.014, 0.018, y, 0.03, 8), STEEL, 0.35, 0.5);
   },
   fruit(p, parts, _kit, seg) {
     const r = Math.min(0.15, p.w / 2);
@@ -274,9 +274,9 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
     }
   },
   jug(p, parts, _kit, seg) {
-    parts.add(cyl(0.05, 0.062, 0, 0.2, seg.s), STEEL, 0.3, 0.8);
-    parts.add(cyl(0.052, 0.05, 0.2, 0.02, seg.s), STEEL, 0.3, 0.8);
-    parts.add(box(0.05, 0.075, 0.07, 0.19, -0.008, 0.008), STEEL, 0.3, 0.8);
+    parts.add(cyl(0.05, 0.062, 0, 0.2, seg.s), STEEL, 0.35, 0.5);
+    parts.add(cyl(0.052, 0.05, 0.2, 0.02, seg.s), STEEL, 0.35, 0.5);
+    parts.add(box(0.05, 0.075, 0.07, 0.19, -0.008, 0.008), STEEL, 0.35, 0.5);
     parts.add(cyl(0.012, 0.012, 0.22, 0.02, 6), '#2A2724', 0.7);
   },
   plant(p, parts, _kit, seg) {
