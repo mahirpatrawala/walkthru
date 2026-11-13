@@ -5,7 +5,7 @@ import type { PropertyFile } from '../types';
 /** The label for a test or synthetic scene, or null for a real home. */
 export function sceneTagText(p: Pick<PropertyFile, 'id' | 'subtitle'>): string | null {
   if (/^test-/.test(p.id)) return 'Test scene. Made-up flat, not a real home.';
-  if (/synthetic/i.test(p.subtitle ?? '') || /^video-sample/.test(p.id)) return 'Sample scene. Not a real home.';
+  if (/synthetic|sample/i.test(p.subtitle ?? '')) return 'Sample scene. Not a real home.';
   return null;
 }
 

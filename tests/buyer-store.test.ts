@@ -129,9 +129,9 @@ describe('rooms sheet', () => {
 describe('test and synthetic scenes are labelled', () => {
   it('tags the test and sample scenes, never a real home', () => {
     expect(sceneTagText({ id: 'test-flat-empty', subtitle: 'Synthetic scene with known sizes' })).toMatch(/not a real home/i);
-    expect(sceneTagText({ id: 'video-sample', subtitle: 'Synthetic scene with known sizes' })).toMatch(/not a real home/i);
+    expect(sceneTagText({ id: 'clip-13s', subtitle: 'Synthetic scene with known sizes' })).toMatch(/not a real home/i);
     expect(sceneTagText({ id: 'my-flat', subtitle: 'Synthetic floor plan' })).toMatch(/not a real home/i);
-    expect(sceneTagText({ id: 'son-bedroom' })).toBeNull();
+    expect(sceneTagText({ id: 'a-real-flat' })).toBeNull();
     expect(sceneTagText({ id: 'koramangala-2bhk', subtitle: '2 BHK, 3rd floor' })).toBeNull();
   });
 });
