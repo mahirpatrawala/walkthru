@@ -213,8 +213,21 @@ function readUnit(c: Ctx, lv: Levels, block: Block, blockIdx: number): UnitRead 
   const [bx0, by0, bx1, by1] = block.box;
   const bh = by1 - by0;
   const segs = c.view.segs.filter((s) => !(s.v && false));
-  // ---- bays: full-height verticals inside the outline
-  const seps = uniqSorted(segs.filter((s) => s.v && s.len >= 0.93 * bh && s.a[0] > bx0 + 1 && s.a[0] < bx1 - 1 && Math.min(s.a[1], s.b[1]) <= by0 + 1.6 && Math.max(s.a[1], s.b[1]) >= by1 - 1.6).map((s) => s.a[0]), 0.9);
+  // ---- bays: full-height verticals inside the outline. A line between two shutters of one bay runs just as high when the unit has no
+  // drawer strip or loft, so the printed chain under the floor says where the bays end, and a heavier line weight does when there is no chain.
+  const fullV = segs.filter((s) => s.v && s.len >= 0.93 * bh && s.a[0] > bx0 + 1 && s.a[0] < bx1 - 1 && Math.min(s.a[1], s.b[1]) <= by0 + 1.6 && Math.max(s.a[1], s.b[1]) >= by1 - 1.6);
+  const fullXs = uniqSorted(fullV.map((s) => s.a[0]), 0.9);
+  const chainAll = c.view.dims.filter((d) => d.horizontal && Math.min(d.y0, d.y1) > st.floorY + 3);
+  const memberAnchors = uniqSorted(chainAll.flatMap((d) => [d.x0, d.x1]).filter((x) => x >= bx0 - 1.8 && x <= bx1 + 1.8), 1.8);
+  const spansAll = (d: ViewDim): boolean => Math.abs(Math.min(d.x0, d.x1) - bx0) <= 1.8 && Math.abs(Math.max(d.x0, d.x1) - bx1) <= 1.8;
+  const members = chainAll.filter((d) => !spansAll(d) && Math.min(d.x0, d.x1) >= bx0 - 1.8 && Math.max(d.x0, d.x1) <= bx1 + 1.8);
+  let seps: number[] = fullXs;
+  const innerAnchors = memberAnchors.filter((x) => x > bx0 + 2 && x < bx1 - 2);
+  if (members.length >= 2 && innerAnchors.length === members.length - 1 && innerAnchors.every((x) => fullXs.some((f) => Math.abs(f - x) <= 1.8))) seps = fullXs.filter((f) => innerAnchors.some((x) => Math.abs(f - x) <= 1.8));
+  else {
+    const wts = [...new Set(fullV.map((s) => Math.round(s.w * 20) / 20))].sort((a, b) => b - a);
+    if (wts.length >= 2) seps = uniqSorted(fullV.filter((s) => Math.round(s.w * 20) / 20 >= wts[0] - 1e-9).map((s) => s.a[0]), 0.9);
+  }
   const edges = [bx0, ...seps, bx1];
   const nBays = edges.length - 1;
   const bboxOf = (x0: number, x1: number): Box4 => [x0, by0, x1, by1];

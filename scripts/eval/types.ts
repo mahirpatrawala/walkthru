@@ -38,7 +38,7 @@ export interface TruthLite {
   dimensions?: { string: string; valueM: number; shownM: number; planted: boolean; view: string; a: [number, number]; b: [number, number] }[];
   ceilingM?: number;
   elevations?: {
-    page?: number; caption: string; tag: string; wall: { roomId: string; edge: number } | null; ceilingM: number;
+    id?: string; page?: number; caption: string; tag: string; wall: { roomId: string; edge: number } | null; ceilingM: number;
     levels: { kind: string; heightM: number }[]; units: { bays: number; shuttersPerBay: number[]; hinge: string[]; drawerStripM?: number; loftM?: number; baseGapM?: number; heightM?: number }[];
     bed?: { baseTopM: number; mattressTopM: number; headboardTopM: number };
   }[];

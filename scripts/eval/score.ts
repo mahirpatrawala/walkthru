@@ -124,7 +124,8 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   notAttempted('heights', pred.elevations ?? pred.ceiling); notAttempted('unitBays', pred.elevations?.some((e) => e.units) ? pred.elevations : undefined);
   notAttempted('hinge', pred.elevations?.some((e) => e.units) ? pred.elevations : undefined);
   notAttempted('unitParts', pred.elevations?.some((e) => e.units) ? pred.elevations : undefined);
-  const verifiedCheck = (status: Status, ok: boolean): void => { if (status === 'verified' || status === 'confirmed' || status === 'corrected') { S.verified.n++; if (!ok) S.verified.wrong++; } };
+  let dbg = '';
+  const verifiedCheck = (status: Status, ok: boolean): void => { if (status === 'verified' || status === 'confirmed' || status === 'corrected') { S.verified.n++; if (!ok) { S.verified.wrong++; if (process.env.SCORE_DEBUG) console.log('  WRONG VERIFIED', dbg); } } };
   const credit = (status: Status, ok: boolean): void => { if (ok && isFact(status)) S.values.facts++; };
 
   // ---- rooms
@@ -264,6 +265,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
     }
     q.units?.forEach((u, k) => {
       const tu = t.units[k];
+      dbg = `${t.id} ${t.caption} unit`;
       if (!tu) { verifiedCheck(u.status, false); return; }
       const ok = u.bays === tu.bays && u.shuttersPerBay.join() === tu.shuttersPerBay.join();
       if (ok) S.fields.unitBays.right++;
@@ -272,6 +274,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
         const hok = h === tu.hinge[j];
         if (hok) S.fields.hinge.right++;
         // a side marked verified must be the right side (the honesty bar): unknown and conflict are never claims
+        dbg = `${t.id} ${t.caption} hinge ${j} ${h} vs ${tu.hinge[j]}`;
         const hs = u.hingeStatus?.[j];
         if (hs && h !== 'unknown' && h !== 'conflict') verifiedCheck(hs, hok);
       });
@@ -281,6 +284,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
       for (const [name, got, want] of parts) {
         const pok = got !== undefined && want !== undefined && Math.abs(got - want) <= 0.02;
         if (pok) S.fields.unitParts.right++;
+        dbg = `${t.id} ${t.caption} part ${name} ${got} vs ${want}`;
         const ps = u.partStatus?.[name];
         if (ps && got !== undefined) verifiedCheck(ps, pok);
       }
@@ -293,6 +297,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
     const usedL = new Set<number>();
     for (const h of q.heights ?? []) {
       if (h.kind === 'ceiling') continue; // counted once per set below
+      dbg = `${t.id} ${t.caption} height ${h.kind} ${h.v.toFixed(3)}`;
       let bestK = -1, bestD = Infinity;
       truthLevels.forEach((l, i) => { if (usedL.has(i) || l.kind !== h.kind) return; const d = Math.abs(l.v - h.v); if (d < bestD) { bestD = d; bestK = i; } });
       const ok = bestK >= 0 && bestD <= 0.02;
@@ -312,6 +317,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   if (trElev.length && ceilings.length) {
     const hit = ceilings.find((c) => Math.abs(c.v - T.ceilingM!) <= 0.02);
     if (hit) S.fields.heights.right++;
+    dbg = 'ceiling';
     for (const c of ceilings) { const ok = Math.abs(c.v - T.ceilingM!) <= 0.02; verifiedCheck(c.status, ok); if (hit && c === hit) credit(c.status, ok); }
   } else for (const c of ceilings) verifiedCheck(c.status, false);
   return S;
