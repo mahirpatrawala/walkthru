@@ -19,6 +19,7 @@
     "make:sets": "tsx scripts/make-drawing-sets.ts",
     "eval:understand": "tsx scripts/eval-understand.ts",
     "eval:raster": "tsx scripts/eval-raster.ts",
+    "eval:real": "tsx scripts/eval-real.ts",
     "understand:raster": "tsx scripts/understand-raster.ts",
     "smoke:vision": "tsx scripts/vision-smoke.ts",
     "fetch:hershey": "tsx scripts/fetch-hershey.ts",
