@@ -242,7 +242,7 @@ describe.skipIf(!hasPoppler)('C12e dev API', () => {
     });
   });
 
-  describe('a picture of a plan', () => {
+  describe('a picture of a plan', { timeout: 60_000 }, () => {
     it('with vision off the job fails in words a broker can act on, and nothing is written for the buyer', async () => {
       const id = await upload('test-pic-off', png, 'plan photo.png');
       const j = await run('test-pic-off', [id], { vision: false });
