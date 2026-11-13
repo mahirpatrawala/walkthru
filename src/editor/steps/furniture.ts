@@ -1,6 +1,7 @@
 // Owned by C6. E6 Furniture (SPEC 2.2, optional): tag fixed items with three clicks, stage catalogue pieces, and review what
 // the drawing import found (placed items are in the list, `unmapped` ones are shown "not placed" with a one-click place).
 // The pure part is exported for the headless tests; the panel and the plan tool only wire pointer events to it.
+import { ceilingIsKnown } from '../../core/room-trust';
 import type { Box, FurnitureItem, FurnitureKind, Grid, Layout, PlacementResult, Tone, Vec2 } from '../../types';
 import { CATALOG, REAL_ITEM_DEFAULTS, itemFromCatalog, specFor } from '../../core/catalog';
 import { boxCorners, boxFromBackEdge, pointInBox, sideEdge } from '../../core/geometry';
@@ -64,7 +65,7 @@ export function gridWithout(base: Grid, furniture: FurnitureItem[], excludeId: s
 
 /** The verdict the buyer would see for this item where it is now. */
 export function verdictFor(base: Grid, layout: Layout, furniture: FurnitureItem[], item: FurnitureItem): PlacementResult {
-  return checkPlacement(gridWithout(base, furniture, item.id), specFor(item), item.box, layout.wallHeightM);
+  return checkPlacement(gridWithout(base, furniture, item.id), specFor(item), item.box, layout.wallHeightM, ceilingIsKnown());
 }
 
 /** A virtual catalogue piece centred on `at`, squared up to a wall behind it (4.5 `snapToWalls`, as the buyer's furnish mode does). */

@@ -23,7 +23,8 @@ export interface ProvenanceEntry { kind: 'room' | 'opening' | 'item' | 'height' 
 export type ExtrasOut = Omit<ProposalExtras, 'rooms'> & {
   rooms: RoomOut[];
   review?: { by: 'broker'; confirmed: number; corrected: number; rejected: number; fields: ProvenanceEntry[] };
-  ceiling: ProposalExtras['ceiling'] & { provenance?: string };
+  /** where the wall height came from: `verified` when a printed ceiling dimension agreed with an elevation's geometry (or a broker confirmed it), and the sheet it was read from */
+  ceiling: ProposalExtras['ceiling'] & { provenance?: string; verified?: boolean; source?: { page: number; sheet: string } };
 };
 export interface Changes { rooms: string[]; openings: string[]; items: string[]; removedOpenings: string[]; removedItems: string[]; wallHeight: boolean }
 export interface Applied {
@@ -78,6 +79,7 @@ export function designForItem(it: Item, conflicts: UnderstandingDoc['conflicts']
   const sources: Record<string, DesignSource | DesignSource[] | string> = {};
   if (fact(it.height)) { out.heightM = it.height.value; sources.heightM = srcOf(it.height); }
   if (fact(it.surfaceHeight)) { out.surfaceHeightM = it.surfaceHeight.value; sources.surfaceHeightM = srcOf(it.surfaceHeight); }
+  if (fact(it.bedBase) && it.bedBase.value > 0.1 && it.bedBase.value < 0.6) { out.bed = { baseTopM: it.bedBase.value }; sources.baseTopM = srcOf(it.bedBase); }
   const u = it.unit;
   if (u && fact(u.bays) && u.bayWidths.length === u.bays.value && u.bayWidths.every((e) => fact(e)) && u.shuttersPerBay.length >= 1 && u.shuttersPerBay.every((e) => fact(e))) {
     const bays = u.bays.value;
@@ -118,7 +120,7 @@ export function designForItem(it: Item, conflicts: UnderstandingDoc['conflicts']
     }
     out.sources = { ...sources, shutterColour: 'default look, not read from the drawing' };
   } else if (Object.keys(sources).length) out.sources = sources;
-  return out.heightM !== undefined || out.surfaceHeightM !== undefined || out.wardrobe || out.openable ? out : null;
+  return out.heightM !== undefined || out.surfaceHeightM !== undefined || out.wardrobe || out.openable || out.bed ? out : null;
 }
 
 // ---------------------------------------------------------------- applying decisions
@@ -238,8 +240,13 @@ export function applyReview(base: BaseOutputs, docIn: UnderstandingDoc, review: 
       f.note = rejected ? NOTE_REJECTED : r.width.status === 'conflict' || r.length.status === 'conflict' ? NOTE_CONFLICT : (baseNotes.get(r.id) ?? NOTE_UNCONFIRMED);
     }
   }
+  // the wall height says whether it is a fact, so the buyer is never shown a guessed ceiling as a number (core/room-trust.ts)
+  extras.ceiling.verified = !!doc.ceiling && factOf(doc.ceiling);
+  if (doc.ceiling && factOf(doc.ceiling)) { const sh = GENERIC_SHEET.test(doc.ceiling.source.sheet) ? doc.ceiling.source.sheet : ''; extras.ceiling.source = { page: doc.ceiling.source.page, sheet: sh }; } else delete extras.ceiling.source;
   if (doc.ceiling && factOf(doc.ceiling)) {
-    extras.ceiling.confidence = 1; extras.ceiling.provenance = doc.ceiling.status === 'confirmed' ? 'confirmed by broker' : 'corrected by broker';
+    extras.ceiling.confidence = doc.ceiling.status === 'verified' ? Math.max(extras.ceiling.confidence, 0.95) : 1;
+    if (doc.ceiling.status === 'verified') extras.ceiling.provenance = 'checked against the elevation';
+    else extras.ceiling.provenance = doc.ceiling.status === 'confirmed' ? 'confirmed by broker' : 'corrected by broker';
     const drop = (s: string): boolean => /^Ceiling|ceiling height/i.test(s);
     proposal.notes = (proposal.notes ?? []).filter((s) => !drop(s)); extras.warnings = extras.warnings.filter((s) => !drop(s));
   }

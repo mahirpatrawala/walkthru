@@ -10,9 +10,13 @@ export interface PredSymbol { cls: string; at: Pt; status: Status }
 export interface PredDim { string: string; a: Pt; b: Pt; view: 'plan' | 'elevation'; status: Status }
 export interface PredElevation {
   /** the caption or tag read from the sheet, e.g. "ELEVATION-3" */ caption: string;
-  wall?: { at: Pt }; ceilingM?: { v: number; status: Status };
+  wall?: { at: Pt; /** outward normal of the wall and the centre of its room, plan coordinates of the pipeline */ normal?: Pt; roomAt?: Pt }; ceilingM?: { v: number; status: Status };
   heights?: { kind: string; v: number; status: Status }[];
-  units?: { bays: number; shuttersPerBay: number[]; hinge: string[]; status: Status }[];
+  units?: { bays: number; shuttersPerBay: number[]; hinge: string[]; status: Status; drawerStripM?: number; loftM?: number; baseGapM?: number; heightM?: number; hingeStatus?: Status[]; partStatus?: { drawerStripM?: Status; loftM?: Status; baseGapM?: Status; heightM?: Status } }[];
+  /** the link's own confidence (for the report) */
+  linkConfidence?: number;
+  /** page (0-based) and top edge of the view on it: a view whose caption could not be read is paired with the truth view on the same page, top to bottom */
+  page?: number; top?: number;
 }
 export interface Prediction {
   /** false when the pipeline refused or failed on this input */
@@ -34,8 +38,8 @@ export interface TruthLite {
   dimensions?: { string: string; valueM: number; shownM: number; planted: boolean; view: string; a: [number, number]; b: [number, number] }[];
   ceilingM?: number;
   elevations?: {
-    caption: string; tag: string; wall: { roomId: string; edge: number } | null; ceilingM: number;
-    levels: { kind: string; heightM: number }[]; units: { bays: number; shuttersPerBay: number[]; hinge: string[] }[];
+    id?: string; page?: number; caption: string; tag: string; wall: { roomId: string; edge: number } | null; ceilingM: number;
+    levels: { kind: string; heightM: number }[]; units: { bays: number; shuttersPerBay: number[]; hinge: string[]; drawerStripM?: number; loftM?: number; baseGapM?: number; heightM?: number }[];
     bed?: { baseTopM: number; mattressTopM: number; headboardTopM: number };
   }[];
 }

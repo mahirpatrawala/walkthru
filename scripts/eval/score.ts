@@ -2,7 +2,7 @@
 // Counters add up across sets; rates and the bar check come from `summarise`.
 import { isFact } from '../../src/understand/types';
 import type { Status } from '../../src/understand/types';
-import type { Prediction, Pt, TruthLite } from './types';
+import type { PredElevation, Prediction, Pt, TruthLite } from './types';
 import { FIELDS } from './bars';
 import type { Variant } from './bars';
 
@@ -30,12 +30,12 @@ const near = (a: Pt, b: Pt, d: number): boolean => Math.hypot(a[0] - b[0], a[1] 
 const within = (v: number, t: number, rel: number, abs = 0): boolean => Math.abs(v - t) <= Math.max(rel * Math.abs(t), abs);
 const rot = (p: Pt, r: number): Pt => (r === 0 ? p : r === 90 ? [-p[1], p[0]] : r === 180 ? [-p[0], -p[1]] : [p[1], -p[0]]);
 
-export interface Align { rot: 0 | 90 | 180 | 270; dx: number; dz: number; inliers: number }
+export interface Align { rot: 0 | 90 | 180 | 270; dx: number; dz: number; inliers: number; scale?: number }
 /** Find the rotation (quarter turns only) and shift that bring the predicted rooms onto the truth rooms. */
-export function alignRooms(pred: { polygon: Pt[]; roomType: string }[], truth: { polygonM: Pt[]; roomType: string }[]): Align | null {
+export function alignRooms(pred: { polygon: Pt[]; roomType: string }[], truth: { polygonM: Pt[]; roomType: string }[], scale = 1): Align | null {
   let best: Align | null = null;
   for (const r of [0, 90, 180, 270] as const) {
-    const P = pred.map((q) => ({ poly: q.polygon.map((p) => rot(p, r)), type: q.roomType }));
+    const P = pred.map((q) => ({ poly: q.polygon.map((p) => { const t = rot(p, r); return [t[0] * scale, t[1] * scale] as Pt; }), type: q.roomType }));
     for (const p of P) {
       const ps = sides(p.poly), pc = centroid(p.poly);
       for (const t of truth) {
@@ -50,13 +50,13 @@ export function alignRooms(pred: { polygon: Pt[]; roomType: string }[], truth: {
           const k = truth.findIndex((u, i) => !used.has(i) && near([c[0] + dx, c[1] + dz], centroid(u.polygonM), 0.45) && Math.abs(qs[1] / sides(u.polygonM)[1] - 1) < 0.2);
           if (k >= 0) { used.add(k); inl++; }
         }
-        if (!best || inl > best.inliers || (inl === best.inliers && r === 0 && best.rot !== 0)) best = { rot: r, dx, dz, inliers: inl };
+        if (!best || inl > best.inliers || (inl === best.inliers && r === 0 && best.rot !== 0)) best = { rot: r, dx, dz, inliers: inl, scale };
       }
     }
   }
   return best;
 }
-const apply = (a: Align, p: Pt): Pt => { const q = rot(p, a.rot); return [q[0] + a.dx, q[1] + a.dz]; };
+const apply = (a: Align, p: Pt): Pt => { const q = rot(p, a.rot); const k = a.scale ?? 1; return [q[0] * k + a.dx, q[1] * k + a.dz]; };
 
 /**
  * C12b: when no room was found there is nothing to align the predicted frame with, and every plan dimension would count as a
@@ -112,6 +112,7 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   count('heights', heightTruth.length);
   count('unitBays', trElev.reduce((a, e) => a + e.units.length, 0));
   count('hinge', trElev.reduce((a, e) => a + e.units.reduce((b, u) => b + u.hinge.length, 0), 0));
+  count('unitParts', trElev.reduce((a, e) => a + e.units.length * 4, 0));
   count('conflicts', trDims.filter((d) => d.planted).length);
   // everything the walk-through needs from the drawing, for the broker-share count
   const needed = trRooms.length * 3 + (T.openings ?? []).length + (T.items ?? []).length + trDims.length + heightTruth.length + trElev.reduce((a, e) => a + e.units.length, 0);
@@ -122,7 +123,9 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   notAttempted('furniture', pred.items); notAttempted('fixtures', pred.symbols); notAttempted('elevLink', pred.elevations);
   notAttempted('heights', pred.elevations ?? pred.ceiling); notAttempted('unitBays', pred.elevations?.some((e) => e.units) ? pred.elevations : undefined);
   notAttempted('hinge', pred.elevations?.some((e) => e.units) ? pred.elevations : undefined);
-  const verifiedCheck = (status: Status, ok: boolean): void => { if (status === 'verified' || status === 'confirmed' || status === 'corrected') { S.verified.n++; if (!ok) S.verified.wrong++; } };
+  notAttempted('unitParts', pred.elevations?.some((e) => e.units) ? pred.elevations : undefined);
+  let dbg = '';
+  const verifiedCheck = (status: Status, ok: boolean): void => { if (status === 'verified' || status === 'confirmed' || status === 'corrected') { S.verified.n++; if (!ok) { S.verified.wrong++; if (process.env.SCORE_DEBUG) console.log('  WRONG VERIFIED', dbg); } } };
   const credit = (status: Status, ok: boolean): void => { if (ok && isFact(status)) S.values.facts++; };
 
   // ---- rooms
@@ -130,6 +133,13 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
   const al = pr.length && trRooms.length ? alignRooms(pr, trRooms.map((r) => ({ polygonM: r.polygonM, roomType: r.roomType }))) : null;
   S.aligned = !!al && al.inliers > 0;
   // rooms give the frame when there are any; failing that, the dimension lines do (the alignment is used for positions only)
+  // the link only needs the right room and the right side: a plan drawn at the wrong scale may still be lined up by a uniform factor for that
+  let alLink = al && al.inliers > 0 ? al : null;
+  if (!alLink && pr.length && trRooms.length) {
+    const sizes = pr.map((q) => sides(q.polygon)[1]).sort((a, b) => a - b), tsz = trRooms.map((r) => r.lengthM).sort((a, b) => a - b);
+    const k = tsz[tsz.length - 1] / sizes[sizes.length - 1];
+    if (k > 0.4 && k < 2.5) { const a2 = alignRooms(pr, trRooms.map((r) => ({ polygonM: r.polygonM, roomType: r.roomType })), k); if (a2 && a2.inliers > 0) alLink = a2; }
+  }
   const alDim = alignByDimensions(pred.dimensions ?? [], trDims);
   const alUse = alDim ?? (al && al.inliers > 0 ? al : null);
   const A = (p: Pt): Pt => (alUse ? apply(alUse, p) : p);
@@ -236,38 +246,97 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
 
   // ---- elevations
   const pe = pred.elevations ?? [];
+  const matchedE = new Set<PredElevation>();
+  // pairing: by caption; a view whose caption could not be read is paired with the truth view on the same page, top to bottom
+  const pairOf = new Map<(typeof trElev)[number], PredElevation>();
+  for (const t of trElev) {
+    const q = pe.find((x) => !matchedE.has(x) && x.caption && (norm(x.caption) === norm(t.caption) || norm(x.caption) === norm(t.tag)));
+    if (q) { matchedE.add(q); pairOf.set(t, q); }
+  }
+  const pages = [...new Set(trElev.map((t) => t.page))];
+  for (const pg of pages) {
+    const tl = trElev.filter((t) => t.page === pg && !pairOf.has(t));
+    const ql = pe.filter((x) => !x.caption && !matchedE.has(x) && x.page !== undefined && x.page + 1 === pg).sort((a, b) => (a.top ?? 0) - (b.top ?? 0));
+    tl.forEach((t, i) => { if (ql[i]) { matchedE.add(ql[i]); pairOf.set(t, ql[i]); } });
+  }
   trElev.forEach((t) => {
-    const q = pe.find((x) => norm(x.caption) === norm(t.caption) || norm(x.caption) === norm(t.tag));
+    const q = pairOf.get(t);
     if (!q) return;
     if (t.wall && q.wall) {
       const room = trRooms.find((r) => r.id === t.wall!.roomId);
       if (room) {
         const p = room.polygonM, e = t.wall.edge;
         const m: Pt = [(p[e][0] + p[(e + 1) % p.length][0]) / 2, (p[e][1] + p[(e + 1) % p.length][1]) / 2];
-        if (near(AR(q.wall.at), m, 0.35)) S.fields.elevLink.right++;
+        let ok = near(AR(q.wall.at), m, 0.35);
+        // The wall is the right one when it is in the right room and looks the same way. (A sheet stretched along one axis, or a plan
+        // that is not to scale, moves a wall's middle by more than a position check allows without changing which wall it is.)
+        if (!ok && alLink && q.wall.normal && q.wall.roomAt) {
+          const n = rot(q.wall.normal, alLink.rot);
+          const [tx, tz] = [p[(e + 1) % p.length][0] - p[e][0], p[(e + 1) % p.length][1] - p[e][1]];
+          const tl = Math.hypot(tx, tz) || 1;
+          const tn: Pt = [tz / tl, -tx / tl];
+          const c = apply(alLink, q.wall.roomAt);
+          const nearest = trRooms.reduce((a, b) => (Math.hypot(centroid(b.polygonM)[0] - c[0], centroid(b.polygonM)[1] - c[1]) < Math.hypot(centroid(a.polygonM)[0] - c[0], centroid(a.polygonM)[1] - c[1]) ? b : a));
+          ok = nearest.id === room.id && n[0] * tn[0] + n[1] * tn[1] > 0.9;
+        }
+        if (ok) S.fields.elevLink.right++;
       }
     }
     q.units?.forEach((u, k) => {
       const tu = t.units[k];
-      if (!tu) return;
+      dbg = `${t.id} ${t.caption} unit`;
+      if (!tu) { verifiedCheck(u.status, false); return; }
       const ok = u.bays === tu.bays && u.shuttersPerBay.join() === tu.shuttersPerBay.join();
       if (ok) S.fields.unitBays.right++;
       verifiedCheck(u.status, ok); credit(u.status, ok);
-      u.hinge.forEach((h, j) => { if (h === tu.hinge[j]) S.fields.hinge.right++; });
+      u.hinge.forEach((h, j) => {
+        const hok = h === tu.hinge[j];
+        if (hok) S.fields.hinge.right++;
+        // a side marked verified must be the right side (the honesty bar): unknown and conflict are never claims
+        dbg = `${t.id} ${t.caption} hinge ${j} ${h} vs ${tu.hinge[j]}`;
+        const hs = u.hingeStatus?.[j];
+        if (hs && h !== 'unknown' && h !== 'conflict') verifiedCheck(hs, hok);
+      });
+      const parts: [keyof NonNullable<typeof u.partStatus>, number | undefined, number | undefined][] = [
+        ['drawerStripM', u.drawerStripM, tu.drawerStripM], ['baseGapM', u.baseGapM, tu.baseGapM], ['loftM', u.loftM, tu.loftM], ['heightM', u.heightM, tu.heightM],
+      ];
+      for (const [name, got, want] of parts) {
+        const pok = got !== undefined && want !== undefined && Math.abs(got - want) <= 0.02;
+        if (pok) S.fields.unitParts.right++;
+        dbg = `${t.id} ${t.caption} part ${name} ${got} vs ${want}`;
+        const ps = u.partStatus?.[name];
+        if (ps && got !== undefined) verifiedCheck(ps, pok);
+      }
     });
+    // heights: each predicted level is paired with the nearest unused truth level of its kind (a wall can hold two windows)
+    const truthLevels: { kind: string; v: number }[] = [
+      ...t.levels.filter((l) => l.kind === 'sill' || l.kind === 'head').map((l) => ({ kind: l.kind, v: l.heightM })),
+      ...(t.bed ? [{ kind: 'bed-base', v: t.bed.baseTopM }, { kind: 'mattress-top', v: t.bed.mattressTopM }, { kind: 'headboard-top', v: t.bed.headboardTopM }] : []),
+    ];
+    const usedL = new Set<number>();
     for (const h of q.heights ?? []) {
       if (h.kind === 'ceiling') continue; // counted once per set below
-      const truthV = h.kind === 'ceiling' ? t.ceilingM : h.kind === 'bed-base' ? t.bed?.baseTopM : h.kind === 'mattress-top' ? t.bed?.mattressTopM : h.kind === 'headboard-top' ? t.bed?.headboardTopM : t.levels.find((l) => l.kind === h.kind)?.heightM;
-      const ok = truthV !== undefined && Math.abs(h.v - truthV) <= 0.02;
+      dbg = `${t.id} ${t.caption} height ${h.kind} ${h.v.toFixed(3)}`;
+      let bestK = -1, bestD = Infinity;
+      truthLevels.forEach((l, i) => { if (usedL.has(i) || l.kind !== h.kind) return; const d = Math.abs(l.v - h.v); if (d < bestD) { bestD = d; bestK = i; } });
+      const ok = bestK >= 0 && bestD <= 0.02;
+      if (bestK >= 0) usedL.add(bestK);
       if (ok) S.fields.heights.right++;
       verifiedCheck(h.status, ok); credit(h.status, ok);
     }
   });
+  // a view that matches no elevation of the truth (a misread caption, a block taken for a view): whatever it claims as a fact is wrong
+  for (const q of pe) {
+    if (matchedE.has(q)) continue;
+    for (const h of q.heights ?? []) if (h.kind !== 'ceiling') verifiedCheck(h.status, false);
+    for (const u of q.units ?? []) verifiedCheck(u.status, false);
+  }
   // the ceiling: the set-level value, or the best of those read off the elevations; counted once
   const ceilings = [...(pred.ceiling ? [pred.ceiling] : []), ...pe.flatMap((q) => (q.heights ?? []).filter((h) => h.kind === 'ceiling').map((h) => ({ v: h.v, status: h.status })))];
   if (trElev.length && ceilings.length) {
     const hit = ceilings.find((c) => Math.abs(c.v - T.ceilingM!) <= 0.02);
     if (hit) S.fields.heights.right++;
+    dbg = 'ceiling';
     for (const c of ceilings) { const ok = Math.abs(c.v - T.ceilingM!) <= 0.02; verifiedCheck(c.status, ok); if (hit && c === hit) credit(c.status, ok); }
   } else for (const c of ceilings) verifiedCheck(c.status, false);
   return S;

@@ -1,4 +1,5 @@
 // Owned by C3. The buyer page: boot (B1 loading), height picker (B2), the walking loop (B3), debug hooks.
+import { ceilingTrustFromExtras, setCeilingTrust } from '../core/room-trust';
 import * as THREE from 'three';
 import { catalogItem, itemFromCatalog } from '../core/catalog';
 import { circleFree, nearestFree } from '../core/grid-query';
@@ -80,7 +81,7 @@ async function fetchExtras(sceneId: string): Promise<ReturnType<typeof unverifie
     if (!SCENE_ID_RE.test(sceneId)) return {} as ReturnType<typeof unverifiedRoomsFromExtras>;
     const r = await fetch(`/scenes/${sceneId}/proposal-extras.json`, { cache: 'no-cache' });
     const t = r.ok ? await r.text() : '';
-    if (t && !/^\s*</.test(t)) return unverifiedRoomsFromExtras(JSON.parse(t));
+    if (t && !/^\s*</.test(t)) { const ex = JSON.parse(t); setCeilingTrust(ceilingTrustFromExtras(ex)); return unverifiedRoomsFromExtras(ex); }
   } catch { /* optional */ }
   return {} as ReturnType<typeof unverifiedRoomsFromExtras>;
 }

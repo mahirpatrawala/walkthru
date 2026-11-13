@@ -52,16 +52,16 @@ export function itemsOnWall(F: Furnished, room: LRoom, side: WallSide): { item: 
 export function planUnit(ctx: ElevCtx, item: TruthItem, wall: number): UnitTruth {
   const { rng, o } = ctx;
   const w = item.box.w;
-  const n = Math.max(2, Math.min(5, Math.round(w / 0.9)));
+  const n = o.unitPin?.bays ?? Math.max(2, Math.min(5, Math.round(w / 0.9)));
   const pitch = snapDim(w / n, o);
   const bayWidths = Array.from({ length: n }, (_, i) => (i < n - 1 ? pitch : w - pitch * (n - 1)));
-  const shutters = bayWidths.map((bw) => (bw < 0.7 ? 1 : rng.pick([1, 2, 2])));
+  const shutters = bayWidths.map((bw) => (bw < 0.7 ? 1 : rng.pick([1, 2, 2]))).map((x) => o.unitPin?.shutters ?? x);
   const heights = [7, 8, 8.5].map((f) => f * FT).filter((h) => h <= ctx.H - 0.1);
   const heightM = rng.pick(heights.length ? heights : [7 * FT]);
   const loftM = heightM > 7 * FT + 1e-6 ? heightM - 7 * FT : 0;
   const hinge: UnitTruth['hinge'] = []; const signals: HingeSignals[] = [];
   for (let i = 0; i < n; i++) {
-    const sig = SIGNALS[(ctx.signalBase + i) % SIGNALS.length];
+    const sig = o.unitPin?.signals ?? SIGNALS[(ctx.signalBase + i) % SIGNALS.length];
     signals.push(sig);
     const trueHinge = shutters[i] === 2 ? 'outer-edges' : rng.pick(['left', 'right'] as const);
     hinge.push(sig === 'neither' ? 'unknown' : sig === 'disagree' ? 'conflict' : trueHinge);

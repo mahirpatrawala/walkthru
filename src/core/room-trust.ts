@@ -25,3 +25,24 @@ export function unverifiedRoomsFromExtras(extras: unknown): UnverifiedRooms {
 let editorUnverified: UnverifiedRooms = {};
 export function setEditorUnverified(u: UnverifiedRooms): void { editorUnverified = u; }
 export function editorUnverifiedNote(roomId: string): string | undefined { return editorUnverified[roomId]; }
+
+
+// ---------------------------------------------------------------- the ceiling height
+/**
+ * Is the scene's wall height a fact? A drawing import records where the number came from in `proposal-extras.json`
+ * (`ceiling.verified`, set when a printed ceiling dimension agreed with the elevation's geometry, or `ceiling.provenance` when a broker
+ * confirmed or typed it). An extras file that has a ceiling and neither says the height was guessed or measured off linework with
+ * nothing printed to check it against. No extras file (a scene traced by hand) means the broker's own number.
+ */
+export interface CeilingTrust { known: boolean }
+export function ceilingTrustFromExtras(extras: unknown): CeilingTrust {
+  const c = (extras as { ceiling?: unknown } | null)?.ceiling;
+  if (!c || typeof c !== 'object') return { known: true };
+  const o = c as { verified?: unknown; provenance?: unknown };
+  if (o.verified === true) return { known: true };
+  if (typeof o.provenance === 'string' && /confirmed|corrected|typed|checked against/i.test(o.provenance)) return { known: true };
+  return { known: false };
+}
+let ceilingTrust: CeilingTrust = { known: true };
+export function setCeilingTrust(t: CeilingTrust): void { ceilingTrust = t; }
+export function ceilingIsKnown(): boolean { return ceilingTrust.known; }

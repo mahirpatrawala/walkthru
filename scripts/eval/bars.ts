@@ -15,6 +15,7 @@ export const FIELDS: FieldDef[] = [
   { key: 'heights', label: 'Ceiling, sill, head, bed heights', tolerance: '2 cm', vector: 0.9, raster: null, dir: 'min' },
   { key: 'unitBays', label: 'Unit bays and shutters per bay', tolerance: 'exact', vector: 0.85, raster: null, dir: 'min' },
   { key: 'hinge', label: 'Hinge side, where drawn', tolerance: 'exact', vector: 0.85, raster: null, dir: 'min' },
+  { key: 'unitParts', label: 'Unit drawer strip, base gap, loft, height', tolerance: '2 cm', vector: 0.85, raster: null, dir: 'min' },
   { key: 'conflicts', label: 'Planted wrong strings surfaced', tolerance: 'flagged conflict', vector: 0.95, raster: 0.8, dir: 'min' },
   { key: 'wrongVerified', label: 'Verified values that are wrong', tolerance: 'as above', vector: 0.005, raster: 0.005, dir: 'max' },
   { key: 'brokerShare', label: 'Share of values the broker must look at', tolerance: 'count', vector: 0.3, raster: 1.0, dir: 'max' },

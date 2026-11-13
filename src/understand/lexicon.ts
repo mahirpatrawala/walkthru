@@ -175,3 +175,32 @@ export function allLexiconWords(): string[] {
   }
   return out;
 }
+
+// ---------------------------------------------------------------- captions of elevation views
+const captionWordSet = new Set(E.captionWords.flatMap(tokens));
+const internalWordSet = new Set(E.internalWords.flatMap(tokens));
+export interface CaptionInfo {
+  /** the label that tells one view from another: "3", "B", "4A" */
+  tag: string;
+  /** an internal view of a unit names the elevation it belongs to: "4A (INTERNAL)" -> "4" */
+  parentTag: string | null;
+  internal: boolean;
+}
+/**
+ * "ELEVATION-3", "ELEV. B", "WALL 4A (INTERNAL)", "Elevation-aa (internal)": the caption word, the tag after it, and whether the
+ * view is an internal one. Null when the string is not a caption.
+ */
+export function captionOf(text: string): CaptionInfo | null {
+  const toks = tokens(text);
+  const at = toks.findIndex((t) => captionWordSet.has(t));
+  if (at < 0) return null;
+  const rest = toks.slice(at + 1).filter((t) => !internalWordSet.has(t));
+  if (!rest.length || !/^([a-z]|\d{1,2}|[a-z]{2})$/.test(rest[0])) return null;
+  let tag = rest[0];
+  if (/^\d+$/.test(tag) && rest[1] && /^[a-z]$/.test(rest[1])) tag += rest[1];
+  const internal = toks.some((t) => internalWordSet.has(t));
+  const m = /^(\d+)[a-z]$/.exec(tag) ?? /^([a-z])[a-z]$/.exec(tag);
+  return { tag: tag.toUpperCase(), parentTag: internal && m ? m[1].toUpperCase() : null, internal };
+}
+/** An elevation caption has its tag after one of the caption words; nothing else is read as one. */
+export const isCaption = (text: string): boolean => captionOf(text) !== null;

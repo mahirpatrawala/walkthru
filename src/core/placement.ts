@@ -74,7 +74,7 @@ function toneFor(verdict: PlacementResult['verdict']): Tone {
 }
 
 /** `grid` must exclude the item being placed. */
-export function checkPlacement(grid: Grid, spec: CatalogItem, box: Box, ceilingM: number): PlacementResult {
+export function checkPlacement(grid: Grid, spec: CatalogItem, box: Box, ceilingM: number, ceilingKnown = true): PlacementResult {
   const clearanceM = {} as Record<Side, number>;
   for (const s of SIDES) clearanceM[s] = sideClearance(grid, box, s, FIVE_RAYS);
 
@@ -90,7 +90,7 @@ export function checkPlacement(grid: Grid, spec: CatalogItem, box: Box, ceilingM
     else { verdict = 'tight'; reason = 'access'; }
   }
   const partial = { verdict, reason, clearanceM, tone: toneFor(verdict) };
-  return { ...partial, message: placementMessage(spec, partial, ceilingM) };
+  return { ...partial, message: placementMessage(spec, partial, ceilingM, ceilingKnown) };
 }
 
 function cmOf(m: number): number {
@@ -104,9 +104,10 @@ function ceilingText(m: number): string {
 }
 
 /** The verdict-bar copy of 2.1 (furnish mode, step 5), built exactly as the table there. */
-export function placementMessage(spec: CatalogItem, r: Omit<PlacementResult, 'message'>, ceilingM: number): string {
+export function placementMessage(spec: CatalogItem, r: Omit<PlacementResult, 'message'>, ceilingM: number, ceilingKnown = true): string {
   const name = spec.name;
-  if (r.reason === 'too-tall') return `${name} is too tall for this ceiling (${ceilingText(ceilingM)} m).`;
+  // a ceiling height nobody confirmed is not printed as a number
+  if (r.reason === 'too-tall') return ceilingKnown ? `${name} is too tall for this ceiling (${ceilingText(ceilingM)} m).` : `${name} may be too tall for this ceiling. The ceiling height is not confirmed yet.`;
   if (r.verdict === 'blocked') return `${name} does not fit here.`;
 
   // up to two sides, smallest clearance first, never the back, skipping sides with 1.5 m or more

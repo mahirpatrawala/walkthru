@@ -2,7 +2,7 @@
 // SPEC 2.2. The object handed to every step is an EditorHost (context.ts); C6 and C7 steps only use the EditorContext part.
 import './editor.css';
 import { createGrid } from '../core/grid-codec';
-import { setEditorUnverified, unverifiedRoomsFromExtras } from '../core/room-trust';
+import { ceilingTrustFromExtras, setCeilingTrust, setEditorUnverified, unverifiedRoomsFromExtras } from '../core/room-trust';
 import { rasterizeLayout, stampFurniture } from '../core/layout-raster';
 import { createEmptyProperty, validateLayout, validateProperty } from '../core/layout-validate';
 import { GRID_VOID } from '../types';
@@ -245,6 +245,7 @@ function boot(): void {
       const extras = await fetchSceneJson(id, 'proposal-extras.json');
       importNotes = extrasWarnings(extras);
       setEditorUnverified(unverifiedRoomsFromExtras(extras));
+      setCeilingTrust(ceilingTrustFromExtras(extras));
       host.underlayImage = null;
       const u = draft.layout.underlay;
       if (u) {
