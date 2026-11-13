@@ -158,7 +158,10 @@ class Levels {
         if (!ok) status = status === 'verified' ? (band === null ? 'unverified' : 'conflict') : status;
         // printed and measured disagree beyond what the scale could blame: on a scale that can be trusted the drawing's own geometry is the number
         // the model uses, the printed one is kept beside it for the broker
-        if (S.trusted && (status === 'conflict' || (band !== null && Math.abs(measured - n.h) > Math.max(band, 0.02)))) { status = 'conflict'; alt = n.h; value = measured; }
+        // On a scale nobody vouches for the measure is taken only when it is near the printed number (a misprint or a rounded string, not a scale that is off).
+        const off = Math.abs(measured - n.h);
+        const disagree = status === 'conflict' || off > Math.max(band ?? tolFor(n.h), 0.02);
+        if (disagree && (S.trusted || off / Math.max(n.h, 0.3) <= 0.05)) { status = 'conflict'; alt = n.h; value = measured; }
       } else if (status === 'verified') status = 'unverified'; // nothing to measure it against
       return { value, status, node: n, method: alt !== undefined ? 'vector' : method, checks, measured, ...(alt !== undefined ? { alt } : {}) };
     }
