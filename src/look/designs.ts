@@ -69,6 +69,8 @@ export interface DecorDesign {
   offset: { x: number; z: number };
   /** the chair faces the item */
   faceItem: boolean;
+  /** seat height from the drawing; kept only when `sources.seatHeightM` says where it came from, else the variant's standard */
+  seatHeightM?: number;
   sources?: Record<string, DesignSource | DesignSource[] | string>;
 }
 export interface DesignsFile {
@@ -148,7 +150,8 @@ export function parseDesigns(json: unknown): DesignsFile | null {
   if (Array.isArray(o.decor)) {
     for (const raw of o.decor as DecorDesign[]) {
       if (raw && raw.look === 'chair' && typeof raw.id === 'string' && typeof raw.tiedTo === 'string' && raw.offset && isNum(raw.offset.x) && isNum(raw.offset.z)) {
-        decor.push({ id: raw.id, look: 'chair', ...(CHAIR_VARIANTS.includes(raw.variant as ChairVariant) ? { variant: raw.variant } : {}), tiedTo: raw.tiedTo, offset: { x: raw.offset.x, z: raw.offset.z }, faceItem: raw.faceItem !== false, sources: raw.sources });
+        const drawn = isNum(raw.seatHeightM) && raw.seatHeightM > 0.2 && raw.seatHeightM < 0.9 && !!raw.sources?.seatHeightM;
+        decor.push({ id: raw.id, look: 'chair', ...(CHAIR_VARIANTS.includes(raw.variant as ChairVariant) ? { variant: raw.variant } : {}), tiedTo: raw.tiedTo, offset: { x: raw.offset.x, z: raw.offset.z }, faceItem: raw.faceItem !== false, ...(drawn ? { seatHeightM: raw.seatHeightM } : {}), sources: raw.sources });
       }
     }
   }
@@ -207,6 +210,18 @@ function disposeChildren(g: THREE.Group): void {
   }
 }
 
+/** Where a decor chair stands: world centre, and its yaw in degrees (the way it faces, local +Z) in the box convention. */
+export function decorPlacement(spec: DecorDesign, host: FurnitureItem): { x: number; z: number; yawDeg: number } {
+  const yaw = (host.box.yawDeg * Math.PI) / 180;
+  // item frame -> world: x right, z front; rotation.y = yaw maps local +Z to (sin yaw, cos yaw)
+  const lx = spec.offset.x, lz = host.box.d / 2 + spec.offset.z;
+  return {
+    x: host.box.cx + lx * Math.cos(yaw) + lz * Math.sin(yaw),
+    z: host.box.cz - lx * Math.sin(yaw) + lz * Math.cos(yaw),
+    yawDeg: ((host.box.yawDeg + (spec.faceItem ? 180 : 0)) % 360 + 360) % 360,
+  };
+}
+
 /** Builds the decorative objects (chairs, by variant) at their items. Items that are missing from the scene are skipped. */
 export function buildDecor(d: DesignsFile | null, items: FurnitureItem[], tier: Tier): Decor[] {
   if (!d?.decor) return [];
@@ -216,11 +231,9 @@ export function buildDecor(d: DesignsFile | null, items: FurnitureItem[], tier: 
     if (!host) continue;
     const root = new THREE.Group();
     root.name = `decor:${spec.id}`;
-    const yaw = (host.box.yawDeg * Math.PI) / 180;
-    // item frame -> world: x right, z front; rotation.y = yaw maps local +Z to (sin yaw, cos yaw)
-    const lx = spec.offset.x, lz = host.box.d / 2 + spec.offset.z;
-    root.position.set(host.box.cx + lx * Math.cos(yaw) + lz * Math.sin(yaw), 0, host.box.cz - lx * Math.sin(yaw) + lz * Math.cos(yaw));
-    root.rotation.y = yaw + (spec.faceItem ? Math.PI : 0);
+    const at = decorPlacement(spec, host);
+    root.position.set(at.x, 0, at.z);
+    root.rotation.y = (at.yawDeg * Math.PI) / 180;
     const fill = (t: Tier): void => { disposeChildren(root); const g = buildChair(t, spec.variant ?? 'swivel'); for (const c of [...g.children]) root.add(c); };
     fill(tier);
     root.userData.decor = true;

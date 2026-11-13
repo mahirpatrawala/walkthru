@@ -33,6 +33,7 @@ import type { GridOverlay } from './debug';
 import { createHeightPicker } from './height';
 import { createHud } from './hud';
 import { createInteractions } from './interactions';
+import { buildSeats } from './seats';
 import { createWardrobes } from './wardrobe';
 import { createLoadingScreen } from './loading';
 import { createMeasureMode } from './measure';
@@ -189,6 +190,9 @@ async function boot(): Promise<void> {
   const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage });
   const decor: Decor[] = buildDecor(designs, store.all(), startTier);
   for (const d of decor) furnitureRoot.add(d.group);
+  // the drawing's chairs are sittable and block the walk grid (src/buyer/seats.ts)
+  const seats = buildSeats(designs, store.all());
+  store.setTemporary('seats', seats.obstacles());
   if (look) {
     const lk = look;
     lk.attach({ shell, furnitureRoot });
@@ -222,7 +226,7 @@ async function boot(): Promise<void> {
   // the sofa seat height lets a tall person sit with raised knees instead of floating (look/character: sitPlan)
   character.surfaceProbe = (x, z) => {
     for (const it of store.all()) if (it.kind === 'sofa' && distanceToBox({ x, z }, it.box) <= 0.05) return it.surfaceHeightM;
-    return null;
+    return seats.surfaceAt({ x, z });
   };
   character.onRebind = () => look?.refresh(store.grid());
   if (look) {
@@ -296,7 +300,7 @@ async function boot(): Promise<void> {
   const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
   const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
-  const interactions = createInteractions(ctx, { wardrobe: wardrobes });
+  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));
@@ -564,6 +568,7 @@ async function boot(): Promise<void> {
       character,
     },
     decor,
+    seats,
     /** open-wardrobe hooks for the acceptance scripts */
     wardrobe: wardrobes.debug,
     /** SPEC 16.8 hooks. `ready` is the current tier's asset promise (a getter, so it follows tier changes). */

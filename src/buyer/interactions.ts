@@ -6,6 +6,8 @@ import { liePose, seatPose, standPose } from '../core/poses';
 import { CHARACTER_RADIUS_M } from '../types';
 import type { FurnitureItem, Vec2 } from '../types';
 import type { BuyerContext, BuyerMode } from './context';
+import { CHAIR_PROMPT } from './seats';
+import type { Seats } from './seats';
 import { toneColor } from './overlays';
 import { actionFor, nearestInteractable } from './store';
 import type { PoseAction } from './store';
@@ -41,12 +43,10 @@ export interface Interactions {
   hideDims(): void;
 }
 
-function cardTone(item: FurnitureItem, H: number): string {
-  return checkFor(item, H).tone;
-}
-
-/** Optional extras: a wardrobe that opens takes over the prompt and the action of its items (src/buyer/wardrobe.ts). */
+/** Optional extras: a wardrobe that opens takes over the prompt and the action of its items (src/buyer/wardrobe.ts);
+ *  seats are chairs that are not furniture-store items (src/buyer/seats.ts): they take part in nearest(), with their own card and pose. */
 export interface InteractionExtras {
+  seats?: Seats;
   wardrobe?: { promptFor(item: FurnitureItem): string | null; activate(item: FurnitureItem): boolean };
 }
 
@@ -62,7 +62,10 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   let dimsTimer: ReturnType<typeof setTimeout> | null = null;
   let promptClock = 0;
 
-  const nearest = (): { item: FurnitureItem; distM: number } | null => nearestInteractable(ctx.furniture.all(), ctx.character.position);
+  const seats = extras.seats;
+  const cardOf = (item: FurnitureItem, H: number) => seats?.card(item, H) ?? checkFor(item, H);
+  const nearest = (): { item: FurnitureItem; distM: number } | null =>
+    nearestInteractable(seats ? [...ctx.furniture.all(), ...seats.items()] : ctx.furniture.all(), ctx.character.position);
   const freeToStand = (): boolean => {
     const s = ctx.character.state;
     return s === 'idle' || s === 'walk' || s === 'jog';
@@ -79,14 +82,14 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   function showDims(item: FurnitureItem): void {
     hideDims();
     dimsId = item.id;
-    ctx.hud.showCard(checkFor(item, ctx.heightM()));
+    ctx.hud.showCard(cardOf(item, ctx.heightM()));
     dimsTimer = setTimeout(hideDims, DIMS_SHOW_MS);
   }
 
   /** Card, outline and camera for an active pose, at the character's current height. */
   function present(a: Active, H: number): void {
     const item = a.item;
-    const card = checkFor(item, H);
+    const card = cardOf(item, H);
     ctx.hud.showCard(card);
     ctx.overlays.clear(POSE_TAG);
     if (a.action === 'lie') {
@@ -103,6 +106,17 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
       const y = (b.yawDeg * Math.PI) / 180;
       const side = ((a.approach.x - b.cx) * Math.cos(y) - (a.approach.z - b.cz) * Math.sin(y)) >= 0 ? 1 : -1;
       ctx.camera.focusOn({ x: b.cx, y: a.item.surfaceHeightM, z: b.cz }, Math.max(2.2, 1.2 * len), 50, b.yawDeg + 180 + 30 * side);
+    } else if (a.action === 'sit' && seats?.isSeat(a.item)) {
+      // a chair often has its front against a desk or a wall: look from the first heading, front first, whose camera spot is clear
+      const g = ctx.grid();
+      const dist = 2.0;
+      let heading = b.yawDeg + 180;
+      for (const delta of [0, 45, -45, 90, -90, 135, -135, 180]) {
+        const h = ((b.yawDeg + 180 + delta) * Math.PI) / 180;
+        const clear = [0.8, 1.4, dist].every((r) => circleFree(g, b.cx - Math.sin(h) * r, b.cz - Math.cos(h) * r, 0.15));
+        if (clear) { heading = b.yawDeg + 180 + delta; break; }
+      }
+      ctx.camera.focusOn({ x: b.cx, y: 0.7, z: b.cz }, dist, 20, heading);
     } else if (a.action === 'sit') {
       // from the front: the sofa's front (+a) is where the camera goes, so it looks back along -a
       ctx.camera.focusOn({ x: b.cx, y: 0.7, z: b.cz }, 2.4, 20, b.yawDeg + 180);
@@ -113,7 +127,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     const item = a.item;
     const c = ctx.character;
     if (a.action === 'lie') await c.lie(liePose(item, H, a.approach));
-    else if (a.action === 'sit') await c.sit(seatPose(item, H, a.approach));
+    else if (a.action === 'sit') await c.sit(seats?.pose(item, H) ?? seatPose(item, H, a.approach));
     else await c.standAt(standPose(item, H, a.approach));
   }
 
@@ -222,7 +236,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
       // moving away, or ending up beside something else, closes the dimensions card
       if (dimsId !== null && (Math.hypot(ctx.input.moveX, ctx.input.moveY) > MOVE_END || n?.item.id !== dimsId)) hideDims();
       if (!n) { h.setPrompt(null); return; }
-      h.setPrompt(extras.wardrobe?.promptFor(n.item) ?? actionFor(n.item.kind).prompt, () => { void interact(); });
+      h.setPrompt(extras.wardrobe?.promptFor(n.item) ?? (seats?.isSeat(n.item) ? CHAIR_PROMPT : actionFor(n.item.kind).prompt), () => { void interact(); });
     },
     interact,
     getUp,
@@ -261,7 +275,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     nearest,
     pose() {
       return active
-        ? { itemId: active.item.id, action: active.action, ready: active.ready, tone: cardTone(active.item, ctx.heightM()) }
+        ? { itemId: active.item.id, action: active.action, ready: active.ready, tone: cardOf(active.item, ctx.heightM()).tone }
         : null;
     },
     hideDims,

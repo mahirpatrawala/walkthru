@@ -46,21 +46,29 @@ export function bedFit(
   };
 }
 
+/** Ideal seat height is a quarter of body height, give or take 5 cm (the sofa rule, reused by chairs). */
+export function seatHeightVerdict(seatHeightM: number, heightM: number): { tone: CheckCard['tone']; line: string } {
+  const diff = seatHeightM - 0.25 * heightM;
+  const h = cm(seatHeightM);
+  if (Math.abs(diff) <= 0.05 + 1e-9) return { tone: 'good', line: `Seat height ${h} cm suits you.` };
+  if (diff > 0) return { tone: 'warn', line: `Seat height ${h} cm is high. Your feet may not rest flat.` };
+  return { tone: 'warn', line: `Seat height ${h} cm is low. Your knees sit above your hips.` };
+}
+
 /** Sit on the sofa. Seats `max(1, floor(W / 0.6))`; ideal seat height is a quarter of body height, give or take 5 cm. */
 export function sofaCheck(widthM: number, seatHeightM: number, heightM: number, label: string): CheckCard {
   const seats = Math.max(1, Math.floor(widthM / 0.6 + 1e-9));
-  const diff = seatHeightM - 0.25 * heightM;
-  const h = cm(seatHeightM);
-  let tone: CheckCard['tone'];
-  let line: string;
-  if (Math.abs(diff) <= 0.05 + 1e-9) {
-    tone = 'good'; line = `Seat height ${h} cm suits you.`;
-  } else if (diff > 0) {
-    tone = 'warn'; line = `Seat height ${h} cm is high. Your feet may not rest flat.`;
-  } else {
-    tone = 'warn'; line = `Seat height ${h} cm is low. Your knees sit above your hips.`;
-  }
-  return { title: `${label} · ${cm(widthM)} cm wide`, tone, headline: `Seats ${seats}.`, lines: [line] };
+  const v = seatHeightVerdict(seatHeightM, heightM);
+  return { title: `${label} · ${cm(widthM)} cm wide`, tone: v.tone, headline: `Seats ${seats}.`, lines: [v.line] };
+}
+
+/**
+ * Sit on a chair: the sofa's seat-height verdict (`seatHeightVerdict`, a quarter of body height give or take 5 cm), no seat
+ * count. `provenance` says where the seat height came from, so the card never presents an unsourced number as drawn.
+ */
+export function chairCheck(widthM: number, depthM: number, seatHeightM: number, heightM: number, label: string, provenance: string): CheckCard {
+  const v = seatHeightVerdict(seatHeightM, heightM);
+  return { title: `${label} · ${cm(widthM)} × ${cm(depthM)} cm`, tone: v.tone, headline: v.line, lines: [], footer: provenance };
 }
 
 /** Stand at the counter. Comfortable top is `0.63 * height - 0.15`, give or take 7 cm. */

@@ -1,6 +1,6 @@
 // Poses (SPEC 4.6). Pure. `approach` is where the character stood when they pressed the button.
 import { SIT_HIP_BACK_RATIO, SIT_SEAT_RATIO } from '../types';
-import type { FurnitureItem, LiePose, SeatPose, StandPose, Vec2 } from '../types';
+import type { Box, FurnitureItem, LiePose, SeatPose, StandPose, Vec2 } from '../types';
 import { boxAxes } from './geometry';
 
 function clamp(v: number, lo: number, hi: number): number {
@@ -46,6 +46,21 @@ export function seatPose(item: FurnitureItem, heightM: number, approach: Vec2): 
   return {
     root: { x: hip.x + a.x * back, z: hip.z + a.z * back },
     rootY: Math.max(-0.02, item.surfaceHeightM - SIT_SEAT_RATIO * heightM),
+    yawDeg: box.yawDeg,
+  };
+}
+
+/** How far behind the middle of a chair seat the hips sit. */
+export const CHAIR_HIP_BACK_M = 0.04;
+
+/** Sitting on a single-seat chair: hips over the seat (a little behind its middle), facing the chair's front (+a). */
+export function chairPose(box: Box, seatHeightM: number, heightM: number): SeatPose {
+  const { a } = boxAxes(box);
+  const hip = { x: box.cx - a.x * CHAIR_HIP_BACK_M, z: box.cz - a.z * CHAIR_HIP_BACK_M };
+  const back = SIT_HIP_BACK_RATIO * heightM;
+  return {
+    root: { x: hip.x + a.x * back, z: hip.z + a.z * back },
+    rootY: Math.max(-0.02, seatHeightM - SIT_SEAT_RATIO * heightM),
     yawDeg: box.yawDeg,
   };
 }
