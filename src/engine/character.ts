@@ -36,7 +36,7 @@ const CLIPS = {
   sitIdle: 'Sitting_Idle_Loop',
   sitExit: 'Sitting_Exit',
 } as const;
-type ClipKey = keyof typeof CLIPS | 'lie';
+type ClipKey = keyof typeof CLIPS | 'lie' | 'look' | 'reach';
 
 const FADE_S = 0.2;
 const LIE_IN_S = 0.6;
@@ -48,6 +48,10 @@ const SIT_EXIT_SPEED = 1.5;
 const WALK_MPS = 1.4;
 const JOG_MPS = 2.8;
 const REF_HEIGHT_M = 1.75;
+/** How fast each person walks next to the man (the elder takes it slowly). The mannequin and the others move at the base pace. */
+export const WALK_FACTOR: Record<BodyKind, number> = { mannequin: 1, man: 1, woman: 0.97, elder: 0.62, child: 0.9 };
+/** A person who stands still for this long glances round the room. */
+const LOOK_AFTER_S = 8;
 
 function ease(k: number): number {
   return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
@@ -95,6 +99,9 @@ export class Character {
   private loadToken = 0;
   private tint = '#E8823A';
   private hasLiePose = false;
+  private hasIdles = false;
+  /** seconds spent standing still in Idle_Loop */
+  private stillFor = 0;
   /** lying with straight legs is a little longer than the idle stance: scale the body so head-to-heel stays the chosen height */
   private lieScale = 1;
   private lastPoseSpec: { lie?: LiePose; sit?: SeatPose } = {};
@@ -215,12 +222,23 @@ export class Character {
     };
     const lieClip = gltf.animations.find((a) => a.name === 'Lie_Pose');
     this.actions = {
+      look: null as unknown as THREE.AnimationAction, reach: null as unknown as THREE.AnimationAction,
       idle: action('idle'), walk: action('walk'), jog: action('jog'),
       sitEnter: action('sitEnter'), sitIdle: action('sitIdle'), sitExit: action('sitExit'),
       // person bodies lie with straight legs (SPEC 16.6.3 / look/retarget.ts); the mannequin lies in its frozen idle
       lie: lieClip ? this.mixer.clipAction(lieClip) : action('idle'),
     };
     this.hasLiePose = !!lieClip;
+    const lookClip = gltf.animations.find((a) => a.name === 'Look_Around');
+    const reachClip = gltf.animations.find((a) => a.name === 'Reach_Forward');
+    this.actions.look = lookClip ? this.mixer.clipAction(lookClip) : this.actions.idle;
+    this.actions.reach = reachClip ? this.mixer.clipAction(reachClip) : this.actions.idle;
+    this.hasIdles = !!lookClip && !!reachClip;
+    for (const k of ['look', 'reach'] as const) {
+      if (this.actions[k] === this.actions.idle) continue;
+      this.actions[k].setLoop(THREE.LoopOnce, 1);
+      this.actions[k].clampWhenFinished = true;
+    }
     this.actions.sitEnter.setLoop(THREE.LoopOnce, 1);
     this.actions.sitEnter.clampWhenFinished = true;
     this.actions.sitExit.setLoop(THREE.LoopOnce, 1);
@@ -228,8 +246,13 @@ export class Character {
     const mixer = this.mixer;
     mixer.addEventListener('finished', (e) => {
       // Sitting_Enter has run out: settle into the sitting loop
-      if (mixer === this.mixer && (e as unknown as { action: THREE.AnimationAction }).action === this.actions.sitEnter && this.posed === 'sit') {
+      const done = (e as unknown as { action: THREE.AnimationAction }).action;
+      if (mixer === this.mixer && done === this.actions.sitEnter && this.posed === 'sit') {
         this.play('sitIdle', FADE_S);
+      }
+      // a glance or a reach has run out: back to the idle (a pose in between has already replaced it)
+      if (mixer === this.mixer && this.hasIdles && (done === this.actions.look || done === this.actions.reach) && (this.currentClip === 'look' || this.currentClip === 'reach') && this.actions[this.currentClip] === done) {
+        this.play('idle', 0.35, true);
       }
     });
 
@@ -306,7 +329,8 @@ export class Character {
     model.updateMatrixWorld(true);
     const pelvis = this.skinned[0].skeleton.bones.find((b) => /^(pelvis|DEF-hips)$/i.test(b.name));
     const pw = pelvis ? pelvis.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0, 0, -SIT_HIP_BACK_RATIO * REF_HEIGHT_M);
-    const underside = Math.min(...verts(bodyOnly, /pelvis|thigh|hips/i).map((v) => v.y));
+    // the seat is what the buttocks rest on: the skin's underside, less 2.5 cm of cloth. A kurta or saree hangs far below it and is not what the body sits on
+    const underside = Math.min(...verts((s) => s.name === 'skin' || !this.person, /pelvis|thigh|hips/i).map((v) => v.y)) - (this.person ? 0.025 : 0);
     const lowest = Math.min(...verts(bodyOnly).map((v) => v.y));
     // back to standing idle
     this.mixer.stopAllAction();
@@ -314,6 +338,18 @@ export class Character {
     this.mixer.update(0);
     model.scale.setScalar(before);
     return { seat: underside / REF_HEIGHT_M, hipBack: -pw.z / REF_HEIGHT_M, back: -rear / REF_HEIGHT_M, floor: lowest / REF_HEIGHT_M };
+  }
+
+  /** Walking pace relative to the man: 1 for most, lower for the elderly parent. Used by the locomotion step. */
+  get walkFactor(): number {
+    return WALK_FACTOR[this.appearanceNow.body];
+  }
+
+  /** Lifts the right arm forward and back, as when opening a wardrobe. Does nothing when not standing, or on the mannequin. */
+  reach(): void {
+    if (!this.hasIdles || (this._state !== 'idle' && this._state !== 'standing-at')) return;
+    this.play('reach', 0.25, true);
+    this.stillFor = 0;
   }
 
   /** The pose constants in use (ratios of height). The mannequin returns the SPEC constants. */
@@ -544,6 +580,7 @@ export class Character {
     if (this._state !== 'idle' && this._state !== 'walk' && this._state !== 'jog') return;
     if (!(speed > 0.02)) {
       this.setState('idle');
+      if (this.currentClip === 'look' || this.currentClip === 'reach') return; // let the glance or the reach finish
       this.play('idle', FADE_S);
       return;
     }
@@ -761,6 +798,14 @@ export class Character {
         this.tween = null;
         tw.done();
         tw.resolve();
+      }
+    }
+    if (this.hasIdles) {
+      if (this._state === 'idle' && this.currentClip === 'idle' && this.posed === null) {
+        this.stillFor += dt;
+        if (this.stillFor > LOOK_AFTER_S) { this.stillFor = 0; this.play('look', 0.4, true); }
+      } else if (this._state !== 'idle' || (this.currentClip !== 'look' && this.currentClip !== 'reach' && this.currentClip !== 'idle')) {
+        this.stillFor = 0;
       }
     }
     this.mixer.update(dt);

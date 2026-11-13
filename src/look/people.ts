@@ -4,16 +4,18 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { buildNameMap, liePoseClip, readRest, retargetClipsAuto } from './retarget';
+import { buildNameMap, idleVariants, liePoseClip, readRest, retargetClipsAuto } from './retarget';
 
-export type BodyKind = 'mannequin' | 'male' | 'female';
-export type PersonBody = Exclude<BodyKind, 'mannequin'>;
+/** The family (SPEC 16.6.2): a man, a woman, an elderly parent and a child. `mannequin` is the test rig and the fallback. */
+export type PersonBody = 'man' | 'woman' | 'elder' | 'child';
+export type BodyKind = 'mannequin' | PersonBody;
+export const PERSON_BODIES: readonly PersonBody[] = ['man', 'woman', 'elder', 'child'];
 export type PersonTier = 'low' | 'medium' | 'high';
 
 export const PEOPLE_BASE = '/characters/';
 export const CLIPS_URL = `${PEOPLE_BASE}clips.glb`;
 export function personUrl(body: PersonBody, tier: PersonTier): string {
-  return `${PEOPLE_BASE}person-${body === 'male' ? 'm' : 'f'}${tier === 'low' ? '-low' : ''}.glb`;
+  return `${PEOPLE_BASE}person-${body}${tier === 'low' ? '-low' : ''}.glb`;
 }
 
 /** Bytes of body and clip files fetched so far (the weight checks read this). */
@@ -85,6 +87,6 @@ export function retargetOnto(gltf: GLTF, src: GLTF): void {
   const srcRest = readRest(src.scene, new Set([...srcBones]));
   const tgtRest = readRest(gltf.scene, new Set(boneNames));
   const r = retargetClipsAuto(src.animations, srcRest, tgtRest, nameMap);
-  gltf.animations = [...r.clips, ...liePoseClip(r.clips, tgtRest, nameMap)];
+  gltf.animations = [...r.clips, ...liePoseClip(r.clips, tgtRest, nameMap), ...idleVariants(r.clips, tgtRest, nameMap)];
   peopleStats.lastRetarget = { method: r.method, maxRestDiffDeg: r.maxRestDiffDeg, ms: (typeof performance !== 'undefined' ? performance.now() : 0) - t0 };
 }

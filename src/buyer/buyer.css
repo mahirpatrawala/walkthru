@@ -134,16 +134,16 @@ html, body {
   width: 100%; max-width: 380px; padding: 20px 20px 18px; box-sizing: border-box; background: var(--wt-card); border-radius: 12px; box-shadow: 0 6px 28px rgba(0, 0, 0, 0.22);
 }
 .wt-sheet h2 { margin: 0 0 14px; font-size: 20px; }
-.wt-cards { display: flex; gap: 10px; margin-bottom: 12px; }
-.wt-card {
-  flex: 1; border: 2px solid transparent; border-radius: 12px; background: #f3f4f7; color: var(--wt-ink); font-size: 15px; font-weight: 600; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 8px; min-height: 44px;
+.wt-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+.wt-cards .wt-card {
+  min-width: 0; width: auto; border: 2px solid transparent; border-radius: 12px; background: #f6efe6; color: var(--wt-ink); font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: none;
+  display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 3px 7px; min-height: 44px; font-family: inherit;
 }
-.wt-card-img { width: 96px; height: 120px; object-fit: contain; border-radius: 8px; }
-.wt-card.is-on { border-color: var(--wt-accent); background: #fff; }
+.wt-cards .wt-card-img { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 9px; background: #efe3d3; }
+.wt-cards .wt-card.is-on { border-color: var(--wt-accent); background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14); }
 .wt-tones { display: flex; justify-content: space-between; gap: 8px; margin: 0 4px 16px; }
 .wt-tone {
-  width: 44px; height: 44px; border-radius: 50%; border: 3px solid #fff; background: var(--c); cursor: pointer; padding: 0;
+  width: 44px; height: 44px; border-radius: 50%; border: 3px solid #fff; background: var(--c); cursor: pointer; padding: 0; flex: none;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
 }
 .wt-tone.is-on { box-shadow: 0 0 0 3px var(--wt-accent); }

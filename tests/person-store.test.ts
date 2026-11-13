@@ -13,19 +13,26 @@ const mem = (init: Record<string, string> = {}) => {
 };
 
 describe('person state (check 6)', () => {
-  it('defaults to male, tone 2, 175', () => {
-    expect(loadPerson(mem())).toEqual({ body: 'male', tone: 2, heightCm: 175 });
-    expect(DEFAULT_PERSON).toEqual({ body: 'male', tone: 2, heightCm: 175 });
+  it('defaults to the man, tone 2, 175', () => {
+    expect(loadPerson(mem())).toEqual({ body: 'man', tone: 2, heightCm: 175 });
+    expect(DEFAULT_PERSON).toEqual({ body: 'man', tone: 2, heightCm: 175 });
   });
   it('migrates the old height key once', () => {
     const s = mem({ [HEIGHT_KEY]: '190' });
-    expect(loadPerson(s)).toEqual({ body: 'male', tone: 2, heightCm: 190 });
-    savePerson(s, { body: 'female', tone: 4, heightCm: 160 });
-    expect(loadPerson(s)).toEqual({ body: 'female', tone: 4, heightCm: 160 }); // the person key wins afterwards
+    expect(loadPerson(s)).toEqual({ body: 'man', tone: 2, heightCm: 190 });
+    savePerson(s, { body: 'woman', tone: 4, heightCm: 160 });
+    expect(loadPerson(s)).toEqual({ body: 'woman', tone: 4, heightCm: 160 }); // the person key wins afterwards
   });
   it('clamps out-of-range values', () => {
-    expect(normalisePerson({ body: 'female', tone: 9, heightCm: 300 })).toEqual({ body: 'female', tone: 4, heightCm: 200 });
-    expect(normalisePerson({ body: 'x', tone: -3, heightCm: 100 })).toEqual({ body: 'male', tone: 0, heightCm: 140 });
+    expect(normalisePerson({ body: 'woman', tone: 9, heightCm: 300 })).toEqual({ body: 'woman', tone: 4, heightCm: 190 });
+    expect(normalisePerson({ body: 'x', tone: -3, heightCm: 100 })).toEqual({ body: 'man', tone: 0, heightCm: 150 });
+    // every person has a range of their own: a child may be 90 cm, an elder cannot be 200
+    expect(normalisePerson({ body: 'child', tone: 2, heightCm: 80 })).toEqual({ body: 'child', tone: 2, heightCm: 90 });
+    expect(normalisePerson({ body: 'child', tone: 2, heightCm: 175 })).toEqual({ body: 'child', tone: 2, heightCm: 150 });
+    expect(normalisePerson({ body: 'elder', tone: 2, heightCm: 200 })).toEqual({ body: 'elder', tone: 2, heightCm: 180 });
+    // version 1 stored 'male' and 'female'
+    expect(normalisePerson({ body: 'female', tone: 1, heightCm: 165 })).toEqual({ body: 'woman', tone: 1, heightCm: 165 });
+    expect(normalisePerson({ body: 'male', tone: 1, heightCm: 180 })).toEqual({ body: 'man', tone: 1, heightCm: 180 });
     expect(loadPerson(mem({ [PERSON_KEY]: 'not json' }))).toEqual(DEFAULT_PERSON);
     expect(loadPerson(mem({ [HEIGHT_KEY]: '500' }))).toEqual(DEFAULT_PERSON);
   });

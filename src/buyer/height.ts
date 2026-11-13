@@ -1,9 +1,11 @@
 // Owned by C3. B2: "How tall are you?" (SPEC 2.1). Changes apply live to the character behind the sheet.
 import { formatHeight } from '../core/units';
-import { HEIGHT_MAX_CM, HEIGHT_MIN_CM, HEIGHT_PRESETS_CM, HEIGHT_TINTS } from '../types';
+import { HEIGHT_TINTS } from '../types';
 import { SKIN_TONES, SKIN_TONE_NAMES } from '../look/people-materials';
+import { PERSON_BODIES } from '../look/people';
+import type { PersonBody } from '../look/people';
 import { el } from './hud';
-import { clampHeightCm, nearestPresetIndex, tintForHeightCm } from './store';
+import { BODY_CHIPS_CM, BODY_RANGE_CM, PERSON_LABELS, clampPersonHeight, tintForPerson } from './person-store';
 
 export interface HeightPicker {
   open(first: boolean): void;
@@ -12,13 +14,13 @@ export interface HeightPicker {
   /** keep the picker's display in step when the height is set from outside */
   sync(cm: number): void;
   /** keep the body and skin tone in step when they are set from outside */
-  syncPerson(p: { body: 'male' | 'female'; tone: number }): void;
+  syncPerson(p: { body: PersonBody; tone: number }): void;
 }
 
 /** SPEC 16.6.4: the body and skin tone half of the picker. Absent (the editor, old callers) = height only. */
 export interface PersonOptions {
-  get(): { body: 'male' | 'female'; tone: number };
-  onChange(p: { body: 'male' | 'female'; tone: number }): void;
+  get(): { body: PersonBody; tone: number };
+  onChange(p: { body: PersonBody; tone: number }): void;
 }
 
 export function createHeightPicker(
@@ -31,22 +33,24 @@ export function createHeightPicker(
   const sheet = el('div', 'wt-sheet', undefined, modal);
   el('h2', undefined, opts.person ? "Who's walking?" : 'How tall are you?', sheet);
 
-  // body: two cards. Each shows a still of that body (no second renderer, so a phone pays nothing for it).
-  const cards: { body: 'male' | 'female'; btn: HTMLButtonElement }[] = [];
+  // body: four portrait cards (the family). Each shows a still of that person (no second renderer, so a phone pays nothing for it).
+  const cards: { body: PersonBody; btn: HTMLButtonElement }[] = [];
   const toneBtns: HTMLButtonElement[] = [];
-  let person = opts.person ? opts.person.get() : { body: 'male' as const, tone: 2 };
+  let person = opts.person ? opts.person.get() : { body: 'man' as PersonBody, tone: 2 };
   if (opts.person) {
     const row = el('div', 'wt-cards', undefined, sheet);
-    for (const body of ['male', 'female'] as const) {
+    row.setAttribute('role', 'group');
+    row.setAttribute('aria-label', 'Who is walking');
+    for (const body of PERSON_BODIES) {
       const b = el('button', 'wt-card', undefined, row);
       b.type = 'button';
       b.dataset.body = body;
       const img = el('img', 'wt-card-img', undefined, b) as HTMLImageElement;
-      img.src = `/characters/thumb-${body === 'male' ? 'm' : 'f'}.jpg`;
+      img.src = `/characters/thumb-${body}.jpg`;
       img.alt = '';
       img.width = 96; img.height = 120;
       img.addEventListener('error', () => { img.style.visibility = 'hidden'; });
-      el('span', undefined, body === 'male' ? 'Male' : 'Female', b);
+      el('span', undefined, PERSON_LABELS[body], b);
       b.addEventListener('click', () => setPerson({ ...person, body }));
       cards.push({ body, btn: b });
     }
@@ -64,28 +68,36 @@ export function createHeightPicker(
       toneBtns.push(b);
     });
   }
-  function setPerson(next: { body: 'male' | 'female'; tone: number }): void {
+  function setPerson(next: { body: PersonBody; tone: number }): void {
     if (next.body === person.body && next.tone === person.tone) return;
     person = next;
     renderPerson();
     opts.person?.onChange(person);
   }
   function renderPerson(): void {
-    for (const c of cards) c.btn.classList.toggle('is-on', c.body === person.body);
+    for (const c of cards) { c.btn.classList.toggle('is-on', c.body === person.body); c.btn.setAttribute('aria-pressed', String(c.body === person.body)); }
     toneBtns.forEach((b, i) => b.classList.toggle('is-on', i === person.tone));
+    renderChips();
   }
 
   const chips = el('div', 'wt-chips', undefined, sheet);
-  const chipBtns = HEIGHT_PRESETS_CM.map((cm, i) => {
-    const b = el('button', 'wt-chip-btn', undefined, chips);
-    b.type = 'button';
-    b.dataset.cm = String(cm);
-    b.style.setProperty('--tint', HEIGHT_TINTS[i]);
-    el('span', 'wt-swatch', undefined, b);
-    el('span', undefined, `${cm} cm`, b);
-    b.addEventListener('click', () => set(cm));
-    return b;
-  });
+  let chipBtns: HTMLButtonElement[] = [];
+  /** the three quick heights belong to the person: a child's are 105, 120 and 135 cm */
+  function renderChips(): void {
+    const list = BODY_CHIPS_CM[person.body];
+    if (chipBtns.length === list.length && chipBtns.every((b, i) => b.dataset.cm === String(list[i]))) return;
+    chips.textContent = '';
+    chipBtns = list.map((cmv, i) => {
+      const b = el('button', 'wt-chip-btn', undefined, chips);
+      b.type = 'button';
+      b.dataset.cm = String(cmv);
+      b.style.setProperty('--tint', HEIGHT_TINTS[i]);
+      el('span', 'wt-swatch', undefined, b);
+      el('span', undefined, `${cmv} cm`, b);
+      b.addEventListener('click', () => set(cmv));
+      return b;
+    });
+  }
 
   const stepper = el('div', 'wt-stepper', undefined, sheet);
   const minus = el('button', 'wt-step-btn', '−', stepper);
@@ -99,19 +111,20 @@ export function createHeightPicker(
   const go = el('button', 'wt-go', 'Start walking', sheet);
   go.type = 'button';
 
-  let cm = clampHeightCm(opts.getCm());
+  let cm = clampPersonHeight(person.body, opts.getCm());
   let opened = false;
 
   function render(): void {
     value.textContent = formatHeight(cm);
-    value.style.setProperty('--tint', tintForHeightCm(cm));
-    chipBtns.forEach((b, i) => b.classList.toggle('is-on', HEIGHT_PRESETS_CM[i] === cm));
-    minus.disabled = cm <= HEIGHT_MIN_CM;
-    plus.disabled = cm >= HEIGHT_MAX_CM;
-    sheet.style.setProperty('--tint', HEIGHT_TINTS[nearestPresetIndex(cm)]);
+    value.style.setProperty('--tint', tintForPerson(person.body, cm));
+    chipBtns.forEach((b) => b.classList.toggle('is-on', Number(b.dataset.cm) === cm));
+    const [lo, hi] = BODY_RANGE_CM[person.body];
+    minus.disabled = cm <= lo;
+    plus.disabled = cm >= hi;
+    sheet.style.setProperty('--tint', tintForPerson(person.body, cm));
   }
   function set(next: number): void {
-    const v = clampHeightCm(next);
+    const v = clampPersonHeight(person.body, next);
     if (v === cm) return;
     cm = v;
     render();
@@ -138,7 +151,7 @@ export function createHeightPicker(
   go.addEventListener('click', () => close());
 
   function open(first: boolean): void {
-    cm = clampHeightCm(opts.getCm());
+    cm = clampPersonHeight(person.body, opts.getCm());
     if (opts.person) { person = opts.person.get(); renderPerson(); }
     go.textContent = first && !opened ? 'Start walking' : 'Done';
     opened = true;
@@ -158,7 +171,7 @@ export function createHeightPicker(
   return {
     open, close,
     isOpen: () => !modal.hidden,
-    sync(next) { cm = clampHeightCm(next); render(); },
-    syncPerson(p) { person = p; renderPerson(); },
+    sync(next) { cm = clampPersonHeight(person.body, next); render(); },
+    syncPerson(p) { person = p; renderPerson(); render(); },
   };
 }

@@ -9,7 +9,7 @@
 // Colours are the ones the walk-through shows: the skin tone, the top's tint, the fixed trousers, shoes and hair of people-materials.ts.
 import * as THREE from 'three';
 import { pinDabs } from '../../../vendor/oilpaint/src/oilpaint/index.js';
-import { HAIR, SHOES, SKIN_TONES, TROUSERS, clampTone } from '../people-materials';
+import { SKIN_TONES, clampTone } from '../people-materials';
 import { paintMix } from './palettes';
 import type { RGB } from './palettes';
 
@@ -23,8 +23,8 @@ export interface PaintedPerson {
   dispose(): void;
 }
 
-type Role = 'skin' | 'top' | 'bottom' | 'shoes' | 'hair';
-const ROLES: Role[] = ['skin', 'top', 'bottom', 'shoes', 'hair'];
+type Role = 'skin' | 'top' | 'bottom' | 'wrap' | 'trim' | 'shoes' | 'hair';
+const ROLES: Role[] = ['skin', 'top', 'bottom', 'wrap', 'trim', 'shoes', 'hair'];
 /** [across, along] of one dab, metres, and dabs per square metre of the part */
 const STYLE: Record<Role, { size: [number, number]; perM2: number }> = {
   skin: { size: [0.02, 0.04], perM2: 2200 },
@@ -32,6 +32,8 @@ const STYLE: Record<Role, { size: [number, number]; perM2: number }> = {
   bottom: { size: [0.03, 0.07], perM2: 1500 },
   shoes: { size: [0.028, 0.055], perM2: 1500 },
   hair: { size: [0.022, 0.05], perM2: 2200 },
+  wrap: { size: [0.03, 0.07], perM2: 1500 },
+  trim: { size: [0.02, 0.04], perM2: 1500 },
 };
 
 function hexOf(c: THREE.Color): string { return '#' + c.getHexString(); }
@@ -51,12 +53,15 @@ export function paintPerson(shared: Parameters<typeof pinDabs>[0], character: { 
   for (const s of skinned) if (!byRole.has(s.name as Role)) byRole.set(s.name as Role, s);
   if (byRole.size === 0) return null; // the mannequin has none of these parts: nothing to paint
 
+  // the walk-through's colours: the skin tone, and the flat colour of every other part (the family's clothes, hair and shoes)
+  const matColour = (role: Role, fallback: string): string => {
+    const m = byRole.get(role);
+    return m ? hexOf((m.material as THREE.MeshStandardMaterial).color) : fallback;
+  };
   const colour: Record<Role, string> = {
     skin: SKIN_TONES[clampTone(character.tone)],
-    top: byRole.get('top') ? hexOf((byRole.get('top')!.material as THREE.MeshStandardMaterial).color) : '#E8823A',
-    bottom: byRole.get('bottom') ? hexOf((byRole.get('bottom')!.material as THREE.MeshStandardMaterial).color) : TROUSERS.male,
-    shoes: SHOES,
-    hair: HAIR,
+    top: matColour('top', '#E8823A'), bottom: matColour('bottom', '#E8E0CC'), wrap: matColour('wrap', '#9A2E4C'), trim: matColour('trim', '#C9A24A'),
+    shoes: matColour('shoes', '#4B3A2E'), hair: matColour('hair', '#1D1815'),
   };
 
   const group = new THREE.Group();
@@ -78,7 +83,7 @@ export function paintPerson(shared: Parameters<typeof pinDabs>[0], character: { 
   const cover = new Map<string, number>();
   const CELL = 0.05;
   const key = (x: number, y: number, z: number): string => `${Math.floor(x / CELL)},${Math.floor(y / CELL)},${Math.floor(z / CELL)}`;
-  for (const role of ['top', 'bottom', 'shoes'] as Role[]) {
+  for (const role of ['top', 'bottom', 'wrap', 'shoes'] as Role[]) {
     const m = byRole.get(role);
     if (!m) continue;
     const pos = m.geometry.getAttribute('position');

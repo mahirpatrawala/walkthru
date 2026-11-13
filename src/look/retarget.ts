@@ -268,3 +268,107 @@ export function liePoseClip(clips: THREE.AnimationClip[], target: RestRig, nameM
   }
   return [new THREE.AnimationClip(LIE_CLIP, 1, tracks)];
 }
+
+// ---------------------------------------------------------------- idles
+
+/** Names of the two one-shot idle clips a person body gets (SPEC 16.6.3): glance round the room, reach forward to open a door. */
+export const LOOK_CLIP = 'Look_Around';
+export const REACH_CLIP = 'Reach_Forward';
+
+interface Edit {
+  /** target bone name */
+  bone: string;
+  /** world axis the bone is swung about (the rest pose is a T-pose with Y up and Z forward, so X is sideways) */
+  axis: THREE.Vector3;
+  /** degrees at time t seconds */
+  deg: (t: number) => number;
+}
+
+/** Smooth 0 to 1 to 0 envelope: ramp up over `up`, hold until `hold`, ramp down by `end`. */
+function envelope(t: number, up: number, hold: number, end: number): number {
+  if (t <= 0 || t >= end) return 0;
+  const s = (x: number): number => x * x * (3 - 2 * x);
+  if (t < up) return s(t / up);
+  if (t <= hold) return 1;
+  return s(1 - (t - hold) / (end - hold));
+}
+
+/**
+ * A copy of `idle` (looped for `duration` seconds, baked at 30 Hz) with extra rotations on a few bones. Every track of the
+ * idle is kept, because a clip that left a bone out would let it drift to its bind pose while the clip is blended in.
+ * An edit swings the bone about a world axis: local' = parentWorld^-1 * R(axis, angle) * parentWorld * local, with the
+ * parent taken at its rest pose (the idle only sways a little).
+ */
+export function idleVariant(name: string, idle: THREE.AnimationClip, target: RestRig, duration: number, edits: Edit[]): THREE.AnimationClip {
+  const steps = Math.ceil(duration * BAKE_FPS);
+  const times = Array.from({ length: steps + 1 }, (_, i) => (duration * i) / steps);
+  const parentInv = (bone: string): THREE.Quaternion => {
+    const b = target.get(bone);
+    const p = b?.parent ? target.get(b.parent) : undefined;
+    return (p ? p.wq : new THREE.Quaternion()).clone().invert();
+  };
+  const tracks: THREE.KeyframeTrack[] = [];
+  const q = new THREE.Quaternion();
+  const swing = new THREE.Quaternion();
+  for (const tr of idle.tracks) {
+    const [bone, prop] = splitTrack(tr.name);
+    const it = interpolantOf(tr);
+    const size = tr.getValueSize();
+    const mine = prop === 'quaternion' ? edits.filter((e) => e.bone === bone) : [];
+    const vals = new Float32Array((steps + 1) * size);
+    for (let i = 0; i <= steps; i++) {
+      const r = it.evaluate(times[i] % idle.duration) as unknown as ArrayLike<number>;
+      for (let k = 0; k < size; k++) vals[i * size + k] = r[k];
+      if (mine.length === 0) continue;
+      q.set(r[0], r[1], r[2], r[3]);
+      for (const e of mine) {
+        const pw = parentInv(bone);
+        swing.setFromAxisAngle(e.axis, (e.deg(times[i]) * Math.PI) / 180);
+        // pw is parentWorld^-1: local' = pw * swing * pw^-1 * local
+        q.premultiply(pw.clone().invert()).premultiply(swing).premultiply(pw);
+      }
+      vals[i * size] = q.x; vals[i * size + 1] = q.y; vals[i * size + 2] = q.z; vals[i * size + 3] = q.w;
+    }
+    const Track = prop === 'quaternion' ? THREE.QuaternionKeyframeTrack : THREE.VectorKeyframeTrack;
+    tracks.push(new Track(tr.name, times, Array.from(vals)));
+  }
+  return new THREE.AnimationClip(name, duration, tracks);
+}
+
+/**
+ * The two idle clips every person gets, built from the retargeted Idle_Loop: `Look_Around` turns the head (and a little of
+ * the neck and chest) to one side, then the other, and back; `Reach_Forward` lifts the right arm forward and bends the
+ * elbow, as when opening a wardrobe door. Empty when the rig lacks the bones.
+ */
+export function idleVariants(clips: THREE.AnimationClip[], target: RestRig, nameMap: Map<string, string>): THREE.AnimationClip[] {
+  const idle = clips.find((c) => c.name === 'Idle_Loop');
+  if (!idle) return [];
+  const has = (n: string): boolean => target.has(n);
+  const need = ['neck_01', 'head', 'spine_03', 'upperarm_r', 'lowerarm_r'];
+  if (!need.every(has)) return [];
+  void nameMap;
+  const Y = new THREE.Vector3(0, 1, 0);
+  const X = new THREE.Vector3(1, 0, 0);
+  const keys: [number, number][] = [[0, 0], [0.9, 1], [1.7, 1], [2.7, -1], [3.4, -1], [4.3, 0], [4.4, 0]];
+  const look = (t: number): number => {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, v0] = keys[i], [t1, v1] = keys[i + 1];
+      if (t <= t1) { const k = (t - t0) / (t1 - t0); return v0 + (v1 - v0) * k * k * (3 - 2 * k); }
+    }
+    return 0;
+  };
+  const L = 4.4;
+  const lookClip = idleVariant(LOOK_CLIP, idle, target, L, [
+    { bone: 'spine_03', axis: Y, deg: (t) => 6 * look(t) },
+    { bone: 'neck_01', axis: Y, deg: (t) => 22 * look(t) },
+    { bone: 'head', axis: Y, deg: (t) => 22 * look(t) },
+  ]);
+  const R = 1.9;
+  const up = (t: number): number => envelope(t, 0.45, 1.25, R);
+  const reachClip = idleVariant(REACH_CLIP, idle, target, R, [
+    { bone: 'upperarm_r', axis: X, deg: (t) => -62 * up(t) },
+    { bone: 'lowerarm_r', axis: X, deg: (t) => -38 * up(t) },
+    { bone: 'spine_02', axis: X, deg: (t) => 4 * up(t) },
+  ]);
+  return [lookClip, reachClip];
+}
