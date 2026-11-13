@@ -27,9 +27,9 @@ const MEAN = { walnut_veneer: 0.162, rough_linen: 0.3972, cotton_jersey: 0.4303 
 
 export const DEFS: Record<MatKey, Def> = {
   // the wood grain is detail around a warm brown (the map alone renders as near-black chocolate under PBR light); low shows the flat mean
-  walnut: { color: '#A87C56', lowColor: '#8A6446', roughness: 0.55, metalness: 0, tex: 'walnut_veneer', detail: true, tile: 0.8 },
+  walnut: { color: '#A87C56', lowColor: '#8A6446', roughness: 0.48, metalness: 0, tex: 'walnut_veneer', detail: true, tile: 0.8 },
   white: { color: '#F4F2EE', roughness: 0.35, metalness: 0, tile: 1 },
-  shutterWhite: { color: '#F4F2EE', roughness: 0.35, metalness: 0, tile: 1 },
+  shutterWhite: { color: '#F4F2EE', roughness: 0.5, metalness: 0, tile: 1 },
   dark: { color: '#2E2A27', roughness: 0.7, metalness: 0, tile: 1 },
   linen: { color: '#8E9AA6', roughness: 0.95, metalness: 0, tex: 'rough_linen', detail: true, tile: 0.5 },
   sofa: { color: '#8E9AA6', roughness: 0.95, metalness: 0, tex: 'rough_linen', detail: true, tile: 0.5 },

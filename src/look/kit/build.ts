@@ -15,6 +15,11 @@ export class Acc {
   pos: number[] = [];
   nor: number[] = [];
   uv: number[] = [];
+  /** per-vertex colour (linear), used when one mesh carries several paints */
+  col: number[] = [];
+  private cur: V3 = [1, 1, 1];
+  /** the colour of everything added after this call (sRGB hex) */
+  tint(hex: string): this { const c = new THREE.Color(hex); this.cur = [c.r, c.g, c.b]; return this; }
   get empty(): boolean { return this.pos.length === 0; }
   get triangles(): number { return this.pos.length / 9; }
 
@@ -28,6 +33,7 @@ export class Acc {
     for (const i of order) {
       this.pos.push(...v[i]);
       this.nor.push(...n);
+      this.col.push(...this.cur);
       const t = uv ? uv[i] : [v[i][0] + v[i][2], v[i][1]];
       this.uv.push(t[0], t[1]);
     }
@@ -81,7 +87,7 @@ export class Acc {
     const h = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]);
     const k = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
     const vs = g * n[0] + h * n[1] + k * n[2] >= 0 ? [a, b, c] : [a, c, b];
-    for (const v of vs) { this.pos.push(...v); this.nor.push(...n); this.uv.push(v[0] + v[2], v[1]); }
+    for (const v of vs) { this.pos.push(...v); this.nor.push(...n); this.col.push(...this.cur); this.uv.push(v[0] + v[2], v[1]); }
   }
 
   geometry(): THREE.BufferGeometry {
@@ -89,6 +95,7 @@ export class Acc {
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
     g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nor, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
     return g;
   }
 }
@@ -116,14 +123,16 @@ export interface KitBuckets {
   skirting: Acc;
   grill: Acc; meshFrame: Acc; meshVeil: Acc;
   railing: Acc;
-  tubeBody: Acc; tubeLens: Acc;
-  plate: Acc; bezel: Acc; rocker: Acc; socket: Acc;
-  fanStatic: Acc; fanLight: Acc;
+  /** every painted fixture that is not a light (tube body, plates, rockers, sockets, fan body) in one mesh, coloured per vertex */
+  fixtures: Acc;
+  tubeLens: Acc;
+  fanLight: Acc;
   cove: Acc; coveLed: Acc;
 }
+/** paints of the fixtures mesh (sRGB) */
+export const PAINT = { tube: '#D3D1CB', plate: '#E3E0DA', bezel: '#B9B6AE', rocker: '#EFEDE8', socket: '#2A2A2A', fan: '#DCD8CE' } as const;
 export const newBuckets = (): KitBuckets => ({
-  skirting: new Acc(), grill: new Acc(), meshFrame: new Acc(), meshVeil: new Acc(), railing: new Acc(), tubeBody: new Acc(), tubeLens: new Acc(),
-  plate: new Acc(), bezel: new Acc(), rocker: new Acc(), socket: new Acc(), fanStatic: new Acc(), fanLight: new Acc(), cove: new Acc(), coveLed: new Acc(),
+  skirting: new Acc(), grill: new Acc(), meshFrame: new Acc(), meshVeil: new Acc(), railing: new Acc(), fixtures: new Acc(), tubeLens: new Acc(), fanLight: new Acc(), cove: new Acc(), coveLed: new Acc(),
 });
 
 const wallsOf = (layout: Layout): Map<string, Wall> => new Map(computeEdgeFrames(layout).map((f) => [`${f.roomId}:${f.edge}`, new Wall(f)]));
@@ -202,7 +211,8 @@ export function addTube(b: KitBuckets, walls: Map<string, Wall>, s: TubeSite): v
   const w = walls.get(`${s.roomId}:${s.edge}`);
   if (!w) return;
   const h = s.lengthM / 2;
-  w.box(b.tubeBody, s.u - h, s.u + h, -0.034, 0, s.y - 0.034, s.y + 0.034);
+  b.fixtures.tint(PAINT.tube);
+  w.box(b.fixtures, s.u - h, s.u + h, -0.034, 0, s.y - 0.034, s.y + 0.034);
   w.box(b.tubeLens, s.u - h + 0.025, s.u + h - 0.025, -0.0375, -0.033, s.y - 0.022, s.y + 0.022);
 }
 
@@ -211,16 +221,20 @@ export function addBoard(b: KitBuckets, walls: Map<string, Wall>, s: BoardSite):
   const w = walls.get(`${s.roomId}:${s.edge}`);
   if (!w) return;
   const hw = PLATE_W_M / 2, hh = PLATE_H_M / 2;
-  w.box(b.plate, s.u - hw, s.u + hw, -0.011, 0, s.y - hh, s.y + hh);
+  b.fixtures.tint(PAINT.plate);
+  w.box(b.fixtures, s.u - hw, s.u + hw, -0.011, 0, s.y - hh, s.y + hh);
   for (const dx of [-0.027, 0.027]) for (const dy of [0.066, 0.012]) {
-    w.box(b.bezel, s.u + dx - 0.022, s.u + dx + 0.022, -0.0135, -0.011, s.y + dy - 0.027, s.y + dy + 0.027);
-    w.box(b.rocker, s.u + dx - 0.0185, s.u + dx + 0.0185, -0.0185, -0.0135, s.y + dy - 0.0225, s.y + dy + 0.0225);
+    b.fixtures.tint(PAINT.bezel);
+    w.box(b.fixtures, s.u + dx - 0.022, s.u + dx + 0.022, -0.0135, -0.011, s.y + dy - 0.027, s.y + dy + 0.027);
+    b.fixtures.tint(PAINT.rocker);
+    w.box(b.fixtures, s.u + dx - 0.0185, s.u + dx + 0.0185, -0.0185, -0.0135, s.y + dy - 0.0225, s.y + dy + 0.0225);
   }
   const into: V3 = [-w.out[0], 0, -w.out[2]];
-  b.bezel.cylAxis(w.pt(s.u, -0.0115, s.y - 0.062), into, 0, 0.003, 0.034, 12);
-  b.plate.cylAxis(w.pt(s.u, -0.0145, s.y - 0.062), into, 0, 0.002, 0.029, 12);
+  b.fixtures.tint(PAINT.bezel).cylAxis(w.pt(s.u, -0.0115, s.y - 0.062), into, 0, 0.003, 0.034, 12);
+  b.fixtures.tint(PAINT.plate).cylAxis(w.pt(s.u, -0.0145, s.y - 0.062), into, 0, 0.002, 0.029, 12);
+  b.fixtures.tint(PAINT.socket);
   for (const [dx, dy] of [[0, 0.014], [-0.012, -0.008], [0.012, -0.008]] as const) {
-    w.box(b.socket, s.u + dx - 0.0025, s.u + dx + 0.0025, -0.0175, -0.0145, s.y - 0.062 + dy - 0.007, s.y - 0.062 + dy + 0.007);
+    w.box(b.fixtures, s.u + dx - 0.0025, s.u + dx + 0.0025, -0.0175, -0.0145, s.y - 0.062 + dy - 0.007, s.y - 0.062 + dy + 0.007);
   }
 }
 
@@ -229,17 +243,19 @@ export function addBoard(b: KitBuckets, walls: Map<string, Wall>, s: BoardSite):
 /** The parts of a fan that do not turn: canopy, down-rod, motor housing and the light cup. Built at a site's x, z. */
 export function addFanStatic(b: KitBuckets, s: FanSite): void {
   const H = s.wallHeightM;
-  b.fanStatic.cylY(s.x, s.z, H - 0.045, H, 0.06, 14, { bottom: true });
-  b.fanStatic.cylY(s.x, s.z, H - 0.17, H - 0.045, 0.011, 8, { top: false, bottom: false });
-  b.fanStatic.cylY(s.x, s.z, H - 0.245, H - 0.17, 0.095, 16, { top: true, bottom: true });
-  b.fanStatic.cylY(s.x, s.z, H - 0.285, H - 0.245, 0.062, 14, { top: false, bottom: true });
-  b.fanLight.quad([[s.x - 0.05, H - 0.2855, s.z - 0.05], [s.x + 0.05, H - 0.2855, s.z - 0.05], [s.x + 0.05, H - 0.2855, s.z + 0.05], [s.x - 0.05, H - 0.2855, s.z + 0.05]], [0, -1, 0]);
+  b.fixtures.tint(PAINT.fan);
+  b.fixtures.cylY(s.x, s.z, H - 0.045, H, 0.06, 14, { bottom: true });
+  b.fixtures.cylY(s.x, s.z, H - 0.16, H - 0.045, 0.011, 8, { top: false, bottom: false });
+  b.fixtures.cylY(s.x, s.z, H - 0.23, H - 0.16, 0.095, 16, { top: true, bottom: true });
+  b.fixtures.cylY(s.x, s.z, H - 0.265, H - 0.23, 0.062, 14, { top: false, bottom: true });
+  // the lowest point of a fan is 26.5 cm under the ceiling: the follow camera cannot rise past about 30 cm under it
+  b.fanLight.quad([[s.x - 0.05, H - 0.2655, s.z - 0.05], [s.x + 0.05, H - 0.2655, s.z - 0.05], [s.x + 0.05, H - 0.2655, s.z + 0.05], [s.x - 0.05, H - 0.2655, s.z + 0.05]], [0, -1, 0]);
 }
 
 /** Three blades and a hub, around the origin, at the height of the motor. Instanced once per fan and turned each frame. */
 export function fanRotorGeometry(wallHeightM: number, radiusM: number): THREE.BufferGeometry {
   const acc = new Acc();
-  const y = wallHeightM - 0.205;
+  const y = wallHeightM - 0.195;
   acc.cylY(0, 0, y - 0.012, y + 0.012, 0.085, 14);
   const r0 = 0.1;
   const pitch = (11 * Math.PI) / 180;

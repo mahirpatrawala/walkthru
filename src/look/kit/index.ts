@@ -89,13 +89,8 @@ export function mountKit(o: KitOptions): KitHandle {
   const veil = add('mesh', b.meshVeil, mats.veil);
   if (veil) veil.renderOrder = 3;
   add('railing', b.railing, mats.railing);
-  add('tube-body', b.tubeBody, mats.tubeBody);
+  add('fixtures', b.fixtures, mats.fixtures);
   add('tube-lens', b.tubeLens, mats.lens.tube, 'tube');
-  add('plates', b.plate, mats.plate);
-  add('bezels', b.bezel, mats.bezel);
-  add('rockers', b.rocker, mats.rocker);
-  add('sockets', b.socket, mats.socket);
-  add('fan', b.fanStatic, mats.fan);
   add('fan-light', b.fanLight, mats.lens.fan, 'fan');
   add('cove', b.cove, mats.cove);
   add('cove-led', b.coveLed, mats.lens.cove, 'cove');
@@ -143,11 +138,9 @@ export function mountKit(o: KitOptions): KitHandle {
     bedGroup.name = 'kit:bedheads';
     const bk = newBuckets();
     for (const s of sites) addBoard(bk, walls, s);
-    const parts: [Acc, THREE.Material, string][] = [[bk.plate, mats.plate, 'plates'], [bk.bezel, mats.bezel, 'bezels'], [bk.rocker, mats.rocker, 'rockers'], [bk.socket, mats.socket, 'sockets']];
-    for (const [acc, mat, name] of parts) {
-      if (acc.empty) continue;
-      const mesh = new THREE.Mesh(acc.geometry(), mat);
-      mesh.name = `kit:bedhead-${name}`;
+    if (!bk.fixtures.empty) {
+      const mesh = new THREE.Mesh(bk.fixtures.geometry(), mats.fixtures);
+      mesh.name = 'kit:bedhead-boards';
       mesh.userData.kit = true;
       mesh.raycast = () => {};
       bedGroup.add(mesh);
@@ -184,7 +177,10 @@ export function mountKit(o: KitOptions): KitHandle {
     });
   }
   // the shell's solid railing is replaced by the MS one drawn inside the same footprint
+  // (made invisible by a material that writes nothing, not by `visible`: the painterly mode skips invisible meshes and would lose the railing)
   const solidRailing = plan.railings.length ? (o.shell.getObjectByName('railings') as THREE.Mesh | undefined) ?? null : null;
+  const solidOriginal = solidRailing?.material;
+  const solidGhost = solidRailing ? new THREE.MeshBasicMaterial({ color: (solidOriginal as THREE.MeshStandardMaterial).color ?? '#3a3a3c', colorWrite: false, depthWrite: false }) : null;
 
   // ---- on / off
   let plain = o.plain ?? (new URLSearchParams(typeof location !== 'undefined' ? location.search : '').get('kit') === 'off' || read(PLAIN_KEY) === '1');
@@ -194,7 +190,7 @@ export function mountKit(o: KitOptions): KitHandle {
     const on = shown();
     group.visible = on;
     for (const s of floorSwaps) s.mesh.material = on ? s.kit : (s.original as THREE.Material);
-    if (solidRailing) solidRailing.visible = !on;
+    if (solidRailing && solidGhost) solidRailing.material = on ? solidGhost : (solidOriginal as THREE.Material);
     for (const cb of [...listeners]) cb();
   };
   apply();
@@ -239,6 +235,7 @@ export function mountKit(o: KitOptions): KitHandle {
     dom.push(whenFound('[data-testid="rooms-sheet"] .wt-rooms-card', (card) => {
       const p = document.createElement('p');
       p.className = 'wt-rooms-foot';
+      p.style.marginTop = '6px';
       p.dataset.testid = 'rooms-kit-note';
       p.textContent = KIT_NOTE;
       card.append(p);
@@ -263,7 +260,8 @@ export function mountKit(o: KitOptions): KitHandle {
       offFrame();
       if (bedTimer) clearTimeout(bedTimer);
       for (const s of floorSwaps) s.mesh.material = s.original as THREE.Material;
-      if (solidRailing) solidRailing.visible = true;
+      if (solidRailing) solidRailing.material = solidOriginal as THREE.Material;
+      solidGhost?.dispose();
       for (const d of dom) d();
       o.viewer.scene.remove(group);
       for (const g of geos) g.dispose();

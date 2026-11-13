@@ -271,6 +271,7 @@ describe('decor only', () => {
     v.scene.add(shell);
     const floorOf = (id: string): THREE.Mesh => shell.getObjectByName(`floor:${id}`) as THREE.Mesh;
     const original = floorOf('living').material;
+    const railingOriginal = (shell.getObjectByName('railings') as THREE.Mesh).material;
     const kit = mountKit({ viewer: v, layout: l, shell, look: lookWith(l), plain: false });
     const tags = new Map<string, THREE.Mesh>();
     kit.group.traverse((o) => { const t = o.userData.walkthruLight as string | undefined; if (t) tags.set(t, o as THREE.Mesh); });
@@ -280,12 +281,13 @@ describe('decor only', () => {
     expect((tags.get('tube')!.material as THREE.MeshStandardMaterial).emissiveIntensity).toBeGreaterThan(1);
     // floors carry the room's tile grid, partial rooms keep their hatch
     expect(floorOf('living').material).not.toBe(original);
-    expect(floorOf('guess').material.userData.partialLook).toBe(true);
-    expect(shell.getObjectByName('railings')!.visible).toBe(false);
+    expect((floorOf('guess').material as THREE.Material).userData.partialLook).toBe(true);
+    expect((shell.getObjectByName('railings') as THREE.Mesh).material).not.toBe(railingOriginal);
+    expect((shell.getObjectByName('railings') as THREE.Mesh).visible).toBe(true);
     kit.setPlain(true);
     expect(kit.group.visible).toBe(false);
     expect(floorOf('living').material).toBe(original);
-    expect(shell.getObjectByName('railings')!.visible).toBe(true);
+    expect((shell.getObjectByName('railings') as THREE.Mesh).material).toBe(railingOriginal);
     kit.setPlain(false);
     expect(kit.group.visible).toBe(true);
     kit.dispose();
