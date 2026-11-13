@@ -88,7 +88,7 @@ Two HTML entry points, no router:
 - `index.html` = buyer. `/?scene=<id>` (default `test-flat-empty`). Flag: `&debug=1`.
 - `editor.html` = broker or ops person. `/editor.html?scene=<id>`.
 
-Style: full-bleed 3D, HUD in the system font, white cards with 12 px radius, one accent `#2F6BFF`. Verdict colours: good `#1E9E5A`, warn `#E0A100`, bad `#D64545`. Touch targets at least 44 px.
+Style (the walkthru brand, `src/brand/brand.css`): full-bleed 3D; warm paper `#F7F0E4` and ink `#2B211C`, cards `#FFFDF8` with 14 px radius and one soft corner; terracotta `#B2472B` is the action colour, teal `#1E6B73` the colour of "measured" (measure lines, the mode bar), ochre `#E3A33A` the warmth; Bricolage Grotesque (Google Fonts) for display (wordmark, headings, chips, buttons) and the system font for anything you read. All text pairs checked at WCAG AA (white on terracotta 5.5, on teal 6.2, ink on paper 13.9, muted on paper 5.5). Verdict colours unchanged: good `#1E9E5A`, warn `#E0A100`, bad `#D64545`. Touch targets at least 44 px. The start page opens with a hero (name, "Walk through a flat before you visit it", an inline-SVG isometric flat in warm light, no image file and no three.js); the loading screens draw a small floor plan and rotate light lines ("Measuring twice, cutting never…") under the factual status line.
 
 Rendering: `outputColorSpace = SRGBColorSpace`, `toneMapping = NoToneMapping`, `antialias: true` when the scene has no splat and `false` when it has one (Spark's requirement), pixel ratio `min(devicePixelRatio, 2)` on desktop and `min(devicePixelRatio, 1.5)` on touch devices. One `HemisphereLight(0xffffff, 0xb8b0a8, 1.0)` and one `DirectionalLight(0xffffff, 0.6)` from (3, 6, 2). No shadow maps.
 
@@ -2475,6 +2475,16 @@ In the browser (CDP script, `test-flat-empty`, screenshots to `shots/people/` an
 14. **Weight:** both bodies together add at most 8 MB; a body is fetched only when chosen.
 
 The chunk report must state which route (A, B or C) each body shipped on, with one screenshot of each, and must not describe route B or C as realistic.
+
+#### 16.6.7 Lived-in mode (optional decor)
+
+An empty flat does not read as a home, so a "Lived-in" switch in the look sheet adds everyday Indian-home decor. It is decoration under the honesty rule (16.2 rule 4), so it is labelled, optional and can never change a number.
+
+- **What goes in** (`src/look/lived-in/`, all procedural low-poly, nothing downloaded so nothing to license): accent cushions and a striped throw on sofas and beds; books and a lamp on study tables, a lamp on side tables; a pressure cooker, steel dabbas and a fruit bowl on a kitchen platform; a fruit bowl and a steel jug on a dining table; a dhurrie rug in front of the living-room sofa; a tulsi / money plant by a window or in a corner (living room, one bedroom, the balcony); chappals and shoes beside the entry door; open curtains on bedroom and living-room windows; a wall clock and a framed picture (over the bed's head or the sofa's back when it stands against a wall); and, in a room labelled pooja, puja, mandir or prayer, a small wall temple with a brass diya, a kalash, a bell and a marigold string.
+- **Where it may go** (`plan.ts`, pure, deterministic for a given home): never in a `partial` room, nor on furniture standing in one; surface pieces only inside a real item's box at its surface height; floor pieces only on cells the walking grid says are free, inside their own room, at least 0.7 m (plus half the door's width) from any doorway and from any open edge (the shoes sit beside the entry door, out of its doorway), and only where a flood fill of the character-sized floor before and after has the same number of places (a sliver under 0.3 m2 does not count); the rug is flat, may run under its own sofa, never over another item or across a doorway; wall pieces only on a plain wall edge, clear of every door and window and of anything taller than their bottom edge (a curtain meets only its own window, floor length unless something stands under it). Items the buyer places while furnishing are not decor hosts, and floor and wall decor they cover is hidden, never moved.
+- **It cannot change a measurement.** Decor is planned on the walking grid and never stamped into it; it sits under the furniture root (so shadows, tiers and the painterly mode follow it) but every mesh has `raycast` switched off, so the measure tool, the furnish picker and every other ray ignore it. It is hidden while a scan is shown and while an AI photo is taken. Nothing is planned or built until the mode is first switched on.
+- **Default and memory.** On for made-up sample homes (so the gallery's homes read as homes at first sight), off for a real drawing until the buyer taps it. The viewer's own choice wins everywhere and is remembered in `localStorage` key `walkthru:livedIn` (every access wrapped in try/catch).
+- **Label.** "Decor added to show a lived-in home. Not from your drawing." sits under the switch and, while the mode is on, in the rooms sheet.
 
 ### 16.7 C11c: painterly mode ("a painting of your future home")
 
