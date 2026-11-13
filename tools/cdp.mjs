@@ -1,9 +1,12 @@
 // minimal CDP driver: node cdp.mjs <url> <script.js> ; script is an async function body with (send, eval, shot, sleep, logs)
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
+const OUT = process.env.CDP_OUT || `${os.tmpdir()}/walkthru-cdp`;
+fs.mkdirSync(OUT, { recursive: true });
 const [url, scriptPath] = process.argv.slice(2);
 const port = 9333 + Math.floor(Math.random() * 500);
-const profile = fs.mkdtempSync('/private/tmp/claude-501/-Users-mahir/10d10097-55f5-4fe7-877e-aab11a5f6ecb/scratchpad/cdp/prof-');
+const profile = fs.mkdtempSync(`${OUT}/prof-`);
 const chrome = spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', [
   '--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
   '--ignore-gpu-blocklist', '--window-size=1280,800', '--no-first-run', '--disable-extensions', 'about:blank',
@@ -23,7 +26,7 @@ ws.onmessage = (m) => {
 };
 const send = (method, params = {}) => new Promise((res, rej) => { const i = ++id; pending.set(i, { res, rej }); ws.send(JSON.stringify({ id: i, method, params })); });
 const ev = async (expr) => { const r = await send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description ?? r.exceptionDetails.text); return r.result.value; };
-const shot = async (name) => { const r = await send('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(`/private/tmp/claude-501/-Users-mahir/10d10097-55f5-4fe7-877e-aab11a5f6ecb/scratchpad/cdp/${name}.png`, Buffer.from(r.data, 'base64')); };
+const shot = async (name) => { const r = await send('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(`${OUT}/${name}.png`, Buffer.from(r.data, 'base64')); };
 await send('Runtime.enable'); await send('Page.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: +(process.env.W||1280), height: +(process.env.H||800), deviceScaleFactor: 1, mobile: process.env.MOBILE==='1' });
 await send('Page.navigate', { url });
