@@ -32,9 +32,9 @@
       ]
     },
     {
-      "id": "mbr-1",
+      "id": "mbr",
       "roomType": "bedroom",
-      "label": "Mbr 1",
+      "label": "Mbr",
       "polygon": [
         {
           "x": -1.8778829299439006,
@@ -220,7 +220,7 @@
     },
     {
       "id": "door-4",
-      "roomId": "mbr-1",
+      "roomId": "mbr",
       "edge": 2,
       "type": "door",
       "centreM": 1.699393204478866,
@@ -270,7 +270,7 @@
     },
     {
       "id": "window-4",
-      "roomId": "mbr-1",
+      "roomId": "mbr",
       "edge": 0,
       "type": "window",
       "centreM": 1.7557957248631584,

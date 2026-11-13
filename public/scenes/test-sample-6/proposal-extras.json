@@ -6,12 +6,24 @@
     "ptPerM": 99.99999936584264,
     "votes": [
       {
+        "source": "furniture DINING 0.91 x 1.52 m short side",
+        "ptPerM": 86.87664308990185
+      },
+      {
+        "source": "furniture DINING 0.91 x 1.52 m long side",
+        "ptPerM": 92.12600027169455
+      },
+      {
         "source": "room Living Room short side",
         "ptPerM": 99.99999313440313
       },
       {
         "source": "room Living Room area",
         "ptPerM": 99.99999560049392
+      },
+      {
+        "source": "furniture SOFA 0.91 x 1.98 m long side",
+        "ptPerM": 99.99999753542677
       },
       {
         "source": "room Living Room long side",
@@ -42,6 +54,10 @@
         "ptPerM": 99.99999936584264
       },
       {
+        "source": "furniture SOFA 0.91 x 1.98 m short side",
+        "ptPerM": 100.00000266995434
+      },
+      {
         "source": "room Kitchen short side",
         "ptPerM": 100.00000266995434
       },
@@ -58,8 +74,8 @@
         "ptPerM": 100.00000659635779
       }
     ],
-    "agreeing": 13,
-    "disagreementPct": 0.000013461954751042215
+    "agreeing": 15,
+    "disagreementPct": 13.123363589678721
   },
   "rooms": [
     {
@@ -125,7 +141,7 @@
       "id": "sofa-1",
       "source": "real",
       "kind": "sofa",
-      "label": "",
+      "label": "Sofa",
       "box": {
         "cx": -1.3686996546758032,
         "cz": -1.6764000045274985,
@@ -135,6 +151,21 @@
       },
       "heightM": 0.85,
       "surfaceHeightM": 0.43
+    },
+    {
+      "id": "dining-1",
+      "source": "real",
+      "kind": "dining",
+      "label": "Dining Table",
+      "box": {
+        "cx": -1.5180398655837928,
+        "cz": -0.196180268578076,
+        "w": 0.7944000294518088,
+        "d": 1.404000253044196,
+        "yawDeg": 90
+      },
+      "heightM": 0.95,
+      "surfaceHeightM": 0.75
     },
     {
       "id": "counter-1",
@@ -165,48 +196,9 @@
       },
       "heightM": 0.85,
       "surfaceHeightM": 0.85
-    },
-    {
-      "id": "dining-1",
-      "source": "real",
-      "kind": "dining",
-      "label": "",
-      "box": {
-        "cx": -1.5180398655837928,
-        "cz": -0.196180268578076,
-        "w": 0.9144000302127976,
-        "d": 1.5240002538051847,
-        "yawDeg": 90
-      },
-      "heightM": 0.95,
-      "surfaceHeightM": 0.75
     }
   ],
   "unmapped": [
-    {
-      "label": "Sofa",
-      "sizeM": {
-        "w": 0.9144,
-        "l": 1.9811999999999999
-      },
-      "at": {
-        "x": -1.368703950574268,
-        "z": -1.6737889132023462
-      },
-      "reason": "No outline of the labelled proportions near the label."
-    },
-    {
-      "label": "Dining Table",
-      "sizeM": {
-        "w": 0.9144,
-        "l": 1.524
-      },
-      "at": {
-        "x": -1.5180355765212654,
-        "z": -0.1935689038154221
-      },
-      "reason": "No outline of the labelled proportions near the label."
-    },
     {
       "label": "Tv Unit",
       "at": {
@@ -218,7 +210,7 @@
   ],
   "spawn": {
     "x": -1.3588996973382654,
-    "z": -1.5258789165528697e-7,
+    "z": 0.7499998474121083,
     "yawDeg": 0
   },
   "warnings": [

@@ -74,6 +74,10 @@
         "ptPerM": 37.99978307955951
       },
       {
+        "source": "room Bedroom short side",
+        "ptPerM": 37.999826248658245
+      },
+      {
         "source": "room Bath 1 short side",
         "ptPerM": 37.99988244433757
       },
@@ -135,6 +139,10 @@
       },
       {
         "source": "room Kids Bedroom short side",
+        "ptPerM": 38.00005216089551
+      },
+      {
+        "source": "room Bedroom long side",
         "ptPerM": 38.00005216089551
       },
       {
@@ -216,10 +224,14 @@
       {
         "source": "furniture SIDE TABLE 0.46 x 0.46 m long side",
         "ptPerM": 38.00092615376203
+      },
+      {
+        "source": "room Bedroom area",
+        "ptPerM": 38.03053393933489
       }
     ],
-    "agreeing": 51,
-    "disagreementPct": 4.924984042320864
+    "agreeing": 54,
+    "disagreementPct": 5.002899262092655
   },
   "rooms": [
     {
@@ -292,14 +304,18 @@
       "verified": true
     },
     {
-      "id": "room-11",
-      "label": "Room 11",
-      "roomType": "other",
+      "id": "bedroom",
+      "label": "Bedroom",
+      "roomType": "bedroom",
       "method": "walls",
       "confidence": 0.9,
+      "labelDims": {
+        "w": 3.5052,
+        "l": 3.6576
+      },
+      "labelAreaM2": 12.8,
       "areaM2": 12.82057671351065,
-      "verified": false,
-      "note": "size not confirmed yet"
+      "verified": true
     },
     {
       "id": "kitchen",
@@ -600,6 +616,18 @@
         "l": 1.8288
       },
       "at": {
+        "x": 0.6483082712636635,
+        "z": -2.1854342102879603
+      },
+      "reason": "Running length only, and no band of strokes against a wall of that length beside the label."
+    },
+    {
+      "label": "Wardrobe",
+      "sizeM": {
+        "w": 0,
+        "l": 1.8288
+      },
+      "at": {
         "x": -7.682901675516588,
         "z": -2.1854342102879603
       },
@@ -633,16 +661,15 @@
   },
   "warnings": [
     "This sheet holds 2 flats (Flat 1: 5 rooms, Flat 2: 5 rooms). The rooms of all of them are listed, but a walk-through is of one flat: keep the rooms of one flat and delete the rest in the editor.",
-    "1 closed space(s) with no label were added as unnamed rooms. Name them in the editor.",
     "Kids Bedroom has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Master Bedroom has no door on the drawing and no swing arc was found. Add one in the editor.",
-    "Room 11 has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Bedroom has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Kitchen has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Bath 1 has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Puja has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Terrace has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Room \"Lobby\": label says 17.14 x 1.22 m, the walls drawn around it measure about 8.87 x 1.22 m.",
-    "Printed room sizes against the drawn walls: 8 of 9 rooms agree on one scale; 4 rooms checked, 1 disagree by more than 5%.",
+    "Printed room sizes against the drawn walls: 9 of 10 rooms agree on one scale; 5 rooms checked, 1 disagree by more than 5%.",
     "Which wall does ELEV. B show? The drawing does not say clearly.",
     "Which wall does ELEV. C show? The drawing does not say clearly.",
     "Which wall does ELEV. D show? The drawing does not say clearly."
@@ -655,7 +682,7 @@
         "living-room",
         "kids-bedroom",
         "master-bedroom",
-        "room-11",
+        "bedroom",
         "terrace"
       ]
     },

@@ -148,9 +148,9 @@
       ]
     },
     {
-      "id": "room-11",
-      "roomType": "other",
-      "label": "Room 11",
+      "id": "bedroom",
+      "roomType": "bedroom",
+      "label": "Bedroom",
       "polygon": [
         {
           "x": -0.2412887204623413,
@@ -428,16 +428,15 @@
   "confidence": 0.7,
   "notes": [
     "This sheet holds 2 flats (Flat 1: 5 rooms, Flat 2: 5 rooms). The rooms of all of them are listed, but a walk-through is of one flat: keep the rooms of one flat and delete the rest in the editor.",
-    "1 closed space(s) with no label were added as unnamed rooms. Name them in the editor.",
     "Kids Bedroom has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Master Bedroom has no door on the drawing and no swing arc was found. Add one in the editor.",
-    "Room 11 has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Bedroom has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Kitchen has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Bath 1 has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Puja has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Terrace has no door on the drawing and no swing arc was found. Add one in the editor.",
     "Room \"Lobby\": label says 17.14 x 1.22 m, the walls drawn around it measure about 8.87 x 1.22 m.",
-    "Printed room sizes against the drawn walls: 8 of 9 rooms agree on one scale; 4 rooms checked, 1 disagree by more than 5%.",
+    "Printed room sizes against the drawn walls: 9 of 10 rooms agree on one scale; 5 rooms checked, 1 disagree by more than 5%.",
     "Which wall does ELEV. B show? The drawing does not say clearly.",
     "Which wall does ELEV. C show? The drawing does not say clearly.",
     "Which wall does ELEV. D show? The drawing does not say clearly."

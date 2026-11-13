@@ -38,11 +38,11 @@
         "ptPerM": 45.99994684236991
       },
       {
-        "source": "room Mbr 1 short side",
+        "source": "room Mbr short side",
         "ptPerM": 45.99994684236991
       },
       {
-        "source": "room Mbr 1 long side",
+        "source": "room Mbr long side",
         "ptPerM": 45.99994684236991
       },
       {
@@ -96,8 +96,8 @@
       "verified": true
     },
     {
-      "id": "mbr-1",
-      "label": "Mbr 1",
+      "id": "mbr",
+      "label": "Mbr",
       "roomType": "bedroom",
       "method": "walls",
       "confidence": 0.9,

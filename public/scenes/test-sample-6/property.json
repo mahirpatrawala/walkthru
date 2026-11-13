@@ -167,7 +167,7 @@
       "id": "sofa-1",
       "source": "real",
       "kind": "sofa",
-      "label": "",
+      "label": "Sofa",
       "box": {
         "cx": -1.3686996546758032,
         "cz": -1.6764000045274985,
@@ -177,6 +177,21 @@
       },
       "heightM": 0.85,
       "surfaceHeightM": 0.43
+    },
+    {
+      "id": "dining-1",
+      "source": "real",
+      "kind": "dining",
+      "label": "Dining Table",
+      "box": {
+        "cx": -1.5180398655837928,
+        "cz": -0.196180268578076,
+        "w": 0.7944000294518088,
+        "d": 1.404000253044196,
+        "yawDeg": 90
+      },
+      "heightM": 0.95,
+      "surfaceHeightM": 0.75
     },
     {
       "id": "counter-1",
@@ -207,21 +222,6 @@
       },
       "heightM": 0.85,
       "surfaceHeightM": 0.85
-    },
-    {
-      "id": "dining-1",
-      "source": "real",
-      "kind": "dining",
-      "label": "",
-      "box": {
-        "cx": -1.5180398655837928,
-        "cz": -0.196180268578076,
-        "w": 0.9144000302127976,
-        "d": 1.5240002538051847,
-        "yawDeg": 90
-      },
-      "heightM": 0.95,
-      "surfaceHeightM": 0.75
     }
   ],
   "spawn": {
@@ -229,6 +229,6 @@
     "z": 0.7499998474121083,
     "yawDeg": 0
   },
-  "updatedAt": "2026-11-13T15:31:54.550Z",
+  "updatedAt": "2026-11-13T16:58:48.629Z",
   "subtitle": "Synthetic sample drawing, made-up flat"
 }

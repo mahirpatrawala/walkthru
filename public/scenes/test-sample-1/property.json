@@ -37,9 +37,9 @@
         ]
       },
       {
-        "id": "mbr-1",
+        "id": "mbr",
         "roomType": "bedroom",
-        "label": "Mbr 1",
+        "label": "Mbr",
         "polygon": [
           {
             "x": -1.8778829299439006,
@@ -225,7 +225,7 @@
       },
       {
         "id": "door-4",
-        "roomId": "mbr-1",
+        "roomId": "mbr",
         "edge": 2,
         "type": "door",
         "centreM": 1.699393204478866,
@@ -275,7 +275,7 @@
       },
       {
         "id": "window-4",
-        "roomId": "mbr-1",
+        "roomId": "mbr",
         "edge": 0,
         "type": "window",
         "centreM": 1.7557957248631584,
@@ -426,6 +426,6 @@
     "z": -0.5838266568057416,
     "yawDeg": 0
   },
-  "updatedAt": "2026-11-13T15:30:51.907Z",
+  "updatedAt": "2026-11-13T16:55:49.290Z",
   "subtitle": "Synthetic sample drawing, made-up flat"
 }
