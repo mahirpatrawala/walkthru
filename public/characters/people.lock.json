@@ -1,10 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
   "built": "2026-11-13",
-  "route": {
-    "male": "A (MPFB2 + MakeHuman CC0 system assets)",
-    "female": "A (MPFB2 + MakeHuman CC0 system assets)"
-  },
+  "route": "family: MakeHuman base meshes shaped in MPFB2, stylised, clothes and hair modelled by tools/make_family.py (SPEC 16.6.7)",
   "sources": {
     "mpfb": {
       "file": "mpfb-2.0.18.zip",
@@ -23,40 +20,86 @@
     "blender": "5.3.0 (hash 02f0899d78e3)",
     "gltf-transform": "4.5.1",
     "meshoptimizer": "1.3.0",
-    "sharp": "0.35.5"
+    "sharp": "0.35.5",
+    "makehuman_system_assets_used": {
+      "files": [
+        "eyes/high-poly",
+        "eyebrows/eyebrow001",
+        "clothes/shoes05"
+      ],
+      "licence": "CC0 1.0 (each file header: released as CC0 in september 2020)",
+      "url": "https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip"
+    },
+    "makehuman_licence_2020": {
+      "url": "https://static.makehumancommunity.org/oldsite/faq/what_changed_regarding_the_license_in_2020.html",
+      "checked": "2026-11-13",
+      "says": "base mesh, targets and proxies are graphical assets covered by CC0"
+    },
+    "inspected_not_used": {
+      "name": "Quaternius Ultimate Animated Character Pack",
+      "url": "https://opengameart.org/content/animated-characters-pack",
+      "licence": "CC0",
+      "sha256": "0295062cbc72da52ee804f39ac38694901a40458011f9b2638fc7ef13ed509da",
+      "fetched": "2026-11-13",
+      "why": "chibi proportions"
+    }
   },
   "files": {
-    "person-m.glb": {
-      "bytes": 517568,
-      "sha256": "ddc8ae2c974e7e054f15f9ceec407476269adb4c50b94940e5787db5f5d88781"
-    },
-    "person-m-low.glb": {
-      "bytes": 206556,
-      "sha256": "44201d499d143b66f5ef6ebc9fd3b6241102fbb08929f23db1a08a3c7cd626ae"
-    },
-    "person-f.glb": {
-      "bytes": 469520,
-      "sha256": "916ee8771036a45f88baf495b85a8f5e8de8ac4c27bc13c3cef5e000f1f11788"
-    },
-    "person-f-low.glb": {
-      "bytes": 207512,
-      "sha256": "17b041ad1a7a720d977976921a063ac1301d48a6dc6c294e478fed91b99d7137"
+    "PEOPLE-LICENCE.txt": {
+      "bytes": 2329,
+      "sha256": "5b3def6dbb2bb94be30a50100839494cb685618638f1563cfa7d75f03e30d12b"
     },
     "clips.glb": {
       "bytes": 127672,
       "sha256": "5feaf885758fe90d4c37cf5f2e899496199e29f0c962e724fe6a30dfbcc027e0"
     },
-    "thumb-m.jpg": {
-      "bytes": 5231,
-      "sha256": "d5a83b49372b18225042ddba5c30e4185d138a4b54ce422ca310d616768c9f59"
+    "person-child-low.glb": {
+      "bytes": 96892,
+      "sha256": "157f3e469b107be29ee24f17a19599b31b7841d8a0b73de3de694193638523b3"
     },
-    "thumb-f.jpg": {
-      "bytes": 5436,
-      "sha256": "0b3ab7929d617eb2d4d4157b286820a9adb8adfa34fda9132b093f9fdfd46f53"
+    "person-child.glb": {
+      "bytes": 151216,
+      "sha256": "d64010cb47d16aa9b3592b0d228446df56a98921daba39cc54281479bac3d732"
     },
-    "PEOPLE-LICENCE.txt": {
-      "bytes": 2388,
-      "sha256": "2034cb23fc22478b28589792f80b03f031641293c0d9131033ce39fc019bb58e"
+    "person-elder-low.glb": {
+      "bytes": 103556,
+      "sha256": "e085c4819a91341eac5cb442fc068076459b69761c681a40626dbaaeb46fd5bf"
+    },
+    "person-elder.glb": {
+      "bytes": 159404,
+      "sha256": "580219fdb24948e02280944a12544788714a784d59695cda553f4ec057179e80"
+    },
+    "person-man-low.glb": {
+      "bytes": 102588,
+      "sha256": "e60544207eca4fd2f6ac89be20d25e069fd0d47e99ca5db2efe1e319641b4cff"
+    },
+    "person-man.glb": {
+      "bytes": 163568,
+      "sha256": "fab9090758703c4f1d5011f60716646b1e1ec5e50358a9eb0d720679e4773a5a"
+    },
+    "person-woman-low.glb": {
+      "bytes": 108084,
+      "sha256": "bd502e6a19d9dbc737d7fa33f63aebda1eb7fd4b6bc70d6908432fc7efe5a82c"
+    },
+    "person-woman.glb": {
+      "bytes": 167532,
+      "sha256": "02d78272535d2996a3d705ac172e7b09b328d9cb9c34ef41e0314be799b74a78"
+    },
+    "thumb-child.jpg": {
+      "bytes": 6981,
+      "sha256": "65c09b38bde01825c979b291f67c54398c74f7a9a90794b51c08205eee9a8510"
+    },
+    "thumb-elder.jpg": {
+      "bytes": 8147,
+      "sha256": "633d469cb371de5093168457da280d5f4c35ea113cc6eeeba2856ddb9641e248"
+    },
+    "thumb-man.jpg": {
+      "bytes": 7093,
+      "sha256": "cb76a07d5137ad125535780c44d72dcba053380999be9fe60569db5a19d00c15"
+    },
+    "thumb-woman.jpg": {
+      "bytes": 8345,
+      "sha256": "b006aaa72b13bb26d96ca6722daaa7a2bacde6c1435e6a9a27bec6e4efbbe45b"
     }
   }
 }

@@ -25,7 +25,8 @@ import { createInput } from '../engine/controls';
 import { FollowCamera } from '../engine/camera';
 import { stepLocomotion } from '../engine/locomotion';
 import { CHARACTER_RADIUS_M } from '../types';
-import { loadPerson, savePerson } from './person-store';
+import { BODY_DEFAULT_CM, bodyFrom, clampPersonHeight, loadPerson, savePerson, tintForPerson } from './person-store';
+import type { PersonBody } from '../look/people';
 import type { PropertyFile, Vec2 } from '../types';
 import { ModeManager, createBuyerContext } from './context';
 import type { BuyerContext, BuyerModeId } from './context';
@@ -50,8 +51,8 @@ import { createLivedIn, mountLivedInToggle } from '../look/lived-in';
 import type { LivedIn } from '../look/lived-in';
 import { mountPartialBadge, partialRoomInView } from './partial-badge';
 import {
-  HINT_KEY, clampHeightCm, createFurnitureStore, distanceToBox, roomChipText, safeStorage,
-  standardHeightNote, storageGet, storageSet, tintForHeightCm, unverifiedRoomsFromExtras,
+  HINT_KEY, createFurnitureStore, distanceToBox, roomChipText, safeStorage,
+  standardHeightNote, storageGet, storageSet, unverifiedRoomsFromExtras,
 } from './store';
 
 const SCENE_ID_RE = /^[a-z0-9-]{1,40}$/;
@@ -356,8 +357,8 @@ async function boot(): Promise<void> {
 
   // ---- height
   function applyHeight(cm: number): number {
-    const v = clampHeightCm(cm);
-    character.setHeight(v / 100, tintForHeightCm(v));
+    const v = clampPersonHeight(person.body, cm);
+    character.setHeight(v / 100, tintForPerson(person.body, v));
     person = { ...person, heightCm: v };
     savePerson(storage, person);
     picker?.sync(v);
@@ -365,17 +366,21 @@ async function boot(): Promise<void> {
     return v;
   }
   /** body and skin tone (SPEC 16.6.4); the new body is fetched only now, and swapped in place */
-  function applyPerson(next: { body: 'male' | 'female'; tone: number }): Promise<void> {
-    person = { ...person, body: next.body, tone: next.tone };
+  function applyPerson(next: { body: PersonBody; tone: number }): Promise<void> {
+    // another person starts at their own height (a child is not 175 cm); the buyer can change it from there
+    const changed = next.body !== person.body;
+    heightCm = changed ? BODY_DEFAULT_CM[next.body] : heightCm;
+    person = { ...person, body: next.body, tone: next.tone, heightCm };
     savePerson(storage, person);
     picker?.syncPerson(next);
+    picker?.sync(heightCm);
     return character.setAppearance({ body: next.body, tone: next.tone }).then(() => {
-      character.setHeight(heightCm / 100, tintForHeightCm(heightCm));
+      character.setHeight(heightCm / 100, tintForPerson(person.body, heightCm));
       interactions.refresh();
     });
   }
   let heightCm = person.heightCm;
-  character.setHeight(heightCm / 100, tintForHeightCm(heightCm));
+  character.setHeight(heightCm / 100, tintForPerson(person.body, heightCm));
 
   const blocking = (): boolean => picker.isOpen() || rooms.isOpen() || paintBusy;
 
@@ -598,8 +603,8 @@ async function boot(): Promise<void> {
     /** SPEC 16.6.6 hooks: who is walking. `set` resolves when the new body is in. */
     person: {
       get: () => ({ ...person, appearance: character.appearance, poseConstants: character.poseConstants }),
-      set: async (p: { body?: 'male' | 'female'; tone?: number; heightCm?: number }) => {
-        await applyPerson({ body: p.body ?? person.body, tone: p.tone ?? person.tone });
+      set: async (p: { body?: PersonBody | 'male' | 'female'; tone?: number; heightCm?: number }) => {
+        await applyPerson({ body: bodyFrom(p.body ?? person.body), tone: p.tone ?? person.tone });
         if (p.heightCm !== undefined) heightCm = applyHeight(p.heightCm);
         return { ...person };
       },

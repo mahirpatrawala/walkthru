@@ -51,7 +51,7 @@ export function stepLocomotion(ch: Character, input: Input, cameraYawDeg: number
 
   const scale = ch.heightM / REF_HEIGHT_M;
   const jog = input.jog;
-  const full = (jog ? JOG_MPS : WALK_MPS) * scale;
+  const full = (jog ? JOG_MPS : WALK_MPS) * scale * (ch.walkFactor ?? 1);
   const wanted = full * Math.min(1, mag / FULL_PUSH);
 
   // turn toward the heading

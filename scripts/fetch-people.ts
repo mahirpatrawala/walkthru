@@ -1,4 +1,4 @@
-// SPEC 16.6.2. The person bodies are built by tools/make_people.py (route A, MPFB2 in headless Blender) and committed under
+// SPEC 16.6.2. The person bodies are built by tools/make_family.py (MPFB2 in headless Blender) and committed under
 // public/characters/. This script checks that what is on disk is what public/characters/people.lock.json says, so a broken
 // checkout or a stray edit is caught before it ships:   npx tsx scripts/fetch-people.ts
 //
@@ -21,4 +21,4 @@ for (const [name, want] of Object.entries(lock.files)) {
   console.log(`${ok ? 'ok      ' : 'MISMATCH'} ${name} ${buf.length} bytes`);
   if (!ok) bad++;
 }
-if (bad > 0) { console.error(`${bad} file(s) differ from people.lock.json. Rebuild with tools/make_people.py and tools/optimise-people.mjs, then refresh the lock.`); process.exit(1); }
+if (bad > 0) { console.error(`${bad} file(s) differ from people.lock.json. Rebuild with tools/make_family.py and tools/optimise-people.mjs, then refresh the lock.`); process.exit(1); }
