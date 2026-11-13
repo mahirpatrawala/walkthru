@@ -1,4 +1,5 @@
 // Owned by C3. The buyer page: boot (B1 loading), height picker (B2), the walking loop (B3), debug hooks.
+import { ceilingTrustFromExtras, setCeilingTrust } from '../core/room-trust';
 import * as THREE from 'three';
 import { catalogItem, itemFromCatalog } from '../core/catalog';
 import { circleFree, nearestFree } from '../core/grid-query';
@@ -147,7 +148,7 @@ async function boot(): Promise<void> {
   try {
     const r = await fetch(`/scenes/${sceneId}/proposal-extras.json`, { cache: 'no-cache' });
     const t = r.ok ? await r.text() : '';
-    if (t && !/^\s*</.test(t)) unverifiedRooms = unverifiedRoomsFromExtras(JSON.parse(t));
+    if (t && !/^\s*</.test(t)) { const ex = JSON.parse(t); unverifiedRooms = unverifiedRoomsFromExtras(ex); setCeilingTrust(ceilingTrustFromExtras(ex)); }
   } catch { /* optional */ }
   if (layout.rooms.length === 0) {
     loading.showError('This home has no rooms yet.', 'The layout is empty. A broker can trace the rooms in the editor.');

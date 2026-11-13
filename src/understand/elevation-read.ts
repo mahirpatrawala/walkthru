@@ -15,7 +15,7 @@ import type { ElevView, ViewDim } from './elevation-link';
 const hyp = Math.hypot;
 const fnv = (s: string): string => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
 
-export interface ReadScale { ptPerM: number; source: 'dimensions' | 'wall'; /** relative uncertainty of the scale */ delta: number; /** an independent ruler (the linked wall's length) when the view also has a scale of its own */ wall?: { ptPerM: number; delta: number } }
+export interface ReadScale { ptPerM: number; source: 'dimensions' | 'wall'; /** relative uncertainty of the scale */ delta: number; /** the scale rests on evidence the strings do not own: where a printed value and the measure disagree, the measure is the better number */ trusted: boolean; /** an independent ruler (the linked wall's length) when the view also has a scale of its own */ wall?: { ptPerM: number; delta: number } }
 export type LevelKind = 'ceiling' | 'sill' | 'head' | 'bed-base' | 'mattress-top' | 'headboard-top' | 'door-head' | 'unit-top';
 export interface Level { kind: LevelKind; y: number; e: Extracted<number>; block?: number }
 export interface OpeningRead { type: 'window' | 'door'; box: Box4; /** metres from the left end wall's inner face (null without a scale) */ u0M: number | null; u1M: number | null; width: Extracted<number> | null; sill?: Extracted<number>; head?: Extracted<number> }
@@ -141,7 +141,7 @@ class Levels {
     }
   }
   /** Height of a y with its status: from the dimension path when there is one, else measured (needs a scale). */
-  heightAt(y: number): { value: number; status: Status; node: Node | null; method: Method; checks: Check[]; measured: number | null } | null {
+  heightAt(y: number): { value: number; status: Status; node: Node | null; method: Method; checks: Check[]; measured: number | null; alt?: number } | null {
     const S = this.c.scale;
     const measured = S ? (this.floorY - y) / S.ptPerM : null;
     const n = this.nodes.find((q) => Math.abs(q.y - y) <= NODE_TOL);
@@ -149,14 +149,18 @@ class Levels {
       const method: Method = n.dims.every((d) => d.v.method === 'pdf-text') ? 'pdf-text' : n.dims.some((d) => d.v.method === 'vision') ? 'vision' : n.dims.some((d) => d.v.method === 'ocr') ? 'ocr' : 'glyph';
       let status = n.status;
       const checks = [...n.checks];
+      let value = n.h; let alt: number | undefined;
       if (measured !== null && S) {
         const band = tightBand(Math.abs(n.h), S.delta);
         // a sum of several strings is held to the band of its own size: every term has its rounding
         const ok = band !== null && Math.abs(measured - n.h) <= band;
         checks.push({ kind: 'geometry', expected: n.h, got: measured, ok });
         if (!ok) status = status === 'verified' ? (band === null ? 'unverified' : 'conflict') : status;
+        // printed and measured disagree beyond what the scale could blame: on a scale that can be trusted the drawing's own geometry is the number
+        // the model uses, the printed one is kept beside it for the broker
+        if (S.trusted && (status === 'conflict' || (band !== null && Math.abs(measured - n.h) > Math.max(band, 0.02)))) { status = 'conflict'; alt = n.h; value = measured; }
       } else if (status === 'verified') status = 'unverified'; // nothing to measure it against
-      return { value: n.h, status, node: n, method, checks, measured };
+      return { value, status, node: n, method: alt !== undefined ? 'vector' : method, checks, measured, ...(alt !== undefined ? { alt } : {}) };
     }
     if (n && n === this.nodes[0]) return { value: 0, status: 'verified', node: n, method: 'derived', checks: [], measured: 0 };
     if (measured !== null) return { value: measured, status: 'unverified', node: null, method: 'vector', checks: [], measured };
@@ -165,6 +169,16 @@ class Levels {
 }
 
 const rawWithin = (a: number, b: number, tol: number): boolean => Math.abs(a - b) <= tol;
+
+
+type H = NonNullable<ReturnType<Levels['heightAt']>>;
+/** A level as an Extracted value: the printed number's path, its checks, and the printed value kept beside the measured one when they disagree. */
+function levelEx(c: Ctx, path: string, h: H, bbox: Box4, text?: string): Extracted<number> {
+  const printed = text ?? h.node?.dims.map((d) => d.v.dim.run.str).join(' + ') ?? h.node?.text;
+  const e = mk(c, path, h.value, h.method, h.status, h.status === 'verified' ? 0.96 : h.status === 'conflict' ? 0.4 : 0.3, bbox, { unit: 'm', checks: h.checks, ...(printed ? { source: { page: 0, view: '', sheet: '', bbox, text: printed } } : {}) });
+  if (h.alt !== undefined) e.alternatives = [{ value: h.alt, method: h.node?.dims.every((d) => d.v.method === 'pdf-text') ? 'pdf-text' : 'glyph', source: { ...e.source } }];
+  return e;
+}
 
 // ---------------------------------------------------------------- loose length strings (a label with no dimension line)
 interface Loose { read: TextRead; valueM: number }
@@ -392,7 +406,7 @@ function readUnit(c: Ctx, lv: Levels, block: Block, blockIdx: number): UnitRead 
     const y = (st.floorY - med(handleYs)) / S.ptPerM, len = med(handleLens) / S.ptPerM;
     design.handle = { y: mk(c, `unit.handle.y.${blockIdx}`, y, 'vector', 'unverified', 0.3, block.box, { unit: 'm' }), length: mk(c, `unit.handle.l.${blockIdx}`, len, 'vector', 'unverified', 0.3, block.box, { unit: 'm' }) };
   }
-  const height = hTop ? mk(c, `unit.height.${blockIdx}`, hTop.value, hTop.method, hTop.status, hTop.status === 'verified' ? 0.95 : 0.3, block.box, { unit: 'm', checks: hTop.checks }) : null;
+  const height = hTop ? levelEx(c, `unit.height.${blockIdx}`, hTop, block.box) : null;
   const notes = c.reads.filter((r) => { const cx = (r.bbox[0] + r.bbox[2]) / 2, cy = (r.bbox[1] + r.bbox[3]) / 2; return cx >= bx0 && cx <= bx1 && cy >= by0 && cy <= by1 && /[A-Za-z]{4}/.test(r.str); }).map((r) => r.str.trim());
   return {
     box: block.box, u0M: S ? (bx0 - st.left) / S.ptPerM : null, u1M: S ? (bx1 - st.left) / S.ptPerM : null,
@@ -413,7 +427,7 @@ export function readView(view: ElevView, scale: ReadScale | null, dimEval: Map<s
   // ---- the ceiling: the level at the soffit
   const hc = lv.heightAt(st.soffitY);
   if (hc) {
-    const e = mk(c, 'ceiling', hc.value, hc.method, hc.status, hc.status === 'verified' ? 0.97 : 0.3, [view.box[0], st.soffitY, view.box[2], st.soffitY + 1], { unit: 'm', checks: hc.checks, ...(hc.node?.dims[0] ? { source: { page: 0, view: '', sheet: '', bbox: [0, 0, 0, 0] as Box4, text: hc.node.dims.map((d) => d.v.dim.run.str).join(' + ') } } : {}) });
+    const e = levelEx(c, 'ceiling', hc, [view.box[0], st.soffitY, view.box[2], st.soffitY + 1]);
     base.ceiling = e; base.levels.push({ kind: 'ceiling', y: st.soffitY, e });
   }
   const loose = S ? looseReads(view, reads) : [];
@@ -440,13 +454,13 @@ export function readView(view: ElevView, scale: ReadScale | null, dimEval: Map<s
       const widthE = S ? mk(c, `open.w.${bi}`, (b.box[2] - b.box[0]) / S.ptPerM, 'vector', 'unverified', 0.3, b.box, { unit: 'm' }) : null;
       const o: OpeningRead = { type: b.kind, box: b.box, u0M: S ? (b.box[0] - st.left) / S.ptPerM : null, u1M: S ? (b.box[2] - st.left) / S.ptPerM : null, width: widthE };
       if (b.kind === 'window') {
-        if (hs && hs.node !== null) o.sill = mk(c, `open.sill.${bi}`, hs.value, hs.method, hs.status, hs.status === 'verified' ? 0.95 : 0.3, [b.box[0], sillY, b.box[2], sillY + 1], { unit: 'm', checks: hs.checks, ...(hs.node?.text ? { source: { page: 0, view: '', sheet: '', bbox: [0, 0, 0, 0] as Box4, text: hs.node.text } } : {}) });
+        if (hs && hs.node !== null) o.sill = levelEx(c, `open.sill.${bi}`, hs, [b.box[0], sillY, b.box[2], sillY + 1]);
         else if (hs) o.sill = mk(c, `open.sill.${bi}`, hs.value, 'vector', 'unverified', 0.3, [b.box[0], sillY, b.box[2], sillY + 1], { unit: 'm' });
-        if (hh) o.head = mk(c, `open.head.${bi}`, hh.value, hh.method, hh.status, hh.status === 'verified' ? 0.95 : 0.3, [b.box[0], headY, b.box[2], headY + 1], { unit: 'm', checks: hh.checks });
+        if (hh) o.head = levelEx(c, `open.head.${bi}`, hh, [b.box[0], headY, b.box[2], headY + 1]);
         if (o.sill) base.levels.push({ kind: 'sill', y: sillY, e: o.sill, block: bi });
         if (o.head) base.levels.push({ kind: 'head', y: headY, e: o.head, block: bi });
       } else if (hh) {
-        o.head = mk(c, `open.head.${bi}`, hh.value, hh.method, hh.status, hh.status === 'verified' ? 0.95 : 0.3, [b.box[0], headY, b.box[2], headY + 1], { unit: 'm', checks: hh.checks });
+        o.head = levelEx(c, `open.head.${bi}`, hh, [b.box[0], headY, b.box[2], headY + 1]);
         base.levels.push({ kind: 'door-head', y: headY, e: o.head, block: bi });
       }
       base.openings.push(o);
@@ -457,7 +471,7 @@ export function readView(view: ElevView, scale: ReadScale | null, dimEval: Map<s
       if (wide.length === 3) wide.forEach((r, k) => {
         const h = lv.heightAt(r.y0);
         if (!h) return;
-        const e = mk(c, `bed.${names[k]}.${bi}`, h.value, h.method, h.status, h.status === 'verified' ? 0.95 : 0.3, [r.x0, r.y0, r.x1, r.y0 + 1], { unit: 'm', checks: h.checks });
+        const e = levelEx(c, `bed.${names[k]}.${bi}`, h, [r.x0, r.y0, r.x1, r.y0 + 1]);
         levels.push({ kind: names[k], y: r.y0, e, block: bi });
       });
       base.beds.push({ box: b.box, levels }); base.levels.push(...levels);

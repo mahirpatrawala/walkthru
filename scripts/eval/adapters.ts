@@ -168,7 +168,16 @@ export function elevationsOf(u: Understood): PredElevation[] {
     const link = u.elev.links.find((l) => l.view === v.id);
     const rd = u.elev.reads.find((x) => x.view === v.id);
     const pe: PredElevation = { caption: v.caption?.text ?? '', linkConfidence: link?.confidence, page: v.page, top: v.box[1] };
-    if (link?.wall) pe.wall = { at: [link.wall.mid.x, link.wall.mid.z] };
+    if (link?.wall) {
+      const w = u.elev.walls.find((x) => x.roomId === link.wall!.roomId && x.edge === link.wall!.edge);
+      const room = u.result.proposal.rooms.find((r) => r.id === link.wall!.roomId);
+      pe.wall = { at: [link.wall.mid.x, link.wall.mid.z] };
+      if (w && room) {
+        const ux = (w.q.x - w.p.x) / w.length, uz = (w.q.z - w.p.z) / w.length;
+        pe.wall.normal = [uz, -ux];
+        pe.wall.roomAt = [room.polygon.reduce((a, p) => a + p.x, 0) / room.polygon.length, room.polygon.reduce((a, p) => a + p.z, 0) / room.polygon.length];
+      }
+    }
     if (rd) {
       const nameOf: Record<string, string> = { ceiling: 'ceiling', sill: 'sill', head: 'head', 'bed-base': 'bed-base', 'mattress-top': 'mattress-top', 'headboard-top': 'headboard-top' };
       pe.heights = rd.levels.filter((l) => nameOf[l.kind]).map((l) => ({ kind: nameOf[l.kind], v: l.e.value, status: l.e.status }));

@@ -3,6 +3,7 @@
 //
 // Layout of this file: pure helpers (headless-tested), then `createFurnishSession` (the state machine: no DOM, runs under
 // Node against the real FurnitureStore), then `createFurnishMode` (the tray DOM, pointer and key wiring).
+import { ceilingIsKnown } from '../core/room-trust';
 import * as THREE from 'three';
 import './furnish.css';
 import { withSwingNote } from './wardrobe-hooks';
@@ -238,7 +239,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishS
   };
 
   const check = (s: { id: string; spec: CatalogItem; box: Box }): PlacementResult =>
-    checkPlacement(gridWithout(s.id), s.spec, s.box, ceilingM());
+    checkPlacement(gridWithout(s.id), s.spec, s.box, ceilingM(), ceilingIsKnown());
 
   const verdictOf = (): FurnishVerdict | null => {
     const s = subject();

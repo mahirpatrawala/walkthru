@@ -17,7 +17,6 @@ import type { TextRead } from './reads';
 import { captionOf } from './lexicon';
 import { fitScale } from './scale-fit';
 import type { ScaleFit } from './scale-fit';
-import { withoutReadStrokes } from './text-pdf';
 import { clusterLinework, findBlocks, findStructure, rectsOf, segmentsOf } from './elevation-view';
 import type { Block, Box4, Rect, Seg, Structure } from './elevation-view';
 
@@ -202,6 +201,22 @@ function dimsIn(pv: PageVerdict | undefined, box: Box4): ViewDim[] {
   return out;
 }
 
+/**
+ * The page as linework: the strokes that drew a stroke-read string are taken out, except a clean closed rectangle (a mattress, a
+ * bed leg, a handle) which a reader may have taken for a zero or a dash: lettering is never a rectangle.
+ */
+function lineworkOf(page: VectorPage, reads: TextRead[]): VectorPage {
+  const drop = new Set<number>(reads.flatMap((r) => (r.method === 'glyph' ? r.strokes ?? [] : [])));
+  if (!drop.size) return page;
+  const rectLike = (s: VectorPage['strokes'][number]): boolean => {
+    if (!s.closed || s.hasCurve || s.points.length < 4 || s.points.length > 5) return false;
+    const xs = s.points.map((p) => p.x), ys = s.points.map((p) => p.y);
+    const w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
+    return w >= 1.2 && h >= 1.2 && s.points.every((p, i) => { const q = s.points[(i + 1) % s.points.length]; return Math.abs(p.x - q.x) < 0.35 || Math.abs(p.y - q.y) < 0.35; });
+  };
+  return { ...page, strokes: page.strokes.filter((s, i) => !drop.has(i) || rectLike(s)) };
+}
+
 const MIN_ITEMS = 6;
 export interface Discovery { views: ElevView[]; zone: Box4 | null }
 
@@ -215,7 +230,7 @@ export function discoverViews(result: ImportResult, trace: ProposeTrace, pagesVe
   trace.pages.forEach((pg0, pi) => {
     if (trace.kinds[pi] === 'raster') return;
     const reads = trace.reads[pi];
-    const pg = withoutReadStrokes(pg0, reads) as VectorPage;
+    const pg = lineworkOf(pg0, reads);
     const caps = captionsOf(reads);
     const skipZone = pi === trace.planIdx && zone ? zone : null;
     const skip = skipZone ? { stroke: (_i: number, b: Box4) => insideBox((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, skipZone), fill: (_i: number, b: Box4) => insideBox((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, skipZone) } : undefined;
@@ -346,6 +361,8 @@ export interface LinkResult {
   confidence: number;
   /** what each signal said, for the review screen and the tests */
   evidence: { key: number; width: number; content: number; mirrored: boolean };
+  /** the factor the plan's lengths were corrected by to compare them with the views' (1 unless the plan's own scale was a guess the views disagree with) */
+  planScale?: number;
   /** another reading of the same view (the next best wall), when it was close */
   runnerUp?: { roomId: string; edge: number; score: number };
 }
@@ -362,6 +379,25 @@ export function impliedWallLength(v: ElevView): { lengthM: number; source: ViewS
   const ceil = v.dims.find((d) => d.vertical && Math.abs(Math.max(d.y0, d.y1) - v.st!.floorY) <= 2 && Math.abs(Math.min(d.y0, d.y1) - v.st!.soffitY) <= 2);
   if (ceil && ceil.v.valueM >= 1.8 && ceil.v.valueM <= 4.5) return { lengthM: (clearWidthPt(v) / clearHeightPt(v)) * ceil.v.valueM, source: 'ceiling-ratio' };
   return null;
+}
+
+/**
+ * When the plan's own scale is a guess (no room label or dimension agreed on it), the views can say what it should have been: a
+ * factor that brings the lengths the views imply onto the plan's walls for most of them. 1 when the plan needs no correction.
+ */
+export function planScaleCorrection(views: ElevView[], walls: WallRef[]): number {
+  const implied = views.filter((v) => v.st && !v.internal).map((v) => impliedWallLength(v)?.lengthM).filter((x): x is number => !!x);
+  if (implied.length < 3 || !walls.length) return 1;
+  const count = (r: number): number => implied.filter((L) => walls.some((w) => Math.abs((r * w.length) / L - 1) <= 0.03)).length;
+  const base = count(1);
+  let best = { r: 1, n: base };
+  for (const L of implied) for (const w of walls) {
+    const r = L / w.length;
+    if (r < 0.45 || r > 2.2) continue;
+    const n = count(r);
+    if (n > best.n || (n === best.n && Math.abs(Math.log(r)) < Math.abs(Math.log(best.r)))) best = { r, n };
+  }
+  return best.n >= 3 && best.n >= 0.6 * implied.length && best.n > base && Math.abs(best.r - 1) > 0.04 ? best.r : 1;
 }
 
 const KIND_OF_BLOCK: Partial<Record<Block['kind'], FeatureKind>> = { unit: 'unit', window: 'window', door: 'door', bed: 'bed' };
@@ -391,9 +427,10 @@ interface Cand { wi: number; total: number; key: number; width: number; content:
  * Internal views take the wall of the view their caption names.
  */
 export function linkViews(
-  views: ElevView[], walls: WallRef[], result: ImportResult, items: PlanItem[], key: KeyMarker | null,
+  views: ElevView[], walls: WallRef[], result: ImportResult, items: PlanItem[], key: KeyMarker | null, opts: { planScaleOk?: boolean } = {},
 ): LinkResult[] {
   const plain = views.filter((v) => v.st && !v.internal);
+  const kScale = opts.planScaleOk ? 1 : planScaleCorrection(views, walls);
   const feats = walls.map((w) => featuresOnWall(w, result, items));
   const cands = new Map<string, Cand[]>();
   for (const v of plain) {
@@ -411,7 +448,7 @@ export function linkViews(
       }
       let wScore = 0;
       if (implied) {
-        const r = implied.lengthM / w.length;
+        const r = implied.lengthM / (w.length * kScale);
         const dev = Math.abs(r - 1);
         const weight = implied.source === 'dimensions' ? 1 : 0.75;
         wScore = weight * (dev <= 0.025 ? 2.2 : dev <= 0.05 ? 1.4 : dev <= 0.09 ? 0.2 : -2);
@@ -459,7 +496,7 @@ export function linkViews(
     conf = Math.min(0.97, conf);
     out.push({
       view: v.id, wall: { roomId: w.roomId, edge: w.edge, mid: w.mid, length: w.length }, confidence: conf,
-      evidence: { key: c.key, width: c.width, content: c.content, mirrored: c.mirrored },
+      evidence: { key: c.key, width: c.width, content: c.content, mirrored: c.mirrored }, ...(kScale !== 1 ? { planScale: kScale } : {}),
       ...(second && margin < 1.5 ? { runnerUp: { roomId: walls[second.wi].roomId, edge: walls[second.wi].edge, score: second.total } } : {}),
     });
   });

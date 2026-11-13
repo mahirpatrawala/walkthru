@@ -260,7 +260,19 @@ export function scoreSet(pred: Prediction, truth: TruthLite): SetScore {
       if (room) {
         const p = room.polygonM, e = t.wall.edge;
         const m: Pt = [(p[e][0] + p[(e + 1) % p.length][0]) / 2, (p[e][1] + p[(e + 1) % p.length][1]) / 2];
-        if (near(AR(q.wall.at), m, 0.35)) S.fields.elevLink.right++;
+        let ok = near(AR(q.wall.at), m, 0.35);
+        // The wall is the right one when it is in the right room and looks the same way. (A sheet stretched along one axis, or a plan
+        // that is not to scale, moves a wall's middle by more than a position check allows without changing which wall it is.)
+        if (!ok && al && q.wall.normal && q.wall.roomAt) {
+          const n = rot(q.wall.normal, al.rot);
+          const [tx, tz] = [p[(e + 1) % p.length][0] - p[e][0], p[(e + 1) % p.length][1] - p[e][1]];
+          const tl = Math.hypot(tx, tz) || 1;
+          const tn: Pt = [tz / tl, -tx / tl];
+          const c = AR(q.wall.roomAt);
+          const nearest = trRooms.reduce((a, b) => (Math.hypot(centroid(b.polygonM)[0] - c[0], centroid(b.polygonM)[1] - c[1]) < Math.hypot(centroid(a.polygonM)[0] - c[0], centroid(a.polygonM)[1] - c[1]) ? b : a));
+          ok = nearest.id === room.id && n[0] * tn[0] + n[1] * tn[1] > 0.9;
+        }
+        if (ok) S.fields.elevLink.right++;
       }
     }
     q.units?.forEach((u, k) => {
