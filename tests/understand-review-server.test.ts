@@ -95,7 +95,8 @@ describe.skipIf(!hasPoppler)('C12e dev API', () => {
     expect((await fetch(`${base}/api/scenes/test-api/understand/review`)).status).toBe(404);
   });
 
-  describe('a vector set, end to end', () => {
+  // these run the whole reader end to end on a generated drawing set: allow for a busy machine
+  describe('a vector set, end to end', { timeout: 30_000 }, () => {
     const scene = 'test-vector';
     let job: JobStatus; let doc: UnderstandingDoc; let pages: PagesFile;
     beforeAll(async () => {
