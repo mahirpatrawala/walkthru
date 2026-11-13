@@ -19,6 +19,8 @@ export interface RoomTag {
   /** '#rrggbb' overrides of the global finishes */
   wallColor?: string;
   floorColor?: string;
+  /** set when the room is only partly on the drawing (e.g. runs off the sheet): its shape is a guess, it is not a start point */
+  partial?: { reason: string };
 }
 export type OpeningType = 'door' | 'opening' | 'window';
 export interface Opening {
