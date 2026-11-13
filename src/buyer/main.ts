@@ -36,6 +36,7 @@ import { createInteractions } from './interactions';
 import { buildSeats } from './seats';
 import { createWardrobes } from './wardrobe';
 import { createLoadingScreen } from './loading';
+import { mountAiPhoto } from '../photo/mount';
 import { createMeasureMode } from './measure';
 import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
@@ -309,6 +310,11 @@ async function boot(): Promise<void> {
   }
   let paintBusy = false;
   if (look) mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); } });
+  // C12f: the optional AI photo (SPEC 17.14). The button exists only if the server says the feature is on; nothing else loads until it is tapped.
+  mountAiPhoto({
+    host: hud.root, viewer, layout, items: () => store.all(), toast: (t) => hud.toast(t),
+    withoutCharacter: (fn) => { const was = character.object.visible; character.setVisible(false); try { return fn(); } finally { character.setVisible(was); } },
+  });
 
   const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
