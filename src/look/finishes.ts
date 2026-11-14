@@ -27,7 +27,7 @@ export const FINISH_LIST: FinishDef[] = [
   F('white-laminate', 'White laminate', '#F1EFEA', 'laminate', 'laminate'),
   F('white-gloss', 'White gloss', '#F6F4F0', 'gloss', 'laminate'),
   F('cream-laminate', 'Cream laminate', '#E4D8C4', 'laminate', 'laminate'),
-  F('navy-matte', 'Navy matte laminate', '#3D4A70', 'laminate', 'laminate'),
+  F('navy-matte', 'Navy matte laminate', '#49547A', 'laminate', 'laminate'),
   F('charcoal-matte', 'Charcoal matte laminate', '#3B3D41', 'laminate', 'laminate'),
   F('sage-matte', 'Sage matte laminate', '#8C9A86', 'laminate', 'laminate'),
   F('grey-matte', 'Light grey matte laminate', '#B9B8B3', 'laminate', 'laminate'),
@@ -62,7 +62,7 @@ export const FINISH_LIST: FinishDef[] = [
   F('black-stone', 'Black stone', '#1B1B1D', 'granite', 'stone'),
   F('white-stone', 'White stone', '#E9E6E0', 'gloss', 'stone'),
   // floors
-  F('tile-beige-gloss', 'Glossy beige tile', '#EBDCC6', 'gloss', 'tile'),
+  F('tile-beige-gloss', 'Glossy beige tile', '#F2E3CA', 'gloss', 'tile'),
   F('tile-ivory-gloss', 'Glossy ivory tile', '#ECE4D6', 'gloss', 'tile'),
   F('tile-grey', 'Soft grey tile', '#C9C6C0', 'gloss', 'tile'),
   F('tile-sand', 'Sand tile', '#D8C9AE', 'gloss', 'tile'),

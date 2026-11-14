@@ -23,7 +23,8 @@ import type { KitHandle } from '../look/kit';
 import { fetchDesignSheet } from '../look/design-sheet';
 import { mountDesign } from '../look/design-mount';
 import { PACKS } from '../look/packs';
-import { getStyle, onStyleChange, setStyle } from '../look/style';
+import { finishNote, getStyle, onStyleChange, setStyle } from '../look/style';
+import { resolveItemLook } from '../look/furniture-real';
 import type { Look } from '../look/look';
 import { mountLookPanel } from '../look/look-panel';
 import { createInput } from '../engine/controls';
@@ -366,7 +367,7 @@ async function boot(): Promise<void> {
   const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
   const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
-  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) });
+  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name)) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));
@@ -524,7 +525,7 @@ async function boot(): Promise<void> {
 
   // ---- the frame loop
   const ZERO_LOOK = { dx: 0, dy: 0, zoom: 0 };
-  let freeCam: { pos: [number, number, number]; target: [number, number, number]; fov?: number } | null = null;
+  let freeCam: { pos: [number, number, number]; target: [number, number, number]; fov?: number; up?: [number, number, number] } | null = null;
   let chipClock = 0;
   let lastChip: string | null | undefined;
   let debugClock = 0;
@@ -546,6 +547,7 @@ async function boot(): Promise<void> {
     if (freeCam) {
       // debug only (screenshots from a chosen viewpoint): the follow camera is overridden after it has run
       viewer.camera.position.set(freeCam.pos[0], freeCam.pos[1], freeCam.pos[2]);
+      viewer.camera.up.set(...(freeCam.up ?? [0, 1, 0]));
       viewer.camera.lookAt(freeCam.target[0], freeCam.target[1], freeCam.target[2]);
       if (freeCam.fov && viewer.camera.fov !== freeCam.fov) { viewer.camera.fov = freeCam.fov; viewer.camera.updateProjectionMatrix(); }
       viewer.camera.updateMatrixWorld(true);
@@ -618,8 +620,8 @@ async function boot(): Promise<void> {
   const api = {
     ctx,
     /** Debug (screenshots): a fixed camera at `pos` looking at `target`; `null` gives the follow camera back. The HUD is hidden while it is on. */
-    freeCam: (pos: [number, number, number] | null, target?: [number, number, number], fov?: number) => {
-      freeCam = pos && target ? { pos, target, fov } : null;
+    freeCam: (pos: [number, number, number] | null, target?: [number, number, number], fov?: number, up?: [number, number, number]) => {
+      freeCam = pos && target ? { pos, target, fov, up } : null;
       hud.setVisible(!freeCam);
     },
     /** Moves the character to (x, z) (nearest free spot if blocked). While posed the release takes up to ~0.7 s. */

@@ -1,8 +1,7 @@
-// Style generators (src/look/gen). Makes the three small tileable maps no CC0 set gives us, and records them in
+// Style generators (src/look/gen). Makes the two small tileable maps no CC0 set gives us, and records them in
 // public/look/assets.lock.json under `derived` WITHOUT touching the entries other scripts wrote there. All three are drawn here
 // from formulas (our own, nothing copied), 512 x 512, tileable: needs ffmpeg on PATH (it only encodes the JPG).
 //  - tex/gen/quilt_nor.jpg     diamond quilting: soft puffs between stitch lines (a bedcover, a quilted headboard)
-//  - tex/gen/flute_nor.jpg     vertical flutes, 16 to a tile: the phone-tier version of a fluted panel
 //  - tex/gen/stripe_diff.jpg   navy and cream ticking stripes for cushions (a colour map: used as is, not tinted)
 // It also prints the mean linear luminance of the diffuse maps the generators use as detail around a tint.
 // Run after `npm run fetch:look`: npx tsx scripts/make-gen-textures.ts
@@ -65,9 +64,6 @@ encode(normalMap((x, y) => {
   return pillow * 0.9 + 0.12 * tnoise(x, y, 24) + 0.05 * tnoise(x, y, 96);
 }, 0.06), 'tex/gen/quilt_nor.jpg');
 
-// flutes: 16 half-round ribs to the tile, running along v
-encode(normalMap((x) => Math.pow(Math.sin(Math.PI * fract(x * 16)), 0.8), 0.022), 'tex/gen/flute_nor.jpg');
-
 // ticking stripes: navy bands of 6 and cream bands of 4 (out of 32 per tile), slightly uneven like woven cloth
 {
   const rgb = new Uint8Array(N * N * 3);
@@ -103,7 +99,7 @@ console.log('mean linear luminance (paste into furniture-materials.ts MEAN):', J
 const lockPath = path.join(OUT, 'assets.lock.json');
 const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
 lock.derived ??= {};
-for (const f of ['tex/gen/quilt_nor.jpg', 'tex/gen/flute_nor.jpg', 'tex/gen/stripe_diff.jpg']) {
+for (const f of ['tex/gen/quilt_nor.jpg', 'tex/gen/stripe_diff.jpg']) {
   const b = fs.readFileSync(path.join(OUT, f));
   lock.derived[f] = { size: b.length, sha256: createHash('sha256').update(b).digest('hex'), from: 'scripts/make-gen-textures.ts' };
 }

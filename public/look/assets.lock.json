@@ -276,11 +276,6 @@
       "sha256": "9d515aba4e48f287e005e6c322dad0e6dbaa4dcafd6032f24cad3d82b79bd428",
       "from": "scripts/make-gen-textures.ts"
     },
-    "tex/gen/flute_nor.jpg": {
-      "size": 48036,
-      "sha256": "93a173ae9c1adb6a9789126978bc56790b2756e742349baa01c0addc9db80de2",
-      "from": "scripts/make-gen-textures.ts"
-    },
     "tex/gen/stripe_diff.jpg": {
       "size": 39193,
       "sha256": "ac3393a004b42c2f43c5a8419beb112c972ebf5a45941d1e68e836eda6c5a445",

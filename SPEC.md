@@ -2606,6 +2606,49 @@ With no tagged fixtures at all, each non-balcony room gets one virtual ceiling l
 
 **Phone cost.** No new download on any tier (the sky is generated, 256 x 128 half-float). Low: no shadows, no post, no real interior lights, CSS vignette. Medium (the usual phone tier): one static shadow map as before (re-rendered only when the hour or furniture changes), up to 2 pooled lights only in Evening and Night, no post. High: the extra grade effect is a handful of ALU per pixel on top of the old exposure pass.
 
+### 16.13 Style generators, packs and the design sheet (14 Nov 2026)
+
+Furniture used to be generic low-poly boxes with flat colours. The look of an interior designer's work is now a **product feature**, not a one-off: parametric generators (`src/look/gen/`), data-only style packs (`src/look/packs/*.json`), and an optional per-home design sheet (`public/scenes/<id>/design.json`). Nothing in it knows any one drawing, and no reference image, crop or client name is in the repository. 16.2 still outranks it: **sizes are untouchable** (a pack, a sheet and a generator have no field that could change one), decor is labelled, "True colours" and "Plain" still show the bare truth.
+
+**Generators** (pure functions `(env, size, params, roles) -> THREE.Group`, metres, in the item's frame; `size` is the item's box and heights, never invented; each mesh carries `userData.walkthruPart`, a stable name, and plain exportable geometry with normals and world-scale UVs, so the GLB export and the baked lighting see ordinary meshes). `furniture-real.ts` calls them when the active pack is not Classic; Classic is today's 16.6.5 builders, unchanged.
+
+| Kind | Params |
+|---|---|
+| wardrobe | `bays` (0 = from width), `shuttersPerBay`, `loftM`, `plinthM`, `drawerStripM`, `shutterStyle` flat / framed / fluted-strip / louvred, `handle` bar / long-bar / knob / groove, `handleYM`, `handleLenM`, `fluteBand`. One shutter is built by `addLeaf` at its hinge, so the closed wardrobe and the openable model (`wardrobe-model.ts`, one pivot per shutter at the spec's hinge) use the same code: flutes and handle swing with the leaf, hinges, widths and arcs are the drawing's. |
+| bed | `base` platform / box / legs, `headboard` panel / upholstered / slatted / none, `baseTopM`, `pillows`, `cushions` (striped), `duvet` quilted / plain / none (draped height field with a turned-down fold). |
+| sofa | `seats`, `arms` round / box / none, `legs` wood / metal / plinth, `chaise` auto / none / left / right (an L when the box is 1.3 m deep and 2.2 m wide), `cushions`. |
+| bench (window seat, storage bench) | `shape` rect / curved-end / curved-both, `cushion`, `radiusM`, `curveSide`. |
+| study, side, dresser (TV unit), counter, dining | top, pedestal, drawers, handle (groove / knob / bar), base, shutter style, chair and leg styles. |
+| decor (wall or floor frame, never in the item list) | curtains (sheer + drape on a ceiling track, folds shaded in the vertices), rug (pile height), split AC, recessed downlights and brass bowl wall lights (tagged `walkthruLight = 'lamp'`), wall panelling (raised boards with fine grooves at a pitch), slatted feature wall, ceiling band. |
+
+Edges are chamfered (44 triangles a box, flat normals so a light catches them), fluted strips are real ribs in one strip geometry (62 % rib, flat valley, no normal-map trick), wood grain follows the part's long axis (`grainUV`), repeats are merged by material (one mesh per name and material). Per-piece triangle budgets are in `tests/gen-furniture.test.ts`; a home measured with every group visible: Son Bedroom 19.8k / 47.3k / 59.5k triangles at low / medium / high, the sample 2 BHK 32.0k / 59.4k / 75.7k, so a phone tier home stays far under 150k.
+
+**Materials.** New kinds in `furniture-materials.ts`: `wood` (Poly Haven `oak_veneer_01`, CC0, diff + normal + ARM, used as detail around any tint so one grain serves oak, ash, walnut), `laminate`, `gloss`, `paint`, `weave` (existing `rough_linen`), `quilt` (`cotton_jersey` + a diamond-quilting normal map), `shag` (Poly Haven `curly_teddy_natural`, CC0), `stripe` (cushion ticking), `brass`, `blackMetal`, `sheer`, `drape`, `lamp`. Fetched through `scripts/fetch-look-assets.ts` (MD5 checked against the Poly Haven API, recorded with SHA-256 in `public/look/assets.lock.json`); the two maps no CC0 set gives (`tex/gen/quilt_nor.jpg`, `tex/gen/stripe_diff.jpg`) are drawn from formulas by `scripts/make-gen-textures.ts` and recorded under `derived`. Textures are fetched lazily, only the ones a live material uses, and not at all on the low tier. The floor stays the look shell's glossy marble-detail tile, recoloured per room; glass, paint and laminate need no texture.
+
+**Style packs** (`packs/*.json`, loaded and checked by `loadPack`): `roles` (role name to finish id, `src/look/finishes.ts`), per-kind generator defaults, the room's wall / floor / ceiling finish ids, and which typical decor it adds (`decor.rug`, `decor.curtains`). Shipped: **Light Scandinavian** (the default for a home with no sheet), **Warm Oak & Navy** (matched by eye to the reference look), **Walnut & White**, **Classic** (today's look). Finish ids and colours are one table in `finishes.ts`; furnish-edit's palette merges into it.
+
+**Design sheet** `public/scenes/<id>/design.json`, optional, data only, no sizes, no names:
+
+```json
+{ "version": 1, "pack": "warm-oak-navy", "source": "designer-renders",
+  "items":   { "wardrobe-1": { "params": { "shutterStyle": "fluted-strip", "handle": "long-bar" }, "roles": { "case": "oak" }, "finish": { "primary": "oak" } } },
+  "rooms":   { "son-room": { "wall": "wall-beige", "floor": "tile-beige-gloss" } },
+  "fixtures": [ { "kind": "slat-wall", "roomId": "son-room", "edge": 1, "u0": 0, "u1": 2.85 },
+                { "kind": "rug", "roomId": "son-room", "aroundItem": "bed-1", "margin": { "foot": 0.75, "side": 0.55 } } ] }
+```
+Fixture kinds: `curtain`, `rug`, `ac`, `downlights`, `bowl-lights`, `panelling`, `slat-wall`, `ceiling-band`, `window-seat`. Wall fixtures are placed by room, polygon edge and distance along it (`u0`, `u1`), in the wall frame of `computeEdgeFrames`. `parseDesignSheet` reads leniently (unknown finish ids, bad or out-of-range params, sizes and malformed fixtures are dropped, never thrown). `source: "designer-renders"` is what makes the UI say "from the designer's renders"; any other source says "from the design sheet" or "typical". Two sheets ship: `son-bedroom` (Warm Oak & Navy, a generic reading of a designer's renders of that room) and `test-sample-3` (Walnut & White), to show the same generators carrying two different looks.
+
+**Resolution order** (`style.ts`, `resolveLook`), strongest first, one value at a time, with its provenance kept (`drawing`, `sheet`, `viewer`, `pack`, `default`; keys `param:<name>` and `role:<name>`):
+1. the drawing / elevation (`designs.json`: bays, shutters per bay, drawer strip, base gap, handle height, base height), for structure only. The fill colours on a drawing (`frontColor`, `handleColor`) are CAD fills, not finishes: they stay with Classic and never reach the generators;
+2. the design sheet, while the designer's look is on;
+3. the viewer's `item.finish` ({ primary, secondary, fabric, style }, look only; how it maps to roles is `ViewerMap` per generator);
+4. the pack; 5. the generator's own default.
+The designer's look is on while the active pack is the sheet's pack. Picking another pack in the Style picker puts the sheet's finishes aside (the viewer asked for that pack), the drawing's structure stays. Labels: `provLabel`, "from the drawing", "from the designer's renders", "typical finish (style pack)", "your choice"; an item's card footer says them (`finishNote`), the look panel says them for the home.
+
+**Runtime.** The look panel gets a Style row (the designer's look when there is a sheet, then the packs; the choice is remembered per home; `?style=<pack id>` forces one for checks). A change rebuilds the furniture, the openable wardrobes' shutters, the decor, the lived-in layer (its curtains and rugs yield to the style's) and the rooms' wall and floor colours (applied only where nothing was sampled and the room has no colour of its own, 16.2 rule 2; the kit's floors are taken off and put back around it). Decor lives in its own group (`design-mount.ts`): no ray can hit it, nothing in it feeds a measurement, a fit check, a clearance or the collision grid, it is hidden by "Plain" and "True colours", and the look panel labels it "Curtains, rugs, wall panelling and lights are typical styling, not from your drawing." (or "...follow the designer's renders, they are not on your drawing."). Fixtures in a `partial` room are skipped.
+
+**Known limits.** The grade (16.12) lights an interior with a single window dimly and cool, so floors read grey and navy reads saturated in the Afternoon preset where the reference render has global illumination; baked lightmaps (the bake pipeline) are the fix, not a texture. Brass has no brushed normal map; the AC and the fan are generic; the window seat is decor (not solid) because a seat that is not on the drawing must not block walking.
+
 ---
 
 ## 17. C12 Generic drawing-set understanding

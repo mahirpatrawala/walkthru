@@ -149,7 +149,8 @@ export function finishNote(r: ResolvedLook | null, packName: string): string {
   if (!r) return 'Furniture style is illustrative. Sizes are exact.';
   const roleProv = Object.entries(r.prov).filter(([k]) => k.startsWith('role:')).map(([, v]) => v);
   const top: Prov = roleProv.includes('sheet') ? 'sheet' : roleProv.includes('viewer') ? 'viewer' : 'pack';
-  return `Finish ${provLabel(top, r.sheetSource)} (${packName}). Sizes are exact.`;
+  const drawn = Object.entries(r.prov).some(([k, v]) => k.startsWith('param:') && v === 'drawing');
+  return `Finish ${provLabel(top, r.sheetSource)} (${packName}).${drawn ? ' Bays, shutters and handle height are from the drawing.' : ''} Sizes are exact.`;
 }
 
 /** the room finish ids in force for a room: sheet room > pack room, with the provenance of each */

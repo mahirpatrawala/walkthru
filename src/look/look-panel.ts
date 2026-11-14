@@ -149,8 +149,8 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
       sNote.textContent = src ? "Designer's look" : st.packName();
       sNoteP.textContent = st.classic()
         ? 'Classic: the plain furniture style. Sizes are exact.'
-        : src === 'designer-renders' ? "Finishes are from the designer's renders. Sizes are exact."
-          : `Typical finishes from the ${st.packName()} style pack, not from your drawing. Sizes are exact.`;
+        : src === 'designer-renders' ? "Finishes are from the designer's renders. Sizes are exact. Wall and floor colours are the style's, not measured."
+          : `Typical finishes from the ${st.packName()} style pack, not from your drawing. Sizes are exact. Wall and floor colours are the style's, not measured.`;
     };
     offStyle = st.onChange(() => { syncStyle(); setTimeout(() => { sync(); }, 0); });
     syncStyle();

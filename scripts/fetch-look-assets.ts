@@ -58,6 +58,7 @@ const LICENCE = `Everything under public/look/ comes from Poly Haven (https://po
 https://polyhaven.com/license
 
 Files named hdri/*_bg.jpg are derived from those HDRIs by scripts/derive-look-assets.ts (also CC0).
+Files under tex/gen/ are drawn from formulas by scripts/make-gen-textures.ts (our own, released CC0 1.0 like the rest).
 assets.lock.json lists every file with its size, MD5 (checked against the Poly Haven API) and SHA-256.
 `;
 
