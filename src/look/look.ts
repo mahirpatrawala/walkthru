@@ -130,6 +130,8 @@ const TRUE_COLOUR_HEMI = Math.PI;
 const EXPOSURE_TRUE = 1.0;
 /** the hemisphere intensities in grade.ts are for this tier value (medium and high); low is scaled from it */
 const HEMI_REFERENCE = 1.25;
+/** the screen-space AO of the high tier on top of a bake: the bake has the corners, so this only adds the contact detail of furniture (SPEC 16.13) */
+const BAKED_SSAO_STRENGTH = 0.55;
 
 export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: LookFile | null, opts: { tier?: Tier; storage?: Storage | null; hasSplat?: boolean; /** false keeps the flat background colour (the editor's orbit preview) */ backdrop?: boolean } = {}): Promise<Look> {
   const { renderer, scene, camera } = viewer;
@@ -331,6 +333,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     bakedApplied = on;
     interior.setPoolSize(on ? 0 : cfg.interiorLights);
     materials.setBakedMode(on);
+    post?.setAoStrength(on ? BAKED_SSAO_STRENGTH : 1);
     if (grid) rebuildAo(grid);
   }
 
@@ -400,6 +403,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
           .then((p) => {
             if (disposed || !TIERS[tier].post) { p.dispose(); return; }
             post = p;
+            post.setAoStrength(bakedApplied ? BAKED_SSAO_STRENGTH : 1);
             syncAo();
             applyLighting();
             applyRenderPath();

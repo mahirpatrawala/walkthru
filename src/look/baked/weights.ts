@@ -48,11 +48,16 @@ export function componentWeights(i: WeightInput): Weights {
   const sunOn = !g.night && g.sunIntensity > 0.01;
   const blend = sunBlend(g.hour);
   const have = i.sunHours.map((h) => h !== null);
-  // renormalise over the suns that exist
+  // renormalise over the suns that exist; when the two neighbours of this hour were not baked, the nearest one that was takes it all
   let sum = 0;
   blend.forEach((b, k) => { if (have[k]) sum += b; });
+  let nearest = -1;
+  if (sum <= 0) {
+    let best = Infinity;
+    i.sunHours.forEach((h, k) => { if (h !== null && Math.abs(h - g.hour) < best) { best = Math.abs(h - g.hour); nearest = k; } });
+  }
   const sunRgb = scale(g.sunColour, g.sunIntensity * i.sunScale);
-  const sunW = (k: number): Rgb => (sunOn && have[k] && sum > 0 ? scale(sunRgb, blend[k] / sum) : ZERO);
+  const sunW = (k: number): Rgb => (!sunOn || !have[k] ? ZERO : sum > 0 ? scale(sunRgb, blend[k] / sum) : k === nearest ? sunRgb : ZERO);
   // when only one sun was baked it stands for the whole day; when several, a missing neighbour hands its share to the nearest one
   return {
     sky: scale(warmed(g.hemiSky, SKY_WARMTH), g.hemiIntensity * i.skyScale * i.skyBoost),

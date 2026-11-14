@@ -29,6 +29,8 @@ export interface PostChain {
   /** false = linear (True colours: nothing is rolled off or graded) */
   setToneMapping(on: boolean, mapper?: ToneMapperName): void;
   setAO(on: boolean): void;
+  /** 1 = the usual strength; a bake that already has the corner shade asks for less (SPEC 16.13) */
+  setAoStrength(k: number): void;
   dispose(): void;
 }
 
@@ -113,6 +115,7 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
       else if (!graded) bloom.intensity = init.bloom ? 0.35 : 0;
     },
     setAO: (on) => { ao.enabled = on; },
+    setAoStrength: (k) => { ao.configuration.intensity = 1.6 * k; },
     dispose() { off(); composer.dispose(); },
   };
 }

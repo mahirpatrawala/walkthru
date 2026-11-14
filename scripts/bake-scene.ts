@@ -57,7 +57,7 @@ function parseArgs(argv: string[]): Args {
 /** What each quality means. The densities are texels per metre on a floor or wall. */
 const QUALITY = {
   draft: { samples: 48, texelsPerM: 16, staticMax: 1024, dynTexelsPerM: 10, dynMax: 512, probeStep: 0.75, probeRays: 192, webp: 88 },
-  final: { samples: 320, texelsPerM: 40, staticMax: 2048, dynTexelsPerM: 24, dynMax: 1024, probeStep: 0.5, probeRays: 512, webp: 90 },
+  final: { samples: 160, texelsPerM: 40, staticMax: 2048, dynTexelsPerM: 24, dynMax: 1024, probeStep: 0.5, probeRays: 512, webp: 90 },
 } as const;
 
 const SURFACE_DENSITY: Record<DumpMesh['surface'], number> = { floor: 1, wall: 1, ceiling: 0.5, kit: 0.6, other: 0.5, furniture: 1 };

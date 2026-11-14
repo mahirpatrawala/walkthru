@@ -105,6 +105,7 @@ export function mountBaked(o: MountOptions): BakedHandle {
   let lastOff = true;
   let lastUpdate: BakedUpdate | null = null;
   let weightsVersion = 1;
+  let lastWeightsKey = '';
   let bytesFetched = 0;
   const rejected: string[] = [];
   let clonedMaterials = 0;
@@ -388,7 +389,8 @@ export function mountBaked(o: MountOptions): BakedHandle {
     const fill = ambientFill(up.grade, tune.fill);
     compositor.compose(w, fill);
     // the lightmap's fill is shaded by the static AO (about 0.55 on average in a room); a probe has no such shade, so its fill is scaled to match
-    if (volume) { volume.setWeights(w, [fill[0] * PROBE_FILL_SHADE, fill[1] * PROBE_FILL_SHADE, fill[2] * PROBE_FILL_SHADE]); weightsVersion++; }
+    const wkey = [...Object.values(w).flat(), ...fill].map((v) => v.toFixed(4)).join(',');
+    if (volume && wkey !== lastWeightsKey) { lastWeightsKey = wkey; volume.setWeights(w, [fill[0] * PROBE_FILL_SHADE, fill[1] * PROBE_FILL_SHADE, fill[2] * PROBE_FILL_SHADE]); weightsVersion++; }
     if (fixtures) {
       const lvl = Math.min(1, up.grade.interior.tube);
       (fixtures.material as THREE.MeshBasicMaterial).color.copy(FIXTURE_OFF).lerp(FIXTURE_ON, lvl);
