@@ -35,6 +35,8 @@ export interface Opening {
   sillM: number;
   /** top of the hole above the floor */
   headM: number;
+  /** the door panel, for `type: 'door'` only. Absent in older scenes: the buyer derives one by rule at load (core/doors.ts) and says it is assumed. */
+  leaf?: DoorLeaf;
 }
 export interface Finishes {
   wallColor: string;

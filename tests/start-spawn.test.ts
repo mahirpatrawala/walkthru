@@ -46,8 +46,9 @@ describe('chooseSpawn', () => {
     expect(sp.how).toBe('door');
     expect(pointInPolygon(sp, r.polygon)).toBe(true);
     expect(circleFree(g, sp.x, sp.z, SPAWN_CLEAR_M)).toBe(true);
-    // the door is on the z = 5 wall, x 0.7..1.6: we are within 1.3 m of it, not across the room
-    expect(5 - sp.z).toBeLessThan(1.3);
+    // the door is on the z = 5 wall, x 0.7..1.6: we are within 1.6 m of it, not across the room (a leaf swinging in sweeps about 1.1 m, and
+    // the buyer starts just outside that, so the door can be opened without moving them)
+    expect(5 - sp.z).toBeLessThan(1.6);
     expect(Math.abs(sp.x - 1.15)).toBeLessThan(1.0);
     // facing into the room: forward (sin, cos) points to smaller z
     expect(Math.cos((sp.yawDeg * Math.PI) / 180)).toBeLessThan(0);

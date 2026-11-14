@@ -293,7 +293,12 @@
       "centreM": 10.961001737069019,
       "widthM": 0.7620000229647366,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "end",
+        "swing": "out",
+        "kind": "hinged"
+      }
     },
     {
       "id": "door-2",
@@ -303,7 +308,12 @@
       "centreM": 9.161001239775985,
       "widthM": 0.7620004044345281,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "end",
+        "swing": "out",
+        "kind": "hinged"
+      }
     },
     {
       "id": "door-3",
@@ -313,7 +323,12 @@
       "centreM": 1.8076007106845937,
       "widthM": 0.9143998749697673,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "start",
+        "swing": "in",
+        "kind": "hinged"
+      }
     },
     {
       "id": "door-4",
@@ -323,7 +338,12 @@
       "centreM": 2.191501227726865,
       "widthM": 0.9143998749697673,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "start",
+        "swing": "out",
+        "kind": "hinged"
+      }
     },
     {
       "id": "door-5",
@@ -333,7 +353,12 @@
       "centreM": 1.7609995980116286,
       "widthM": 0.9143998749697673,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "start",
+        "swing": "in",
+        "kind": "hinged"
+      }
     },
     {
       "id": "door-6",
@@ -343,7 +368,12 @@
       "centreM": 6.561001178439578,
       "widthM": 0.9143998749697673,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "start",
+        "swing": "out",
+        "kind": "hinged"
+      }
     },
     {
       "id": "door-7",
@@ -353,7 +383,12 @@
       "centreM": 2.4015011109040643,
       "widthM": 0.9143998749697673,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "start",
+        "swing": "in",
+        "kind": "hinged"
+      }
     },
     {
       "id": "window-3",

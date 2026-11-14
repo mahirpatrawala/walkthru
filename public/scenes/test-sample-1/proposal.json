@@ -196,7 +196,12 @@
       "centreM": 0.767196878421041,
       "widthM": 0.7620009230280043,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "end",
+        "swing": "out",
+        "kind": "hinged"
+      }
     },
     {
       "id": "door-2",
@@ -206,7 +211,12 @@
       "centreM": 1.750002022303482,
       "widthM": 0.9143926157759659,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "start",
+        "swing": "out",
+        "kind": "hinged"
+      }
     },
     {
       "id": "door-3",
@@ -216,7 +226,12 @@
       "centreM": 2.9671996861159693,
       "widthM": 0.9143926157759659,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "end",
+        "swing": "out",
+        "kind": "hinged"
+      }
     },
     {
       "id": "door-4",
@@ -226,7 +241,12 @@
       "centreM": 1.699393204478866,
       "widthM": 0.9143926157759659,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "start",
+        "swing": "in",
+        "kind": "hinged"
+      }
     },
     {
       "id": "door-5",
@@ -236,7 +256,12 @@
       "centreM": 1.699403819300915,
       "widthM": 1.0668055381680257,
       "sillM": 0,
-      "headM": 2.1
+      "headM": 2.1,
+      "leaf": {
+        "hinge": "end",
+        "swing": "in",
+        "kind": "hinged"
+      }
     },
     {
       "id": "window-2",

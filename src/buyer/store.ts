@@ -299,6 +299,8 @@ export interface FurnitureStoreImpl extends FurnitureStore {
   grid(): Grid;
   /** layout + all furniture except the given ids; `withTemporary` false leaves out the temporary obstacles too */
   gridWithout(ids: string[], withTemporary?: boolean): Grid;
+  /** layout + all furniture + every temporary obstacle except the keys given (a door's own leaf, for the sweep it is about to make) */
+  gridExcludingTemporary(keys: string[]): Grid;
   /**
    * Temporary obstacles in the walk grid (an open wardrobe's shutters): thin boxes under a key, replaced as a set. They are
    * not items: nothing is saved, no mesh is built, `all()` does not list them. An empty list clears the key.
@@ -528,6 +530,11 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
       const skip = new Set(ids);
       const items = [...entries.values()].filter((e) => !skip.has(e.item.id)).map((e) => e.item);
       return stampFurniture(baseGrid, withTemporary ? [...items, ...temporaryItems()] : items);
+    },
+    gridExcludingTemporary(keys) {
+      const skip = new Set(keys);
+      const temp = [...temporary].filter(([k]) => !skip.has(k)).flatMap(([, v]) => v);
+      return stampFurniture(baseGrid, [...[...entries.values()].map((e) => e.item), ...temp]);
     },
     setTemporary(key, obstacles) {
       if (obstacles.length === 0) {

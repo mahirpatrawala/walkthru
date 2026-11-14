@@ -42,6 +42,7 @@ import { createHud } from './hud';
 import { createInteractions } from './interactions';
 import { buildSeats } from './seats';
 import { createWardrobes } from './wardrobe';
+import { mountDoors } from './doors';
 import { createLoadingScreen } from './loading';
 import { mountAiPhoto } from '../photo/mount';
 import { createMeasureMode } from './measure';
@@ -336,6 +337,7 @@ async function boot(): Promise<void> {
   const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
   const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
+  mountDoors({ ctx, store, layout }); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
   const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
