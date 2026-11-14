@@ -1,0 +1,166 @@
+// The active style (SPEC 16.13): which pack is showing, whether the home's design sheet is in force, and the resolution of one item's
+// params and roles with the provenance of each value.
+//
+// Order per value, strongest first:
+//   1. the DRAWING / elevation (structure only: bays, shutters per bay, drawer strip, base gap, handle height, base height). The
+//      fill colours of a drawing are not finishes and never reach this path (they stay with the Classic look).
+//   2. the design SHEET (while the designer's look is on, see below)
+//   3. the VIEWER's own `item.finish` choice (look only)
+//   4. the PACK
+//   5. the generator's own default (params only)
+// The designer's look is on while the active pack is the sheet's pack. When the viewer picks another pack in the Style picker, the
+// sheet's finishes are not applied (the viewer asked for that pack's look), the drawing's structure still is.
+import type { FurnitureItem } from '../types';
+import { finishDef } from './finishes';
+import type { FinishDef } from './finishes';
+import { GENERATORS, lookKindOf, sanitizeParams } from './gen';
+import type { LookKind, MatSpec, Roles } from './gen';
+import type { ItemDesign } from './furniture-real';
+import { CLASSIC_PACK_ID, DEFAULT_PACK_ID, getPack } from './packs';
+import type { StylePack } from './packs';
+import type { DesignSheet, SheetSource } from './design-sheet';
+
+export type Prov = 'drawing' | 'sheet' | 'viewer' | 'pack' | 'default';
+
+export interface StyleState {
+  /** the pack whose roles and defaults are in force */
+  pack: StylePack;
+  /** the home's design sheet, null when it has none */
+  sheet: DesignSheet | null;
+  /** the sheet's finishes are applied (the active pack is the sheet's own) */
+  designerLook: boolean;
+}
+
+let state: StyleState = { pack: getPack(CLASSIC_PACK_ID) as StylePack, sheet: null, designerLook: false };
+const listeners = new Set<() => void>();
+
+export function getStyle(): StyleState { return state; }
+export function onStyleChange(cb: () => void): () => void { listeners.add(cb); return () => { listeners.delete(cb); }; }
+
+/**
+ * Sets the style. `packId` picks a pack; with a `sheet` and no `packId` the designer's look is on (the sheet's pack). Picking the
+ * sheet's own pack by id also turns the designer's look on. An unknown pack id falls back to the default pack.
+ */
+export function setStyle(o: { packId?: string; sheet?: DesignSheet | null }): StyleState {
+  const sheet = o.sheet === undefined ? state.sheet : o.sheet;
+  const wanted = o.packId ?? sheet?.pack ?? DEFAULT_PACK_ID;
+  const pack = getPack(wanted) ?? getPack(sheet?.pack ?? DEFAULT_PACK_ID) ?? (getPack(DEFAULT_PACK_ID) as StylePack);
+  state = { pack, sheet, designerLook: !!sheet && sheet.pack === pack.id };
+  for (const cb of [...listeners]) cb();
+  return state;
+}
+
+/** back to today's look, no sheet (what a headless test starts with) */
+export function resetStyle(): void {
+  state = { pack: getPack(CLASSIC_PACK_ID) as StylePack, sheet: null, designerLook: false };
+  for (const cb of [...listeners]) cb();
+}
+
+/** the sheet's own choices count only while the designer's look is on */
+export function sheetInForce(s: StyleState = state): DesignSheet | null { return s.designerLook ? s.sheet : null; }
+
+export function matOf(id: string | undefined | null): MatSpec | null {
+  const f: FinishDef | null = finishDef(id);
+  return f ? { key: f.material, tint: f.colour } : null;
+}
+
+export interface ResolvedLook {
+  kind: LookKind;
+  params: Record<string, unknown>;
+  roles: Roles;
+  /** `param:<name>` and `role:<name>` -> where the value came from */
+  prov: Record<string, Prov>;
+  /** the finish ids behind the roles, for a label */
+  finishIds: Record<string, string>;
+  packId: string;
+  /** how the sheet's values are labelled, when any of them is in use */
+  sheetSource: SheetSource | null;
+}
+
+/** what the drawing gives for an item's structure, as generator params (only the keys a drawing really gave) */
+export function drawingParams(kind: LookKind, d: ItemDesign | undefined): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (!d) return out;
+  if (kind === 'wardrobe' && d.wardrobe) {
+    const w = d.wardrobe;
+    out.bays = w.bays; out.shuttersPerBay = w.shuttersPerBay; out.drawerStripM = w.drawerStripM; out.plinthM = w.baseGapM;
+    out.handleYM = w.handleYM; out.handleLenM = w.handleLenM;
+    if (typeof w.loftM === 'number' && w.loftM > 0) out.loftM = w.loftM;
+  }
+  if (kind === 'bed' && d.bed) out.baseTopM = d.bed.baseTopM;
+  return out;
+}
+
+/** Resolves an item's look under the current style (or `st`). Returns null in the Classic pack, which uses the 16.6.5 builders. */
+export function resolveLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 'finish'>, drawing?: ItemDesign, st: StyleState = state): ResolvedLook | null {
+  if (st.pack.classic) return null;
+  const kind = lookKindOf(item);
+  const spec = GENERATORS[kind];
+  const pack = st.pack;
+  const sheet = sheetInForce(st);
+  const si = sheet?.items[item.id];
+  const prov: Record<string, Prov> = {};
+  const finishIds: Record<string, string> = {};
+
+  // ---- params, weakest first
+  const params: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(spec.defaults)) { params[k] = Array.isArray(v) ? [...v] : v; prov[`param:${k}`] = 'default'; }
+  const put = (src: Record<string, unknown>, p: Prov): void => { for (const [k, v] of Object.entries(src)) { params[k] = v; prov[`param:${k}`] = p; } };
+  put(sanitizeParams(kind, pack.generators[kind]), 'pack');
+  if (item.finish?.style && spec.viewer.style) put(sanitizeParams(kind, { [spec.viewer.style]: item.finish.style }), 'viewer');
+  if (si?.finish?.style && spec.viewer.style) put(sanitizeParams(kind, { [spec.viewer.style]: si.finish.style }), 'sheet');
+  if (si?.params) put(sanitizeParams(kind, si.params), 'sheet');
+  put(sanitizeParams(kind, drawingParams(kind, drawing)), 'drawing');
+
+  // ---- roles, weakest first
+  const roles: Roles = {};
+  const setRole = (name: string, id: string | undefined, p: Prov): void => {
+    const m = matOf(id);
+    if (!m || !id) return;
+    roles[name] = m; prov[`role:${name}`] = p; finishIds[name] = id;
+  };
+  for (const [name, id] of Object.entries(pack.roles)) setRole(name, id, 'pack');
+  const viewerMap = (fc: { primary?: string; secondary?: string; fabric?: string } | undefined, p: Prov): void => {
+    if (!fc) return;
+    for (const r of spec.viewer.primary) setRole(r, fc.primary, p);
+    for (const r of spec.viewer.secondary) setRole(r, fc.secondary, p);
+    for (const r of spec.viewer.fabric) setRole(r, fc.fabric, p);
+  };
+  viewerMap(item.finish, 'viewer');
+  viewerMap(si?.finish, 'sheet');
+  if (si?.roles) for (const [name, id] of Object.entries(si.roles)) setRole(name, id, 'sheet');
+
+  const usesSheet = Object.values(prov).includes('sheet');
+  return { kind, params, roles, prov, finishIds, packId: pack.id, sheetSource: usesSheet && sheet ? sheet.source : null };
+}
+
+/** the words for a value's provenance, as the look panel and an item's card say them */
+export function provLabel(p: Prov, sheetSource: SheetSource | null): string {
+  switch (p) {
+    case 'drawing': return 'from the drawing';
+    case 'sheet': return sheetSource === 'designer-renders' ? "from the designer's renders" : sheetSource === 'broker' ? "from the broker's design sheet" : 'from the design sheet';
+    case 'viewer': return 'your choice';
+    default: return 'typical finish (style pack)';
+  }
+}
+
+/** one line for an item's card: the finish and where it came from, e.g. "Finish: from the designer's renders (Warm Oak & Navy)" */
+export function finishNote(r: ResolvedLook | null, packName: string): string {
+  if (!r) return 'Furniture style is illustrative. Sizes are exact.';
+  const roleProv = Object.entries(r.prov).filter(([k]) => k.startsWith('role:')).map(([, v]) => v);
+  const top: Prov = roleProv.includes('sheet') ? 'sheet' : roleProv.includes('viewer') ? 'viewer' : 'pack';
+  return `Finish ${provLabel(top, r.sheetSource)} (${packName}). Sizes are exact.`;
+}
+
+/** the room finish ids in force for a room: sheet room > pack room, with the provenance of each */
+export function roomFinishIds(roomId: string, st: StyleState = state): { wall?: [string, Prov]; floor?: [string, Prov]; ceiling?: [string, Prov] } {
+  const out: { wall?: [string, Prov]; floor?: [string, Prov]; ceiling?: [string, Prov] } = {};
+  if (st.pack.classic) return out;
+  const sheetRoom = sheetInForce(st)?.rooms[roomId];
+  for (const k of ['wall', 'floor', 'ceiling'] as const) {
+    const s = sheetRoom?.[k];
+    if (s) out[k] = [s, 'sheet'];
+    else if (st.pack.room[k]) out[k] = [st.pack.room[k] as string, 'pack'];
+  }
+  return out;
+}

@@ -14,6 +14,21 @@ export interface LookPanelOpts {
   onPainterly?(): void;
   /** where the round button goes; default: the `.wt-buttons` column inside `host`, else `host` */
   buttonHost?: HTMLElement;
+  /** the Style picker (SPEC 16.13): packs, and the designer's look when the home has a design sheet */
+  style?: StylePickerOpts;
+}
+
+export interface StylePickerOpts {
+  options(): { id: string; label: string; hint?: string }[];
+  current(): string;
+  choose(id: string): void;
+  onChange(cb: () => void): () => void;
+  /** the decor label ("Curtains, rugs ... are typical styling"), null when the home has no decor */
+  note(): string | null;
+  /** 'designer-renders' (etc) while the designer's look is on, else null */
+  designerSource(): string | null;
+  packName(): string;
+  classic(): boolean;
 }
 
 function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string, parent?: HTMLElement): HTMLElementTagNameMap[K] {
@@ -104,6 +119,43 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
     segButtons.set(q, b);
   });
 
+  // style packs
+  let syncStyle = (): void => {};
+  let offStyle: (() => void) | null = null;
+  if (opts.style) {
+    const st = opts.style;
+    const sRow = h('div', 'wt-look-row', undefined, sheet);
+    h('span', 'wt-look-k', 'Style', sRow);
+    const sNote = h('span', 'wt-look-v', '', sRow);
+    const sSeg = h('div', 'wt-look-seg wt-look-styles', undefined, sheet);
+    sSeg.setAttribute('role', 'group');
+    sSeg.setAttribute('aria-label', 'Style');
+    sSeg.dataset.testid = 'look-styles';
+    const sNoteP = h('p', 'wt-look-note', '', sheet);
+    sNoteP.dataset.testid = 'look-style-note';
+    syncStyle = (): void => {
+      sSeg.textContent = '';
+      for (const o of st.options()) {
+        const b = h('button', 'wt-look-seg-b', o.label, sSeg);
+        b.type = 'button';
+        b.dataset.style = o.id;
+        if (o.hint) b.title = o.hint;
+        const on = o.id === st.current();
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.addEventListener('click', () => { st.choose(o.id); });
+      }
+      const src = st.designerSource();
+      sNote.textContent = src ? "Designer's look" : st.packName();
+      sNoteP.textContent = st.classic()
+        ? 'Classic: the plain furniture style. Sizes are exact.'
+        : src === 'designer-renders' ? "Finishes are from the designer's renders. Sizes are exact."
+          : `Typical finishes from the ${st.packName()} style pack, not from your drawing. Sizes are exact.`;
+    };
+    offStyle = st.onChange(() => { syncStyle(); setTimeout(() => { sync(); }, 0); });
+    syncStyle();
+  }
+
   if (opts.onPainterly) {
     const p = h('button', 'wt-look-paint', 'Show as a painting', sheet);
     p.type = 'button';
@@ -131,6 +183,8 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
   const sunNote = h('p', undefined, '', labels);
   sunNote.dataset.testid = 'look-label-sun';
   h('p', undefined, LABEL_FURNITURE, labels).dataset.testid = 'look-label-furniture';
+  const designNote = h('p', undefined, '', labels);
+  designNote.dataset.testid = 'look-label-design';
 
   const sync = (): void => {
     const hr = look.hour;
@@ -151,6 +205,8 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
       b.classList.toggle('is-on', on);
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
+    designNote.textContent = opts.style?.note() ?? '';
+    designNote.hidden = !designNote.textContent;
     qNote.textContent = look.quality === 'auto' ? `Auto (${QUALITY_LABEL[look.tier]})` : QUALITY_LABEL[look.tier];
   };
 
@@ -177,6 +233,7 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
 
   return () => {
     clearInterval(timer);
+    offStyle?.();
     off();
     btn.remove();
     sheet.remove();

@@ -1,0 +1,29 @@
+{
+  "id": "light-scandinavian",
+  "name": "Light Scandinavian",
+  "blurb": "Pale oak, white and soft grey, sage accents, slatted headboards and bare-wood handles.",
+  "roles": {
+    "case": "oak-light", "flute": "oak-light", "slats": "oak-light", "legs": "oak-light", "drawerFront": "white-laminate",
+    "accent": "grey-matte", "bedFrame": "oak-light", "headboard": "oak-light",
+    "top": "oak-light",
+    "fabric": "weave-sage",
+    "bedding": "cotton-white", "duvet": "quilt-white", "pillow": "cotton-white", "cushion": "weave-sage",
+    "handle": "charcoal-matte", "plinth": "charcoal-matte", "slatBack": "grey-matte",
+    "lampMetal": "brass", "acBody": "white-gloss",
+    "rug": "shag-ivory", "curtainSheer": "sheer-white", "curtainDrape": "drape-sage",
+    "wallPanel": "wall-white"
+  },
+  "generators": {
+    "wardrobe": { "shutterStyle": "flat", "handle": "groove" },
+    "bed": { "base": "legs", "headboard": "slatted", "duvet": "plain", "cushions": 1 },
+    "sofa": { "arms": "box", "legs": "metal" },
+    "bench": { "shape": "curved-end", "cushion": true },
+    "study": { "top": "slab", "handle": "groove" },
+    "side": { "style": "legs", "handle": "groove" },
+    "dresser": { "base": "legs", "handle": "groove" },
+    "counter": { "shutterStyle": "flat", "handle": "groove" },
+    "dining": { "chair": "slat", "legs": "tapered" }
+  },
+  "room": { "wall": "wall-white", "floor": "tile-ivory-gloss", "ceiling": "ceiling-white" },
+  "decor": { "rug": true, "curtains": true }
+}

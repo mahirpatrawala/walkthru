@@ -8,6 +8,11 @@ import { barBetween, boxBetween, mergeAll, worldUV } from '../look/furniture-par
 import { furnitureKit } from '../look/furniture-materials';
 import type { FurnitureKit, MatKey } from '../look/furniture-materials';
 import type { WardrobeDesign } from '../look/furniture-real';
+import { resolveItemLook } from '../look/furniture-real';
+import { GEN_QUALITY } from '../look/gen';
+import { Parts as GenParts } from '../look/gen/core';
+import { FRONT_RECESS, addLeaf, wardrobeSpans } from '../look/gen/wardrobe';
+import type { WardrobeParams } from '../look/gen/wardrobe';
 import type { OpenableZone } from '../look/designs';
 import type { OpenSpec, Shutter } from './wardrobe-swing';
 
@@ -22,7 +27,7 @@ const GLASS_TINT = '#AEC3D1';
 const HANDLE_LEN_M = 0.3;
 
 /** Names of the meshes of the store's own wardrobe look that this model replaces (they are hidden while the model is in use). */
-export const REPLACED_NAMES = /^(shutters|handles|drawer-fronts|carcass|shutter-wood|shutter-white|shutter-handles|seam)$/;
+export const REPLACED_NAMES = /^(shutters|handles|drawer-fronts|carcass|shutter-wood|shutter-white|shutter-handles|shutter-face|shutter-flutes|shutter-flute-back|seam)$/;
 
 export interface WardrobeModel {
   group: THREE.Group;
@@ -138,39 +143,64 @@ export function buildWardrobeModel(item: FurnitureItem, spec: OpenSpec, wd: Ward
   const angles = new Map<string, number>();
   const zFront = d / 2;
 
-  const y0 = wd ? wd.baseGapM + Math.max(0, wd.drawerStripM) + (wd.drawerStripM > 0 ? GAP_M : 0) : 0.083;
-  const top = H - GAP_M;
-  const handleY = wd ? wd.handleYM : Math.min(1.05, H / 2);
-  const handleLen = wd ? wd.handleLenM : HANDLE_LEN_M;
+  // a style pack builds each shutter with the parametric generator (src/look/gen/wardrobe.ts): the same hinges and widths, a styled face
+  const styled = resolveItemLook({ id: item.id, kind: 'wardrobe', label: item.label, finish: item.finish });
+  if (styled && styled.kind === 'wardrobe') {
+    const wp = styled.params as unknown as WardrobeParams;
+    const sp = wardrobeSpans(H, wp);
+    const zf = zFront - FRONT_RECESS;
+    const env = { kit, q: GEN_QUALITY[kit.tier] };
+    for (const s of spec.shutters) {
+      const piv = new THREE.Group();
+      piv.name = `shutter:${s.id}`;
+      piv.position.set(s.hingeU, 0, zf);
+      const parts = new GenParts(env);
+      addLeaf(parts, {
+        hingeX: 0, dir: s.dir, widthM: s.widthM, y0: sp.y0, y1: sp.yTop, zFront: 0, style: wp.shutterStyle, handle: wp.handle,
+        handleYM: wp.handleYM, handleLenM: wp.handleLenM, fluteBand: wp.fluteBand, handleOnFree: true,
+        names: { face: `shutter-slab:${s.id}`, flutes: `shutter-flutes:${s.id}`, handle: `shutter-handle:${s.id}`, back: `shutter-flute-back:${s.id}` },
+      }, styled.roles.case ?? { key: 'wood' }, styled.roles.handle ?? { key: 'blackMetal' }, styled.roles.flute ?? styled.roles.case ?? { key: 'wood' });
+      for (const c of [...parts.done().children]) piv.add(c);
+      group.add(piv);
+      pivots.set(s.id, piv);
+      angles.set(s.id, 0);
+    }
+  } else {
+    const y0 = wd ? wd.baseGapM + Math.max(0, wd.drawerStripM) + (wd.drawerStripM > 0 ? GAP_M : 0) : 0.083;
+    const top = H - GAP_M;
+    const handleY = wd ? wd.handleYM : Math.min(1.05, H / 2);
+    const handleLen = wd ? wd.handleLenM : HANDLE_LEN_M;
 
-  const slabBucket = (s: Shutter, i: number): { key: MatKey; tint?: string } => {
-    if (wd) return { key: 'shutterWhite', tint: wd.frontColor };
-    return i % 2 === 0 ? { key: 'walnut' } : { key: 'shutterWhite' };
-  };
-  spec.shutters.forEach((s, i) => {
-    const piv = new THREE.Group();
-    piv.name = `shutter:${s.id}`;
-    piv.position.set(s.hingeU, 0, zFront);
-    // the slab, relative to the hinge: from just off the hinge to just short of the meeting edge, flush with the front plane
-    const a = s.dir * GAP_M / 2, b = s.dir * (s.widthM - GAP_M / 2);
-    const sb = slabBucket(s, i);
-    const slab = boxBetween(Math.min(a, b), Math.max(a, b), y0, top, -SLAB_M, 0);
-    worldUV(slab, kit.tile(sb.key));
-    const mesh = new THREE.Mesh(slab, kit.material(sb.key, sb.tint));
-    mesh.name = `shutter-slab:${s.id}`;
-    piv.add(mesh);
-    // the bar handle sits on the free (meeting) edge, 3.5 cm in
-    const hx = s.dir * (s.widthM - GAP_M / 2 - 0.035);
-    const bar = barBetween(hx, handleY - handleLen / 2, 0.012, hx, handleY + handleLen / 2, 0.012, 0.006, 8);
-    worldUV(bar, 1);
-    const hk: MatKey = wd ? 'dark' : 'metal';
-    const hm = new THREE.Mesh(bar, kit.material(hk, wd ? wd.handleColor : undefined));
-    hm.name = `shutter-handle:${s.id}`;
-    piv.add(hm);
-    group.add(piv);
-    pivots.set(s.id, piv);
-    angles.set(s.id, 0);
-  });
+    const slabBucket = (s: Shutter, i: number): { key: MatKey; tint?: string } => {
+      if (wd) return { key: 'shutterWhite', tint: wd.frontColor };
+      return i % 2 === 0 ? { key: 'walnut' } : { key: 'shutterWhite' };
+    };
+    spec.shutters.forEach((s, i) => {
+      const piv = new THREE.Group();
+      piv.name = `shutter:${s.id}`;
+      piv.position.set(s.hingeU, 0, zFront);
+      // the slab, relative to the hinge: from just off the hinge to just short of the meeting edge, flush with the front plane
+      const a = s.dir * GAP_M / 2, b = s.dir * (s.widthM - GAP_M / 2);
+      const sb = slabBucket(s, i);
+      const slab = boxBetween(Math.min(a, b), Math.max(a, b), y0, top, -SLAB_M, 0);
+      worldUV(slab, kit.tile(sb.key));
+      const mesh = new THREE.Mesh(slab, kit.material(sb.key, sb.tint));
+      mesh.name = `shutter-slab:${s.id}`;
+      piv.add(mesh);
+      // the bar handle sits on the free (meeting) edge, 3.5 cm in
+      const hx = s.dir * (s.widthM - GAP_M / 2 - 0.035);
+      const bar = barBetween(hx, handleY - handleLen / 2, 0.012, hx, handleY + handleLen / 2, 0.012, 0.006, 8);
+      worldUV(bar, 1);
+      const hk: MatKey = wd ? 'dark' : 'metal';
+      const hm = new THREE.Mesh(bar, kit.material(hk, wd ? wd.handleColor : undefined));
+      hm.name = `shutter-handle:${s.id}`;
+      piv.add(hm);
+      group.add(piv);
+      pivots.set(s.id, piv);
+      angles.set(s.id, 0);
+    });
+
+  }
 
   let interior: THREE.Group | null = null;
   if (wd) {

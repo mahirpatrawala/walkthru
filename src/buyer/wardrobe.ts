@@ -46,6 +46,8 @@ export interface Wardrobes {
   /** E / tap on the pill: opens every bay, or closes them all when any is open. True when the item is an openable wardrobe. */
   activate(item: FurnitureItem): boolean;
   update(dt: number): void;
+  /** the style changed: shut every wardrobe and build its shutters again in the new style */
+  restyle(): void;
   /** hooks for tests and screenshots; the promises resolve when the shutters stand still */
   debug: {
     ids(): string[];
@@ -464,6 +466,10 @@ export function createWardrobes(deps: { ctx: BuyerContext; store: FurnitureStore
       if (!rec) return false;
       toggleAll(rec);
       return true;
+    },
+    restyle() {
+      for (const rec of [...recs.values()]) { forceClose(rec); dispose(rec); }
+      scan();
     },
     update(dt) {
       hideClock += dt;

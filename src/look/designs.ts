@@ -139,7 +139,7 @@ export function parseDesigns(json: unknown): DesignsFile | null {
     if (isNum(r.surfaceHeightM) && r.surfaceHeightM > 0.1 && r.surfaceHeightM < 4) it.surfaceHeightM = r.surfaceHeightM;
     const w = r.wardrobe;
     if (w && isNum(w.bays) && isNum(w.shuttersPerBay) && isNum(w.drawerStripM) && isNum(w.baseGapM) && isNum(w.handleYM) && isNum(w.handleLenM)
-      && typeof w.frontColor === 'string' && typeof w.handleColor === 'string' && w.bays >= 1 && w.shuttersPerBay >= 1) it.wardrobe = { ...w };
+      && typeof w.frontColor === 'string' && typeof w.handleColor === 'string' && w.bays >= 1 && w.shuttersPerBay >= 1) it.wardrobe = { ...w, ...(isNum(w.loftM) && w.loftM > 0 && w.loftM < 1.2 ? {} : { loftM: undefined }) };
     const op = parseOpenable(r.openable);
     if (op) it.openable = op;
     if (r.bed && isNum(r.bed.baseTopM) && r.bed.baseTopM > 0.1 && r.bed.baseTopM < 0.6) it.bed = { baseTopM: r.bed.baseTopM };
