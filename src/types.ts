@@ -151,6 +151,17 @@ export interface FurnitureItem {
   heightM: number;
   surfaceHeightM: number;
   inner?: { w: number; d: number };
+  /** the viewer's or designer's choice of look for this piece: ids from the finish palette (src/look/finishes), never sizes */
+  finish?: { primary?: string; secondary?: string; fabric?: string; style?: string };
+}
+/** A hinged or sliding door leaf in an opening. Width comes from the opening; hinge and swing from the drawing's arc when it has one. */
+export interface DoorLeaf {
+  hinge: 'start' | 'end';
+  /** which side of the wall the leaf swings to: the opening's own room ('in') or the other side ('out') */
+  swing: 'in' | 'out';
+  kind: 'hinged' | 'sliding';
+  /** true when the drawing gave no arc and the side was chosen by rule */
+  assumed?: boolean;
 }
 
 // ---------- splat overlay ----------
