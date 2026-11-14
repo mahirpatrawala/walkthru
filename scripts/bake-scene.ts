@@ -252,7 +252,15 @@ async function main(): Promise<void> {
   const probeIn = new Float32Array(validIdx.length * 3);
   validIdx.forEach((p, i) => { probeIn[i * 3] = probes.positions[p * 3]; probeIn[i * 3 + 1] = probes.positions[p * 3 + 1]; probeIn[i * 3 + 2] = probes.positions[p * 3 + 2]; });
   fs.writeFileSync(path.join(work, 'probes_in.bin'), Buffer.from(probeIn.buffer));
-  const downlights = needLamps ? planDownlights(layout) : [];
+  // a home whose design sheet has its own recessed downlights (meshes called `downlight-lens`, tagged 'lamp') is lit from THOSE points, so the
+  // pools sit under the fixtures people can see; otherwise the bake plans its own and the runtime draws their discs
+  const fromDesign = designDownlights(dump, bin, rooms);
+  // rooms the sheet left without downlights get the planned ones (their discs are drawn at runtime); the sheet's own are already drawn
+  const designRooms = new Set(fromDesign.map((d) => d.roomId));
+  const planned = needLamps ? planDownlights(layout).filter((d) => !designRooms.has(d.roomId)) : [];
+  const downlights = needLamps ? [...fromDesign, ...planned] : [];
+  const shownFixtures = planned;
+  if (needLamps) console.log(`[bake] downlights: ${fromDesign.length} from the design sheet, ${planned.length} planned by the bake`);
   const tiers = {
     medium: { static: sAtlas.size, dyn: dAtlas?.size ?? 0 },
     low: { static: Math.max(256, sAtlas.size / 2), dyn: Math.max(64, (dAtlas?.size ?? 0) / 2) },
@@ -333,7 +341,7 @@ async function main(): Promise<void> {
     version: BAKE_FORMAT_VERSION, sceneId: args.scene, inputsHash,
     pipeline: { version: BAKE_PIPELINE_VERSION, blender: results.blender, quality: args.quality, samples: Q.samples, denoised: results.denoised, texelsPerM: Math.round(Q.texelsPerM * sAtlas.scale * 10) / 10, presets: args.presets, seconds: Math.round(seconds), createdAt: new Date().toISOString() },
     sun: sunsBaked, atlases, geometry: { file: geoFile.file, bytes: geoFile.bytes, uvElements: uvShip.length }, meshes: entries,
-    fixtures: downlights, calibration: { lampMeanIrradiance: LIGHT_SETUP.lampTargetE, coveMeanIrradiance: LIGHT_SETUP.coveTargetE },
+    fixtures: shownFixtures, calibration: { lampMeanIrradiance: LIGHT_SETUP.lampTargetE, coveMeanIrradiance: LIGHT_SETUP.coveTargetE },
     totals: { bytes: 0, meshes: dump.meshes.length, staticMeshes: staticMeshes.length, dynMeshes: dynMeshes.length },
   };
   if (probeGrid) manifest.probes = probeGrid;
@@ -344,6 +352,25 @@ async function main(): Promise<void> {
   if (!args.keep) fs.rmSync(outDir, { recursive: true, force: true });
   const mediumBytes = Object.values(atlases.medium.static.components).reduce((s, c) => s + (c?.bytes ?? 0), 0) + geoFile.bytes + (probeGrid?.bytes ?? 0);
   console.log(`[bake] done in ${(seconds / 60).toFixed(1)} min (Blender ${((Date.now() - tBlender) / 60000).toFixed(1)} min). public/scenes/${args.scene}/baked: ${mb(manifest.totals.bytes)} on disk, about ${mb(mediumBytes)} fetched on the medium tier.`);
+}
+
+/** centres of the recessed downlights the design sheet put in the home: clusters of the vertices of its `downlight-lens` meshes */
+function designDownlights(dump: { meshes: DumpMesh[] }, bin: Buffer, rooms: { id: string; polygon: { x: number; z: number }[] }[]): { kind: 'downlight'; position: [number, number, number]; radiusM: number; roomId: string }[] {
+  const centres: { x: number; y: number; z: number; n: number }[] = [];
+  for (const m of dump.meshes) {
+    if (m.light !== 'lamp' || !/downlight-lens$/.test(m.key.split('/').pop() ?? '')) continue;
+    const pos = new Float32Array(bin.buffer.slice(bin.byteOffset + m.posOffset, bin.byteOffset + m.posOffset + m.verts * 12));
+    for (let i = 0; i < m.verts; i++) {
+      const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+      const c = centres.find((q) => Math.hypot(q.x / q.n - x, q.z / q.n - z) < 0.1);
+      if (c) { c.x += x; c.y += y; c.z += z; c.n++; } else centres.push({ x, y, z, n: 1 });
+    }
+  }
+  return centres.map((c) => {
+    const x = c.x / c.n, z = c.z / c.n;
+    const room = rooms.find((r) => pointInPolygon({ x, z }, r.polygon));
+    return { kind: 'downlight' as const, position: [Math.round(x * 1000) / 1000, Math.round((c.y / c.n - 0.004) * 1000) / 1000, Math.round(z * 1000) / 1000] as [number, number, number], radiusM: 0.043, roomId: room?.id ?? '' };
+  });
 }
 
 function writeTmp(dir: string, name: string, data: Buffer): string {

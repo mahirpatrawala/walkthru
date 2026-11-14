@@ -1,7 +1,8 @@
 // CDP script body for tools/cdp.mjs: the "no ghost shadow" check of SPEC 16.14. Shoots a view with a piece of furniture, removes it through the
 // store, shoots again, and prints the mean colour of the floor patch where it stood (before, after, and the same patch with the bake off).
 // env: ITEM=sofa-1  POS=x,z  YAW=deg  PATCH=x,z (world point on the floor where the piece stood)  NAME=prefix  PRESET=afternoon
-const item = process.env.ITEM || 'sofa-1';
+// ITEM=<id> removes an item of the home (only virtual ones can be removed); ADD=catalogId:cx:cz:yawDeg places one first and removes that
+let item = process.env.ITEM || 'sofa-1';
 const [px, pz] = process.env.POS ? process.env.POS.split(',').map(Number) : [NaN, NaN];
 const [fx, fz] = process.env.PATCH ? process.env.PATCH.split(',').map(Number) : [NaN, NaN];
 const name = process.env.NAME || 'remove';
@@ -23,6 +24,7 @@ const patchMean = async () => {
   if (!xy) return null;
   return await ev(`JSON.stringify(window.__walkthru.look.sample(${xy[0] - 12}, ${xy[1] - 8}, ${xy[0] + 12}, ${xy[1] + 8}))`);
 };
+if (process.env.ADD) { const [cid, ax, az, ay] = process.env.ADD.split(':'); item = await ev(`window.__walkthru.addItem('${cid}', ${ax}, ${az}, ${ay || 0})`); }
 await settle();
 await shot(`${name}-with`);
 const before = await patchMean();
