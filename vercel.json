@@ -15,6 +15,15 @@
       ]
     },
     {
+      "source": "/scenes/([a-z0-9-]+)/baked/(.*\\.[0-9a-f]{8}\\.(?:webp|bin))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
       "source": "/characters/(.*)",
       "headers": [
         {
