@@ -13,6 +13,8 @@ import { sourcePage } from '../look/design-sources';
 import { furnitureKit } from '../look/furniture-materials';
 import type { FurnitureKit } from '../look/furniture-materials';
 import type { WardrobeDesign } from '../look/furniture-real';
+import { applyFinish } from '../look/furniture-finish';
+import { sameFinish } from '../look/finishes';
 import type { BuyerContext } from './context';
 import { toneColor } from './overlays';
 import { distanceToBox, wallBetween } from './store';
@@ -61,6 +63,8 @@ export interface Wardrobes {
 
 interface Rec {
   item: FurnitureItem;
+  /** the store mesh whose own shutter parts this model hides: when the store rebuilds the mesh (a new look), they are hidden again */
+  storeMesh: THREE.Group | undefined;
   spec: OpenSpec;
   wd: WardrobeDesign | null;
   model: WardrobeModel;
@@ -150,17 +154,20 @@ export function createWardrobes(deps: { ctx: BuyerContext; store: FurnitureStore
       if (!built) continue;
       seen.add(item.id);
       const have = recs.get(item.id);
-      if (have && have.item.box.w === item.box.w && have.item.box.d === item.box.d && have.item.heightM === item.heightM) {
+      if (have && have.item.box.w === item.box.w && have.item.box.d === item.box.d && have.item.heightM === item.heightM && sameFinish(have.item.finish, item.finish)) {
         // moved while open (furnish mode): shut it where it stood, so no obstacle is left behind
         if (!sameBox(have.item.box, item.box) && (anyOpen(have) || !have.settled)) forceClose(have);
         have.item = item;
+        const sm = store.mesh(item.id);
+        if (sm !== have.storeMesh) { have.storeMesh = sm; hideOriginals(have); copyShadowFlags(have); }
         continue;
       }
       if (have) dispose(have);
       const model = buildWardrobeModel(item, built.spec, built.wd, kit);
+      applyFinish(model.group, item); // the viewer's chosen shutter finish and handles (My layout)
       parent.add(model.group);
       const rec: Rec = {
-        item, spec: built.spec, wd: built.wd, model, target: new Map(), hold: new Map(), open: new Set(), settled: true, waiters: [],
+        item, storeMesh: store.mesh(item.id), spec: built.spec, wd: built.wd, model, target: new Map(), hold: new Map(), open: new Set(), settled: true, waiters: [],
         result: null, arcs: null, lastBox: { ...item.box },
       };
       for (const s of built.spec.shutters) rec.target.set(s.id, 0);

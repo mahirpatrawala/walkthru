@@ -12,6 +12,10 @@ import {
 } from '../types';
 import type { Box, FurnitureItem, FurnitureKind, Grid, Layout, Vec2 } from '../types';
 import type { FurnitureStore } from './context';
+import { finishFamily, sanitizeFinish } from '../look/finishes';
+import type { Finish } from '../look/finishes';
+import { decodeLayout, mineKey, parseMine, serializeMine } from './my-layout';
+import type { MyLayout } from './my-layout';
 
 // ---------------------------------------------------------------- storage
 
@@ -122,6 +126,8 @@ export function parsePlacedItem(v: unknown): FurnitureItem | null {
   if (typeof o.catalogId === 'string') item.catalogId = o.catalogId;
   const inner = o.inner as Record<string, unknown> | undefined;
   if (inner && isNum(inner.w) && isNum(inner.d)) item.inner = { w: inner.w, d: inner.d };
+  const finish = sanitizeFinish(finishFamily(item), o.finish);
+  if (finish) item.finish = finish;
   return item;
 }
 
@@ -284,6 +290,8 @@ export interface FurnitureStoreOptions {
   storage: StorageLike | null;
   /** debounce for drag updates, ms. 0 saves immediately (tests). */
   saveDelayMs?: number;
+  /** a layout code from a shared link (`?my=`): when it decodes for this home it replaces the stored "My layout" */
+  shareCode?: string | null;
 }
 
 export interface FurnitureStoreImpl extends FurnitureStore {
@@ -304,6 +312,30 @@ export interface FurnitureStoreImpl extends FurnitureStore {
   get(id: string): FurnitureItem | undefined;
   /** ids the buyer placed (these persist; broker items do not) */
   buyerIds(): string[];
+
+  // ---- "My layout": the per-viewer overlay (src/buyer/my-layout.ts). The home as drawn is never edited.
+  /** true for a piece that came with the home (real, or staged in property.json), false for one the buyer placed */
+  isOriginal(id: string): boolean;
+  /** hides a piece that came with the home, in this viewer's layout only. Persists. */
+  hideOriginal(id: string): boolean;
+  /** brings a hidden original back */
+  restoreOriginal(id: string): boolean;
+  /** the originals hidden in this layout, as drawn */
+  hiddenOriginals(): FurnitureItem[];
+  /** the look of any piece (null clears it); rebuilds that piece's mesh. Persists. Never touches a box. */
+  setFinish(id: string, finish: Finish | null | undefined): boolean;
+  /** swaps a piece (an original is hidden, a placed one is removed) for a new virtual item in one step */
+  replace(id: string, next: FurnitureItem): boolean;
+  /** the overlay as a value, for storage and for the link */
+  layout(): MyLayout;
+  /** true when this viewer's layout differs from the home as drawn */
+  isEdited(): boolean;
+  /** back to the home as drawn: placed pieces gone, hidden originals back, looks and staged moves undone. Clears storage. */
+  reset(): void;
+  /** true when this visit opened a shared layout link */
+  fromLink(): boolean;
+  /** the home as drawn: a deep copy of what property.json handed the store (for tests and the reset check) */
+  pristine(): FurnitureItem[];
   dispose(): void;
 }
 
@@ -312,6 +344,7 @@ interface Entry { item: FurnitureItem; mesh: THREE.Group; origin: 'property' | '
 function cloneItem(it: FurnitureItem): FurnitureItem {
   const c: FurnitureItem = { ...it, box: { ...it.box } };
   if (it.inner) c.inner = { ...it.inner };
+  if (it.finish) c.finish = { ...it.finish };
   return c;
 }
 
@@ -342,6 +375,15 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let dirty = false;
 
+  // The home as drawn, kept apart from everything below. Nothing here is ever written to after this point.
+  const drawn: FurnitureItem[] = opts.initial.map(cloneItem);
+  const drawnById = new Map(drawn.map((i) => [i.id, i]));
+  /** originals hidden in this viewer's layout: id -> the piece as it stood */
+  const hidden = new Map<string, FurnitureItem>();
+  /** the viewer's looks for originals (a placed piece carries its own `finish`) */
+  const looks = new Map<string, Finish>();
+  let linked = false;
+
   const mk = (item: FurnitureItem, origin: Entry['origin']): void => {
     const old = entries.get(item.id);
     if (old) disposeMesh(old.mesh);
@@ -350,9 +392,43 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     parent.add(mesh);
     entries.set(copy.id, { item: copy, mesh, origin });
   };
+  /** the entries in the order the home lists them, then the buyer's own in the order they were added */
+  const reorder = (): void => {
+    const rank = new Map(drawn.map((i, n) => [i.id, n]));
+    const list = [...entries.entries()].sort(([a], [b]) => (rank.get(a) ?? 1e9) - (rank.get(b) ?? 1e9));
+    entries.clear();
+    for (const [k, v] of list) entries.set(k, v);
+  };
+  const withLook = (item: FurnitureItem, f: Finish | undefined): FurnitureItem => {
+    const c = cloneItem(item);
+    if (f) c.finish = { ...f }; else delete c.finish;
+    return c;
+  };
+  /** puts a layout on the home as drawn, with no events and no save (boot only) */
+  const seed = (my: MyLayout): void => {
+    for (const id of my.removed) {
+      const it = drawnById.get(id);
+      if (it) hidden.set(id, cloneItem(it));
+    }
+    for (const [id, f] of Object.entries(my.finishes)) {
+      const it = drawnById.get(id);
+      const clean = it ? sanitizeFinish(finishFamily(it), f) : undefined;
+      if (clean) looks.set(id, clean);
+    }
+    for (const it of drawn) if (!hidden.has(it.id)) mk(withLook(it, looks.get(it.id)), 'property');
+    for (const it of my.added) if (!entries.has(it.id) && !drawnById.has(it.id)) mk(it, 'buyer');
+  };
 
-  for (const it of opts.initial) mk(it, 'property');
-  for (const it of loadPlaced(storage, sceneId)) if (!entries.has(it.id)) mk(it, 'buyer');
+  {
+    const shared = decodeLayout(opts.shareCode, drawnById);
+    if (shared) {
+      linked = true;
+      seed(shared);
+    } else {
+      const mine = parseMine(tryGet(storage, mineKey(sceneId)), drawnById);
+      seed({ removed: mine.removed, finishes: mine.finishes, added: loadPlaced(storage, sceneId) });
+    }
+  }
 
   const changed = (): void => {
     cached = null;
@@ -361,10 +437,17 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     }
   };
   const buyerItems = (): FurnitureItem[] => [...entries.values()].filter((e) => e.origin === 'buyer').map((e) => cloneItem(e.item));
+  const layoutNow = (): MyLayout => ({
+    removed: [...hidden.keys()],
+    added: buyerItems(),
+    finishes: Object.fromEntries([...looks].map(([k, v]) => [k, { ...v }])),
+  });
   const saveNow = (): void => {
     if (saveTimer !== null) { clearTimeout(saveTimer); saveTimer = null; }
     dirty = false;
     savePlaced(storage, sceneId, buyerItems());
+    const mine = serializeMine([...hidden.keys()], Object.fromEntries(looks));
+    if (mine === null) tryRemove(storage, mineKey(sceneId)); else trySet(storage, mineKey(sceneId), mine);
   };
   const scheduleSave = (): void => {
     dirty = true;
@@ -376,6 +459,8 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     window.addEventListener('pagehide', onHide);
     window.addEventListener('beforeunload', onHide);
   }
+  // a shared layout is kept as this viewer's own from the moment it is opened, so a reload shows the same home
+  if (linked) saveNow();
 
   const store: FurnitureStoreImpl = {
     all() {
@@ -408,10 +493,11 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     remove(id) {
       const e = entries.get(id);
       if (!e) return;
-      if (e.item.source === 'real') { console.warn(`[walkthru] FurnitureStore.remove: "${id}" is a real item and cannot be removed`); return; }
+      if (e.item.source === 'real') { console.warn(`[walkthru] FurnitureStore.remove: "${id}" is a real item and cannot be removed (hideOriginal hides it in My layout)`); return; }
+      if (e.origin === 'property') { store.hideOriginal(id); return; }
       disposeMesh(e.mesh);
       entries.delete(id);
-      if (e.origin === 'buyer') scheduleSave();
+      scheduleSave();
       changed();
     },
     clearBuyerItems() {
@@ -465,6 +551,86 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     buyerIds() {
       return [...entries.values()].filter((e) => e.origin === 'buyer').map((e) => e.item.id);
     },
+    isOriginal(id) {
+      return entries.get(id)?.origin === 'property' || hidden.has(id);
+    },
+    hideOriginal(id) {
+      const e = entries.get(id);
+      if (!e || e.origin !== 'property') return false;
+      hidden.set(id, e.item);
+      looks.delete(id);
+      disposeMesh(e.mesh);
+      entries.delete(id);
+      scheduleSave();
+      changed();
+      return true;
+    },
+    restoreOriginal(id) {
+      const it = hidden.get(id);
+      if (!it) return false;
+      hidden.delete(id);
+      mk(drawnById.get(id) ?? it, 'property');
+      reorder();
+      scheduleSave();
+      changed();
+      return true;
+    },
+    hiddenOriginals() {
+      return [...hidden.values()].map((i) => cloneItem(drawnById.get(i.id) ?? i));
+    },
+    setFinish(id, finish) {
+      const e = entries.get(id);
+      if (!e) return false;
+      const clean = sanitizeFinish(finishFamily(e.item), finish ?? undefined);
+      if (!clean && !e.item.finish) return true;
+      const next = withLook(e.item, clean);
+      disposeMesh(e.mesh);
+      const mesh = buildFurnitureMesh(next);
+      parent.add(mesh);
+      e.item = next;
+      e.mesh = mesh;
+      if (e.origin === 'property') { if (clean) looks.set(id, clean); else looks.delete(id); }
+      scheduleSave();
+      changed();
+      return true;
+    },
+    replace(id, next) {
+      if (next.source !== 'virtual') throw new Error(`FurnitureStore.replace: only virtual items can be added (got "${String(next.source)}")`);
+      const e = entries.get(id);
+      if (!e) return false;
+      if (e.origin === 'property') { hidden.set(id, e.item); looks.delete(id); }
+      disposeMesh(e.mesh);
+      entries.delete(id);
+      mk(next, 'buyer');
+      scheduleSave();
+      changed();
+      return true;
+    },
+    layout: layoutNow,
+    isEdited() {
+      if (hidden.size > 0 || looks.size > 0) return true;
+      for (const e of entries.values()) {
+        if (e.origin === 'buyer') return true;
+        const d = drawnById.get(e.item.id);
+        if (d && JSON.stringify(d.box) !== JSON.stringify(e.item.box)) return true;
+      }
+      return false;
+    },
+    reset() {
+      for (const [id, e] of [...entries]) {
+        const d = drawnById.get(id);
+        const keep = e.origin === 'property' && d && !looks.has(id) && JSON.stringify(d.box) === JSON.stringify(e.item.box);
+        if (!keep) { disposeMesh(e.mesh); entries.delete(id); }
+      }
+      hidden.clear();
+      looks.clear();
+      for (const d of drawn) if (!entries.has(d.id)) mk(d, 'property');
+      reorder();
+      saveNow();
+      changed();
+    },
+    fromLink: () => linked,
+    pristine: () => drawn.map(cloneItem),
     dispose() {
       if (dirty) saveNow();
       if (typeof window !== 'undefined') {
