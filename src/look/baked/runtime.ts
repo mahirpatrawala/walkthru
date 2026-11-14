@@ -67,6 +67,8 @@ export interface MountOptions {
 const SCENE_ID_RE = /^[a-z0-9-]{1,40}$/;
 /** the sky component is multiplied by this so that baked rooms (lit by what comes through the windows) read airy like a rendered interior */
 export const SKY_BOOST = 1.3;
+/** a baked texel that came out black (a face inside another piece) never darkens past 1 - this */
+export const OBJECT_AO_STRENGTH = 0.65;
 export const PROBE_FILL_SHADE = 0.55;
 /** a probe sits in open air, a wall texel sits in a corner of it: without this a sofa by the window reads brighter than the wall behind it */
 export const PROBE_GAIN = 0.7;
@@ -273,7 +275,7 @@ export function mountBaked(o: MountOptions): BakedHandle {
     for (const m of mats) {
       const std = m as THREE.MeshStandardMaterial;
       if (!std.isMeshStandardMaterial || !aoTex) continue;
-      if (std.aoMap !== aoTex) { std.aoMap = aoTex; std.aoMapIntensity = 1; std.needsUpdate = true; }
+      if (std.aoMap !== aoTex) { std.aoMap = aoTex; std.aoMapIntensity = OBJECT_AO_STRENGTH; std.needsUpdate = true; }
     }
   }
 
