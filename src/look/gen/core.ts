@@ -96,6 +96,7 @@ export class Parts {
       for (const g of b.geos) g.dispose();
       const material = this.env.kit.material(b.mat.key, b.mat.tint);
       if (b.double) material.side = THREE.DoubleSide;
+      if (geo.attributes.color) material.vertexColors = true;
       const mesh = new THREE.Mesh(geo, material);
       mesh.name = b.name;
       mesh.userData.walkthruPart = b.name;

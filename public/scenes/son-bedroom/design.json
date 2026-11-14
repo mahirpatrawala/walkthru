@@ -20,7 +20,7 @@
     { "kind": "window-seat", "roomId": "son-room", "edge": 0, "u0": 0.95, "u1": 2.6, "depthM": 0.46, "heightM": 0.45, "shape": "curved-end", "curveSide": "left" },
     { "kind": "ac", "roomId": "son-room", "edge": 2, "u": 2.7, "y": 2.2 },
     { "kind": "rug", "roomId": "son-room", "aroundItem": "bed-1", "margin": { "head": 0.0, "foot": 0.75, "side": 0.55 } },
-    { "kind": "ceiling-band", "roomId": "son-room", "x0": 1.45, "z0": -1.0, "x1": 2.47, "z1": 1.25, "dropM": 0.05 },
+    { "kind": "ceiling-band", "roomId": "son-room", "x0": 1.85, "z0": -1.0, "x1": 2.47, "z1": 1.25, "dropM": 0.05 },
     { "kind": "downlights", "roomId": "son-room", "points": [[-0.3, -1.4], [0.75, -1.4], [-0.3, 0.0], [0.75, 0.0], [-0.3, 1.4], [0.75, 1.4]] }
   ]
 }

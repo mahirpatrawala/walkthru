@@ -35,7 +35,7 @@ export const CURTAIN_DEFAULTS: CurtainParams = { widthM: 2, heightM: 2.5, trackY
 function clothPanel(x0: number, x1: number, y0: number, y1: number, z: number, amp: number, fold: number, nx: number, phase: number): THREE.BufferGeometry {
   const cols = Math.max(4, Math.round(((x1 - x0) / fold) * nx));
   const rows = 6;
-  const pos: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = [];
+  const pos: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = [], col: number[] = [];
   for (let j = 0; j <= rows; j++) {
     const ty = j / rows;
     const y = y0 + ty * (y1 - y0);
@@ -49,6 +49,9 @@ function clothPanel(x0: number, x1: number, y0: number, y1: number, z: number, a
       const l = Math.hypot(slope, 1);
       nor.push(-slope / l, 0, 1 / l);
       uv.push(x, y);
+      // the troughs of the folds are darker than the crests: shading painted into the vertices, so it reads under flat light too
+      const sh = 0.7 + 0.3 * (0.5 + 0.5 * Math.sin(a)) - 0.06 * ty;
+      col.push(sh, sh, sh);
     }
   }
   for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
@@ -59,6 +62,7 @@ function clothPanel(x0: number, x1: number, y0: number, y1: number, z: number, a
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   g.setIndex(idx);
   return g;
 }

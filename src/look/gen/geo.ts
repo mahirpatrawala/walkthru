@@ -166,7 +166,14 @@ export function roundedRectOutline(x0: number, x1: number, z0: number, z1: numbe
   arc(x1 - tr, z0 + tr, tr, (3 * Math.PI) / 2); // top edge across to the right edge
   arc(x1 - br, z1 - br, br, 0);                // right edge down to the bottom edge
   arc(x0 + bl, z1 - bl, bl, Math.PI / 2);      // bottom edge back to the left edge
-  return out;
+  // two arcs that meet (radii that add up to a full side) leave a repeated point: a zero-length edge has no normal
+  const clean: [number, number][] = [];
+  for (const q of out) {
+    const l = clean[clean.length - 1];
+    if (!l || Math.hypot(q[0] - l[0], q[1] - l[1]) > 1e-6) clean.push(q);
+  }
+  while (clean.length > 1 && Math.hypot(clean[0][0] - clean[clean.length - 1][0], clean[0][1] - clean[clean.length - 1][1]) <= 1e-6) clean.pop();
+  return clean;
 }
 
 /**
@@ -254,7 +261,17 @@ export function mergeGeos(list: THREE.BufferGeometry[]): THREE.BufferGeometry {
     if (!g.attributes.normal) g.computeVertexNormals();
     if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
   }
-  return mergeAll(list);
+  const merged = mergeAll(list);
+  // keep vertex colours (curtain folds are shaded in the vertices) when every part has them
+  if (list.length && list.every((g) => g.attributes.color)) {
+    let n = 0;
+    for (const g of list) n += g.attributes.position.count;
+    const col = new Float32Array(n * 3);
+    let o = 0;
+    for (const g of list) { const c = g.attributes.color; for (let i = 0; i < c.count; i++) { col[o++] = c.getX(i); col[o++] = c.getY(i); col[o++] = c.getZ(i); } }
+    merged.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  }
+  return merged;
 }
 
 export function boundsOf(g: THREE.Object3D): THREE.Box3 {

@@ -443,10 +443,11 @@ async function boot(): Promise<void> {
   onStyleChange(() => {
     rebuildFurnitureTier(furnitureRoot, look?.tier ?? startTier);
     wardrobes.restyle();
+    livedIn?.replan();
     look?.refresh(store.grid());
   });
   // optional "Lived-in" decor (SPEC 16.6.7): a switch in the look sheet, a label in the rooms sheet; on by default only for made-up sample homes
-  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
+  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
 
   // ---- spawn
   // The buyer starts inside the chosen room (?room=, else the default: the largest bedroom or living room), just in from its

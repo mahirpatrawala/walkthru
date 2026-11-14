@@ -72,6 +72,18 @@ describe('prism and flutes', () => {
     expect(a2).toBeGreaterThan(0);
     for (const [x, z] of o) { expect(x).toBeGreaterThanOrEqual(-1e-9); expect(x).toBeLessThanOrEqual(2 + 1e-9); expect(z).toBeGreaterThanOrEqual(-1e-9); expect(z).toBeLessThanOrEqual(1 + 1e-9); }
   });
+  it('an outline whose corner radii meet has no repeated point (a window seat with a half-round end)', () => {
+    const o = roundedRectOutline(-0.8, 0.8, -0.23, 0.23, [0.23, 0, 0, 0.23], 8);
+    for (let i = 0; i < o.length; i++) {
+      const a = o[i], b = o[(i + 1) % o.length];
+      expect(Math.hypot(a[0] - b[0], a[1] - b[1])).toBeGreaterThan(1e-4);
+    }
+    // the cap of its prism stays inside the outline
+    const g = prism(o, 0.35, 0.45, 0.03);
+    g.computeBoundingBox();
+    expect(g.boundingBox!.min.x).toBeGreaterThanOrEqual(-0.8 - 1e-6);
+    expect(g.boundingBox!.max.x).toBeLessThanOrEqual(0.8 + 1e-6);
+  });
   it('a square-cornered prism is wound outward too', () => {
     expect(windingErrors(prism(roundedRectOutline(-1, 1, -0.8, 0.8, [0, 0, 0, 0], 4), 0, 0.03, 0.01))).toBe(0);
   });

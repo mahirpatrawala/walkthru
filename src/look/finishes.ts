@@ -18,16 +18,16 @@ const F = (id: string, name: string, colour: string, material: MatKey, kind: Fin
 
 export const FINISH_LIST: FinishDef[] = [
   // woods: one oak grain, tinted to the species
-  F('oak', 'Natural oak', '#CAA27A', 'wood', 'wood'),
+  F('oak', 'Natural oak', '#CDAB8A', 'wood', 'wood'),
   F('oak-light', 'Light oak', '#D9BC92', 'wood', 'wood'),
   F('ash-white', 'White-washed ash', '#E3D7C4', 'wood', 'wood'),
-  F('walnut', 'Walnut', '#7A5238', 'wood', 'wood'),
+  F('walnut', 'Walnut', '#7B5B45', 'wood', 'wood'),
   F('teak', 'Teak', '#A9713F', 'wood', 'wood'),
   // laminates and lacquers
   F('white-laminate', 'White laminate', '#F1EFEA', 'laminate', 'laminate'),
   F('white-gloss', 'White gloss', '#F6F4F0', 'gloss', 'laminate'),
   F('cream-laminate', 'Cream laminate', '#E4D8C4', 'laminate', 'laminate'),
-  F('navy-matte', 'Navy matte laminate', '#34487A', 'laminate', 'laminate'),
+  F('navy-matte', 'Navy matte laminate', '#3D4A70', 'laminate', 'laminate'),
   F('charcoal-matte', 'Charcoal matte laminate', '#3B3D41', 'laminate', 'laminate'),
   F('sage-matte', 'Sage matte laminate', '#8C9A86', 'laminate', 'laminate'),
   F('grey-matte', 'Light grey matte laminate', '#B9B8B3', 'laminate', 'laminate'),
@@ -49,7 +49,7 @@ export const FINISH_LIST: FinishDef[] = [
   F('weave-sage', 'Sage weave', '#8E9B84', 'weave', 'fabric'),
   F('weave-navy', 'Navy weave', '#2B3A5C', 'weave', 'fabric'),
   F('ticking-navy', 'Navy ticking stripe', '#FFFFFF', 'stripe', 'fabric'),
-  F('shag-grey', 'Grey shag', '#8E8E8E', 'shag', 'fabric'),
+  F('shag-grey', 'Grey shag', '#B3AEA6', 'shag', 'fabric'),
   F('shag-ivory', 'Ivory shag', '#D9D2C4', 'shag', 'fabric'),
   F('drape-grey', 'Grey drape', '#A0A3A8', 'drape', 'fabric'),
   F('drape-sand', 'Sand drape', '#B7A68E', 'drape', 'fabric'),
@@ -57,7 +57,7 @@ export const FINISH_LIST: FinishDef[] = [
   F('sheer-white', 'White sheer', '#F7F4EE', 'sheer', 'sheer'),
   // metals and stone
   F('black-metal', 'Matt black metal', '#1D1D1F', 'blackMetal', 'metal'),
-  F('brass', 'Brushed brass', '#BC8F4C', 'brass', 'metal'),
+  F('brass', 'Brushed brass', '#D4AD66', 'brass', 'metal'),
   F('steel', 'Brushed steel', '#B8B8B8', 'metal', 'metal'),
   F('black-stone', 'Black stone', '#1B1B1D', 'granite', 'stone'),
   F('white-stone', 'White stone', '#E9E6E0', 'gloss', 'stone'),

@@ -60,7 +60,7 @@ export const DEFS: Record<MatKey, Def> = {
   quilt: { color: '#CDBBA3', roughness: 0.97, metalness: 0, tex: 'cotton_jersey', detail: true, tile: 0.6, nor: 'tex/gen/quilt_nor.jpg', norScale: 0.55 },
   shag: { color: '#8C8C8C', roughness: 1, metalness: 0, tex: 'curly_teddy_natural', detail: true, tile: 0.4 },
   stripe: { color: '#FFFFFF', roughness: 0.95, metalness: 0, tex: 'stripe', tile: 0.34 },
-  brass: { color: '#BC8F4C', roughness: 0.3, metalness: 1, tile: 1 },
+  brass: { color: '#D4AD66', roughness: 0.38, metalness: 0.35, tile: 1 },
   blackMetal: { color: '#1D1D1F', roughness: 0.42, metalness: 0.75, tile: 1 },
   sheer: { color: '#F1EEE8', roughness: 1, metalness: 0, tile: 1, opacity: 0.7, doubleSide: true },
   drape: { color: '#8A8D92', roughness: 0.97, metalness: 0, tex: 'rough_linen', detail: true, tile: 0.5, doubleSide: true },
