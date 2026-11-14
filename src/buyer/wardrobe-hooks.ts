@@ -10,9 +10,16 @@ export function setSwingProvider(p: SwingProvider | null): void {
   provider = p;
 }
 
-/** "Wardrobe shutters need 44 cm to open here." when `box` sits in a wardrobe's swing, else null. `selfId` is skipped. */
+/** The doors' answer to the same question (src/buyer/doors.ts): "Blocks the Bedroom door from opening." */
+let doorProvider: SwingProvider | null = null;
+export function setDoorSwingProvider(p: SwingProvider | null): void {
+  doorProvider = p;
+}
+
+/** "Wardrobe shutters need 44 cm to open here." when `box` sits in a wardrobe's swing, and "Blocks the Bedroom door from opening." when it sits in a door's. Else null. `selfId` is skipped. */
 export function swingNoteFor(box: Box, selfId?: string): string | null {
-  return provider ? provider(box, selfId) : null;
+  const parts = [provider?.(box, selfId) ?? null, doorProvider?.(box, selfId) ?? null].filter((x): x is string => !!x);
+  return parts.length ? parts.join(' ') : null;
 }
 
 /** The verdict message with the swing sentence added when there is one. */

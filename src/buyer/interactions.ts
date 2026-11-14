@@ -8,6 +8,7 @@ import type { FurnitureItem, Vec2 } from '../types';
 import type { BuyerContext, BuyerMode } from './context';
 import { CHAIR_PROMPT } from './seats';
 import type { Seats } from './seats';
+import { activateNearestDoor, doorNoteForBox, nearestDoorPrompt } from './door-hooks';
 import { toneColor } from './overlays';
 import { actionFor, nearestInteractable } from './store';
 import type { PoseAction } from './store';
@@ -66,9 +67,17 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
 
   const seats = extras.seats;
   const cardOf = (item: FurnitureItem, H: number) => {
-    const card = seats?.card(item, H) ?? checkFor(item, H);
+    let card = seats?.card(item, H) ?? checkFor(item, H);
     const note = card.footer ? null : extras.cardNote?.(item) ?? null;
-    return note ? { ...card, footer: note } : card;
+    if (note) card = { ...card, footer: note };
+    // a piece (real or placed) that sits in a door's swing says so on its card
+    const door = doorNoteForBox(item.box);
+    return door ? { ...card, lines: [...card.lines, door] } : card;
+  };
+  /** The door the walker could swing, when it is nearer than the nearest piece of furniture (which keeps the pill when it is closer). */
+  const doorPreferred = (n: { distM: number } | null): { distM: number; prompt: string } | null => {
+    const d = nearestDoorPrompt(ctx.character.position);
+    return d && (!n || d.distM < n.distM) ? d : null;
   };
   const nearest = (): { item: FurnitureItem; distM: number } | null =>
     nearestInteractable(seats ? [...ctx.furniture.all(), ...seats.items()] : ctx.furniture.all(), ctx.character.position, undefined, ctx.grid());
@@ -203,6 +212,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     }
     if (ctx.mode() !== 'walk' || !freeToStand()) return 'none';
     const n = nearest();
+    if (doorPreferred(n) && activateNearestDoor(ctx.character.position)) return 'door';
     if (!n) return 'none';
     if (extras.wardrobe?.activate(n.item)) return 'wardrobe';
     const { action } = actionFor(n.item.kind);
@@ -243,6 +253,8 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
       const n = nearest();
       // moving away, or ending up beside something else, closes the dimensions card
       if (dimsId !== null && (Math.hypot(ctx.input.moveX, ctx.input.moveY) > MOVE_END || n?.item.id !== dimsId)) hideDims();
+      const door = doorPreferred(n);
+      if (door) { h.setPrompt(door.prompt, () => { void interact(); }); return; }
       if (!n) { h.setPrompt(null); return; }
       h.setPrompt(extras.wardrobe?.promptFor(n.item) ?? (seats?.isSeat(n.item) ? CHAIR_PROMPT : actionFor(n.item.kind).prompt), () => { void interact(); });
     },

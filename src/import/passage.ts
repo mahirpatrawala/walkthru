@@ -102,7 +102,17 @@ export function doorsFromArcs(
     }
     let k = openings.length + doors.length + 1; while (existingIds.has(`door-${k}`)) k++;
     existingIds.add(`door-${k}`);
-    doors.push({ id: `door-${k}`, roomId: room.id, edge: best.edge, type: 'door', centreM: (u0 + u1) / 2, widthM: u1 - u0, sillM: 0, headM: 2.1 });
+    const door: Opening = { id: `door-${k}`, roomId: room.id, edge: best.edge, type: 'door', centreM: (u0 + u1) / 2, widthM: u1 - u0, sillM: 0, headM: 2.1 };
+    if (best.hinged) {
+      // the arc is centred on the hinge and runs to the leaf's free end: hinge = the end of the door the arc's centre is at, swing = the side of the wall its points lie on
+      const e = { x: (q.x - p.x) / L, z: (q.z - p.z) / L };
+      const outN = { x: e.z, z: -e.x };
+      const pts = best.arc.points.map(toWorld);
+      let off = 0; for (const w of pts) off += (w.x - p.x) * outN.x + (w.z - p.z) * outN.z;
+      const uHinge = (toWorld(best.arc.centre).x - p.x) * e.x + (toWorld(best.arc.centre).z - p.z) * e.z;
+      if (Math.abs(off) > 1e-9) door.leaf = { hinge: uHinge <= (u0 + u1) / 2 ? 'start' : 'end', swing: off < 0 ? 'in' : 'out', kind: 'hinged' };
+    }
+    doors.push(door);
   }
   return { doors, warnings, used };
 }
