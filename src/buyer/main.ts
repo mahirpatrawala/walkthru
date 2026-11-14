@@ -21,6 +21,12 @@ import { createLook, fetchLookFile } from '../look/look';
 import { mountKit } from '../look/kit';
 import { mountBaked } from '../look/baked/runtime';
 import type { BakedHandle } from '../look/baked/runtime';
+import type { KitHandle } from '../look/kit';
+import { fetchDesignSheet } from '../look/design-sheet';
+import { mountDesign } from '../look/design-mount';
+import { PACKS } from '../look/packs';
+import { doorPanelColour, finishNote, getStyle, onStyleChange, setStyle } from '../look/style';
+import { resolveItemLook } from '../look/furniture-real';
 import type { Look } from '../look/look';
 import { mountLookPanel } from '../look/look-panel';
 import { createInput } from '../engine/controls';
@@ -33,6 +39,8 @@ import type { PropertyFile, Vec2 } from '../types';
 import { ModeManager, createBuyerContext } from './context';
 import type { BuyerContext, BuyerModeId } from './context';
 import { createFurnishMode } from './furnish';
+import { mountLayoutChip, syncHosted } from './layout-chip';
+import { SHARE_PARAM } from './my-layout';
 import { chooseSpawn } from '../core/spawn';
 import { resolveStartRoom } from '../core/start-rooms';
 import { createGridOverlay } from './debug';
@@ -42,6 +50,7 @@ import { createHud } from './hud';
 import { createInteractions } from './interactions';
 import { buildSeats } from './seats';
 import { createWardrobes } from './wardrobe';
+import { mountDoors } from './doors';
 import { createLoadingScreen } from './loading';
 import { mountAiPhoto } from '../photo/mount';
 import { createMeasureMode } from './measure';
@@ -156,6 +165,7 @@ async function boot(): Promise<void> {
   const early = loadPerson(storage);
   prefetchPerson(early.body, guessedBodyTier());
   const designsP = fetchDesigns(sceneId);
+  const sheetP = fetchDesignSheet(sceneId);
   // the small optional JSON files go out together with property.json instead of one after another
   const lookFileP = fetchLookFile(sceneId);
   const extrasP = fetchExtras(sceneId);
@@ -211,13 +221,22 @@ async function boot(): Promise<void> {
   const startTier = look?.tier ?? 'medium';
   setFurnitureDefaults({ style: 'real', tier: startTier });
   void furnitureKit.setTier(startTier).catch((err) => console.warn('[walkthru] furniture textures not loaded', err));
+  // the style (SPEC 16.13): the designer's sheet when the home has one, else the default pack; the viewer's last pick wins (?style= for checks)
+  const styleKey = `walkthru:style:${sceneId}`;
+  const sheet = await sheetP;
+  {
+    const picked = params.get('style') ?? storageGet(storage, styleKey);
+    const packId: string | undefined = picked && picked !== 'designer' && PACKS.some((p) => p.id === picked) ? picked : undefined;
+    setStyle({ packId, sheet });
+  }
   const initialItems = applyDesigns(property.furniture, designs);
-  const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage });
+  const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage, shareCode: params.get(SHARE_PARAM) });
   const decor: Decor[] = buildDecor(designs, store.all(), startTier);
   for (const d of decor) furnitureRoot.add(d.group);
   // the drawing's chairs are sittable and block the walk grid (src/buyer/seats.ts)
   const seats = buildSeats(designs, store.all());
   store.setTemporary('seats', seats.obstacles());
+  syncHosted(store, decor, seats); // decor and chairs at a piece that My layout hides go with it
   if (look) {
     const lk = look;
     lk.attach({ shell, furnitureRoot });
@@ -263,6 +282,7 @@ async function boot(): Promise<void> {
       seenTier = t;
       void furnitureKit.setTier(t).then(() => {
         rebuildFurnitureTier(furnitureRoot, t);
+        design?.rebuild(t);
         for (const d of decor) d.rebuild(t);
         look!.refresh(store.grid());
       });
@@ -325,7 +345,25 @@ async function boot(): Promise<void> {
     }
   }
   let paintBusy = false;
-  if (look) mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); } });
+  // the Style picker (SPEC 16.13): the designer's look when the home has a sheet, then the packs
+  let design: ReturnType<typeof mountDesign> | null = null;
+  const stylePicker = {
+    options: () => [
+      ...(sheet ? [{ id: 'designer', label: "Designer's look" }] : []),
+      ...PACKS.filter((p) => !(sheet && p.id === sheet.pack)).map((p) => ({ id: p.id, label: p.name, hint: p.blurb })),
+    ],
+    current: (): string => (getStyle().designerLook ? 'designer' : getStyle().pack.id),
+    choose: (id: string): void => {
+      storageSet(storage, styleKey, id);
+      setStyle(id === 'designer' && sheet ? { packId: sheet.pack } : { packId: id });
+    },
+    onChange: onStyleChange,
+    note: (): string | null => design?.note() ?? null,
+    designerSource: (): string | null => (getStyle().designerLook ? sheet?.source ?? null : null),
+    packName: (): string => getStyle().pack.name,
+    classic: (): boolean => !!getStyle().pack.classic,
+  };
+  if (look) mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); }, style: stylePicker });
   // C12f: the optional AI photo (SPEC 17.14). The button exists only if the server says the feature is on; nothing else loads until it is tapped.
   mountAiPhoto({
     host: hud.root, viewer, layout, items: () => store.all(), toast: (t) => hud.toast(t),
@@ -335,11 +373,19 @@ async function boot(): Promise<void> {
   const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
   const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
-  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) });
+  const doors = mountDoors({ ctx, store, layout });
+  doors.setPanelColour(doorPanelColour());
+  onStyleChange(() => { doors.setPanelColour(doorPanelColour()); }); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
+  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name)) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));
-  modes.registerLazy('furnish', () => createFurnishMode(ctx));
+  modes.registerLazy('furnish', () => createFurnishMode(ctx, { designedIds: new Set(Object.keys(designs?.items ?? {})) }));
+  mountLayoutChip(hud.root, store, () => { if (!blocking() && modes.id !== 'furnish') modes.set('furnish'); });
+  if (store.fromLink()) {
+    try { const u = new URL(location.href); u.searchParams.delete(SHARE_PARAM); history.replaceState(null, '', u.toString()); } catch { /* ignore */ }
+    setTimeout(() => hud.toast('Opened a shared layout. Reset it any time from Furnish.'), 1200);
+  }
   modes.onError = (id, err) => {
     const m = describe(err);
     console.warn(`[walkthru] mode "${id}" unavailable:`, err);
@@ -400,9 +446,23 @@ async function boot(): Promise<void> {
     },
   });
   rooms = createRoomsSheet(document.body, layout, () => { /* nothing to resume */ }, unverifiedRooms);
-  mountKit({ viewer, layout, shell, look, store }); // look-kit: typical Indian-flat fittings (decor only, labelled, 'Plain' removes them)
+  // look-kit: typical Indian-flat fittings (decor only, labelled, 'Plain' removes them). The style's room finishes are applied first (the kit's
+  // floors read them), and the kit is taken off and put back whenever the style changes them.
+  let kit: KitHandle | null = null;
+  design = mountDesign({
+    scene: viewer.scene, layout, shell, look, store, tier: startTier,
+    beforeRestyle: () => { kit?.dispose(); kit = null; },
+    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store }); },
+  });
+  // a new style rebuilds the furniture and the openable wardrobes' shutters (the decor and rooms are rebuilt by mountDesign itself)
+  onStyleChange(() => {
+    rebuildFurnitureTier(furnitureRoot, look?.tier ?? startTier);
+    wardrobes.restyle();
+    livedIn?.replan();
+    look?.refresh(store.grid());
+  });
   // optional "Lived-in" decor (SPEC 16.6.7): a switch in the look sheet, a label in the rooms sheet; on by default only for made-up sample homes
-  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
+  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
 
   // SPEC 16.13: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.
   let baked: BakedHandle | null = null;
@@ -488,6 +548,7 @@ async function boot(): Promise<void> {
 
   // ---- the frame loop
   const ZERO_LOOK = { dx: 0, dy: 0, zoom: 0 };
+  let freeCam: { pos: [number, number, number]; target: [number, number, number]; fov?: number; up?: [number, number, number] } | null = null;
   let chipClock = 0;
   let lastChip: string | null | undefined;
   let debugClock = 0;
@@ -506,6 +567,15 @@ async function boot(): Promise<void> {
     character.update(dt);
     camera.setTarget(character.position, character.heightM);
     camera.update(dt, blocked ? ZERO_LOOK : look);
+    if (freeCam) {
+      // debug only (screenshots from a chosen viewpoint): the follow camera is overridden after it has run
+      viewer.camera.position.set(freeCam.pos[0], freeCam.pos[1], freeCam.pos[2]);
+      viewer.camera.up.set(...(freeCam.up ?? [0, 1, 0]));
+      viewer.camera.lookAt(freeCam.target[0], freeCam.target[1], freeCam.target[2]);
+      if (freeCam.fov && viewer.camera.fov !== freeCam.fov) { viewer.camera.fov = freeCam.fov; viewer.camera.updateProjectionMatrix(); }
+      viewer.camera.updateMatrixWorld(true);
+      character.setVisible(false);
+    }
     // below a 0.7 m boom the character is hidden, above 0.8 m it comes back (SPEC 2.4)
     if (camera.boom < 0.7) character.setVisible(false);
     else if (camera.boom > 0.8) character.setVisible(true);
@@ -572,6 +642,11 @@ async function boot(): Promise<void> {
 
   const api = {
     ctx,
+    /** Debug (screenshots): a fixed camera at `pos` looking at `target`; `null` gives the follow camera back. The HUD is hidden while it is on. */
+    freeCam: (pos: [number, number, number] | null, target?: [number, number, number], fov?: number, up?: [number, number, number]) => {
+      freeCam = pos && target ? { pos, target, fov, up } : null;
+      hud.setVisible(!freeCam);
+    },
     /** Moves the character to (x, z) (nearest free spot if blocked). While posed the release takes up to ~0.7 s. */
     teleport,
     state: snapshot,

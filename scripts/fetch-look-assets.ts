@@ -36,6 +36,12 @@ export const MANIFEST: Entry[] = [
   { path: 'tex/rough_linen/rough_linen_nor_gl_1k.jpg', url: 'Textures/jpg/1k/rough_linen/rough_linen_nor_gl_1k.jpg', size: 916843, md5: '3350269a2e9c472aa406bd3cc1eaf2c8', group: 'texture' },
   { path: 'tex/cotton_jersey/cotton_jersey_diff_1k.jpg', url: 'Textures/jpg/1k/cotton_jersey/cotton_jersey_diff_1k.jpg', size: 581360, md5: 'd2f4493fdd48634b50d40f810ce9deb7', group: 'texture' },
   { path: 'tex/cotton_jersey/cotton_jersey_nor_gl_1k.jpg', url: 'Textures/jpg/1k/cotton_jersey/cotton_jersey_nor_gl_1k.jpg', size: 678670, md5: '2dcc9dda3b726477f607c808e52f1833', group: 'texture' },
+  { path: 'tex/oak_veneer_01/oak_veneer_01_diff_1k.jpg', url: 'Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg', size: 641756, md5: '39a99df4e328d62d74f3122722a64a95', group: 'texture' },
+  { path: 'tex/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg', url: 'Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg', size: 484844, md5: 'd05406f5fdaf51f0d7b115b35d9af1b7', group: 'texture' },
+  { path: 'tex/oak_veneer_01/oak_veneer_01_arm_1k.jpg', url: 'Textures/jpg/1k/oak_veneer_01/oak_veneer_01_arm_1k.jpg', size: 982665, md5: 'dfba0f063663289248f4e887f836bdcc', group: 'texture' },
+  { path: 'tex/curly_teddy_natural/curly_teddy_natural_diff_1k.jpg', url: 'Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_diff_1k.jpg', size: 673494, md5: '82060ba3b45dfdbfab202b616a251b94', group: 'texture' },
+  { path: 'tex/curly_teddy_natural/curly_teddy_natural_nor_gl_1k.jpg', url: 'Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_nor_gl_1k.jpg', size: 576152, md5: '6496bc0ee48ee2ec2cac68ef82c9fe67', group: 'texture' },
+  { path: 'tex/curly_teddy_natural/curly_teddy_natural_arm_1k.jpg', url: 'Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_arm_1k.jpg', size: 1027248, md5: '89c4cbe6765fbc5ad164988616eab233', group: 'texture' },
   { path: 'models/sofa_02/sofa_02_1k.gltf', url: 'Models/gltf/1k/sofa_02/sofa_02_1k.gltf', size: 4183, md5: 'ec2590dc8433a523d0fe9e507766c16f', group: 'model' },
   { path: 'models/sofa_02/textures/sofa_02_diff_1k.jpg', url: 'Models/jpg/1k/sofa_02/sofa_02_diff_1k.jpg', size: 86514, md5: '0452c7d8dd3ef414d5ed3055085028a1', group: 'model' },
   { path: 'models/sofa_02/textures/sofa_02_arm_1k.jpg', url: 'Models/jpg/1k/sofa_02/sofa_02_arm_1k.jpg', size: 121752, md5: '78799d978a1117ba83dbffed9af0fa33', group: 'model' },
@@ -52,6 +58,7 @@ const LICENCE = `Everything under public/look/ comes from Poly Haven (https://po
 https://polyhaven.com/license
 
 Files named hdri/*_bg.jpg are derived from those HDRIs by scripts/derive-look-assets.ts (also CC0).
+Files under tex/gen/ are drawn from formulas by scripts/make-gen-textures.ts (our own, released CC0 1.0 like the rest).
 assets.lock.json lists every file with its size, MD5 (checked against the Poly Haven API) and SHA-256.
 `;
 

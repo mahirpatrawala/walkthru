@@ -1,0 +1,30 @@
+{
+  "id": "warm-oak-navy",
+  "name": "Warm Oak & Navy",
+  "blurb": "Natural oak, navy matte laminate, quilted beige bedding, black bar handles, a grey shag rug.",
+  "roles": {
+    "case": "oak", "flute": "oak", "slats": "oak", "legs": "oak", "drawerFront": "oak",
+    "accent": "navy-matte", "bedFrame": "navy-matte", "headboard": "navy-matte",
+    "top": "black-stone",
+    "fabric": "weave-grey",
+    "bedding": "cotton-white", "duvet": "quilt-beige", "pillow": "cotton-white", "cushion": "ticking-navy",
+    "handle": "black-metal", "plinth": "black-metal", "slatBack": "black-metal",
+    "lampMetal": "brass", "acBody": "white-gloss",
+    "rug": "shag-grey", "curtainSheer": "sheer-white", "curtainDrape": "drape-grey",
+    "door": "oak",
+    "wallPanel": "wall-beige"
+  },
+  "generators": {
+    "wardrobe": { "shutterStyle": "fluted-strip", "handle": "long-bar", "plinthM": 0.05 },
+    "bed": { "base": "platform", "headboard": "panel", "duvet": "quilted", "cushions": 2 },
+    "sofa": { "arms": "round", "legs": "wood" },
+    "bench": { "shape": "curved-end", "cushion": true },
+    "study": { "top": "slab", "handle": "groove" },
+    "side": { "style": "drawer", "handle": "groove" },
+    "dresser": { "base": "legs", "handle": "groove" },
+    "counter": { "shutterStyle": "framed", "handle": "bar" },
+    "dining": { "chair": "padded", "legs": "tapered" }
+  },
+  "room": { "wall": "wall-beige", "floor": "tile-beige-gloss", "ceiling": "ceiling-white" },
+  "decor": { "rug": true, "curtains": true }
+}

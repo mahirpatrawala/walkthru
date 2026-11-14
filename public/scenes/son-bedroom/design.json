@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "pack": "warm-oak-navy",
+  "source": "designer-renders",
+  "note": "Styling choices read from a designer's renders of this room: finishes, wall treatments and decor only. Sizes, bays and heights stay the drawing's.",
+  "items": {
+    "wardrobe-1": { "params": { "shutterStyle": "fluted-strip", "handle": "long-bar", "fluteBand": [0.4, 0.58] } },
+    "bed-1": { "params": { "base": "platform", "headboard": "panel", "duvet": "quilted", "cushions": 2 } },
+    "counter-3": { "params": { "top": "slab", "pedestal": "right", "drawers": 3, "handle": "groove" } }
+  },
+  "rooms": {
+    "son-room": { "wall": "wall-beige", "floor": "tile-beige-gloss" }
+  },
+  "fixtures": [
+    { "kind": "slat-wall", "roomId": "son-room", "edge": 1, "u0": 0.0, "u1": 2.85 },
+    { "kind": "panelling", "roomId": "son-room", "edge": 1, "u0": 2.85, "u1": 3.81, "pitchM": 0.48, "y0M": 0.1, "y1M": 2.45 },
+    { "kind": "panelling", "roomId": "son-room", "edge": 2, "u0": 0.95, "u1": 3.35, "pitchM": 0.6, "y0M": 0.1, "y1M": 2.45 },
+    { "kind": "bowl-lights", "roomId": "son-room", "edge": 2, "us": [1.55, 1.95], "y": 1.35 },
+    { "kind": "curtain", "roomId": "son-room", "edge": 0, "u0": 0.35, "u1": 3.3, "sheer": true, "drape": "sides" },
+    { "kind": "window-seat", "roomId": "son-room", "edge": 0, "u0": 0.95, "u1": 2.6, "depthM": 0.46, "heightM": 0.45, "shape": "curved-end", "curveSide": "left" },
+    { "kind": "ac", "roomId": "son-room", "edge": 2, "u": 2.7, "y": 2.2 },
+    { "kind": "rug", "roomId": "son-room", "aroundItem": "bed-1", "margin": { "head": 0.0, "foot": 0.75, "side": 0.55 } },
+    { "kind": "ceiling-band", "roomId": "son-room", "x0": 1.85, "z0": -1.0, "x1": 2.47, "z1": 1.25, "dropM": 0.05 },
+    { "kind": "downlights", "roomId": "son-room", "points": [[-0.3, -1.4], [0.75, -1.4], [-0.3, 0.0], [0.75, 0.0], [-0.3, 1.4], [0.75, 1.4]] }
+  ]
+}

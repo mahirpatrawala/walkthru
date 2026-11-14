@@ -12,8 +12,18 @@ describe('catalogue matches SPEC 4.4 exactly', () => {
     ['bed-queen', 'Queen bed', '152 × 198 cm (60 × 78 in)', 1.62, 2.08, 1.52, 1.98],
     ['bed-king', 'King bed', '183 × 198 cm (72 × 78 in)', 1.93, 2.08, 1.83, 1.98],
   ] as const;
-  it('has seven items in table order', () => {
-    expect(CATALOG.map((c) => c.id)).toEqual(['bed-single', 'bed-double', 'bed-queen', 'bed-king', 'sofa-3', 'dining-6', 'wardrobe-2']);
+  it('starts with the seven items of the original table, in order (more follow, for Replace)', () => {
+    expect(CATALOG.slice(0, 7).map((c) => c.id)).toEqual(['bed-single', 'bed-double', 'bed-queen', 'bed-king', 'sofa-3', 'dining-6', 'wardrobe-2']);
+    expect(CATALOG.slice(7).map((c) => c.id)).toEqual(['sofa-2', 'sofa-l', 'armchair', 'wardrobe-3', 'wardrobe-4', 'study-table', 'side-table']);
+  });
+  it('every catalogue id is unique and every footprint, height and surface is positive with the surface under the top', () => {
+    expect(new Set(CATALOG.map((c) => c.id)).size).toBe(CATALOG.length);
+    for (const c of CATALOG) {
+      expect(c.footprint.w).toBeGreaterThan(0.3);
+      expect(c.footprint.d).toBeGreaterThan(0.3);
+      expect(c.heightM).toBeGreaterThan(0.4);
+      expect(c.surfaceHeightM).toBeLessThanOrEqual(c.heightM);
+    }
   });
   for (const [id, name, label, fw, fd, iw, idp] of beds) {
     it(id, () => {

@@ -9,6 +9,10 @@ import {
 } from './furniture-parts';
 import { furnitureKit } from './furniture-materials';
 import type { FurnitureKit, MatKey } from './furniture-materials';
+import { GENERATORS, GEN_QUALITY, sizeOf } from './gen';
+import { moveChildren } from './gen/core';
+import { resolveLook } from './style';
+import type { ResolvedLook } from './style';
 
 export type FurnitureLookName = 'bed' | 'sofa' | 'wardrobe' | 'study' | 'side' | 'counter' | 'dining';
 
@@ -54,6 +58,8 @@ export const QUALITY: Record<Tier, Quality> = {
  * catalogue item has none and keeps the 16.6 looks. Sizes of the box never come from here, only finish details.
  */
 export interface WardrobeDesign {
+  /** height of a fixed loft row above the shutters, from the drawing; absent = the style decides */
+  loftM?: number;
   /** equal bays across the front, each with its own shutter pair and footwear drawer */
   bays: number;
   shuttersPerBay: number;
@@ -77,6 +83,12 @@ const designs = new Map<string, ItemDesign>();
 export function setItemDesigns(map: Map<string, ItemDesign> | null): void {
   designs.clear();
   if (map) for (const [k, v] of map) designs.set(k, v);
+}
+/** What the drawing gave for an item's structure (bays, base height...), for the style resolver. */
+export function itemDrawing(id: string): ItemDesign | undefined { return designs.get(id); }
+/** The look an item gets under the current style, or null in the Classic style (the builders below). */
+export function resolveItemLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 'finish'>): ResolvedLook | null {
+  return resolveLook(item, designs.get(item.id));
 }
 
 class Build {
@@ -460,6 +472,18 @@ const BUILDERS: Record<FurnitureLookName, (b: Build, item: FurnitureItem) => voi
  * Does not touch the group's position or rotation.
  */
 export function buildRealFurniture(group: THREE.Group, item: FurnitureItem, tier: Tier, kit: FurnitureKit = furnitureKit): void {
+  // a style pack other than Classic builds the piece with the parametric generators (src/look/gen), same box, same heights
+  const look = resolveItemLook(item);
+  if (look) {
+    const built = GENERATORS[look.kind].build({ kit, q: GEN_QUALITY[tier] }, sizeOf(item), look.params, look.roles);
+    moveChildren(built, group);
+    group.userData.look = look;
+    // the generator consumed item.finish itself (src/look/style.ts finishLayer): the old colour-swap pass stands down
+    group.userData.finishApplied = true;
+    return;
+  }
+  group.userData.finishApplied = false;
+  delete group.userData.look;
   const b = new Build(kit, QUALITY[tier]);
   BUILDERS[furnitureLook(item)](b, item);
   for (const c of [...b.group.children]) group.add(c);

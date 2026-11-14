@@ -9,7 +9,7 @@ import type { Tier } from '../types';
 import { buildDecorGroup } from './build';
 import type { BuiltDecor } from './build';
 import { boxesOverlap, pieceBox, planLivedIn } from './plan';
-import type { DecorPiece } from './plan';
+import type { DecorKind, DecorPiece } from './plan';
 
 export { planLivedIn, pieceBox } from './plan';
 export type { DecorPiece, DecorKind } from './plan';
@@ -39,6 +39,9 @@ export interface LivedInStore {
   all(): FurnitureItem[];
   /** the walking grid with these ids left out */
   gridWithout(ids: string[]): Grid;
+  /** the home as drawn (a viewer's "My layout" aside): its pieces, and the walking grid with just them. Decor is planned on these, so it never depends on an edit. */
+  pristine?(): FurnitureItem[];
+  drawnGrid?(): Grid;
   onChange(cb: () => void): () => void;
 }
 
@@ -51,6 +54,8 @@ export interface LivedInOpts {
   /** on for made-up sample homes, off for a real drawing until the buyer taps it */
   defaultOn: boolean;
   tier?: Tier;
+  /** kinds of decor to leave out (the style pack's own curtains and rugs replace them), read each time the home is planned */
+  omit?: () => DecorKind[];
 }
 
 export interface LivedIn {
@@ -59,6 +64,8 @@ export interface LivedIn {
   count(): number;
   pieces(): DecorPiece[];
   setEnabled(on: boolean, remember?: boolean): void;
+  /** plan again (the set of kinds to leave out changed) */
+  replan(): void;
   /** hide the decor without changing the switch (a scan is on show, an AI photo is being taken) */
   setSuppressed(on: boolean): void;
   onChange(cb: (enabled: boolean) => void): () => void;
@@ -76,12 +83,13 @@ export function createLivedIn(opts: LivedInOpts): LivedIn {
 
   const plan = (): DecorPiece[] => {
     if (planned) return planned;
-    const all = opts.store.all();
+    const all = opts.store.pristine ? opts.store.pristine() : opts.store.all();
     const real = all.filter((i) => i.source === 'real');
     // the grid without the buyer's own placed furniture: decor goes where the HOME is free, not where a trial bed happens to be
-    const grid = opts.store.gridWithout(all.filter((i) => i.source !== 'real').map((i) => i.id));
+    const grid = opts.store.drawnGrid ? opts.store.drawnGrid() : opts.store.gridWithout(all.filter((i) => i.source !== 'real').map((i) => i.id));
     try {
-      planned = planLivedIn({ layout: opts.layout, items: real, grid });
+      const omit = new Set(opts.omit?.() ?? []);
+      planned = planLivedIn({ layout: opts.layout, items: real, grid }).filter((p) => !omit.has(p.kind));
     } catch (err) {
       console.warn('[walkthru] lived-in decor could not be planned:', err);
       planned = [];
@@ -95,16 +103,20 @@ export function createLivedIn(opts: LivedInOpts): LivedIn {
       opts.parent.add(built.group);
       reconcile();
     }
-    if (built) built.group.visible = enabled && !suppressed;
+    if (built) { built.group.visible = enabled && !suppressed; if (enabled) reconcile(); }
   };
 
   /** a piece the buyer has since put furniture over is hidden, not moved (nothing about the home changes) */
   const reconcile = (): void => {
     if (!built) return;
-    const virtual = opts.store.all().filter((i) => i.source !== 'real');
+    const all = opts.store.all();
+    const virtual = all.filter((i) => i.source !== 'real');
+    const present = new Set(all.map((i) => i.id));
     for (const p of plan()) {
       const g = built.byId.get(p.id);
-      if (!g || p.place === 'surface') continue;
+      if (!g) continue;
+      // decor that sits on a piece (cushions on a bed, a throw on a sofa) goes with it when My layout removes or replaces that piece
+      if (p.place === 'surface') { g.visible = !p.hostId || present.has(p.hostId); continue; }
       const box = pieceBox(p);
       g.visible = !virtual.some((v) => (p.place !== 'wall' || v.heightM > p.y - 0.05) && boxesOverlap(box, v.box, 0.05));
     }
@@ -120,6 +132,13 @@ export function createLivedIn(opts: LivedInOpts): LivedIn {
       if (on === enabled) return;
       enabled = on;
       if (remember) writeLivedIn(opts.storage, on);
+      apply();
+      for (const cb of [...listeners]) cb(enabled);
+    },
+    replan() {
+      planned = null;
+      built?.dispose();
+      built = null;
       apply();
       for (const cb of [...listeners]) cb(enabled);
     },

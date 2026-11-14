@@ -8,6 +8,8 @@ import type { Grid, Layout, Opening, RoomTag, Vec2 } from '../types';
 import { cellValue } from './grid-codec';
 import { distanceToPolygon, distanceToSegment, pointInPolygon, polygonArea } from './geometry';
 import { boomDistance, circleFree, nearestFree } from './grid-query';
+import { inDoorSweep, resolveDoors } from './doors';
+import type { Door } from './doors';
 
 /** The clear space asked of the spawn point, metres (walls and furniture). */
 export const SPAWN_CLEAR_M = 0.6;
@@ -25,6 +27,8 @@ const BOOM_HIDDEN_BELOW_M = 0.7, BOOM_ROOMY_FROM_M = 1.5;
 const BOOM_PENALTY_M = 1.5;
 /** Candidate spacing, metres. */
 const STEP_M = 0.05;
+/** The spawn stays this far from every door leaf at every angle it can take, so no door is ever held shut by the buyer standing in its swing. */
+const DOOR_SWEEP_CLEAR_M = CHARACTER_RADIUS_M + 0.05;
 
 export interface Spawn {
   x: number;
@@ -129,15 +133,15 @@ function interiorPoint(poly: Vec2[], centroid: Vec2): Vec2 {
   return best;
 }
 
-/** Every lattice point inside the room with `clearM` of free space around it on the grid. */
-function clearPoints(poly: Vec2[], grid: Grid, clearM: number): Vec2[] {
+/** Every lattice point inside the room with `clearM` of free space around it on the grid, and out of every door's leaf and swing. */
+function clearPoints(poly: Vec2[], grid: Grid, clearM: number, doors: Door[]): Vec2[] {
   let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
   for (const p of poly) { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z); }
   const out: Vec2[] = [];
   for (let x = minX; x <= maxX; x += STEP_M) {
     for (let z = minZ; z <= maxZ; z += STEP_M) {
       const q = { x, z };
-      if (pointInPolygon(q, poly) && circleFree(grid, x, z, clearM)) out.push(q);
+      if (pointInPolygon(q, poly) && circleFree(grid, x, z, clearM) && (doors.length === 0 || !inDoorSweep(doors, q, DOOR_SWEEP_CLEAR_M))) out.push(q);
     }
   }
   return out;
@@ -149,6 +153,12 @@ function clearPoints(poly: Vec2[], grid: Grid, clearM: number): Vec2[] {
  * `grid` is the walking grid with furniture stamped in, so the 0.6 m is clear of beds and wardrobes too.
  */
 export function chooseSpawn(layout: Layout, roomId: string, grid: Grid): Spawn | null {
+  // a door's leaf and the floor it sweeps are not a place to stand (SPEC 2.1 doors); a room too small for that keeps the plain rule
+  const doors = resolveDoors(layout).filter((d) => d.rooms.includes(roomId));
+  return (doors.length ? chooseSpawnAt(layout, roomId, grid, doors) : null) ?? chooseSpawnAt(layout, roomId, grid, []);
+}
+
+function chooseSpawnAt(layout: Layout, roomId: string, grid: Grid, doors: Door[]): Spawn | null {
   const room = layout.rooms.find((r) => r.id === roomId);
   if (!room || room.partial || room.polygon.length < 3) return null;
   const poly = room.polygon;
@@ -203,7 +213,7 @@ export function chooseSpawn(layout: Layout, roomId: string, grid: Grid): Spawn |
   };
 
   for (const clearM of [SPAWN_CLEAR_M, ...RELAXED_CLEAR_M]) {
-    const pts = clearPoints(poly, grid, clearM);
+    const pts = clearPoints(poly, grid, clearM, doors);
     if (pts.length === 0) continue;
     // nearest the wanted spot, but not where the camera is squeezed to a metre behind a figure that then fills the screen
     let at = pts[0], bestCost = Infinity;
@@ -215,7 +225,9 @@ export function chooseSpawn(layout: Layout, roomId: string, grid: Grid): Spawn |
     }
     return { x: at.x, z: at.z, yawDeg: face(at), roomId, how, clearM };
   }
-  // nothing has even a body's width of room: the clear cell nearest the centre, if it is still in the room
+  // nothing has even a body's width of room: the clear cell nearest the centre, if it is still in the room. (With doors in play this
+  // last resort is the plain rule's, not ours: it would ignore their swings.)
+  if (doors.length) return null;
   const near = nearestFree(grid, anchor.x, anchor.z, CHARACTER_RADIUS_M, 3);
   if (near && pointInPolygon(near, poly)) {
     return { x: near.x, z: near.z, yawDeg: face(near), roomId, how: 'centre', clearM: CHARACTER_RADIUS_M };

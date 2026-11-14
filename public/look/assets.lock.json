@@ -128,6 +128,42 @@
       "sha256": "9b79709806511b62567fb007ff61009c3b194bb0d0821fbaee3faf1b2bff0318",
       "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_nor_gl_1k.jpg"
     },
+    "tex/oak_veneer_01/oak_veneer_01_diff_1k.jpg": {
+      "size": 641756,
+      "md5": "39a99df4e328d62d74f3122722a64a95",
+      "sha256": "c14681f72f59f17bff568cae7a837641443b607b899f0c279cd64a5638f877a7",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg"
+    },
+    "tex/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg": {
+      "size": 484844,
+      "md5": "d05406f5fdaf51f0d7b115b35d9af1b7",
+      "sha256": "1297acf7b4476d5ccd83cc8b27be96aa6110f7a9c3a40be0bd767bf81b17db01",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg"
+    },
+    "tex/oak_veneer_01/oak_veneer_01_arm_1k.jpg": {
+      "size": 982665,
+      "md5": "dfba0f063663289248f4e887f836bdcc",
+      "sha256": "8bf4f36a9ba1d5377a2fa5273a2a0763775afe511b50293d71b159d15576cf1e",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_arm_1k.jpg"
+    },
+    "tex/curly_teddy_natural/curly_teddy_natural_diff_1k.jpg": {
+      "size": 673494,
+      "md5": "82060ba3b45dfdbfab202b616a251b94",
+      "sha256": "3e524df3f6b35bfd87b71ed6a1e2d0c96797e55ec4c1a5b2f7c4332b635a1d79",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_diff_1k.jpg"
+    },
+    "tex/curly_teddy_natural/curly_teddy_natural_nor_gl_1k.jpg": {
+      "size": 576152,
+      "md5": "6496bc0ee48ee2ec2cac68ef82c9fe67",
+      "sha256": "a6cea84bddf31c9d4643a25a09c3ec8fa8884e3c3e2d8ac291623e3f702159b8",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_nor_gl_1k.jpg"
+    },
+    "tex/curly_teddy_natural/curly_teddy_natural_arm_1k.jpg": {
+      "size": 1027248,
+      "md5": "89c4cbe6765fbc5ad164988616eab233",
+      "sha256": "22dbdda2552ad143d93e34d83b38034fe5d48f7a20df1b2ac35802d61feedbb3",
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_arm_1k.jpg"
+    },
     "models/sofa_02/sofa_02_1k.gltf": {
       "size": 4183,
       "md5": "ec2590dc8433a523d0fe9e507766c16f",
@@ -231,7 +267,19 @@
       "marble_01_diff": 0.3499,
       "plastered_wall_04_diff": 0.2561,
       "rough_linen_diff": 0.3972,
-      "walnut_veneer_diff": 0.162
+      "walnut_veneer_diff": 0.162,
+      "oak_veneer_01_diff": 0.2342,
+      "curly_teddy_natural_diff": 0.6786
+    },
+    "tex/gen/quilt_nor.jpg": {
+      "size": 111134,
+      "sha256": "9d515aba4e48f287e005e6c322dad0e6dbaa4dcafd6032f24cad3d82b79bd428",
+      "from": "scripts/make-gen-textures.ts"
+    },
+    "tex/gen/stripe_diff.jpg": {
+      "size": 39193,
+      "sha256": "ac3393a004b42c2f43c5a8419beb112c972ebf5a45941d1e68e836eda6c5a445",
+      "from": "scripts/make-gen-textures.ts"
     }
   }
 }

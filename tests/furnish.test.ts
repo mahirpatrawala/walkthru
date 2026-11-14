@@ -359,19 +359,22 @@ describe('furnish session', () => {
     expect(t.session.remove(id)).toBe(false);
   });
 
-  it('real items can be selected (info only) but not moved or removed; the buyer count ignores them', () => {
+  it('real items can be selected and hidden in My layout, but never moved; the buyer count ignores them', () => {
     const t = rig({ variant: 'furnished' });
     const real = t.store.all().find((i) => i.source === 'real')!;
     t.session.select(real.id);
     const v = t.session.view();
     expect(v.phase).toBe('selected');
     expect(v.canMove).toBe(false);
-    expect(v.canRemove).toBe(false);
+    expect(v.canRemove).toBe(true);
     expect(v.message).toContain('cannot be moved');
     expect(t.session.beginMove()).toBe(false);
-    expect(t.session.removeSelected()).toBe(false);
-    expect(t.store.has(real.id)).toBe(true);
     expect(v.buyerCount).toBe(0);
+    // Remove hides it in this viewer's layout only: the home as drawn (property.furniture) is untouched
+    const before = JSON.stringify(t.property.furniture);
+    expect(t.session.removeSelected()).toBe(true);
+    expect(t.store.has(real.id)).toBe(false);
+    expect(JSON.stringify(t.property.furniture)).toBe(before);
   });
 
   it('Clear all removes the buyer items and nothing else', () => {

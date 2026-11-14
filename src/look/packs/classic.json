@@ -1,0 +1,10 @@
+{
+  "id": "classic",
+  "name": "Classic",
+  "blurb": "Today's look: walnut-veneer wardrobes, linen sofas, white laminate. The drawing's own colours are used where it gives them.",
+  "classic": true,
+  "roles": {},
+  "generators": {},
+  "room": {},
+  "decor": {}
+}

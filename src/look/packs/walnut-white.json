@@ -1,0 +1,30 @@
+{
+  "id": "walnut-white",
+  "name": "Walnut & White",
+  "blurb": "Dark walnut with white laminate fronts, sand upholstery, brushed steel pulls.",
+  "roles": {
+    "case": "walnut", "flute": "walnut", "slats": "walnut", "legs": "walnut", "drawerFront": "white-laminate",
+    "accent": "white-laminate", "bedFrame": "walnut", "headboard": "weave-sand",
+    "top": "white-stone",
+    "fabric": "weave-sand",
+    "bedding": "cotton-white", "duvet": "quilt-white", "pillow": "cotton-white", "cushion": "weave-sage",
+    "handle": "steel", "plinth": "charcoal-matte", "slatBack": "charcoal-matte",
+    "lampMetal": "brass", "acBody": "white-gloss",
+    "rug": "shag-ivory", "curtainSheer": "sheer-white", "curtainDrape": "drape-sand",
+    "door": "walnut",
+    "wallPanel": "wall-cream"
+  },
+  "generators": {
+    "wardrobe": { "shutterStyle": "framed", "handle": "bar" },
+    "bed": { "base": "box", "headboard": "upholstered", "duvet": "quilted", "cushions": 2 },
+    "sofa": { "arms": "box", "legs": "wood" },
+    "bench": { "shape": "rect", "cushion": true },
+    "study": { "top": "thick", "handle": "bar" },
+    "side": { "style": "drawer", "handle": "knob" },
+    "dresser": { "base": "plinth", "handle": "bar" },
+    "counter": { "shutterStyle": "framed", "handle": "bar" },
+    "dining": { "chair": "slat", "legs": "square" }
+  },
+  "room": { "wall": "wall-cream", "floor": "tile-ivory-gloss", "ceiling": "ceiling-white" },
+  "decor": { "rug": true, "curtains": true }
+}

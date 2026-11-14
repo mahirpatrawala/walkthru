@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import type { FurnitureItem, FurnitureKind, Tone } from '../types';
 import { buildRealFurniture } from '../look/furniture-real';
+import { applyFinish } from '../look/furniture-finish';
 import type { Tier } from '../look/types';
 
 const DEG = Math.PI / 180;
@@ -134,8 +135,9 @@ export function buildFurnitureMesh(item: FurnitureItem, opts: FurnitureBuildOpts
   g.userData.kind = item.kind;
   if (style === 'real') {
     g.userData.style = 'real';
-    g.userData.rebuildTier = (t: Tier): void => { disposeKids(g); buildRealFurniture(g, item, t); g.updateMatrixWorld(true); };
+    g.userData.rebuildTier = (t: Tier): void => { disposeKids(g); buildRealFurniture(g, item, t); applyFinish(g, item); g.updateMatrixWorld(true); };
     buildRealFurniture(g, item, tier);
+    applyFinish(g, item); // the viewer's chosen finish (src/look/finishes.ts), colours only
   } else {
     const build = BUILDERS[item.kind];
     if (build) build(g, item);

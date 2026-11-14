@@ -139,7 +139,7 @@ export function parseDesigns(json: unknown): DesignsFile | null {
     if (isNum(r.surfaceHeightM) && r.surfaceHeightM > 0.1 && r.surfaceHeightM < 4) it.surfaceHeightM = r.surfaceHeightM;
     const w = r.wardrobe;
     if (w && isNum(w.bays) && isNum(w.shuttersPerBay) && isNum(w.drawerStripM) && isNum(w.baseGapM) && isNum(w.handleYM) && isNum(w.handleLenM)
-      && typeof w.frontColor === 'string' && typeof w.handleColor === 'string' && w.bays >= 1 && w.shuttersPerBay >= 1) it.wardrobe = { ...w };
+      && typeof w.frontColor === 'string' && typeof w.handleColor === 'string' && w.bays >= 1 && w.shuttersPerBay >= 1) it.wardrobe = { ...w, ...(isNum(w.loftM) && w.loftM > 0 && w.loftM < 1.2 ? {} : { loftM: undefined }) };
     const op = parseOpenable(r.openable);
     if (op) it.openable = op;
     if (r.bed && isNum(r.bed.baseTopM) && r.bed.baseTopM > 0.1 && r.bed.baseTopM < 0.6) it.bed = { baseTopM: r.bed.baseTopM };
@@ -191,6 +191,8 @@ export function applyDesigns(items: FurnitureItem[], d: DesignsFile | null): Fur
 
 export interface Decor {
   id: string;
+  /** the item this sits at: when that piece is hidden in a viewer's layout, the decor goes with it */
+  hostId: string;
   group: THREE.Group;
   /** rebuild for another tier, in place */
   rebuild(tier: Tier): void;
@@ -238,7 +240,7 @@ export function buildDecor(d: DesignsFile | null, items: FurnitureItem[], tier: 
     fill(tier);
     root.userData.decor = true;
     root.updateMatrixWorld(true);
-    out.push({ id: spec.id, group: root, rebuild: fill, dispose: () => { disposeChildren(root); root.removeFromParent(); } });
+    out.push({ id: spec.id, hostId: spec.tiedTo, group: root, rebuild: fill, dispose: () => { disposeChildren(root); root.removeFromParent(); } });
   }
   return out;
 }

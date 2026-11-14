@@ -114,7 +114,12 @@
         "centreM": 3.099999867070987,
         "widthM": 0.7619998217268092,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "out",
+          "kind": "hinged"
+        }
       },
       {
         "id": "door-2",
@@ -124,7 +129,12 @@
         "centreM": 0.8999997005316331,
         "widthM": 0.9144000302127976,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "out",
+          "kind": "hinged"
+        }
       },
       {
         "id": "door-3",
@@ -134,7 +144,12 @@
         "centreM": 2.219600233802321,
         "widthM": 1.0667999335230027,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
       },
       {
         "id": "window-2",
@@ -229,6 +244,6 @@
     "z": 0.7499998474121083,
     "yawDeg": 0
   },
-  "updatedAt": "2026-11-13T16:58:48.629Z",
+  "updatedAt": "2026-11-14T14:02:01.019Z",
   "subtitle": "Synthetic sample drawing, made-up flat"
 }
