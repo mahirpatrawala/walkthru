@@ -250,6 +250,19 @@ Speeds: walk 1.4 m/s, jog 2.8 m/s, both times `height / 1.75`. The character tur
 - Below a 0.7 m boom the character is hidden (reads as first person in a tight passage) and reappears above 0.8 m.
 - `focusOn(centre, distance, pitchDeg)` swings in 0.5 s to look at a point. Bed: distance `max(2.2, 1.2 * length)`, pitch 50°. Sofa: 2.4 m, pitch 20°, from the front. Furnish mode does not change the camera. The boom rule always applies.
 
+### 2.5 Doors (`core/doors.ts`, `buyer/doors.ts`, `buyer/doors-model.ts`)
+
+Every opening of type `door` has a leaf (not `opening`, not `window`, and not a door between a whole room and a `partial` one: the drawing ends there and that doorway keeps its hatched "drawing's edge" treatment).
+
+- **Where hinge and swing come from.** The drawing's swing arc (`import/openings.ts` `readGap` and `leafFromArc`, `import/passage.ts` for a door added at an arc): the end of the gap the arc is centred on is the hinge, the side the arc bulges to is the swing. Such a leaf is not `assumed`. A door with no arc, or whose arc does not hinge on its wall, has no `leaf` in the file, and `resolveDoors` gives it one by rule, always `assumed: true`: it swings into the more private room (bathroom, bedroom, kitchen, living, other rooms, a passage last; a door to the outside swings in) and hangs on the end nearer the wall it opens against.
+- **Size.** The leaf is as wide as the opening less the two 50 mm frame posts, 35 mm thick, as high as the opening's head less the frame head. Height and thickness are standard unless the drawing gives them (a head other than 2.10 m is taken as drawn).
+- **Behaviour.** Doors start shut, except the doors of the room the buyer starts in. A prompt "Open door" / "Close door" shows within 1.15 m of a doorway the buyer can see (E, or tap the pill). A quarter turn takes 0.5 s. The buyer can reverse it mid-swing.
+- **Collision (the grid is never re-rasterised; leaves are the store's temporary obstacles `doors`).** A shut leaf is a strip across the doorway, full height, so the doorway is closed to walking and to the camera boom. An open leaf frees the doorway and is a 7 cm strip (the grid resolution, not the 35 mm) where the panel stands, at 90 degrees unless a wall or furniture stops it earlier (it opens as far as it can). A moving leaf steps at most 1.5 degrees and before each step is checked against walls, furniture, chairs and wardrobe shutters (a grid without the door stamps), the other doors' panels, and the walker, who may not come nearer than body radius + half the strip + one cell. If anything is in the way the leaf stops where it is and the buyer is told ("Something is in the way of this door."; "...Step back." when it is the walker). So the walker is never inside a panel in any state.
+- **Fit checks.** A real or placed piece that sits in a door's swing says "Blocks the <room> door from opening." (the leaf stops before 45 degrees) or "Stops the <room> door opening fully."; in furnish mode it is added to the verdict message (the wardrobe-swing hook), on a real piece's card it is a line.
+- **Honesty (16.2).** The door's card says "Swing side assumed: the drawing does not show it." for an assumed leaf, "Swing side and hinge from the drawing's door arc." otherwise, and that height (2.10 m) and thickness (35 mm) are standard assumptions when the drawing does not give them. The panel's look is labelled illustrative.
+- **Spawn.** `chooseSpawn` keeps the walker out of every leaf's footprint and swing of the doors of the chosen room (body radius + 5 cm), unless the room is too small for that.
+- **Sliding.** `leaf.kind: 'sliding'` is supported end to end (steps out in front of the wall, then slides along it; blocks the doorway shut, frees it open). The drawing reader does not detect sliding doors (a sliding symbol is read as an `opening`, which gets no leaf), so no committed scene has one yet.
+
 ---
 
 ## 3. Coordinates and data contracts
@@ -303,7 +316,11 @@ export interface Opening {
   sillM: number;
   /** top of the hole above the floor */
   headM: number;
+  /** the door panel, `type: 'door'` only (2.5). Absent in older scenes: the buyer derives one by rule and says it is assumed. */
+  leaf?: DoorLeaf;
 }
+/** hinge: which end of the opening along its edge the leaf hangs on; swing: 'in' = the opening's own room, 'out' = the other side */
+export interface DoorLeaf { hinge: 'start' | 'end'; swing: 'in' | 'out'; kind: 'hinged' | 'sliding'; assumed?: boolean }
 export interface Finishes {
   wallColor: string;
   floorColor: string;

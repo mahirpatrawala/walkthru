@@ -9,7 +9,7 @@ import { createFurnitureStore } from '../src/buyer/store';
 import type { FurnitureStoreImpl } from '../src/buyer/store';
 import type { BuyerContext } from '../src/buyer/context';
 import { swingNoteFor } from '../src/buyer/wardrobe-hooks';
-import { activateNearestDoor, nearestDoorPrompt } from '../src/buyer/door-hooks';
+import { activateNearestDoor, doorNoteForBox, nearestDoorPrompt } from '../src/buyer/door-hooks';
 import {
   DOOR_STRIP_M, DOOR_WALKER_MARGIN_M, boxStopsDoorAt, distanceToLeaf, doorBlockSentence, freePos, inDoorSweep, leafHitsGrid, leafObstacle, leafSegment, resolveDoors, ruleLeaf,
 } from '../src/core/doors';
@@ -486,6 +486,18 @@ describe('the door controller', () => {
     expect(h.cards.at(-1)).toBeTruthy();
   });
 
+  it('a door behind a wall is not offered', () => {
+    // a closet next to the passage: its far side of the dividing wall is 0.8 m from the bedroom's doorway, but through a wall
+    const bed = rect('bed', 0, 0, 4, 4, 'bedroom', 'Bedroom');
+    const pass = rect('pass', 0, 4.12, 1.5, 5.32, 'other', 'Passage');
+    const closet = rect('closet', 1.62, 4.12, 3.0, 5.32, 'other', 'Closet');
+    const l = layoutOf([bed, pass, closet], [{ id: 'door-1', roomId: 'bed', edge: 2, type: 'door', centreM: 3.0, widthM: 0.9, sillM: 0, headM: 2.1, leaf: IN_START }]);
+    const h = keep(harness(l, { x: 0.8, z: 4.7 }));
+    expect(nearestDoorPrompt({ x: 0.8, z: 4.7 })?.prompt).toBe('Open door');
+    expect(nearestDoorPrompt({ x: 1.9, z: 4.7 })).toBeNull();
+    void h;
+  });
+
   it('the card says the swing is assumed when the drawing gave none, and that height and thickness are standard', () => {
     const h = keep(harness(flat()));
     const c = h.doors.debug.card(doorId)!;
@@ -558,6 +570,9 @@ describe('furniture in a door\'s swing', () => {
     expect(swingNoteFor({ cx: 1.0, cz: 3.5, w: 0.5, d: 0.5, yawDeg: 0 })).toContain('Blocks the Bedroom door from opening.');
     expect(swingNoteFor({ cx: 2.8, cz: 2.0, w: 1, d: 1, yawDeg: 0 })).toBeNull();
     expect(h.doors.debug.noteFor({ cx: 1.0, cz: 3.5, w: 0.5, d: 0.5, yawDeg: 0 })).toContain('Blocks');
+    // the card of a real piece (interactions.ts) asks the same hook
+    expect(doorNoteForBox({ cx: 1.0, cz: 3.5, w: 0.5, d: 0.5, yawDeg: 0 })).toBe('Blocks the Bedroom door from opening.');
+    expect(doorNoteForBox({ cx: 2.8, cz: 2.0, w: 1, d: 1, yawDeg: 0 })).toBeNull();
   });
 
   it('a sliding door is blocked by furniture where its panel parks', () => {

@@ -10,7 +10,7 @@
 // where it is and the buyer is told. The walker's distance to the panel never falls under the body radius + half the stamped strip,
 // so the walk grid and the leaf never overlap.
 import * as THREE from 'three';
-import { CHARACTER_RADIUS_M } from '../types';
+import { CHARACTER_RADIUS_M, GRID_TALL_CM } from '../types';
 import type { Box, CheckCard, Grid, Layout, Tone, Vec2 } from '../types';
 import {
   DOOR_OPEN_RAD, DOOR_STANDARD_HEIGHT_M, DOOR_SWING_SECONDS, DOOR_THICKNESS_M, DOOR_SWING_ASSUMED_NOTE, DOOR_WALKER_MARGIN_M,
@@ -19,6 +19,7 @@ import {
 import type { Door } from '../core/doors';
 import { roomAt } from '../core/layout-geom';
 import { distanceToSegment } from '../core/geometry';
+import { cellValue } from '../core/grid-codec';
 import { circleFree, nearestFree } from '../core/grid-query';
 import type { BuyerContext } from './context';
 import { setDoorPrompts } from './door-hooks';
@@ -113,7 +114,7 @@ export function doorCard(d: Door, state: DoorState, stopReason: StopReason, swin
   } else if (state === 'open' || state === 'opening') headline = d.kind === 'sliding' ? 'Door slid open.' : 'Door open.';
   else if (state === 'ajar') headline = 'Door part open.';
   else headline = 'Door shut.';
-  return { title: `${d.roomLabel} door`, tone, headline, lines, footer: 'Furniture style is illustrative. Sizes are exact.' };
+  return { title: `${d.roomLabel} door`, tone, headline, lines, footer: 'Door style is illustrative. Width is from the drawing.' };
 }
 
 export function createDoors(deps: { ctx: BuyerContext; store: FurnitureStoreImpl; layout: Layout; parent: THREE.Object3D; frameColor?: string; /** false: every door starts shut (tests) */ startOpen?: boolean }): Doors {
@@ -284,17 +285,35 @@ export function createDoors(deps: { ctx: BuyerContext; store: FurnitureStoreImpl
     showCard(r);
   }
 
-  const reachOf = (r: Rec, p: Vec2): number => {
+  /** the doorway's centre line (the mid-plane of the wall, jamb to jamb) */
+  const doorway = (r: Rec): { a: Vec2; b: Vec2 } => {
     const d = r.door;
-    const a = { x: d.edgeA.x + d.dir.x * d.u0 + d.out.x * (d.depth / 2), z: d.edgeA.z + d.dir.z * d.u0 + d.out.z * (d.depth / 2) };
-    const b = { x: d.edgeA.x + d.dir.x * d.u1 + d.out.x * (d.depth / 2), z: d.edgeA.z + d.dir.z * d.u1 + d.out.z * (d.depth / 2) };
-    return distanceToSegment(p, a, b);
+    return {
+      a: { x: d.edgeA.x + d.dir.x * d.u0 + d.out.x * (d.depth / 2), z: d.edgeA.z + d.dir.z * d.u0 + d.out.z * (d.depth / 2) },
+      b: { x: d.edgeA.x + d.dir.x * d.u1 + d.out.x * (d.depth / 2), z: d.edgeA.z + d.dir.z * d.u1 + d.out.z * (d.depth / 2) },
+    };
   };
+  const reachOf = (r: Rec, p: Vec2): number => { const w = doorway(r); return distanceToSegment(p, w.a, w.b); };
+  /** A door behind a wall (the next room, round a corner) is not offered: march to the doorway and stop short of the leaf's own cells. */
+  function inSight(r: Rec, p: Vec2): boolean {
+    const w = doorway(r);
+    const ux = w.b.x - w.a.x, uz = w.b.z - w.a.z;
+    const L2 = ux * ux + uz * uz || 1;
+    const t = Math.max(0, Math.min(1, ((p.x - w.a.x) * ux + (p.z - w.a.z) * uz) / L2));
+    const q = { x: w.a.x + ux * t, z: w.a.z + uz * t };
+    const len = Math.hypot(q.x - p.x, q.z - p.z);
+    if (len <= 0.15) return true;
+    const g = store.grid();
+    for (let s = 0; s < len - 0.12; s += g.cellM / 2) {
+      if (cellValue(g, p.x + ((q.x - p.x) * s) / len, p.z + ((q.z - p.z) * s) / len) >= GRID_TALL_CM) return false;
+    }
+    return true;
+  }
   function nearestRec(p: Vec2): { rec: Rec; distM: number } | null {
     let best: { rec: Rec; distM: number } | null = null;
     for (const r of recs.values()) {
       const distM = reachOf(r, p);
-      if (distM <= DOOR_REACH_M && (!best || distM < best.distM)) best = { rec: r, distM };
+      if (distM <= DOOR_REACH_M && (!best || distM < best.distM) && inSight(r, p)) best = { rec: r, distM };
     }
     return best;
   }
