@@ -34,16 +34,12 @@ export function lookKindOf(item: Pick<FurnitureItem, 'kind' | 'label'>): LookKin
   }
 }
 
-/** how a viewer's `finish` ({ primary, secondary, fabric, style }) lands on this kind's roles and params */
-export interface ViewerMap { primary: string[]; secondary: string[]; fabric: string[]; style?: string }
-
 type Params = Record<string, unknown>;
 interface GenSpec {
   defaults: Params;
   build(env: GenEnv, size: GenSize, p: Params, roles: Roles): THREE.Group;
   enums: Record<string, readonly string[]>;
   ranges: Record<string, [number, number]>;
-  viewer: ViewerMap;
 }
 const enumsOf = (...l: [string, readonly string[]][]): Record<string, readonly string[]> => Object.fromEntries(l);
 const COUNTER_HANDLES = ['groove', 'knob', 'bar'] as const;
@@ -53,55 +49,46 @@ export const GENERATORS: Record<LookKind, GenSpec> = {
     defaults: WARDROBE_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildWardrobe(e, s, p as unknown as WardrobeParams, r),
     enums: enumsOf(['shutterStyle', SHUTTER_STYLES], ['handle', HANDLE_STYLES]),
     ranges: { bays: [0, 8], shuttersPerBay: [1, 4], loftM: [0, 0.8], plinthM: [0, 0.2], drawerStripM: [0, 0.4], handleYM: [0, 3], handleLenM: [0, 1.4] },
-    viewer: { primary: ['case', 'flute'], secondary: ['handle'], fabric: [], style: 'shutterStyle' },
   },
   bed: {
     defaults: BED_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildBed(e, s, p as unknown as BedParams, r),
     enums: enumsOf(['base', BED_BASES], ['headboard', BED_HEADBOARDS], ['duvet', ['quilted', 'plain', 'none']]),
     ranges: { baseTopM: [0, 0.6], pillows: [0, 6], cushions: [0, 4] },
-    viewer: { primary: ['bedFrame', 'headboard'], secondary: ['cushion'], fabric: ['duvet'], style: 'headboard' },
   },
   sofa: {
     defaults: SOFA_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildSofa(e, s, p as unknown as SofaParams, r),
     enums: enumsOf(['arms', ['round', 'box', 'none']], ['legs', ['wood', 'metal', 'plinth']], ['chaise', ['auto', 'none', 'left', 'right']]),
     ranges: { seats: [0, 5], cushions: [0, 4] },
-    viewer: { primary: ['legs'], secondary: ['cushion'], fabric: ['fabric'], style: 'arms' },
   },
   bench: {
     defaults: BENCH_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildBench(e, s, p as unknown as BenchParams, r),
     enums: enumsOf(['shape', ['rect', 'curved-end', 'curved-both']], ['curveSide', ['left', 'right']]),
     ranges: { radiusM: [0, 1] },
-    viewer: { primary: ['case'], secondary: [], fabric: ['accent'], style: 'shape' },
   },
   study: {
     defaults: STUDY_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildStudy(e, s, p as unknown as StudyParams, r),
     enums: enumsOf(['top', ['slab', 'thick']], ['pedestal', ['right', 'left', 'none']], ['handle', COUNTER_HANDLES]),
     ranges: { drawers: [1, 5] },
-    viewer: { primary: ['case', 'drawerFront'], secondary: ['top'], fabric: [], style: 'handle' },
   },
   side: {
     defaults: SIDE_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildSide(e, s, p as unknown as SideParams, r),
     enums: enumsOf(['style', ['drawer', 'open', 'legs']], ['handle', COUNTER_HANDLES]),
     ranges: {},
-    viewer: { primary: ['case', 'drawerFront'], secondary: ['top'], fabric: [], style: 'style' },
   },
   dresser: {
     defaults: DRESSER_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildDresser(e, s, p as unknown as DresserParams, r),
     enums: enumsOf(['base', ['plinth', 'legs']], ['handle', COUNTER_HANDLES]),
     ranges: { fronts: [0, 8], nicheM: [0, 1.2] },
-    viewer: { primary: ['case', 'drawerFront'], secondary: ['top'], fabric: [], style: 'handle' },
   },
   counter: {
     defaults: COUNTER_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildCounter(e, s, p as unknown as CounterParams, r),
     enums: enumsOf(['shutterStyle', SHUTTER_STYLES], ['handle', COUNTER_HANDLES]),
     ranges: {},
-    viewer: { primary: ['case'], secondary: ['top'], fabric: [], style: 'shutterStyle' },
   },
   dining: {
     defaults: DINING_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildDining(e, s, p as unknown as DiningParams, r),
     enums: enumsOf(['chair', ['padded', 'slat']], ['legs', ['tapered', 'square']]),
     ranges: { chairs: [2, 8] },
-    viewer: { primary: ['case'], secondary: ['top'], fabric: ['fabric'], style: 'chair' },
   },
 };
 

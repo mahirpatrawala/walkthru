@@ -1,7 +1,7 @@
 // Owned by C1. SPEC 5.5: layout validation, room normalisation, property.json validation.
 import { DEFAULT_FINISHES } from '../types';
 import type {
-  EdgeKind, Finishes, FurnitureItem, Layout, Opening, OpeningType, PlanUnderlay, PropertyFile, RoomTag, RoomType, Vec2,
+  DoorLeaf, EdgeKind, Finishes, FurnitureItem, Layout, Opening, OpeningType, PlanUnderlay, PropertyFile, RoomTag, RoomType, Vec2,
 } from '../types';
 import { polygonArea, polygonSelfIntersects, pointInPolygon } from './geometry';
 import { computeEdgeFrames, computeTunnels } from './layout-geom';
@@ -284,9 +284,20 @@ function parseRoom(v: unknown, path: string): RoomTag {
   return room;
 }
 
+function parseLeaf(v: unknown, path: string): DoorLeaf {
+  if (!isObj(v)) return fail(path, 'must be an object');
+  const leaf: DoorLeaf = {
+    hinge: oneOf(v.hinge, ['start', 'end'] as const, `${path}.hinge`),
+    swing: oneOf(v.swing, ['in', 'out'] as const, `${path}.swing`),
+    kind: oneOf(v.kind, ['hinged', 'sliding'] as const, `${path}.kind`),
+  };
+  if (v.assumed === true) leaf.assumed = true;
+  return leaf;
+}
+
 function parseOpening(v: unknown, path: string): Opening {
   if (!isObj(v)) return fail(path, 'must be an object');
-  return {
+  const o: Opening = {
     id: strAt(v, 'id', path),
     roomId: strAt(v, 'roomId', path),
     edge: numAt(v, 'edge', path),
@@ -296,6 +307,9 @@ function parseOpening(v: unknown, path: string): Opening {
     sillM: numAt(v, 'sillM', path, 0),
     headM: numAt(v, 'headM', path),
   };
+  // only a door has a leaf; a stray one on a window or an opening is dropped
+  if (v.leaf !== undefined && o.type === 'door') o.leaf = parseLeaf(v.leaf, `${path}.leaf`);
+  return o;
 }
 
 function parseFinishes(v: unknown, path: string): Finishes {

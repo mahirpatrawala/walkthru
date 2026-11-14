@@ -8,7 +8,7 @@ import { buildRealFurniture, groupTriangles, setItemDesigns } from '../src/look/
 import { createFurnitureKit } from '../src/look/furniture-materials';
 import { GENERATORS, LOOK_KINDS, lookKindOf, sanitizeParams } from '../src/look/gen';
 import { PACKS, getPack, loadPack } from '../src/look/packs';
-import { FINISHES } from '../src/look/finishes';
+import { knownFinish } from '../src/look/finishes';
 import { resetStyle, setStyle } from '../src/look/style';
 import type { FurnitureItem } from '../src/types';
 import type { Tier } from '../src/look/types';
@@ -56,7 +56,7 @@ describe('the style packs are data and never carry a size', () => {
   });
   it('every role names a finish that exists and no generator default is a size', () => {
     for (const p of STYLE_PACKS) {
-      for (const id of Object.values(p.roles)) expect(FINISHES[id]).toBeDefined();
+      for (const id of Object.values(p.roles)) expect(knownFinish(id)).toBe(true);
       for (const kind of LOOK_KINDS) {
         for (const k of Object.keys(p.generators[kind] ?? {})) expect(/^(w|d|h|width|depth|height|s|surface)(M)?$/.test(k)).toBe(false);
       }
@@ -104,10 +104,9 @@ describe('every generator keeps the box, the heights and the surface (SPEC 16.2 
           expect(bb.min.z).toBeGreaterThan(-d / 2 - 0.01);
           expect(bb.max.z).toBeLessThan(d / 2 + 0.01);
           if (kind !== 'wardrobe' && kind !== 'dining') {
-            const y = top(g, 0.1, 0.02);
-            expect(y).not.toBeNull();
-            expect(y!).toBeGreaterThan(item.surfaceHeightM - 0.012);
-            expect(y!).toBeLessThan(item.surfaceHeightM + 0.06);
+            // the seat, a table top or a mattress is somewhere under a short list of probes (a back cushion or an L's chaise can stand at one)
+            const ys = [0.02, d / 2 - 0.25, -d / 2 + 0.55].map((z) => top(g, 0.1, z));
+            expect(ys.some((y) => y !== null && y > item.surfaceHeightM - 0.012 && y < item.surfaceHeightM + 0.06), `${ys.join(',')}`).toBe(true);
           }
         });
       }

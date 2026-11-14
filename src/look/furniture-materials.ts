@@ -62,7 +62,7 @@ export const DEFS: Record<MatKey, Def> = {
   stripe: { color: '#FFFFFF', roughness: 0.95, metalness: 0, tex: 'stripe', tile: 0.34 },
   brass: { color: '#D4AD66', roughness: 0.38, metalness: 0.35, tile: 1 },
   blackMetal: { color: '#1D1D1F', roughness: 0.42, metalness: 0.75, tile: 1 },
-  sheer: { color: '#F1EEE8', roughness: 1, metalness: 0, tile: 1, opacity: 0.7, doubleSide: true },
+  sheer: { color: '#F1EEE8', roughness: 1, metalness: 0, tile: 1, opacity: 0.88, doubleSide: true },
   drape: { color: '#8A8D92', roughness: 0.97, metalness: 0, tex: 'rough_linen', detail: true, tile: 0.5, doubleSide: true },
   lamp: { color: '#FFFFFF', roughness: 0.4, metalness: 0, tile: 1, emissive: '#FFE8C2' },
 };
@@ -127,11 +127,11 @@ export function createFurnitureKit(): FurnitureKit {
   function apply(l: Live): void {
     const d = DEFS[l.key];
     const m = l.mat;
-    const full = tier !== 'low' && (d.tex || d.nor);
+    const full = tier !== 'low' && (d.tex || d.nor) && !m.userData.flatFinish;
     const set = (k: 'map' | 'normalMap' | 'roughnessMap', t: THREE.Texture | null): void => {
       if ((m[k] ?? null) !== t) { m[k] = t; m.needsUpdate = true; }
     };
-    if (!full) { set('map', null); set('normalMap', null); set('roughnessMap', null); m.metalness = d.metalness * (l.key === 'metal' ? 0.4 : 1); return; }
+    if (!full) { set('map', null); set('normalMap', null); set('roughnessMap', null); if (!m.userData.flatFinish) m.metalness = d.metalness * (l.key === 'metal' ? 0.4 : 1); return; }
     const want = pathsOf(d);
     set('map', want.diff ? tex.get(want.diff) ?? null : null);
     set('normalMap', want.nor ? tex.get(want.nor) ?? null : null);

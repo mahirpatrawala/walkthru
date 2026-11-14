@@ -4,8 +4,8 @@
 // Order per value, strongest first:
 //   1. the DRAWING / elevation (structure only: bays, shutters per bay, drawer strip, base gap, handle height, base height). The
 //      fill colours of a drawing are not finishes and never reach this path (they stay with the Classic look).
-//   2. the design SHEET (while the designer's look is on, see below)
-//   3. the VIEWER's own `item.finish` choice (look only)
+//   2. the VIEWER's own per-item choice (`item.finish`, "Change look"), for look only: it wins over the sheet and the pack
+//   3. the design SHEET (while the designer's look is on, see below)
 //   4. the PACK
 //   5. the generator's own default (params only)
 // The designer's look is on while the active pack is the sheet's pack. When the viewer picks another pack in the Style picker, the
@@ -14,6 +14,7 @@ import type { FurnitureItem } from '../types';
 import { finishDef } from './finishes';
 import type { FinishDef } from './finishes';
 import { GENERATORS, lookKindOf, sanitizeParams } from './gen';
+import type { FinishChoice } from './design-sheet';
 import type { LookKind, MatSpec, Roles } from './gen';
 import type { ItemDesign } from './furniture-real';
 import { CLASSIC_PACK_ID, DEFAULT_PACK_ID, getPack } from './packs';
@@ -91,6 +92,46 @@ export function drawingParams(kind: LookKind, d: ItemDesign | undefined): Record
   return out;
 }
 
+/**
+ * What a finish choice ({ primary, secondary, fabric, style }, the slots of "Change look" in finishes.ts) means for this kind of piece:
+ * generator params (a bed's style is a real shape) and role -> finish id. The meaning of each slot is the same as the palette's labels:
+ * bed = Frame / Headboard / Bedding, sofa = Legs / Fabric, wardrobe = Shutters / Handles, table = Top / Legs (and a seat fabric).
+ */
+export function finishLayer(kind: LookKind, f: FinishChoice, current: Record<string, unknown> = {}): { params: Record<string, unknown>; roles: Record<string, string> } {
+  const params: Record<string, unknown> = {};
+  const roles: Record<string, string> = {};
+  const set = (names: string[], id: string | undefined): void => { if (id) for (const n of names) roles[n] = id; };
+  const isMetal = (id: string | undefined): boolean => finishDef(id)?.kind === 'metal';
+  switch (kind) {
+    case 'bed': {
+      const style = f.style;
+      if (style === 'upholstered') params.headboard = 'upholstered';
+      else if (style === 'panel') { params.headboard = 'panel'; if (current.base === 'box') params.base = 'platform'; }
+      else if (style === 'storage') { params.base = 'box'; if (current.headboard === 'none') params.headboard = 'panel'; }
+      else if (f.fabric && current.headboard !== 'upholstered') params.headboard = 'upholstered';
+      // the same rules as the old recolour pass: a panel bed carries its wood across the headboard, an upholstered one wraps the frame in fabric
+      const headboard = style === 'panel' && (f.primary || !f.fabric) ? f.primary : f.fabric ?? undefined;
+      const frame = style === 'upholstered' && f.fabric ? f.fabric : f.primary;
+      set(['bedFrame'], frame); set(['headboard'], headboard); set(['duvet'], f.secondary);
+      break;
+    }
+    case 'sofa':
+      set(['fabric'], f.fabric); set(['legs'], f.primary);
+      if (f.primary) params.legs = isMetal(f.primary) ? 'metal' : 'wood';
+      break;
+    case 'wardrobe':
+      set(['case', 'flute'], f.primary); set(['handle'], f.secondary);
+      break;
+    case 'bench':
+      set(['case'], f.primary); set(['accent'], f.fabric);
+      break;
+    default: // study, side, dresser, counter, dining: Top / Legs (and a seat fabric)
+      set(['top'], f.primary); set(['case', 'drawerFront', 'legs'], f.secondary); set(['fabric'], f.fabric);
+      break;
+  }
+  return { params, roles };
+}
+
 /** Resolves an item's look under the current style (or `st`). Returns null in the Classic pack, which uses the 16.6.5 builders. */
 export function resolveLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 'finish'>, drawing?: ItemDesign, st: StyleState = state): ResolvedLook | null {
   if (st.pack.classic) return null;
@@ -102,15 +143,11 @@ export function resolveLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 
   const prov: Record<string, Prov> = {};
   const finishIds: Record<string, string> = {};
 
-  // ---- params, weakest first
+  // ---- params, weakest first: default, pack, sheet, viewer, drawing
   const params: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(spec.defaults)) { params[k] = Array.isArray(v) ? [...v] : v; prov[`param:${k}`] = 'default'; }
   const put = (src: Record<string, unknown>, p: Prov): void => { for (const [k, v] of Object.entries(src)) { params[k] = v; prov[`param:${k}`] = p; } };
   put(sanitizeParams(kind, pack.generators[kind]), 'pack');
-  if (item.finish?.style && spec.viewer.style) put(sanitizeParams(kind, { [spec.viewer.style]: item.finish.style }), 'viewer');
-  if (si?.finish?.style && spec.viewer.style) put(sanitizeParams(kind, { [spec.viewer.style]: si.finish.style }), 'sheet');
-  if (si?.params) put(sanitizeParams(kind, si.params), 'sheet');
-  put(sanitizeParams(kind, drawingParams(kind, drawing)), 'drawing');
 
   // ---- roles, weakest first
   const roles: Roles = {};
@@ -120,15 +157,19 @@ export function resolveLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 
     roles[name] = m; prov[`role:${name}`] = p; finishIds[name] = id;
   };
   for (const [name, id] of Object.entries(pack.roles)) setRole(name, id, 'pack');
-  const viewerMap = (fc: { primary?: string; secondary?: string; fabric?: string } | undefined, p: Prov): void => {
+  const layer = (fc: FinishChoice | undefined, p: Prov): void => {
     if (!fc) return;
-    for (const r of spec.viewer.primary) setRole(r, fc.primary, p);
-    for (const r of spec.viewer.secondary) setRole(r, fc.secondary, p);
-    for (const r of spec.viewer.fabric) setRole(r, fc.fabric, p);
+    const l = finishLayer(kind, fc, params);
+    put(sanitizeParams(kind, l.params), p);
+    for (const [name, id] of Object.entries(l.roles)) setRole(name, id, p);
   };
-  viewerMap(item.finish, 'viewer');
-  viewerMap(si?.finish, 'sheet');
+  layer(si?.finish, 'sheet');
+  if (si?.params) put(sanitizeParams(kind, si.params), 'sheet');
   if (si?.roles) for (const [name, id] of Object.entries(si.roles)) setRole(name, id, 'sheet');
+  layer(item.finish, 'viewer');
+  put(sanitizeParams(kind, drawingParams(kind, drawing)), 'drawing');
+  // the drawing's handle height and length are for the handle it drew (a plain bar): a long bar centres itself on the shutter
+  if (kind === 'wardrobe' && params.handle === 'long-bar' && prov['param:handleYM'] === 'drawing') { params.handleYM = 0; prov['param:handleYM'] = 'default'; }
 
   const usesSheet = Object.values(prov).includes('sheet');
   return { kind, params, roles, prov, finishIds, packId: pack.id, sheetSource: usesSheet && sheet ? sheet.source : null };
@@ -148,7 +189,7 @@ export function provLabel(p: Prov, sheetSource: SheetSource | null): string {
 export function finishNote(r: ResolvedLook | null, packName: string): string {
   if (!r) return 'Furniture style is illustrative. Sizes are exact.';
   const roleProv = Object.entries(r.prov).filter(([k]) => k.startsWith('role:')).map(([, v]) => v);
-  const top: Prov = roleProv.includes('sheet') ? 'sheet' : roleProv.includes('viewer') ? 'viewer' : 'pack';
+  const top: Prov = roleProv.includes('viewer') ? 'viewer' : roleProv.includes('sheet') ? 'sheet' : 'pack';
   const drawn = Object.entries(r.prov).some(([k, v]) => k.startsWith('param:') && v === 'drawing');
   return `Finish ${provLabel(top, r.sheetSource)} (${packName}).${drawn ? ' Bays, shutters and handle height are from the drawing.' : ''} Sizes are exact.`;
 }
@@ -164,4 +205,11 @@ export function roomFinishIds(roomId: string, st: StyleState = state): { wall?: 
     else if (st.pack.room[k]) out[k] = [st.pack.room[k] as string, 'pack'];
   }
   return out;
+}
+
+/** the colour of door panels under the active style: the sheet's or the pack's `door` role (a wood or laminate finish), null in Classic */
+export function doorPanelColour(st: StyleState = getStyle()): string | null {
+  if (st.pack.classic) return null;
+  const id = sheetInForce(st)?.items.decor?.roles?.door ?? st.pack.roles.door;
+  return finishDef(id)?.colour ?? null;
 }

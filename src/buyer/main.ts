@@ -23,7 +23,7 @@ import type { KitHandle } from '../look/kit';
 import { fetchDesignSheet } from '../look/design-sheet';
 import { mountDesign } from '../look/design-mount';
 import { PACKS } from '../look/packs';
-import { finishNote, getStyle, onStyleChange, setStyle } from '../look/style';
+import { doorPanelColour, finishNote, getStyle, onStyleChange, setStyle } from '../look/style';
 import { resolveItemLook } from '../look/furniture-real';
 import type { Look } from '../look/look';
 import { mountLookPanel } from '../look/look-panel';
@@ -37,6 +37,8 @@ import type { PropertyFile, Vec2 } from '../types';
 import { ModeManager, createBuyerContext } from './context';
 import type { BuyerContext, BuyerModeId } from './context';
 import { createFurnishMode } from './furnish';
+import { mountLayoutChip, syncHosted } from './layout-chip';
+import { SHARE_PARAM } from './my-layout';
 import { chooseSpawn } from '../core/spawn';
 import { resolveStartRoom } from '../core/start-rooms';
 import { createGridOverlay } from './debug';
@@ -46,6 +48,7 @@ import { createHud } from './hud';
 import { createInteractions } from './interactions';
 import { buildSeats } from './seats';
 import { createWardrobes } from './wardrobe';
+import { mountDoors } from './doors';
 import { createLoadingScreen } from './loading';
 import { mountAiPhoto } from '../photo/mount';
 import { createMeasureMode } from './measure';
@@ -225,12 +228,13 @@ async function boot(): Promise<void> {
     setStyle({ packId, sheet });
   }
   const initialItems = applyDesigns(property.furniture, designs);
-  const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage });
+  const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage, shareCode: params.get(SHARE_PARAM) });
   const decor: Decor[] = buildDecor(designs, store.all(), startTier);
   for (const d of decor) furnitureRoot.add(d.group);
   // the drawing's chairs are sittable and block the walk grid (src/buyer/seats.ts)
   const seats = buildSeats(designs, store.all());
   store.setTemporary('seats', seats.obstacles());
+  syncHosted(store, decor, seats); // decor and chairs at a piece that My layout hides go with it
   if (look) {
     const lk = look;
     lk.attach({ shell, furnitureRoot });
@@ -367,11 +371,19 @@ async function boot(): Promise<void> {
   const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
   const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
+  const doors = mountDoors({ ctx, store, layout });
+  doors.setPanelColour(doorPanelColour());
+  onStyleChange(() => { doors.setPanelColour(doorPanelColour()); }); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
   const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name)) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));
-  modes.registerLazy('furnish', () => createFurnishMode(ctx));
+  modes.registerLazy('furnish', () => createFurnishMode(ctx, { designedIds: new Set(Object.keys(designs?.items ?? {})) }));
+  mountLayoutChip(hud.root, store, () => { if (!blocking() && modes.id !== 'furnish') modes.set('furnish'); });
+  if (store.fromLink()) {
+    try { const u = new URL(location.href); u.searchParams.delete(SHARE_PARAM); history.replaceState(null, '', u.toString()); } catch { /* ignore */ }
+    setTimeout(() => hud.toast('Opened a shared layout. Reset it any time from Furnish.'), 1200);
+  }
   modes.onError = (id, err) => {
     const m = describe(err);
     console.warn(`[walkthru] mode "${id}" unavailable:`, err);

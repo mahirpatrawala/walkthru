@@ -11,6 +11,7 @@
     "handle": "charcoal-matte", "plinth": "charcoal-matte", "slatBack": "grey-matte",
     "lampMetal": "brass", "acBody": "white-gloss",
     "rug": "shag-ivory", "curtainSheer": "sheer-white", "curtainDrape": "drape-sage",
+    "door": "oak-light",
     "wallPanel": "wall-white"
   },
   "generators": {

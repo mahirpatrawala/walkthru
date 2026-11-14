@@ -191,6 +191,8 @@ export function applyDesigns(items: FurnitureItem[], d: DesignsFile | null): Fur
 
 export interface Decor {
   id: string;
+  /** the item this sits at: when that piece is hidden in a viewer's layout, the decor goes with it */
+  hostId: string;
   group: THREE.Group;
   /** rebuild for another tier, in place */
   rebuild(tier: Tier): void;
@@ -238,7 +240,7 @@ export function buildDecor(d: DesignsFile | null, items: FurnitureItem[], tier: 
     fill(tier);
     root.userData.decor = true;
     root.updateMatrixWorld(true);
-    out.push({ id: spec.id, group: root, rebuild: fill, dispose: () => { disposeChildren(root); root.removeFromParent(); } });
+    out.push({ id: spec.id, hostId: spec.tiedTo, group: root, rebuild: fill, dispose: () => { disposeChildren(root); root.removeFromParent(); } });
   }
   return out;
 }

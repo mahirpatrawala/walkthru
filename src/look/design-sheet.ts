@@ -2,7 +2,7 @@
 // which style pack it is built on, per-item generator params and finishes, per-room wall / floor / ceiling finishes, and the decor
 // (curtains, rug, AC, lights, panelling, a slatted wall) with where it goes. It carries no sizes: a size is the drawing's, and a
 // sheet that tries to carry one has that field ignored. It names no client and no project.
-import { FINISHES } from './finishes';
+import { knownFinish } from './finishes';
 import { LOOK_KINDS, sanitizeParams } from './gen';
 import type { LookKind } from './gen';
 
@@ -45,7 +45,7 @@ export interface DesignSheet {
 }
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
-const fid = (v: unknown): string | undefined => (typeof v === 'string' && FINISHES[v] ? v : undefined);
+const fid = (v: unknown): string | undefined => (typeof v === 'string' && knownFinish(v) ? v : undefined);
 
 function cleanFinish(raw: unknown): FinishChoice | undefined {
   if (!raw || typeof raw !== 'object') return undefined;

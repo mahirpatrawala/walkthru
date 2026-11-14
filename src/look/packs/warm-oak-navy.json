@@ -11,6 +11,7 @@
     "handle": "black-metal", "plinth": "black-metal", "slatBack": "black-metal",
     "lampMetal": "brass", "acBody": "white-gloss",
     "rug": "shag-grey", "curtainSheer": "sheer-white", "curtainDrape": "drape-grey",
+    "door": "oak",
     "wallPanel": "wall-beige"
   },
   "generators": {

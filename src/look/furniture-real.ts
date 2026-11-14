@@ -478,8 +478,12 @@ export function buildRealFurniture(group: THREE.Group, item: FurnitureItem, tier
     const built = GENERATORS[look.kind].build({ kit, q: GEN_QUALITY[tier] }, sizeOf(item), look.params, look.roles);
     moveChildren(built, group);
     group.userData.look = look;
+    // the generator consumed item.finish itself (src/look/style.ts finishLayer): the old colour-swap pass stands down
+    group.userData.finishApplied = true;
     return;
   }
+  group.userData.finishApplied = false;
+  delete group.userData.look;
   const b = new Build(kit, QUALITY[tier]);
   BUILDERS[furnitureLook(item)](b, item);
   for (const c of [...b.group.children]) group.add(c);

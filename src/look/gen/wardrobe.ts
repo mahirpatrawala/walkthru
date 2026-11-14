@@ -136,8 +136,11 @@ export function addLeaf(p: Parts, s: LeafSpec, face: MatSpec, handle: MatSpec, f
   const standoff = 0.010;
   const zh = zF + standoff;
   if (s.handle === 'bar' || s.handle === 'long-bar') {
-    const mid = s.handleYM > 0 ? s.handleYM : s.y0 + h * 0.48;
     const long = s.handle === 'long-bar';
+    // a long bar sits centred on the fluted band when there is one (like a designer's shutter), else at mid height; a height the drawing
+    // gave is for a plain bar and still wins for that style (style.ts drops it for a long bar)
+    const bandMid = s.style === 'fluted-strip' ? s.y0 + h * (s.fluteBand[0] + s.fluteBand[1]) / 2 : s.y0 + h * 0.48;
+    const mid = s.handleYM > 0 ? s.handleYM : long ? bandMid : s.y0 + h * 0.48;
     // a long bar is long by style: the drawing's measured length is for a plain bar handle
     const len = long ? Math.min(0.95, h * 0.36) : s.handleLenM > 0 ? s.handleLenM : 0.3;
     const r = long ? 0.0085 : 0.006;

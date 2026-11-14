@@ -3,7 +3,7 @@
 // builders in furniture-real.ts, untouched) and is the only pack with `classic: true`.
 import type { LookKind } from '../gen';
 import { LOOK_KINDS, sanitizeParams } from '../gen';
-import { FINISHES } from '../finishes';
+import { knownFinish } from '../finishes';
 import warmOakNavy from './warm-oak-navy.json';
 import walnutWhite from './walnut-white.json';
 import lightScandinavian from './light-scandinavian.json';
@@ -33,7 +33,7 @@ export function loadPack(raw: unknown): { pack: StylePack | null; dropped: strin
   if (typeof o.id !== 'string' || !/^[a-z0-9-]+$/.test(o.id) || typeof o.name !== 'string') return { pack: null, dropped: ['id or name missing'] };
   const roles: Record<string, string> = {};
   for (const [k, v] of Object.entries((o.roles ?? {}) as Record<string, unknown>)) {
-    if (typeof v === 'string' && FINISHES[v]) roles[k] = v; else dropped.push(`role ${k}: unknown finish ${String(v)}`);
+    if (typeof v === 'string' && knownFinish(v)) roles[k] = v; else dropped.push(`role ${k}: unknown finish ${String(v)}`);
   }
   const generators: StylePack['generators'] = {};
   for (const kind of LOOK_KINDS) {
@@ -46,7 +46,7 @@ export function loadPack(raw: unknown): { pack: StylePack | null; dropped: strin
   const room: StylePack['room'] = {};
   for (const k of ['wall', 'floor', 'ceiling'] as const) {
     const v = (o.room as Record<string, unknown> | undefined)?.[k];
-    if (typeof v === 'string') { if (FINISHES[v]) room[k] = v; else dropped.push(`room.${k}: unknown finish ${v}`); }
+    if (typeof v === 'string') { if (knownFinish(v)) room[k] = v; else dropped.push(`room.${k}: unknown finish ${v}`); }
   }
   const d = (o.decor ?? {}) as Record<string, unknown>;
   const pack: StylePack = {

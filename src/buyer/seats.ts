@@ -16,6 +16,8 @@ const VARIANT_NAME = { swivel: 'swivel chair', side: 'side chair' } as const;
 
 export interface Seat {
   item: FurnitureItem;
+  /** the item this chair stands at */
+  tiedTo: string;
   seatM: number;
   /** 'drawing' only when designs.json gives a seat height with a source */
   seatSource: 'drawing' | 'standard';
@@ -33,6 +35,10 @@ export interface Seats {
   obstacles(): { box: FurnitureItem['box']; heightM: number }[];
   /** seat height under a point (within `tol` of a chair footprint), else null */
   surfaceAt(p: Vec2, tol?: number): number | null;
+  /** the ids of the items now in the home: a chair whose item is gone (hidden in a viewer's layout) is no longer a seat */
+  setHostsPresent(present: ReadonlySet<string>): void;
+  /** ids of the seats that currently exist (changes when a host goes) */
+  liveIds(): string[];
 }
 
 const cm = (m: number): number => Math.round(m * 100);
@@ -58,7 +64,7 @@ export function buildSeats(designs: DesignsFile | null, items: FurnitureItem[]):
       ? `Seat height ${cm(seatM)} cm, from the drawing (${sourceText(spec.sources?.seatHeightM)}).`
       : `Seat height ${cm(seatM)} cm (standard ${name}, not from the drawing).`;
     seats.push({
-      seatM, seatSource: drawn ? 'drawing' : 'standard', provenance,
+      seatM, seatSource: drawn ? 'drawing' : 'standard', provenance, tiedTo: spec.tiedTo,
       item: {
         id: SEAT_ID_PREFIX + spec.id, source: 'virtual', kind: 'sofa', label,
         box: { cx: at.x, cz: at.z, w: size.w, d: size.d, yawDeg: at.yawDeg },
@@ -66,10 +72,12 @@ export function buildSeats(designs: DesignsFile | null, items: FurnitureItem[]):
       },
     });
   }
-  const find = (item: FurnitureItem): Seat | undefined => seats.find((s) => s.item.id === item.id);
+  let gone = new Set<string>();
+  const live = (): Seat[] => (gone.size === 0 ? seats : seats.filter((s) => !gone.has(s.tiedTo)));
+  const find = (item: FurnitureItem): Seat | undefined => live().find((s) => s.item.id === item.id);
   return {
     seats,
-    items: () => seats.map((s) => s.item),
+    items: () => live().map((s) => s.item),
     isSeat: (item) => !!find(item),
     card(item, H) {
       const s = find(item);
@@ -79,12 +87,14 @@ export function buildSeats(designs: DesignsFile | null, items: FurnitureItem[]):
       const s = find(item);
       return s ? chairPose(s.item.box, s.seatM, H) : null;
     },
-    obstacles: () => seats.map((s) => ({ box: s.item.box, heightM: s.item.heightM })),
+    obstacles: () => live().map((s) => ({ box: s.item.box, heightM: s.item.heightM })),
     surfaceAt(p, tol = 0.25) {
-      for (const s of seats) {
+      for (const s of live()) {
         if (Math.hypot(p.x - s.item.box.cx, p.z - s.item.box.cz) <= Math.max(s.item.box.w, s.item.box.d) / 2 + tol) return s.seatM;
       }
       return null;
     },
+    setHostsPresent(present) { gone = new Set(seats.filter((s) => !present.has(s.tiedTo)).map((s) => s.tiedTo)); },
+    liveIds: () => live().map((s) => s.item.id),
   };
 }

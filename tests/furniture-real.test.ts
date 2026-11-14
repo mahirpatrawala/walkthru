@@ -66,7 +66,8 @@ describe('real furniture: size truth (16.6.6 check 1 and 16.8 check 4)', () => {
         expect(bb.min.z).toBeGreaterThan(-d / 2 - 0.005);
         expect(bb.max.z).toBeLessThan(d / 2 + 0.005);
         if (look !== 'wardrobe') {
-          const y = top(g, 0, 0);
+          // a sofa with an even number of seat cushions has the gap between two of them at its centre line: probe just off it
+          const y = top(g, look === 'sofa' ? 0.1 : 0, 0);
           expect(y).not.toBeNull();
           expect(y!).toBeGreaterThan(item.surfaceHeightM - 0.01);
           expect(y!).toBeLessThan(item.surfaceHeightM + 0.04);

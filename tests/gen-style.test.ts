@@ -13,7 +13,8 @@ import { createFurnitureKit } from '../src/look/furniture-materials';
 import { parseDesignSheet } from '../src/look/design-sheet';
 import type { DesignSheet } from '../src/look/design-sheet';
 import { PACKS } from '../src/look/packs';
-import { finishNote, getStyle, provLabel, resetStyle, resolveLook, roomFinishIds, setStyle } from '../src/look/style';
+import { doorPanelColour, finishNote, getStyle, provLabel, resetStyle, resolveLook, roomFinishIds, setStyle } from '../src/look/style';
+import { finishDef, swatch } from '../src/look/finishes';
 import { applyRoomFinishes, autoFixtures, buildDecorGroup } from '../src/look/design-mount';
 import { buildWardrobeModel, REPLACED_NAMES } from '../src/buyer/wardrobe-model';
 import { shutterPose, specFromDesign } from '../src/buyer/wardrobe-swing';
@@ -42,7 +43,7 @@ describe('resolution order and provenance', () => {
     expect(r.roles.case.key).toBe('wood');
   });
   it('the drawing is authoritative for structure, over the sheet, the viewer and the pack', () => {
-    setStyle({ packId: 'warm-oak-navy', sheet: sheet({ pack: 'warm-oak-navy', items: { 'wardrobe-1': { params: { shuttersPerBay: 3, bays: 5, handleYM: 1.4 } } } }) });
+    setStyle({ packId: 'walnut-white', sheet: sheet({ pack: 'walnut-white', items: { 'wardrobe-1': { params: { shuttersPerBay: 3, bays: 5, handleYM: 1.4 } } } }) });
     const it = item('wardrobe-1', 'wardrobe');
     const drawing = { wardrobe: { bays: 3, shuttersPerBay: 2, drawerStripM: 0.1778, baseGapM: 0.0508, frontColor: '#E3D5C8', handleColor: '#5B3B2C', handleYM: 0.99, handleLenM: 0.26 } };
     const r = resolveLook(it, drawing)!;
@@ -53,24 +54,111 @@ describe('resolution order and provenance', () => {
     expect(r.prov['param:bays']).toBe('drawing');
     expect(r.prov['param:handleYM']).toBe('drawing');
   });
-  it('the sheet beats the viewer\'s own choice, the viewer\'s choice beats the pack', () => {
-    const it = item('bed-1', 'bed', 'Bed', { primary: 'walnut', fabric: 'quilt-white', style: 'slatted' });
+  it('the viewer\'s own choice beats the sheet, the sheet beats the pack, the drawing beats all for structure', () => {
+    // the viewer's slots are the palette's: bed = Frame / Headboard / Bedding, so primary = frame, fabric = headboard, secondary = bedding
+    const it = item('bed-1', 'bed', 'Bed', { primary: 'wood-walnut', fabric: 'fab-teal', secondary: 'bed-sage', style: 'upholstered' });
     setStyle({ packId: 'warm-oak-navy' });
     let r = resolveLook(it)!;
-    expect(r.params.headboard).toBe('slatted');
-    expect(r.prov['param:headboard']).toBe('viewer');
-    expect(r.prov['role:bedFrame']).toBe('viewer');
-    expect(r.finishIds.bedFrame).toBe('walnut');
-    expect(r.finishIds.duvet).toBe('quilt-white');
-    expect(r.prov['role:cushion']).toBe('pack');
-    setStyle({ packId: 'warm-oak-navy', sheet: sheet({ pack: 'warm-oak-navy', items: { 'bed-1': { params: { headboard: 'upholstered' }, roles: { bedFrame: 'charcoal-matte' } } } }) });
-    r = resolveLook(it)!;
     expect(r.params.headboard).toBe('upholstered');
-    expect(r.prov['param:headboard']).toBe('sheet');
-    expect(r.finishIds.bedFrame).toBe('charcoal-matte');
-    expect(r.prov['role:bedFrame']).toBe('sheet');
-    expect(r.finishIds.duvet).toBe('quilt-white');
+    expect(r.prov['param:headboard']).toBe('viewer');
+    expect(r.finishIds.headboard).toBe('fab-teal');
+    expect(r.finishIds.bedFrame).toBe('fab-teal'); // an upholstered bed wraps its frame in the headboard fabric
+    expect(r.finishIds.duvet).toBe('bed-sage');
     expect(r.prov['role:duvet']).toBe('viewer');
+    expect(r.prov['role:cushion']).toBe('pack');
+    setStyle({ packId: 'warm-oak-navy', sheet: sheet({ pack: 'warm-oak-navy', items: { 'bed-1': { params: { headboard: 'slatted' }, roles: { bedFrame: 'charcoal-matte', cushion: 'weave-sage' } } } }) });
+    r = resolveLook(it)!;
+    expect(r.params.headboard).toBe('upholstered');            // the viewer's pick wins over the sheet
+    expect(r.prov['param:headboard']).toBe('viewer');
+    expect(r.finishIds.bedFrame).toBe('fab-teal');
+    expect(r.prov['role:bedFrame']).toBe('viewer');
+    expect(r.finishIds.cushion).toBe('weave-sage');            // where the viewer said nothing the sheet decides
+    expect(r.prov['role:cushion']).toBe('sheet');
+    r = resolveLook(item('bed-1', 'bed'))!;
+    expect(r.params.headboard).toBe('slatted');
+    expect(r.prov['param:headboard']).toBe('sheet');
+    // the drawing's base height beats the viewer, the sheet and the pack
+    r = resolveLook(item('bed-1', 'bed', 'Bed', { style: 'storage' }), { bed: { baseTopM: 0.36 } })!;
+    expect(r.params.baseTopM).toBe(0.36);
+    expect(r.prov['param:baseTopM']).toBe('drawing');
+    expect(r.params.base).toBe('box');
+  });
+  it('a bed\'s style is a real shape: panel, upholstered, storage box', () => {
+    setStyle({ packId: 'light-scandinavian' });
+    const shape = (style: string) => {
+      const g = new THREE.Group();
+      buildRealFurniture(g, { ...item('bed-1', 'bed', 'Bed', { style }), box: { cx: 0, cz: 0, w: 1.6, d: 2.0, yawDeg: 0 } }, 'medium', createFurnitureKit());
+      return g.children.map((c) => c.name);
+    };
+    expect(shape('panel')).toContain('bed-headboard');
+    expect(shape('upholstered')).toContain('bed-channels');
+    expect(shape('storage')).toContain('bed-seam');
+    expect(shape('storage')).not.toContain('bed-legs');
+  });
+  it('each family\'s slots land on the right parts: sofa legs, wardrobe handles, table top and legs', () => {
+    setStyle({ packId: 'warm-oak-navy' });
+    const s = resolveLook(item('sofa-1', 'sofa', '', { primary: 'metal-brass', fabric: 'fab-mustard' }))!;
+    expect(s.params.legs).toBe('metal');
+    expect(s.finishIds.legs).toBe('metal-brass');
+    expect(s.finishIds.fabric).toBe('fab-mustard');
+    const w = resolveLook(item('wardrobe-1', 'wardrobe', '', { primary: 'lam-sage', secondary: 'metal-rose' }))!;
+    expect(w.finishIds.case).toBe('lam-sage');
+    expect(w.finishIds.flute).toBe('lam-sage');
+    expect(w.finishIds.handle).toBe('metal-rose');
+    const t = resolveLook(item('dining-1', 'dining', '', { primary: 'wood-white', secondary: 'metal-black' }))!;
+    expect(t.finishIds.top).toBe('wood-white');
+    expect(t.finishIds.legs).toBe('metal-black');
+    expect(t.roles.top.key).toBe('laminate');
+  });
+  it('a generated piece applies the viewer\'s finish itself and tells the old recolour pass to stand down', () => {
+    setStyle({ packId: 'warm-oak-navy' });
+    const g = new THREE.Group();
+    buildRealFurniture(g, item('bed-1', 'bed', 'Bed', { primary: 'wood-walnut' }), 'medium', createFurnitureKit());
+    expect(g.userData.finishApplied).toBe(true);
+    const frame = g.children.find((c) => c.name === 'bed-frame') as THREE.Mesh;
+    expect((frame.material as THREE.MeshStandardMaterial).color.getHexString()).toBe('a87c56');
+    setStyle({ packId: 'classic' });
+    const c = new THREE.Group();
+    buildRealFurniture(c, item('bed-1', 'bed', 'Bed', { primary: 'wood-walnut' }), 'medium', createFurnitureKit());
+    expect(c.userData.finishApplied).toBe(false);
+  });
+  it('the palette is one table: the viewer\'s ids and the style ids both resolve', () => {
+    expect(finishDef('wood-oak')?.material).toBe('wood');
+    expect(finishDef('oak')?.material).toBe('wood');
+    expect(finishDef('lam-navy')?.material).toBe('laminate');
+    expect(finishDef('fab-teal')?.material).toBe('weave');
+    expect(finishDef('bed-sage')?.material).toBe('quilt');
+    expect(finishDef('metal-black')?.material).toBe('blackMetal');
+    expect(finishDef('nope')).toBeNull();
+    expect(swatch('wood-oak')?.name).toBe('Oak');
+  });
+  it('a long bar centres itself on the fluted band; the drawing\'s handle height is kept for a plain bar', () => {
+    setStyle({ packId: 'warm-oak-navy' });
+    const drawing = { wardrobe: { bays: 3, shuttersPerBay: 2, drawerStripM: 0.1778, baseGapM: 0.0508, frontColor: '#E3D5C8', handleColor: '#5B3B2C', handleYM: 0.99, handleLenM: 0.26 } };
+    const long = resolveLook(item('wardrobe-1', 'wardrobe'), drawing)!;
+    expect(long.params.handle).toBe('long-bar');
+    expect(long.params.handleYM).toBe(0);
+    const g = new THREE.Group();
+    buildRealFurniture(g, { ...item('wardrobe-1', 'wardrobe'), heightM: 2.54, box: { cx: 0, cz: 0, w: 2.74, d: 0.61, yawDeg: 0 } }, 'medium', createFurnitureKit());
+    const bars = g.children.find((c) => c.name === 'shutter-handles') as THREE.Mesh;
+    const bb = new THREE.Box3().setFromObject(bars);
+    const band = long.params.fluteBand as [number, number];
+    // no drawing is registered for this item, so the shutters run from the plinth (0.05) to 3 mm under the top
+    expect((bb.min.y + bb.max.y) / 2).toBeCloseTo(0.05 + (2.54 - 0.003 - 0.05) * (band[0] + band[1]) / 2, 2);
+    // a plain bar style keeps the drawing's height
+    setStyle({ packId: 'walnut-white' });
+    const bar = resolveLook(item('wardrobe-1', 'wardrobe'), drawing)!;
+    expect(bar.params.handle).toBe('bar');
+    expect(bar.params.handleYM).toBe(0.99);
+    expect(bar.prov['param:handleYM']).toBe('drawing');
+  });
+  it('door panels take their colour from the active style, Classic keeps the default', () => {
+    setStyle({ packId: 'walnut-white' });
+    expect(doorPanelColour()).toBe('#7B5B45');
+    setStyle({ packId: 'warm-oak-navy' });
+    expect(doorPanelColour()).toBe('#CDAB8A');
+    setStyle({ packId: 'classic' });
+    expect(doorPanelColour()).toBeNull();
   });
   it('picking another pack puts the designer\'s sheet aside; the designer\'s look is the sheet\'s own pack', () => {
     const sh = sheet({ pack: 'warm-oak-navy', items: { 'wardrobe-1': { params: { shutterStyle: 'louvred' } } } });

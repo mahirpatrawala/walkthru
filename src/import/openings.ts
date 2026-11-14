@@ -1,5 +1,5 @@
 // C8. SPEC 13.5 step 7: doors, windows and open gaps from the bridged gaps. Pure TypeScript.
-import type { Opening, OpeningType, Px, RoomTag, Vec2 } from '../types';
+import type { DoorLeaf, Opening, OpeningType, Px, RoomTag, Vec2 } from '../types';
 import type { VectorPage } from './types';
 import type { Gap } from './walls';
 
@@ -26,7 +26,18 @@ function fitCircle(pts: Px[]): { c: Px; r: number } | null {
   return { c, r: r / n };
 }
 
+/** What the page shows for one gap: its type and, for a door drawn with a swing arc, which end the leaf hangs on and which side it opens to. */
+export interface GapRead {
+  type: OpeningType;
+  /** `hingeEnd`: the end of the gap (`a` or `b`) the arc is centred on. `side`: +1 when the arc lies on the +90 degree side of a -> b (page y down), -1 the other. */
+  swing?: { hingeEnd: 'a' | 'b'; side: 1 | -1 };
+}
+
 export function classifyGap(gap: Gap, page: VectorPage, t: number): OpeningType {
+  return readGap(gap, page, t).type;
+}
+
+export function readGap(gap: Gap, page: VectorPage, t: number): GapRead {
   const w = gap.widthPt;
   const mid = { x: (gap.a.x + gap.b.x) / 2, y: (gap.a.y + gap.b.y) / 2 };
   const d = gap.dir;
@@ -52,7 +63,7 @@ export function classifyGap(gap: Gap, page: VectorPage, t: number): OpeningType 
       if (!lateral.some((l) => Math.abs(l - lat) < 0.1 * t)) lateral.push(lat);
     }
   }
-  if (lateral.length >= 2) return 'window';
+  if (lateral.length >= 2) return { type: 'window' };
   // door: an arc about one end of the gap
   for (const s of page.strokes) {
     if (s.closed || s.points.length < 6) continue;
@@ -67,9 +78,30 @@ export function classifyGap(gap: Gap, page: VectorPage, t: number): OpeningType 
     const angs = s.points.map((p) => Math.atan2(p.y - fit.c.y, p.x - fit.c.x));
     let sweep = 0; for (let i = 1; i < angs.length; i++) { let da = angs[i] - angs[i - 1]; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI; sweep += da; }
     if (Math.abs(sweep) < (45 * Math.PI) / 180) continue;
-    return 'door';
+    const hingeEnd = dist(fit.c, gap.a) <= dist(fit.c, gap.b) ? 'a' : 'b';
+    // the side the arc bulges to: the mean offset of its points from the gap's line
+    let off = 0; for (const p of s.points) off += (p.x - mid.x) * -d.y + (p.y - mid.y) * d.x;
+    return { type: 'door', swing: Math.abs(off) < 1e-9 ? undefined : { hingeEnd, side: off > 0 ? 1 : -1 } };
   }
-  return 'opening';
+  return { type: 'opening' };
+}
+
+/**
+ * The leaf a drawn swing arc gives a door on the room edge `p -> q` (world). Hinge: the end of the gap the arc is centred on, seen
+ * along the edge. Swing: 'in' when the arc opens to the room's inside. Never `assumed`: the drawing shows both.
+ */
+export function leafFromArc(swing: NonNullable<GapRead['swing']>, A: Vec2, B: Vec2, edge: { p: Vec2; q: Vec2 }): DoorLeaf {
+  const L = Math.hypot(edge.q.x - edge.p.x, edge.q.z - edge.p.z) || 1;
+  const e = { x: (edge.q.x - edge.p.x) / L, z: (edge.q.z - edge.p.z) / L };
+  const along = (w: Vec2): number => (w.x - edge.p.x) * e.x + (w.z - edge.p.z) * e.z;
+  const hinged = swing.hingeEnd === 'a' ? A : B;
+  const free = swing.hingeEnd === 'a' ? B : A;
+  const gl = Math.hypot(B.x - A.x, B.z - A.z) || 1;
+  const gd = { x: (B.x - A.x) / gl, z: (B.z - A.z) / gl };
+  // world is the page translated and scaled, so the gap's +90 degree normal keeps its meaning
+  const n = { x: -gd.z * swing.side, z: gd.x * swing.side };
+  const out = { x: e.z, z: -e.x };
+  return { hinge: along(hinged) <= along(free) ? 'start' : 'end', swing: n.x * out.x + n.z * out.z < 0 ? 'in' : 'out', kind: 'hinged' };
 }
 
 export interface OpeningResult { openings: Opening[]; warnings: string[]; /** index into the input gaps, per opening */ gapIndex: number[] }
@@ -88,7 +120,8 @@ export function buildOpenings(
   const windowGaps = gaps.filter((g) => classifyGap(g, page, t) === 'window').length;
   gaps.forEach((g, gi) => {
     const widthM = g.widthPt / ptPerM;
-    const type = classifyGap(g, page, t);
+    const read = readGap(g, page, t);
+    const type = read.type;
     // SPEC-GAP: 13.5 drops gaps over 2.0 m. That is a door limit; the reference's son-room window is 2.14 m, so windows may be 3.0 m.
     // C12c: a ventilator is 0.35 to 0.55 m and a sliding door (a gap with no swing) is up to 2.6 m
     const maxW = type === 'window' ? 3.0 : type === 'opening' ? 2.6 : 2.0;
@@ -112,7 +145,10 @@ export function buildOpenings(
         counts[type]++;
         const sill = type === 'window' ? (windowGaps === 1 && windowHeights?.sillM !== undefined ? windowHeights.sillM : 0.9) : 0;
         const head = type === 'window' && windowGaps === 1 && windowHeights?.headM !== undefined ? windowHeights.headM : 2.1;
-        openings.push({ id: `${type}-${counts[type]}`, roomId: room.id, edge: i, type, centreM: u, widthM, sillM: sill, headM: head });
+        const op: Opening = { id: `${type}-${counts[type]}`, roomId: room.id, edge: i, type, centreM: u, widthM, sillM: sill, headM: head };
+        // a door drawn with a swing arc carries its hinge and swing side; one without is given them by rule where it is used (core/doors.ts)
+        if (type === 'door' && read.swing) op.leaf = leafFromArc(read.swing, A, B, { p, q });
+        openings.push(op);
         gapIndex.push(gi);
         return;
       }

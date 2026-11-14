@@ -146,6 +146,7 @@ export function buildWardrobeModel(item: FurnitureItem, spec: OpenSpec, wd: Ward
   // a style pack builds each shutter with the parametric generator (src/look/gen/wardrobe.ts): the same hinges and widths, a styled face
   const styled = resolveItemLook({ id: item.id, kind: 'wardrobe', label: item.label, finish: item.finish });
   if (styled && styled.kind === 'wardrobe') {
+    group.userData.finishApplied = true; // the leaves carry the viewer's finish already
     const wp = styled.params as unknown as WardrobeParams;
     const sp = wardrobeSpans(H, wp);
     const env = { kit, q: GEN_QUALITY[kit.tier] };
