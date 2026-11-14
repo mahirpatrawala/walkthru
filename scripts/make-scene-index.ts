@@ -28,6 +28,8 @@ export function scanScenes(dir: string = DEFAULT_DIR, warn: (msg: string) => voi
     if (!fs.existsSync(propertyPath)) continue;
     const property = readJson(propertyPath);
     if (property === undefined) { warn(`scene index: skipped "${d.name}" (property.json is not valid JSON)`); continue; }
+    // link-only homes (a client's design): they open by ?scene= but are not listed in the gallery
+    if ((property as { unlisted?: unknown }).unlisted === true) continue;
     files.push({ id: d.name, property, extras: readJson(path.join(dir, d.name, 'proposal-extras.json')) });
   }
   return buildSceneIndex(files, warn);

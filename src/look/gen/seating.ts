@@ -199,6 +199,15 @@ function diningChair(parts: Parts, size: GenSize, x: number, side: 1 | -1, wood:
 }
 
 export function buildDining(env: GenEnv, size: GenSize, p: DiningParams, roles: Roles): THREE.Group {
+  // the chairs line the long sides: a box drawn deeper than wide is built turned a quarter, so nothing leaves the drawn footprint
+  if (size.d > size.w * 1.25) {
+    const g = buildDining(env, { ...size, w: size.d, d: size.w }, p, roles);
+    const turned = new THREE.Group();
+    g.rotation.y = Math.PI / 2;
+    turned.add(g);
+    turned.userData = { ...g.userData };
+    return turned;
+  }
   const { w, d, s: S } = size;
   const q = env.q;
   const parts = new Parts(env, 'gen:dining');
@@ -214,11 +223,12 @@ export function buildDining(env: GenEnv, size: GenSize, p: DiningParams, roles: 
   const ax0 = w / 2 - 0.14, az0 = tableD / 2 - 0.12;
   parts.box('table-apron', wood, -ax0, ax0, S - topT - 0.07, S - topT, -az0 - 0.01, -az0 + 0.01, { c: 0.002, grain: 'x' });
   parts.box('table-apron', wood, -ax0, ax0, S - topT - 0.07, S - topT, az0 - 0.01, az0 + 0.01, { c: 0.002, grain: 'x' });
-  const nSide = Math.max(1, Math.round(p.chairs / 2));
-  const span = w / 1.8;
+  // only as many chairs a side as the table's length holds, and none past its ends
+  const nSide = Math.max(1, Math.min(Math.round(p.chairs / 2), Math.floor(w / 0.5)));
+  const reach = Math.max(0, w / 2 - 0.22 - 0.02);
   for (const side of [-1, 1] as const) for (let i = 0; i < nSide; i++) {
-    const k = nSide === 1 ? 0 : (i / (nSide - 1) - 0.5) * 2 * 0.6;
-    diningChair(parts, size, k * span, side, wood, fab, p);
+    const k = nSide === 1 ? 0 : (i / (nSide - 1) - 0.5) * 2;
+    diningChair(parts, size, k * Math.min(reach, w / 1.8 * 0.6), side, wood, fab, p);
   }
   return parts.done();
 }

@@ -201,6 +201,8 @@ export interface PropertyFile {
   furniture: FurnitureItem[];
   splat?: SplatOverlay;
   spawn: { x: number; z: number; yawDeg: number };
+  /** true keeps the home out of the gallery: it opens only by its link */
+  unlisted?: boolean;
   updatedAt: string; // ISO 8601
 }
 
