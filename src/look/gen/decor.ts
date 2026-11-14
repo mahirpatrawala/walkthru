@@ -82,7 +82,10 @@ export function buildCurtain(env: GenEnv, p: CurtainParams, roles: Roles): THREE
     if (p.drape === 'sides' || p.drape === 'left') parts.put('curtain-drape', drape, clothPanel(0, dw, y0, y1, 0.12, 0.06, p.foldM, density, 0), { uv: 'keep', noShadow: true });
     if (p.drape === 'sides' || p.drape === 'right') parts.put('curtain-drape', drape, clothPanel(p.widthM - dw, p.widthM, y0, y1, 0.12, 0.06, p.foldM, density, 1.1), { uv: 'keep', noShadow: true });
   }
-  return parts.done();
+  const g = parts.done();
+  // drawn after the kit's window mesh veil (renderOrder 3), so a sheer closes the window over the grill instead of under it
+  g.traverse((o) => { if (o.name === 'curtain-sheer') o.renderOrder = 5; });
+  return g;
 }
 
 // ---------------------------------------------------------------- rug
