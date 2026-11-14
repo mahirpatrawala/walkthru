@@ -336,6 +336,8 @@ export interface FurnitureStoreImpl extends FurnitureStore {
   fromLink(): boolean;
   /** the home as drawn: a deep copy of what property.json handed the store (for tests and the reset check) */
   pristine(): FurnitureItem[];
+  /** the walking grid of the home as drawn: the layout with the home's own pieces (and the drawing's chairs) stamped, nothing from My layout */
+  drawnGrid(): Grid;
   dispose(): void;
 }
 
@@ -631,6 +633,7 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     },
     fromLink: () => linked,
     pristine: () => drawn.map(cloneItem),
+    drawnGrid: () => stampFurniture(baseGrid, [...drawn, ...(temporary.get('seats') ?? [])]),
     dispose() {
       if (dirty) saveNow();
       if (typeof window !== 'undefined') {

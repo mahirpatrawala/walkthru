@@ -103,9 +103,20 @@ export function cardLabel(spec: CatalogItem): string {
   return `${spec.name} · ${spec.sizeLabel}`;
 }
 
+/** The card line for a piece that came with the home (its name and size are on the line above it). */
+export function realItemNote(): string {
+  return 'Marked on the floor plan, it cannot be moved. Replace it or hide it in your layout.';
+}
+
+const KIND_NAMES: Record<FurnitureKind, string> = { bed: 'Bed', sofa: 'Sofa', wardrobe: 'Wardrobe', dining: 'Dining table', counter: 'Counter' };
+/** What to call a piece: its own label, else its kind (the drawing does not always name a piece). */
+export function pieceName(item: Pick<FurnitureItem, 'label' | 'kind'>): string {
+  return item.label && item.label.trim() ? item.label.trim() : KIND_NAMES[item.kind];
+}
+
 /** Copy for a selected piece that came with the home: its size is the record and cannot change, but it can be replaced or hidden in My layout. */
 export function realItemText(item: FurnitureItem): string {
-  return `${item.label} · ${Math.round(item.box.w * 100)} × ${Math.round(item.box.d * 100)} cm. Marked on the floor plan, it cannot be moved. Replace it or hide it in your layout.`;
+  return `${pieceName(item)} · ${Math.round(item.box.w * 100)} × ${Math.round(item.box.d * 100)} cm. Marked on the floor plan, it cannot be moved. Replace it or hide it in your layout.`;
 }
 
 /**
@@ -365,7 +376,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
   const selectionOf = (item: FurnitureItem): FurnishSelection => {
     const family = finishFamily(item);
     return {
-      id: item.id, name: item.label, sizeText: sizeText(item), home: isHome(item.id), builtIn: builtIn(item), family,
+      id: item.id, name: pieceName(item), sizeText: sizeText(item), home: isHome(item.id), builtIn: builtIn(item), family,
       finish: item.finish ? { ...item.finish } : null, finishText: family ? describeFinish(family, item.finish) : '',
     };
   };
@@ -373,15 +384,16 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
   const piecesList = (): FurnishView['pieces'] => {
     const all = store.all();
     const count = new Map<string, number>();
-    for (const i of all) count.set(i.label, (count.get(i.label) ?? 0) + 1);
+    for (const i of all) count.set(pieceName(i), (count.get(pieceName(i)) ?? 0) + 1);
     const seen = new Map<string, number>();
     return all.map((i) => {
-      const n = (seen.get(i.label) ?? 0) + 1;
-      seen.set(i.label, n);
-      return { id: i.id, label: (count.get(i.label) ?? 0) > 1 ? `${i.label} ${n}` : i.label, home: isHome(i.id) };
+      const name = pieceName(i);
+      const n = (seen.get(name) ?? 0) + 1;
+      seen.set(name, n);
+      return { id: i.id, label: (count.get(name) ?? 0) > 1 ? `${name} ${n}` : name, home: isHome(i.id) };
     });
   };
-  const removedList = (): FurnishView['removed'] => (store.hiddenOriginals ? store.hiddenOriginals().map((i) => ({ id: i.id, label: i.label, builtIn: builtIn(i) })) : []);
+  const removedList = (): FurnishView['removed'] => (store.hiddenOriginals ? store.hiddenOriginals().map((i) => ({ id: i.id, label: pieceName(i), builtIn: builtIn(i) })) : []);
   const extras = (): Pick<FurnishView, 'pieces' | 'removed' | 'edited'> => ({ pieces: piecesList(), removed: removedList(), edited: store.isEdited ? store.isEdited() : false });
 
   const computeView = (): FurnishView => {
@@ -401,7 +413,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     const sel = selectionOf(s.item);
     if (sel.home) {
       const note = sel.builtIn ? ` ${BUILT_IN_NOTE}.` : '';
-      return { phase: 'selected', message: realItemText(s.item) + note, tone: null, canPlace: false, canRotate: false, canMove: false, canRemove: true, buyerCount: bc, workKind: null, selection: sel, ...ex };
+      return { phase: 'selected', message: realItemNote() + note, tone: null, canPlace: false, canRotate: false, canMove: false, canRemove: true, buyerCount: bc, workKind: null, selection: sel, ...ex };
     }
     const r = check(s);
     return { phase: 'selected', message: withSwingNote(r.message, s.box, s.id), tone: r.tone, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, ...ex };
@@ -777,6 +789,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); b.blur(); });
     return b;
   };
+  const setLabel = (b: HTMLElement, label: string): void => { (b.querySelector('span') ?? b).textContent = label; };
   let lastView: FurnishView | null = null;
   const bRotate = btn('Rotate', 'is-ghost', () => session.rotate(-ROTATE_BIG_DEG), ROTATE_ICON);
   bRotate.dataset.act = 'rotate';
@@ -799,15 +812,15 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     removeArmed = false;
     if (removeTimer) { clearTimeout(removeTimer); removeTimer = null; }
     bRemove.classList.remove('is-armed');
-    if (lastView?.selection) bRemove.querySelector('span')!.textContent = removeLabel(lastView.selection);
+    if (lastView?.selection) setLabel(bRemove, removeLabel(lastView.selection));
   };
-  const removeLabel = (sel: FurnishSelection): string => (sel.builtIn ? 'Hide in my layout' : sel.home ? 'Hide' : 'Remove');
+  const removeLabel = (sel: FurnishSelection): string => (sel.builtIn ? 'Hide in my layout' : 'Remove');
   const bRemove = btn('Remove', 'is-danger', () => {
     const sel = lastView?.selection;
     if (sel?.builtIn && !removeArmed) {
       removeArmed = true;
       bRemove.classList.add('is-armed');
-      bRemove.querySelector('span')!.textContent = 'Tap again to hide';
+      setLabel(bRemove, 'Tap again to hide');
       removeTimer = setTimeout(disarmRemove, 3500);
       return;
     }
@@ -861,7 +874,8 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       const item = ctx.furniture.all().find((i) => i.id === sel.id);
       if (!item) return;
       const { same, other } = replacementChoices(item);
-      h('div', 'wtf-panel-note', panel, 'It lands at the same spot, squared to the wall, and the fit check runs. Sizes are the catalogue size.');
+      h('div', 'wtf-panel-note', panel, 'It lands at the same spot, squared to the wall, and the fit check runs. A replacement shows its own catalogue size.');
+      if (sel.builtIn) h('div', 'wtf-panel-note is-strong', panel, `${BUILT_IN_NOTE}.`);
       if (same.length > 0) {
         h('div', 'wtf-sub', panel, 'Same kind');
         const row = h('div', 'wtf-cards', panel);
@@ -1035,12 +1049,27 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
 
   let active = false;
   let lastSelId: string | null = null;
+  const releaseCam = (): void => { (ctx.camera as { releaseFocus?(): void }).releaseFocus?.(); };
+  /** swing the camera round the piece, with its pivot a little in front so the piece sits above the panels */
+  const focusPiece = (id: string): void => {
+    const item = ctx.furniture.all().find((i) => i.id === id);
+    const cam = ctx.camera as { focusOn?(c: Vec3, d: number, p: number, y?: number): void };
+    if (!item || !cam.focusOn) return;
+    const { w, d } = item.box;
+    const dist = Math.min(4.2, Math.max(2.3, Math.max(w, d) * 1.25 + 0.9));
+    const shift = Math.min(0.8, Math.max(0.3, dist * 0.18));
+    const { a } = boxAxes(item.box);
+    cam.focusOn({ x: item.box.cx + a.x * shift, y: Math.min(1.0, item.heightM * 0.45), z: item.box.cz + a.z * shift }, dist, 52, item.box.yawDeg + 180);
+  };
   const ui: FurnishUi = {
     render(v) {
       lastView = v;
-      // a different piece, or none: the panel and a half-confirmed Remove close
+      // a different piece, or none: the panel and a half-confirmed Remove close, and the camera swings to the piece (or lets go)
       const selId = v.selection?.id ?? null;
-      if (selId !== lastSelId) { lastSelId = selId; panelOpen = null; disarmRemove(); }
+      if (selId !== lastSelId) {
+        lastSelId = selId; panelOpen = null; disarmRemove();
+        if (active) { if (selId) focusPiece(selId); else if (v.phase === 'browse') releaseCam(); }
+      }
       barName.textContent = v.selection ? `${v.selection.name} · ${v.selection.sizeText}${v.selection.home ? ' · as drawn' : ''}${v.selection.finishText ? ` · ${v.selection.finishText}` : ''}` : '';
       barName.hidden = !v.selection;
       barMsg.textContent = v.message;
@@ -1053,13 +1082,13 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       const showEdit = v.phase === 'edit';
       const sel = v.phase === 'selected' && !!v.selection;
       bRotate.hidden = bCancel.hidden = bPlace.hidden = !showEdit;
-      bPlace.querySelector('span')!.textContent = v.workKind === 'replace' ? 'Replace' : 'Place';
+      setLabel(bPlace, v.workKind === 'replace' ? 'Replace' : 'Place');
       bMove.hidden = !sel || !v.canMove;
       bTurn.hidden = !sel || !v.canRotate;
       bReplace.hidden = !sel;
       bLook.hidden = !sel || !v.selection?.family;
       bRemove.hidden = !sel || !v.canRemove;
-      if (v.selection && !removeArmed) bRemove.querySelector('span')!.textContent = removeLabel(v.selection);
+      if (v.selection && !removeArmed) setLabel(bRemove, removeLabel(v.selection));
       bReplace.classList.toggle('is-on', panelOpen === 'replace');
       bLook.classList.toggle('is-on', panelOpen === 'look');
       actions.hidden = !(showEdit || sel);
@@ -1069,6 +1098,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       mineRow.hidden = !v.edited;
       if (!v.edited) resetArm.disarm();
       root.classList.toggle('is-selected', sel);
+      root.classList.toggle('has-panel', sel && !!panelOpen);
       cards.classList.toggle('is-editing', showEdit);
       tray.classList.toggle('is-editing', showEdit);
       tray.classList.toggle('is-selected', sel);
@@ -1159,6 +1189,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       active = false;
       session.cancel();
       session.select(null);
+      releaseCam();
       session.update();
       disarm();
       for (const off of offs) off();

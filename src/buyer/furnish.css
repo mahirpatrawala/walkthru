@@ -154,3 +154,6 @@
   .wtf-panel { max-height: 50vh; }
   .wtf-mine-note { display: none; }
 }
+.wtf-panel-note.is-strong { font-weight: 700; color: #7A5200; }
+/* a panel is open: only the action card's name line and buttons stay, the tray steps aside so the piece stays in view */
+.wtf-root.has-panel .wtf-tray, .wtf-root.has-panel .wtf-msg, .wtf-root.has-panel .wtf-hint { display: none; }
