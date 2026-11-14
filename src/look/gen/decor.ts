@@ -71,12 +71,12 @@ export function buildCurtain(env: GenEnv, p: CurtainParams, roles: Roles): THREE
   const density = q.tier === 'low' ? 0.5 : q.tier === 'medium' ? 0.8 : 1.2;
   parts.put('curtain-track', track, rod({ x: -0.03, y: p.trackYM, z: 0.05 }, { x: p.widthM + 0.03, y: p.trackYM, z: 0.05 }, 0.012, 6), { noShadow: true });
   if (p.sheer) {
-    parts.put('curtain-sheer', sheer, clothPanel(0, p.widthM, y0, y1, 0.07, 0.035, p.foldM * 0.8, density, 0.3), { uv: 'keep', noShadow: true });
+    parts.put('curtain-sheer', sheer, clothPanel(0, p.widthM, y0, y1, 0.07, 0.045, p.foldM * 0.8, density, 0.3), { uv: 'keep', noShadow: true });
   }
   const dw = Math.min(p.drapeWidthM, p.widthM / 2 - 0.05);
   if (p.drape !== 'none' && dw > 0.1) {
-    if (p.drape === 'sides' || p.drape === 'left') parts.put('curtain-drape', drape, clothPanel(0, dw, y0, y1, 0.115, 0.045, p.foldM, density, 0), { uv: 'keep', noShadow: true });
-    if (p.drape === 'sides' || p.drape === 'right') parts.put('curtain-drape', drape, clothPanel(p.widthM - dw, p.widthM, y0, y1, 0.115, 0.045, p.foldM, density, 1.1), { uv: 'keep', noShadow: true });
+    if (p.drape === 'sides' || p.drape === 'left') parts.put('curtain-drape', drape, clothPanel(0, dw, y0, y1, 0.12, 0.06, p.foldM, density, 0), { uv: 'keep', noShadow: true });
+    if (p.drape === 'sides' || p.drape === 'right') parts.put('curtain-drape', drape, clothPanel(p.widthM - dw, p.widthM, y0, y1, 0.12, 0.06, p.foldM, density, 1.1), { uv: 'keep', noShadow: true });
   }
   return parts.done();
 }

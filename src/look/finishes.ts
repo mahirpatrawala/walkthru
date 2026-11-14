@@ -18,7 +18,7 @@ const F = (id: string, name: string, colour: string, material: MatKey, kind: Fin
 
 export const FINISH_LIST: FinishDef[] = [
   // woods: one oak grain, tinted to the species
-  F('oak', 'Natural oak', '#CDA06C', 'wood', 'wood'),
+  F('oak', 'Natural oak', '#CAA27A', 'wood', 'wood'),
   F('oak-light', 'Light oak', '#D9BC92', 'wood', 'wood'),
   F('ash-white', 'White-washed ash', '#E3D7C4', 'wood', 'wood'),
   F('walnut', 'Walnut', '#7A5238', 'wood', 'wood'),
@@ -27,12 +27,12 @@ export const FINISH_LIST: FinishDef[] = [
   F('white-laminate', 'White laminate', '#F1EFEA', 'laminate', 'laminate'),
   F('white-gloss', 'White gloss', '#F6F4F0', 'gloss', 'laminate'),
   F('cream-laminate', 'Cream laminate', '#E4D8C4', 'laminate', 'laminate'),
-  F('navy-matte', 'Navy matte laminate', '#273656', 'laminate', 'laminate'),
+  F('navy-matte', 'Navy matte laminate', '#34487A', 'laminate', 'laminate'),
   F('charcoal-matte', 'Charcoal matte laminate', '#3B3D41', 'laminate', 'laminate'),
   F('sage-matte', 'Sage matte laminate', '#8C9A86', 'laminate', 'laminate'),
   F('grey-matte', 'Light grey matte laminate', '#B9B8B3', 'laminate', 'laminate'),
   // paints
-  F('wall-beige', 'Warm beige paint', '#E6D6BF', 'paint', 'paint'),
+  F('wall-beige', 'Warm beige paint', '#E9DAC4', 'paint', 'paint'),
   F('wall-cream', 'Cream paint', '#EFE6D6', 'paint', 'paint'),
   F('wall-white', 'Warm white paint', '#F2EFE9', 'paint', 'paint'),
   F('wall-greige', 'Greige paint', '#D3C9BB', 'paint', 'paint'),
@@ -40,7 +40,7 @@ export const FINISH_LIST: FinishDef[] = [
   F('ceiling-white', 'Ceiling white', '#F7F5F0', 'paint', 'paint'),
   // fabrics
   F('linen-beige', 'Beige linen', '#CDBBA3', 'weave', 'fabric'),
-  F('quilt-beige', 'Beige quilted cotton', '#CDBBA3', 'quilt', 'fabric'),
+  F('quilt-beige', 'Beige quilted cotton', '#DACBB5', 'quilt', 'fabric'),
   F('quilt-white', 'White quilted cotton', '#EEEBE4', 'quilt', 'fabric'),
   F('cotton-white', 'White cotton', '#F1EEE8', 'cotton', 'fabric'),
   F('weave-grey', 'Grey weave', '#8E9AA6', 'weave', 'fabric'),
@@ -51,7 +51,7 @@ export const FINISH_LIST: FinishDef[] = [
   F('ticking-navy', 'Navy ticking stripe', '#FFFFFF', 'stripe', 'fabric'),
   F('shag-grey', 'Grey shag', '#8E8E8E', 'shag', 'fabric'),
   F('shag-ivory', 'Ivory shag', '#D9D2C4', 'shag', 'fabric'),
-  F('drape-grey', 'Grey drape', '#8A8D92', 'drape', 'fabric'),
+  F('drape-grey', 'Grey drape', '#A0A3A8', 'drape', 'fabric'),
   F('drape-sand', 'Sand drape', '#B7A68E', 'drape', 'fabric'),
   F('drape-sage', 'Sage drape', '#8D9886', 'drape', 'fabric'),
   F('sheer-white', 'White sheer', '#F7F4EE', 'sheer', 'sheer'),
@@ -62,7 +62,7 @@ export const FINISH_LIST: FinishDef[] = [
   F('black-stone', 'Black stone', '#1B1B1D', 'granite', 'stone'),
   F('white-stone', 'White stone', '#E9E6E0', 'gloss', 'stone'),
   // floors
-  F('tile-beige-gloss', 'Glossy beige tile', '#E3D3BA', 'gloss', 'tile'),
+  F('tile-beige-gloss', 'Glossy beige tile', '#EBDCC6', 'gloss', 'tile'),
   F('tile-ivory-gloss', 'Glossy ivory tile', '#ECE4D6', 'gloss', 'tile'),
   F('tile-grey', 'Soft grey tile', '#C9C6C0', 'gloss', 'tile'),
   F('tile-sand', 'Sand tile', '#D8C9AE', 'gloss', 'tile'),

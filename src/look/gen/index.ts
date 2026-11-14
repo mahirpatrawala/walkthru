@@ -63,7 +63,7 @@ export const GENERATORS: Record<LookKind, GenSpec> = {
   },
   sofa: {
     defaults: SOFA_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildSofa(e, s, p as unknown as SofaParams, r),
-    enums: enumsOf(['arms', ['round', 'box', 'none']], ['legs', ['wood', 'metal', 'plinth']], ['chaise', ['none', 'left', 'right']]),
+    enums: enumsOf(['arms', ['round', 'box', 'none']], ['legs', ['wood', 'metal', 'plinth']], ['chaise', ['auto', 'none', 'left', 'right']]),
     ranges: { seats: [0, 5], cushions: [0, 4] },
     viewer: { primary: ['legs'], secondary: ['cushion'], fabric: ['fabric'], style: 'arms' },
   },

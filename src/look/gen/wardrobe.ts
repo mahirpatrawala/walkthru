@@ -36,7 +36,7 @@ export const WARDROBE_DEFAULTS: WardrobeParams = {
 };
 
 /** the shutter fronts stand this far behind the box front, so a handle stays inside the box */
-export const FRONT_RECESS = 0.012;
+export const FRONT_RECESS = 0.009;
 const GAP = 0.003;
 const TH = 0.018;
 const FRAME = 0.04;
@@ -109,7 +109,7 @@ export function addLeaf(p: Parts, s: LeafSpec, face: MatSpec, handle: MatSpec, f
       const g = fluteStrip(fw, fh, 0.022, 0.0085);
       // the strip stands in the xy plane, x from 0 to fw, toward +z: place it on the band, ribs running up and down
       g.translate(Math.min(X(u0 + FRAME), X(u1 - FRAME)), b0 + 0.01, bandZ);
-      p.put(nFlute, flute, g);
+      p.put(nFlute, flute, g, { uv: 'front', noShadow: true });
     }
   } else {
     // louvred: a frame and slanted slats between the stiles
@@ -133,7 +133,7 @@ export function addLeaf(p: Parts, s: LeafSpec, face: MatSpec, handle: MatSpec, f
   if (!s.handleOnFree) return;
   const hu = u1 - 0.035; // centre line of the bar, 3.5 cm in from the free edge
   const hx = X(hu);
-  const standoff = 0.014;
+  const standoff = 0.010;
   const zh = zF + standoff;
   if (s.handle === 'bar' || s.handle === 'long-bar') {
     const mid = s.handleYM > 0 ? s.handleYM : s.y0 + h * 0.48;
@@ -150,9 +150,9 @@ export function addLeaf(p: Parts, s: LeafSpec, face: MatSpec, handle: MatSpec, f
     }
   } else if (s.handle === 'knob') {
     const y = s.handleYM > 0 ? s.handleYM : s.y0 + h * 0.5;
-    const g = new THREE.CylinderGeometry(0.014, 0.017, 0.022, Math.max(8, q.sides + 4), 1);
+    const g = new THREE.CylinderGeometry(0.014, 0.017, 0.016, Math.max(8, q.sides + 4), 1);
     g.rotateX(Math.PI / 2);
-    g.translate(hx, y, zF + 0.011);
+    g.translate(hx, y, zF + 0.008);
     p.put(nHandle, handle, g);
   } else {
     // groove: a dark finger recess down the free edge, drawn as a slim black strip flush with the face

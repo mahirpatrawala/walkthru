@@ -2,7 +2,7 @@
 // and the dining set (a table with chairs tucked in). Footprint and heights are exactly the item's.
 import * as THREE from 'three';
 import { puffedCushion, roundedBoxBetween } from '../furniture-parts';
-import { Parts, role } from './core';
+import { Parts, boxGeo, role } from './core';
 import type { GenEnv, GenSize, Roles } from './core';
 import { prism, roundedRectOutline, rod } from './geo';
 
@@ -16,11 +16,11 @@ export interface SofaParams {
   arms: SofaArms;
   legs: SofaLegs;
   /** an L: a chaise at one end, only when the box is deep and wide enough */
-  chaise: 'none' | 'left' | 'right';
+  chaise: 'auto' | 'none' | 'left' | 'right';
   /** accent cushions at the ends */
   cushions: number;
 }
-export const SOFA_DEFAULTS: SofaParams = { seats: 0, arms: 'round', legs: 'wood', chaise: 'none', cushions: 2 };
+export const SOFA_DEFAULTS: SofaParams = { seats: 0, arms: 'round', legs: 'wood', chaise: 'auto', cushions: 2 };
 
 export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Roles): THREE.Group {
   const { w, d, h: Hh, s: S } = size;
@@ -30,7 +30,9 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
   const fab = role(roles, 'fabric'), legM = role(roles, 'legs', 'case', 'handle'), acc = role(roles, 'cushion', 'accent', 'fabric');
   const legH = p.legs === 'plinth' ? 0.05 : 0.11;
   const frameTop = 0.27;
-  const chaise = p.chaise !== 'none' && d >= 1.3 && w >= 2.2 ? p.chaise : 'none';
+  // 'auto': a box this deep and wide is an L-shaped sofa with a chaise at its right end
+  const chaiseWanted = p.chaise === 'auto' ? 'right' : p.chaise;
+  const chaise: 'none' | 'left' | 'right' = chaiseWanted !== 'none' && d >= 1.3 && w >= 2.2 ? chaiseWanted : 'none';
   const sd = chaise === 'none' ? d : Math.min(d, 0.95);            // depth of the straight part
   const cwChaise = chaise === 'none' ? 0 : 0.85;
   const aw = p.arms === 'none' ? 0.04 : 0.17;
@@ -75,8 +77,10 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
   const cw = (inner1 - inner0) / n;
   const seatH = S + 0.03 - frameTop;
   const cd = sd - 0.2;
+  // sofa cushions are fewer than a bed's pillows but there are many of them: a coarser grid than the bed's
+  const grid = q.tier === 'high' ? 8 : q.tier === 'medium' ? 5 : 0;
   const cush = (cwid: number, ch: number, cdep: number, puff: number): THREE.BufferGeometry =>
-    q.puff > 0 ? puffedCushion(cwid, ch, cdep, puff, q.puff) : roundedBoxBetween(-cwid / 2, cwid / 2, -ch / 2, ch / 2, -cdep / 2, cdep / 2, Math.min(0.04, ch / 2.5), 1);
+    grid > 0 ? puffedCushion(cwid, ch, cdep, puff, grid) : roundedBoxBetween(-cwid / 2, cwid / 2, -ch / 2, ch / 2, -cdep / 2, cdep / 2, Math.min(0.04, ch / 2.5), 1);
   for (let i = 0; i < n; i++) {
     const x = inner0 + cw * (i + 0.5);
     const g = cush(cw - 0.006, seatH, cd, 0.03);
@@ -170,8 +174,9 @@ function diningChair(parts: Parts, size: GenSize, x: number, side: 1 | -1, wood:
   const H = size.h;
   const seatW = 0.44, seatD = 0.43, seatY = 0.45;
   const zc = side * (size.d / 2 - seatD / 2);
-  const g = q.puff > 0 ? roundedBoxBetween(x - seatW / 2, x + seatW / 2, seatY - 0.045, seatY + 0.005, zc - seatD / 2, zc + seatD / 2, 0.02, q.seg) : roundedBoxBetween(x - seatW / 2, x + seatW / 2, seatY - 0.045, seatY + 0.005, zc - seatD / 2, zc + seatD / 2, 0.02, 1);
-  parts.put('chair-seats', fab, g, { grain: 'x' });
+  const rb = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, r: number): THREE.BufferGeometry =>
+    q.seg > 1 ? roundedBoxBetween(x0, x1, y0, y1, z0, z1, r, 1) : boxGeo(x0, x1, y0, y1, z0, z1, 0);
+  parts.put('chair-seats', fab, rb(x - seatW / 2, x + seatW / 2, seatY - 0.045, seatY + 0.005, zc - seatD / 2, zc + seatD / 2, 0.02), { grain: 'x' });
   const lh = seatY - 0.045;
   for (const lx of [-1, 1]) for (const lz of [-1, 1]) {
     const px = x + lx * (seatW / 2 - 0.03), pz = zc + lz * (seatD / 2 - 0.03);
@@ -187,10 +192,10 @@ function diningChair(parts: Parts, size: GenSize, x: number, side: 1 | -1, wood:
     geo.translate(0, base, zb);
     parts.put(name, mat, geo, opts);
   };
-  for (const lx of [-1, 1]) mk(roundedBoxBetween(x + lx * (seatW / 2 - 0.02) - 0.014, x + lx * (seatW / 2 - 0.02) + 0.014, 0, len, -0.011, 0.011, 0.005, 1), 'chair-legs', wood);
-  mk(roundedBoxBetween(x - seatW / 2, x + seatW / 2, len - 0.07, len, -0.014, 0.014, 0.012, 1), 'chair-legs', wood);
-  if (p.chair === 'padded') mk(roundedBoxBetween(x - seatW / 2 + 0.035, x + seatW / 2 - 0.035, len - 0.3, len - 0.09, -0.02, 0.014, 0.02, 1), 'chair-seats', fab, { grain: 'x' });
-  else for (const sx of [-1, 0, 1]) mk(roundedBoxBetween(x + sx * 0.1 - 0.02, x + sx * 0.1 + 0.02, 0.08, len - 0.08, -0.007, 0.007, 0.003, 1), 'chair-legs', wood);
+  for (const lx of [-1, 1]) mk(rb(x + lx * (seatW / 2 - 0.02) - 0.014, x + lx * (seatW / 2 - 0.02) + 0.014, 0, len, -0.011, 0.011, 0.005), 'chair-legs', wood);
+  mk(rb(x - seatW / 2, x + seatW / 2, len - 0.07, len, -0.014, 0.014, 0.012), 'chair-legs', wood);
+  if (p.chair === 'padded') mk(rb(x - seatW / 2 + 0.035, x + seatW / 2 - 0.035, len - 0.3, len - 0.09, -0.02, 0.014, 0.02), 'chair-seats', fab, { grain: 'x' });
+  else for (const sx of [-1, 0, 1]) mk(rb(x + sx * 0.1 - 0.02, x + sx * 0.1 + 0.02, 0.08, len - 0.08, -0.007, 0.007, 0.003), 'chair-legs', wood);
 }
 
 export function buildDining(env: GenEnv, size: GenSize, p: DiningParams, roles: Roles): THREE.Group {

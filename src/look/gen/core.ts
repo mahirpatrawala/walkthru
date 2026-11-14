@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import type { Tier } from '../types';
 import type { FurnitureKit, MatKey } from '../furniture-materials';
-import { chamferBox, grainUV, mergeGeos } from './geo';
+import { chamferBox, frontUV, grainUV, mergeGeos } from './geo';
 import type { Axis } from './geo';
 
 /** a material kind with an optional tint (the finish's colour) */
@@ -51,13 +51,13 @@ export interface GenSize {
   inner?: { w: number; d: number };
 }
 
-interface Bucket { name: string; mat: MatSpec; geos: THREE.BufferGeometry[]; grain: Axis; uv: 'world' | 'keep'; tile?: number; shadow: boolean; double: boolean }
+interface Bucket { name: string; mat: MatSpec; geos: THREE.BufferGeometry[]; grain: Axis; uv: 'world' | 'keep' | 'front'; tile?: number; shadow: boolean; double: boolean }
 
 export interface PutOpts {
   /** the way a wood grain runs; default up and down */
   grain?: Axis;
-  /** 'keep' leaves the geometry's own UVs (curtains, stripes mapped by hand) */
-  uv?: 'world' | 'keep';
+  /** 'keep' leaves the geometry's own UVs (curtains, stripes mapped by hand); 'front' projects straight onto the xy plane (ribs, whose normals turn) */
+  uv?: 'world' | 'keep' | 'front';
   /** metres per texture repeat, when it should not be the material's */
   tile?: number;
   /** does not cast a shadow (thin decor) */
@@ -91,6 +91,7 @@ export class Parts {
       const tile = b.tile ?? this.env.kit.tile(b.mat.key);
       let geo: THREE.BufferGeometry;
       if (b.uv === 'world') { for (const g of b.geos) grainUV(g, tile, b.grain); }
+      else if (b.uv === 'front') { for (const g of b.geos) frontUV(g, tile); }
       geo = mergeGeos(b.geos);
       for (const g of b.geos) g.dispose();
       const material = this.env.kit.material(b.mat.key, b.mat.tint);

@@ -196,6 +196,15 @@ export function grainUV(g: THREE.BufferGeometry, tile: number, grain: Axis = 'y'
   return g;
 }
 
+/** UVs projected straight onto the xy plane (u = x, v = y, in `tile` metres): a fluted panel keeps one continuous grain over its ribs. */
+export function frontUV(g: THREE.BufferGeometry, tile: number): THREE.BufferGeometry {
+  const p = g.attributes.position as THREE.BufferAttribute;
+  const uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) { uv[i * 2] = p.getX(i) / tile; uv[i * 2 + 1] = p.getY(i) / tile; }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return g;
+}
+
 /**
  * A strip of vertical ribs ("flutes") across `w` x `h`: each rib is a half-round bump of `depth` that fills 62 % of its `pitch`,
  * the rest is a flat valley at z = 0, so the gaps catch shadow. The strip stands in the plane z = 0 and the ribs stand out toward

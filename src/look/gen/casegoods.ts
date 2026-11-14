@@ -18,14 +18,14 @@ function front(p: Parts, name: string, face: MatSpec, hm: MatSpec, x0: number, x
     // a dark finger groove along the top edge
     p.put(`${name}-handles`, hm, new THREE.BoxGeometry(Math.min(0.5, (x1 - x0) * 0.7), 0.012, 0.004).translate(cx, y1 - 0.02, zf + 0.0005));
   } else if (handle === 'knob') {
-    const g = new THREE.CylinderGeometry(0.012, 0.015, 0.02, 8, 1);
+    const g = new THREE.CylinderGeometry(0.012, 0.015, 0.016, 8, 1);
     g.rotateX(Math.PI / 2);
-    g.translate(cx, cy, zf + 0.01);
+    g.translate(cx, cy, zf + 0.008);
     p.put(`${name}-handles`, hm, g);
   } else {
     const len = Math.min(0.3, (x1 - x0) * 0.6);
-    p.put(`${name}-handles`, hm, rod({ x: cx - len / 2, y: cy, z: zf + 0.014 }, { x: cx + len / 2, y: cy, z: zf + 0.014 }, 0.006, p.env.q.sides));
-    for (const sx of [-1, 1]) p.put(`${name}-handles`, hm, rod({ x: cx + sx * (len / 2 - 0.02), y: cy, z: zf }, { x: cx + sx * (len / 2 - 0.02), y: cy, z: zf + 0.014 }, 0.0035, 6));
+    p.put(`${name}-handles`, hm, rod({ x: cx - len / 2, y: cy, z: zf + 0.01 }, { x: cx + len / 2, y: cy, z: zf + 0.01 }, 0.006, p.env.q.sides));
+    for (const sx of [-1, 1]) p.put(`${name}-handles`, hm, rod({ x: cx + sx * (len / 2 - 0.02), y: cy, z: zf }, { x: cx + sx * (len / 2 - 0.02), y: cy, z: zf + 0.01 }, 0.0035, 6));
   }
 }
 
@@ -56,7 +56,7 @@ export function buildStudy(env: GenEnv, size: GenSize, p: StudyParams, roles: Ro
     const fh = (bodyH - 0.1 - GAP * (n + 1)) / n;
     for (let i = 0; i < n; i++) {
       const y1 = bodyH - 0.02 - GAP - i * (fh + GAP), y0 = y1 - fh;
-      front(parts, 'desk-drawers', drawerM, hm, px0 + 0.004, px1 - 0.004, y0, y1, d / 2 - 0.012, p.handle);
+      front(parts, 'desk-drawers', drawerM, hm, px0 + 0.004, px1 - 0.004, y0, y1, d / 2 - 0.009, p.handle);
     }
     // the open end: an end panel and a modesty back
     const ox0 = side > 0 ? -w / 2 : px1, ox1 = side > 0 ? px0 : w / 2;
@@ -93,14 +93,14 @@ export function buildSide(env: GenEnv, size: GenSize, p: SideParams, roles: Role
     }
     const dh = Math.min(0.15, H - topT - 0.25);
     parts.box('side-carcass', body, -w / 2 + 0.03, w / 2 - 0.03, H - topT - dh, H - topT, -d / 2 + 0.03, d / 2 - 0.03, { c: 0.002 });
-    front(parts, 'side-drawer', drawerM, hm, -w / 2 + 0.03, w / 2 - 0.03, H - topT - dh + 0.003, H - topT - 0.003, d / 2 - 0.028, p.handle, 0.016);
+    front(parts, 'side-drawer', drawerM, hm, -w / 2 + 0.03, w / 2 - 0.03, H - topT - dh + 0.003, H - topT - 0.003, d / 2 - 0.009, p.handle, 0.016);
     return parts.done();
   }
   const t = 0.018;
   const plinth = 0.07;
   parts.box('side-plinth', dark, -w / 2 + 0.03, w / 2 - 0.03, 0, plinth, -d / 2 + 0.03, d / 2 - 0.04, { c: 0 });
   parts.box('side-carcass', body, -w / 2, w / 2, plinth, H - topT, -d / 2, d / 2 - 0.02, { c: 0.002 });
-  const zf = d / 2 - 0.006;
+  const zf = d / 2 - 0.009;
   if (p.style === 'drawer') {
     const dh = Math.min(0.17, (H - topT - plinth) * 0.45);
     front(parts, 'side-drawer', drawerM, hm, -w / 2 + 0.004, w / 2 - 0.004, H - topT - dh - 0.004, H - topT - 0.004, zf, p.handle, 0.016);
@@ -151,7 +151,7 @@ export function buildDresser(env: GenEnv, size: GenSize, p: DresserParams, roles
   const fw = (fx1 - fx0 - GAP * (n - 1)) / n;
   for (let i = 0; i < n; i++) {
     const x0 = fx0 + i * (fw + GAP);
-    front(parts, 'unit-fronts', fm, hm, x0, x0 + fw, legH + 0.004, H - topT - 0.004, d / 2 - 0.006, p.handle, 0.016);
+    front(parts, 'unit-fronts', fm, hm, x0, x0 + fw, legH + 0.004, H - topT - 0.004, d / 2 - 0.009, p.handle, 0.016);
   }
   if (niche > 0.1) {
     const t = 0.018;
@@ -191,12 +191,12 @@ export function buildCounter(env: GenEnv, size: GenSize, p: CounterParams, roles
     const cx = x0 + sw / 2;
     if (p.handle === 'bar') {
       const y = cabTop - 0.05;
-      parts.put('counter-handles', hm, rod({ x: cx - 0.075, y, z: zf + 0.014 }, { x: cx + 0.075, y, z: zf + 0.014 }, 0.006, env.q.sides));
-      for (const sx of [-1, 1]) parts.put('counter-handles', hm, rod({ x: cx + sx * 0.06, y, z: zf }, { x: cx + sx * 0.06, y, z: zf + 0.014 }, 0.0035, 6));
+      parts.put('counter-handles', hm, rod({ x: cx - 0.075, y, z: zf + 0.01 }, { x: cx + 0.075, y, z: zf + 0.01 }, 0.006, env.q.sides));
+      for (const sx of [-1, 1]) parts.put('counter-handles', hm, rod({ x: cx + sx * 0.06, y, z: zf }, { x: cx + sx * 0.06, y, z: zf + 0.01 }, 0.0035, 6));
     } else if (p.handle === 'knob') {
-      const g = new THREE.CylinderGeometry(0.012, 0.015, 0.02, 8, 1);
+      const g = new THREE.CylinderGeometry(0.012, 0.015, 0.016, 8, 1);
       g.rotateX(Math.PI / 2);
-      g.translate(cx, cabTop - 0.06, zf + 0.01);
+      g.translate(cx, cabTop - 0.06, zf + 0.008);
       parts.put('counter-handles', hm, g);
     } else parts.put('counter-handles', hm, new THREE.BoxGeometry(0.2, 0.012, 0.004).translate(cx, cabTop - 0.03, zf + 0.0005));
   }

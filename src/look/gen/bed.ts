@@ -25,6 +25,14 @@ export interface BedParams {
 }
 export const BED_DEFAULTS: BedParams = { base: 'platform', headboard: 'panel', baseTopM: 0, pillows: 0, cushions: 2, duvet: 'quilted' };
 
+/** moves a soft part down if its top would rise above `top` (a pillow or cushion on a low bed stays inside the item's height) */
+function fitTop(g: THREE.BufferGeometry, top: number): THREE.BufferGeometry {
+  g.computeBoundingBox();
+  const over = g.boundingBox!.max.y - top;
+  if (over > 0) g.translate(0, -over, 0);
+  return g;
+}
+
 const smooth = (a: number, b: number, x: number): number => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 /** A draped sheet of cloth over a mattress: a height field over x, z. The top bulges a little, the sides and the foot drop. */
@@ -143,7 +151,7 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
     const dropY = Math.min(0.14, S - baseTop - 0.01);
     const g = duvetGeometry(cw, zA, zB, S + 0.004, thick, m.w, dropY, q.cloth, 3);
     parts.put('duvet', p.duvet === 'quilted' ? duvetM : { key: 'cotton', tint: duvetM.tint }, g, { grain: 'x' });
-    const fold = roundedBoxBetween(-(cw - 0.03) / 2, (cw - 0.03) / 2, S + 0.0, Math.min(S + thick + 0.05, H - 0.02), zA, zA + 0.2, 0.045, Math.max(2, q.seg));
+    const fold = roundedBoxBetween(-(cw - 0.03) / 2, (cw - 0.03) / 2, S + 0.0, Math.min(S + thick + 0.05, H - 0.005), zA, zA + 0.2, Math.min(0.045, (Math.min(S + thick + 0.05, H - 0.005) - S) / 2.1), Math.max(2, q.seg));
     parts.put('duvet-fold', p.duvet === 'quilted' ? duvetM : { key: 'cotton', tint: duvetM.tint }, fold, { grain: 'x' });
   }
 
@@ -158,7 +166,7 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
     const g = q.puff > 0 ? puffedCushion(pw, ph, pd, 0.03, q.puff) : roundedBoxBetween(-pw / 2, pw / 2, -ph / 2, ph / 2, -pd / 2, pd / 2, 0.04, 1);
     g.rotateX(tilt);
     g.translate(x, S + 0.035 + ph / 2, pz);
-    parts.put('pillows', pillowM, g, { grain: 'x' });
+    parts.put('pillows', pillowM, fitTop(g, H - 0.004), { grain: 'x' });
   }
   // striped cushions in front of the pillows
   const nC = Math.max(0, Math.min(4, Math.round(p.cushions)));
@@ -169,7 +177,7 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
     g.rotateY((i % 2 ? 1 : -1) * 0.12);
     const x = nC === 1 ? 0 : ((i + 0.5) / nC - 0.5) * Math.min(m.w - 0.3, 0.85);
     g.translate(x, S + 0.19, pz + 0.3 + (i % 2) * 0.03);
-    parts.put('cushions', cushionM, g, { tile: 0.42 });
+    parts.put('cushions', cushionM, fitTop(g, H - 0.004), { tile: 0.42 });
   }
   void H;
   return parts.done();
