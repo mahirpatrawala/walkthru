@@ -4,7 +4,7 @@ import { LOOK_PRESETS, PRESET_LABEL, dayPartLabel } from './grade';
 import type { LookPreset } from './grade';
 import { formatHour } from './sun';
 import type { Look, QualityMode } from './look';
-import { HOUR_MAX, HOUR_MIN, LABEL_FURNITURE, LABEL_VIEW } from './types';
+import { HOUR_MAX, HOUR_MIN, LABEL_FURNITURE, LABEL_LIGHTING, LABEL_VIEW } from './types';
 import './look.css';
 
 export interface LookPanelOpts {
@@ -131,6 +131,9 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
   const sunNote = h('p', undefined, '', labels);
   sunNote.dataset.testid = 'look-label-sun';
   h('p', undefined, LABEL_FURNITURE, labels).dataset.testid = 'look-label-furniture';
+  const lightNote = h('p', undefined, LABEL_LIGHTING, labels);
+  lightNote.dataset.testid = 'look-label-lighting';
+  lightNote.hidden = true;
 
   const sync = (): void => {
     const hr = look.hour;
@@ -144,6 +147,7 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
     const label = look.sun().label;
     sunLabel.textContent = look.trueColours ? 'Sun is off in True colours.' : label;
     sunNote.textContent = label;
+    lightNote.hidden = !look.bakedActive;
     tc.checked = look.trueColours;
     slider.disabled = look.trueColours;
     for (const [q, b] of segButtons) {

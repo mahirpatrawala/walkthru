@@ -14,6 +14,7 @@ import { createPostChain } from './post';
 import type { PostChain } from './post';
 import { FpsWatch, FrameTimer, TIERS, lowerTier, loadSavedTier, readDevice, guessTier, saveTier, stepDown, tierFromQuery, toneMapperFromQuery } from './quality';
 import type { TierConfig, ToneMapperName } from './quality';
+import type { BakedHook } from './baked/hook';
 import { Reflections } from './reflect';
 import { Sky, chooseBackdrop } from './sky';
 import { sunState } from './sun';
@@ -80,6 +81,10 @@ export interface Look {
   registerInteriorLight(obj: THREE.Object3D, kind: InteriorLightKind): void;
   /** rescan the scene parts for tagged fixtures (attach(), refresh() and setLayout() do it too) */
   refreshInteriorLights(): void;
+  /** SPEC 16.13: the baked lighting of this home, once loaded (mountBaked calls this). Null hands the lighting back. */
+  setBaked(h: BakedHook | null): void;
+  /** the bake is applied right now */
+  readonly bakedActive: boolean;
   /** acceptance helpers (SPEC 16.8) */
   debug: LookDebug;
 }
@@ -169,6 +174,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let steppedDown = false;
   let cubeTimer: ReturnType<typeof setTimeout> | null = null;
   let held: ((dt: number) => void) | null = null;
+  let baked: BakedHook | null = null;
+  let bakedApplied = false;
 
   renderer.info.autoReset = false;
   const sunLight = viewer.lights.sun;
@@ -256,6 +263,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       renderer.shadowMap.enabled = false;
       interior.setGrade(TRUE_GRADE);
       if (vignette) vignette.style.opacity = '0';
+      baked?.update({ grade, hour, cfg, off: true });
+      syncBaked();
       return;
     }
     if (trueColours) {
@@ -309,7 +318,20 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     if (kit?.setLit) { const on = !trueColours && !scanVisible; kit.setLit('tube', on && grade.interior.tube > 0.2); kit.setLit('fan', on && grade.interior.tube > 0.2); kit.setLit('cove', on && grade.interior.cove > 0.2); }
     // low tiers have no post chain to carry the vignette, so it is the CSS one on all of them
     if (vignette) vignette.style.opacity = trueColours ? '0' : String(grade.vignette);
+    baked?.update({ grade, hour, cfg, off: trueColours || scanVisible });
+    syncBaked();
     needsShadowRefresh();
+  }
+
+  /** SPEC 16.13: while a bake lights the home, the pooled lamps (the bake has their light), the wall-edge darkening and the grid AO of walls step back;
+   *  the floor's soft shadow then comes from the furniture alone. */
+  function syncBaked(): void {
+    const on = !!baked?.active;
+    if (on === bakedApplied) return;
+    bakedApplied = on;
+    interior.setPoolSize(on ? 0 : cfg.interiorLights);
+    materials.setBakedMode(on);
+    if (grid) rebuildAo(grid);
   }
 
   /** Recompile the materials that depend on shadow settings. Only our own roots: Spark's splat material must not be touched
@@ -355,7 +377,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       }
     }
     if (prevType !== renderer.shadowMap.type || wasEnabled !== renderer.shadowMap.enabled) setMaterialsDirty();
-    interior.setPoolSize(cfg.interiorLights);
+    interior.setPoolSize(bakedApplied ? 0 : cfg.interiorLights);
     materials.configure(cfg, { trueColours });
     reflections.setHideList(() => {
       const hide: THREE.Object3D[] = [];
@@ -454,6 +476,11 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   // ---- ambient occlusion from the collision grid
 
   function rebuildAo(g: Grid): void {
+    if (baked?.active) {
+      materials.setFloorAO(baked.contactField(g));
+      materials.setCeilingAO(null);
+      return;
+    }
     materials.setFloorAO(buildAoField(g));
     materials.setCeilingAO(buildAoField(g, { minObstacleCm: Math.max(21, layout.wallHeightM * 100 - 30) }));
   }
@@ -542,6 +569,14 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       materials.configure(cfg, { trueColours });
       applyTier();
       scheduleCube();
+      notify();
+    },
+    get bakedActive() { return bakedApplied; },
+    setBaked(h) {
+      baked = h;
+      if (!h) bakedApplied = false;
+      applyLighting();
+      if (!h) { interior.setPoolSize(cfg.interiorLights); materials.setBakedMode(false); if (grid) rebuildAo(grid); }
       notify();
     },
     registerInteriorLight(obj, kind) { interior.register(obj, kind); interior.scan(true); },

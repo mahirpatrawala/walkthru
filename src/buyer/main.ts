@@ -19,6 +19,8 @@ import { tierFromQuery } from '../look/quality';
 import { CHARACTER_URL } from '../types';
 import { createLook, fetchLookFile } from '../look/look';
 import { mountKit } from '../look/kit';
+import { mountBaked } from '../look/baked/runtime';
+import type { BakedHandle } from '../look/baked/runtime';
 import type { Look } from '../look/look';
 import { mountLookPanel } from '../look/look-panel';
 import { createInput } from '../engine/controls';
@@ -402,6 +404,15 @@ async function boot(): Promise<void> {
   // optional "Lived-in" decor (SPEC 16.6.7): a switch in the look sheet, a label in the rooms sheet; on by default only for made-up sample homes
   livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
 
+  // SPEC 16.13: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.
+  let baked: BakedHandle | null = null;
+  if (look && params.get('bake') !== 'off' && !property.splat) {
+    baked = mountBaked({ look, scene: viewer.scene, renderer: viewer.renderer, sceneId, layout, extraDynamic: () => [character.object] });
+    const lk = look;
+    store.onChange(() => { setTimeout(() => baked?.rescan(), 150); });
+    lk.onChange(() => baked?.rescan());
+  }
+
   // ---- spawn
   // The buyer starts inside the chosen room (?room=, else the default: the largest bedroom or living room), just in from its
   // main door and facing into it. property.spawn is only the fallback for a layout with no room to stand in.
@@ -615,6 +626,11 @@ async function boot(): Promise<void> {
     },
     decor,
     seats,
+    /** SPEC 16.13: the offline bake dumps the scene as built (loaded on demand, never part of a first load) */
+    bake: {
+      get handle() { return baked; },
+      exportScene: async () => (await import('../look/baked/export')).exportScene({ scene: viewer.scene, sceneId, wallHeightM: layout.wallHeightM }),
+    },
     /** open-wardrobe hooks for the acceptance scripts */
     wardrobe: wardrobes.debug,
     /** SPEC 16.8 hooks. `ready` is the current tier's asset promise (a getter, so it follows tier changes). */

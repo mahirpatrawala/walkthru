@@ -28,6 +28,8 @@ export const LABEL_VIEW = 'Outside the window is a plain sky, not the real view.
 export const LABEL_SUN_UNKNOWN = 'Sun direction assumed: the drawing has no north arrow.';
 export const LABEL_SUN_KNOWN = 'Sun direction is approximate.';
 export const LABEL_FURNITURE = 'Furniture style is illustrative. Sizes are exact.';
+/** SPEC 16.13: shown while a bake lights the home. The light is computed for this layout, it is not a photograph of the real flat. */
+export const LABEL_LIGHTING = 'Lighting is simulated: bounce light and soft shadows are computed for this layout, not measured in the real flat.';
 
 const BACKDROPS: Backdrop[] = ['rooftop_day', 'rooftop_night', 'sky'];
 

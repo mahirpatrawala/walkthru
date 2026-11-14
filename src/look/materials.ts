@@ -32,6 +32,8 @@ type Uniform<T> = { value: T };
 /** Uniforms shared by every look material, so one assignment updates all of them. */
 export interface SharedUniforms {
   plain: Uniform<number>;
+  /** 1 while a bake lights the room (SPEC 16.13): the wall-edge darkening steps back, the bake has the real corners */
+  baked: Uniform<number>;
   floorAO: Uniform<THREE.Texture | null>; floorAORect: Uniform<THREE.Vector4>;
   ceilAO: Uniform<THREE.Texture | null>; ceilAORect: Uniform<THREE.Vector4>;
   wallH: Uniform<number>;
@@ -83,7 +85,7 @@ uniform sampler2D uLkDetail; uniform float uLkDetailMean; uniform vec2 uLkDetail
 uniform sampler2D uLkNorm; uniform float uLkNormScale; uniform float uLkNormOn;
 uniform sampler2D uLkRough; uniform vec2 uLkRoughRange; uniform float uLkRoughOn;
 uniform sampler2D uLkAO; uniform vec4 uLkAORect; uniform float uLkAOOn;
-uniform float uLkWallAOOn; uniform float uLkWallH;
+uniform float uLkWallAOOn; uniform float uLkWallH; uniform float uLkBaked;
 uniform float uLkKit; uniform vec2 uLkKitAxis; uniform vec2 uLkKitOrigin; uniform vec2 uLkKitTile; uniform float uLkKitGrout; uniform vec3 uLkKitGroutCol;
 uniform float uLkKitVar; uniform float uLkKitRoughMin;
 float lkGrout;
@@ -166,7 +168,7 @@ const FRAG_AO = /* glsl */ `
 {
   float lkAO = 1.0;
   if (uLkAOOn > 0.5 && uLkPlain < 0.5) lkAO *= texture(uLkAO, (vLkPos.xz - uLkAORect.xy) / uLkAORect.zw).r;
-  if (uLkWallAOOn > 0.5 && uLkPlain < 0.5) lkAO *= mix(0.78, 1.0, smoothstep(0.0, 0.35, min(vLkPos.y, uLkWallH - vLkPos.y)));
+  if (uLkWallAOOn > 0.5 && uLkPlain < 0.5 && uLkBaked < 0.5) lkAO *= mix(0.78, 1.0, smoothstep(0.0, 0.35, min(vLkPos.y, uLkWallH - vLkPos.y)));
   reflectedLight.indirectDiffuse *= lkAO;
   reflectedLight.indirectSpecular *= lkAO;
   if (uLkReflOn > 0.5 && uLkPlain < 0.5 && uLkReflMode > 0.5) {
@@ -206,6 +208,8 @@ export interface LookMaterials extends ShellMaterialSet {
   setPlain(on: boolean): void;
   setFloorAO(f: AoField | null): void;
   setCeilingAO(f: AoField | null): void;
+  /** SPEC 16.13: a bake lights the room, so the wall-edge darkening steps back */
+  setBakedMode(on: boolean): void;
   setWallHeight(h: number): void;
   /** applies the tier's material settings; call after the tier or assets change */
   configure(cfg: TierConfig, opts: { trueColours: boolean }): void;
@@ -236,6 +240,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
   const flatNormal = FLAT_NORMAL();
   const shared: SharedUniforms = {
     plain: { value: 0 },
+    baked: { value: 0 },
     floorAO: { value: white }, floorAORect: { value: new THREE.Vector4(0, 0, 1, 1) },
     ceilAO: { value: white }, ceilAORect: { value: new THREE.Vector4(0, 0, 1, 1) },
     wallH: { value: opts.wallHeightM },
@@ -267,7 +272,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
       uLkRough: { value: white }, uLkRoughRange: { value: new THREE.Vector2(0.1, 0.2) }, uLkRoughOn: { value: 0 },
       uLkAO: kind === 'ceiling' ? shared.ceilAO : shared.floorAO, uLkAORect: kind === 'ceiling' ? shared.ceilAORect : shared.floorAORect,
       uLkAOOn: { value: kind === 'floor' || kind === 'ceiling' ? 1 : 0 },
-      uLkWallAOOn: { value: kind === 'wall' ? 1 : 0 }, uLkWallH: shared.wallH,
+      uLkWallAOOn: { value: kind === 'wall' ? 1 : 0 }, uLkWallH: shared.wallH, uLkBaked: shared.baked,
       uLkReflMode: shared.reflMode, uLkCube: shared.cube, uLkPlanar: shared.planar,
       uLkKit: { value: 0 }, uLkKitAxis: { value: new THREE.Vector2(1, 0) }, uLkKitOrigin: { value: new THREE.Vector2(0, 0) }, uLkKitTile: { value: new THREE.Vector2(0.6, 0.6) },
       uLkKitGrout: { value: 0.0025 }, uLkKitGroutCol: { value: new THREE.Color('#9a9086') }, uLkKitVar: { value: 0.06 }, uLkKitRoughMin: { value: 0 },
@@ -379,6 +384,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
       shared.ceilAO.value = ceilAoTex;
       shared.ceilAORect.value.set(f.originX, f.originZ, f.nx * f.cellM, f.nz * f.cellM);
     },
+    setBakedMode(on) { shared.baked.value = on ? 1 : 0; },
     setWallHeight(h) { shared.wallH.value = h; },
     configure(c, o) {
       cfg = c;
