@@ -89,11 +89,11 @@ export function createFurnitureKit(): FurnitureKit {
   function apply(l: Live): void {
     const d = DEFS[l.key];
     const m = l.mat;
-    const full = tier !== 'low' && d.tex;
+    const full = tier !== 'low' && d.tex && !m.userData.flatFinish;
     const set = (k: 'map' | 'normalMap' | 'roughnessMap', t: THREE.Texture | null): void => {
       if ((m[k] ?? null) !== t) { m[k] = t; m.needsUpdate = true; }
     };
-    if (!full) { set('map', null); set('normalMap', null); set('roughnessMap', null); m.metalness = d.metalness * (l.key === 'metal' ? 0.4 : 1); return; }
+    if (!full) { set('map', null); set('normalMap', null); set('roughnessMap', null); if (!m.userData.flatFinish) m.metalness = d.metalness * (l.key === 'metal' ? 0.4 : 1); return; }
     const name = d.tex!;
     set('map', tex.get(`tex/${name}/${name}_diff_1k.jpg`) ?? null);
     if (name !== 'walnut_veneer') { set('normalMap', tex.get(`tex/${name}/${name}_nor_gl_1k.jpg`) ?? null); m.normalScale.set(0.6, 0.6); }

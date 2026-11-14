@@ -24,7 +24,7 @@ function copyRule(r: AccessRule): AccessRule {
   return { sides: [...r.sides], minM: r.minM, mode: r.mode };
 }
 
-/** SPEC 4.4. Beds are Indian mattress sizes; the footprint adds a 5 cm frame all round. */
+/** SPEC 4.4. Beds are Indian mattress sizes; the footprint adds a 5 cm frame all round. The first seven rows are the original table. */
 export const CATALOG: CatalogItem[] = [
   bed('bed-single', 'Single bed', '91 × 183 cm (36 × 72 in)', 1.01, 1.93, 0.91, 1.83),
   bed('bed-double', 'Double bed', '122 × 183 cm (48 × 72 in)', 1.32, 1.93, 1.22, 1.83),
@@ -44,6 +44,42 @@ export const CATALOG: CatalogItem[] = [
     id: 'wardrobe-2', kind: 'wardrobe', name: '2-door wardrobe', sizeLabel: '120 × 60 × 210 cm',
     footprint: { w: 1.2, d: 0.6 }, heightM: 2.1, surfaceHeightM: 2.1,
     access: [{ sides: ['front'], minM: 0.9, mode: 'all' }], sideWords: { ...SOFA_WORDS },
+  },
+  // ---- added for "Replace" in furnish mode: more of each family (SPEC 4.4 table rows 8 to 14). Sizes are ordinary Indian retail sizes.
+  {
+    id: 'sofa-2', kind: 'sofa', name: '2-seat sofa', sizeLabel: '150 × 85 cm',
+    footprint: { w: 1.5, d: 0.85 }, heightM: 0.85, surfaceHeightM: 0.43,
+    access: [{ sides: ['front'], minM: 0.75, mode: 'all' }], sideWords: { ...SOFA_WORDS },
+  },
+  {
+    id: 'sofa-l', kind: 'sofa', name: 'L-shaped sofa', sizeLabel: '250 × 160 cm overall',
+    footprint: { w: 2.5, d: 1.6 }, heightM: 0.85, surfaceHeightM: 0.43,
+    access: [{ sides: ['front'], minM: 0.75, mode: 'all' }], sideWords: { ...SOFA_WORDS },
+  },
+  {
+    id: 'armchair', kind: 'sofa', name: 'Armchair', sizeLabel: '80 × 85 cm',
+    footprint: { w: 0.8, d: 0.85 }, heightM: 0.85, surfaceHeightM: 0.43,
+    access: [{ sides: ['front'], minM: 0.6, mode: 'all' }], sideWords: { ...SOFA_WORDS },
+  },
+  {
+    id: 'wardrobe-3', kind: 'wardrobe', name: '3-door wardrobe', sizeLabel: '180 × 60 × 210 cm',
+    footprint: { w: 1.8, d: 0.6 }, heightM: 2.1, surfaceHeightM: 2.1,
+    access: [{ sides: ['front'], minM: 0.9, mode: 'all' }], sideWords: { ...SOFA_WORDS },
+  },
+  {
+    id: 'wardrobe-4', kind: 'wardrobe', name: '4-door wardrobe', sizeLabel: '240 × 60 × 210 cm',
+    footprint: { w: 2.4, d: 0.6 }, heightM: 2.1, surfaceHeightM: 2.1,
+    access: [{ sides: ['front'], minM: 0.9, mode: 'all' }], sideWords: { ...SOFA_WORDS },
+  },
+  {
+    id: 'study-table', kind: 'counter', name: 'Study table', sizeLabel: '120 × 60 cm',
+    footprint: { w: 1.2, d: 0.6 }, heightM: 0.75, surfaceHeightM: 0.75,
+    access: [{ sides: ['front'], minM: 0.6, mode: 'all' }], sideWords: { ...SOFA_WORDS },
+  },
+  {
+    id: 'side-table', kind: 'counter', name: 'Side table', sizeLabel: '45 × 45 cm',
+    footprint: { w: 0.45, d: 0.45 }, heightM: 0.55, surfaceHeightM: 0.55,
+    access: [], sideWords: { ...SOFA_WORDS },
   },
 ];
 
@@ -77,7 +113,8 @@ export function specFor(item: FurnitureItem): CatalogItem {
     const found = CATALOG.find((c) => c.id === item.catalogId);
     if (found) return found;
   }
-  const first = CATALOG.find((c) => c.kind === item.kind);
+  // counters have no catalogue entry of their own for a real item (the study and side tables above are catalogue pieces, not its rule)
+  const first = item.kind === 'counter' ? undefined : CATALOG.find((c) => c.kind === item.kind);
   const access: AccessRule[] = first
     ? first.access.map(copyRule)
     : [{ sides: ['front'], minM: 0.9, mode: 'all' }];
