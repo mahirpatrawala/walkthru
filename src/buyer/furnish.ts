@@ -15,6 +15,11 @@ import type { PointerEvt } from '../engine/controls';
 import { buildFurnitureMesh, setFurnitureTint } from '../engine/furniture';
 import { CHARACTER_RADIUS_M } from '../types';
 import type { Box, CatalogItem, FurnitureItem, FurnitureKind, Grid, PlacementResult, Side, Tone, Vec2, Vec3 } from '../types';
+import { FAMILY_SLOTS, BED_STYLES, describeFinish, finishFamily, sanitizeFinish, surpriseFinish, swatch, withPick } from '../look/finishes';
+import type { Finish, FinishFamily, FinishSlotKey } from '../look/finishes';
+import { boxAxes } from '../core/geometry';
+import { BUILT_IN_NOTE, EDITED_CHIP, OVERLAY_NOTE, RESET_LABEL, isBuiltIn, shareUrl } from './my-layout';
+import { sceneOrigin } from './scene-tag';
 import type { BuyerContext, BuyerMode, FurnitureStore, OverlayHandle } from './context';
 import { toneColor } from './overlays';
 
@@ -98,9 +103,29 @@ export function cardLabel(spec: CatalogItem): string {
   return `${spec.name} · ${spec.sizeLabel}`;
 }
 
-/** Copy for a selected real item, which cannot be moved. */
+/** Copy for a selected piece that came with the home: its size is the record and cannot change, but it can be replaced or hidden in My layout. */
 export function realItemText(item: FurnitureItem): string {
-  return `${item.label} · ${Math.round(item.box.w * 100)} × ${Math.round(item.box.d * 100)} cm. Marked on the floor plan, it cannot be moved.`;
+  return `${item.label} · ${Math.round(item.box.w * 100)} × ${Math.round(item.box.d * 100)} cm. Marked on the floor plan, it cannot be moved. Replace it or hide it in your layout.`;
+}
+
+/**
+ * Where a replacement goes: the old piece's back edge stays where it was (a bed's head, a wardrobe's back on its wall) and the new
+ * piece grows out of it toward the front, on the same centre line, the same way round. The caller wall-snaps the result.
+ */
+export function replacementBox(old: Box, spec: CatalogItem): Box {
+  const { a } = boxAxes(old);
+  const back = { x: old.cx - a.x * (old.d / 2), z: old.cz - a.z * (old.d / 2) };
+  return { cx: back.x + a.x * (spec.footprint.d / 2), cz: back.z + a.z * (spec.footprint.d / 2), w: spec.footprint.w, d: spec.footprint.d, yawDeg: old.yawDeg };
+}
+
+/** Catalogue pieces in the order a Replace list shows them: the same family first (a bed for a bed), then everything else. */
+export function replacementChoices(item: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }): { same: CatalogItem[]; other: CatalogItem[] } {
+  const fam = (c: CatalogItem): string => familyKey({ kind: c.kind, label: c.name, catalogId: c.id, box: c.footprint });
+  const mine = familyKey(item);
+  return { same: CATALOG.filter((c) => fam(c) === mine), other: CATALOG.filter((c) => fam(c) !== mine) };
+}
+function familyKey(i: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }): string {
+  return finishFamily(i) ?? `${i.kind}`;
 }
 
 export const BROWSE_TEXT = 'Pick something below. It lands in front of you.';
@@ -112,6 +137,21 @@ export function grabsBox(box: Box, floor: Vec2, slackM: number = GRAB_SLACK_M): 
 
 // ---------------------------------------------------------------- the session (state machine, no DOM)
 
+/** The piece the action card is about. */
+export interface FurnishSelection {
+  id: string;
+  name: string;
+  /** '120 × 60 cm' */
+  sizeText: string;
+  /** true for a piece that came with the home, false for one the viewer placed */
+  home: boolean;
+  /** a fixed built-in of a real drawing: hiding it needs the explicit note */
+  builtIn: boolean;
+  family: FinishFamily | null;
+  finish: Finish | null;
+  /** the finish in words, '' when it is as built */
+  finishText: string;
+}
 export interface FurnishView {
   phase: 'browse' | 'edit' | 'selected';
   message: string;
@@ -122,6 +162,15 @@ export interface FurnishView {
   canRemove: boolean;
   /** items the buyer placed (Clear all shows when above 0) */
   buyerCount: number;
+  /** what the piece being placed is for: 'new' (Place), 'move' (Place), 'replace' (Replace) */
+  workKind: 'new' | 'move' | 'replace' | null;
+  selection: FurnishSelection | null;
+  /** every piece in the home right now, for the tray list */
+  pieces: Array<{ id: string; label: string; home: boolean }>;
+  /** originals hidden in this layout, with an Undo each */
+  removed: Array<{ id: string; label: string; builtIn: boolean }>;
+  /** true when this layout differs from the home as drawn (the chip shows) */
+  edited: boolean;
 }
 
 export interface FurnishUi { render(view: FurnishView): void }
@@ -140,8 +189,18 @@ export interface FurnishVerdict {
   lines: Array<{ side: Side; cm: number }>;
 }
 
-interface Work { kind: 'new' | 'move'; item: FurnitureItem; spec: CatalogItem; box: Box; origBox: Box; mesh: THREE.Group }
-type StoreX = FurnitureStore & { has?(id: string): boolean; get?(id: string): FurnitureItem | undefined; buyerIds?(): string[]; flush?(): void };
+interface Work { kind: 'new' | 'move' | 'replace'; item: FurnitureItem; spec: CatalogItem; box: Box; origBox: Box; mesh: THREE.Group; /** the piece a replacement stands in for */ replaces?: string }
+type StoreX = FurnitureStore & {
+  has?(id: string): boolean; get?(id: string): FurnitureItem | undefined; buyerIds?(): string[]; flush?(): void;
+  isOriginal?(id: string): boolean; hideOriginal?(id: string): boolean; restoreOriginal?(id: string): boolean; hiddenOriginals?(): FurnitureItem[];
+  setFinish?(id: string, finish: Finish | null | undefined): boolean; replace?(id: string, next: FurnitureItem): boolean;
+  layout?(): import('./my-layout').MyLayout; isEdited?(): boolean; reset?(): void;
+};
+
+export interface FurnishOptions {
+  /** is this piece a fixed built-in of the drawing (see isBuiltIn)? Default: none is. */
+  builtIn?: (item: FurnitureItem) => boolean;
+}
 
 export interface FurnishSession {
   /** a new catalogue item in front of the character (replaces any item being placed) */
@@ -167,14 +226,30 @@ export interface FurnishSession {
   selected(): string | null;
   /** Move: pick the selected virtual item up again */
   beginMove(): boolean;
-  /** Remove the selected virtual item */
+  /** Remove the selected piece: a placed one is deleted, one that came with the home is hidden in My layout */
   removeSelected(): boolean;
   remove(id: string): boolean;
+  /** Replace: pick a catalogue piece for the selected one. It appears at the same spot, wall-snapped, as a preview with a verdict; Place commits. */
+  replaceSelected(catalogId: string): FurnishVerdict | null;
+  /** Rotate on a selected placed piece: picks it up and turns it a quarter, ready to Place */
+  rotateSelected(deltaDeg?: number): boolean;
+  /** the look of the selected piece: set one choice (null clears it) */
+  pick(key: FinishSlotKey, id: string | null): boolean;
+  /** "Surprise me": a coherent combination for the selected piece */
+  surprise(): Finish | null;
+  /** back to the default look of the selected piece */
+  clearLook(): boolean;
+  /** undo a removal */
+  restore(id: string): boolean;
+  /** back to the home as drawn */
+  resetLayout(): void;
+  /** the layout as a link a buyer can send */
+  shareLink(href: string): string;
   /** Clear all: the buyer's placements (broker items stay). Returns how many were removed. */
   clearAll(): number;
   verdict(): FurnishVerdict | null;
   view(): FurnishView;
-  working(): { id: string; kind: 'new' | 'move'; box: Box } | null;
+  working(): { id: string; kind: 'new' | 'move' | 'replace'; box: Box } | null;
   workMesh(): THREE.Object3D | null;
   /** per frame: redraws overlays and the view when something changed */
   update(): void;
@@ -213,7 +288,7 @@ export function honestPlacement(r: PlacementResult, name: string, rooms: string[
   };
 }
 
-export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishSession {
+export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: FurnishOptions = {}): FurnishSession {
   const store = ctx.furniture as StoreX;
   const R = CHARACTER_RADIUS_M;
   const TAG_EDIT = 'furnish-edit';
@@ -223,7 +298,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishS
   let selectedId: string | null = null;
   let drag: { dx: number; dz: number } | null = null;
   let dirty = true;
-  let gridCache: { id: string; grid: Grid } | null = null;
+  let gridCache: { key: string; grid: Grid } | null = null;
   let handles: OverlayHandle[] = [];
   let lastView = '';
   let disposed = false;
@@ -234,9 +309,11 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishS
   const buyerCount = (): number => (store.buyerIds ? store.buyerIds().length : store.all().filter((i) => i.source === 'virtual').length);
   const flushStore = (): void => { store.flush?.(); };
 
-  /** layout + every item except `id`, cached until the store changes */
+  /** layout + every item except `id` (and, while a replacement is being placed, the piece it replaces), cached until the store changes */
   const gridWithout = (id: string): Grid => {
-    if (!gridCache || gridCache.id !== id) gridCache = { id, grid: ctx.gridWithout([id]) };
+    const ids = work && work.item.id === id && work.replaces ? [id, work.replaces] : [id];
+    const key = ids.join('|');
+    if (!gridCache || gridCache.key !== key) gridCache = { key, grid: ctx.gridWithout(ids) };
     return gridCache.grid;
   };
   const offStore = store.onChange(() => {
@@ -282,19 +359,52 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishS
     w.mesh.updateMatrixWorld(true);
   };
 
+  const isHome = (id: string): boolean => (store.isOriginal ? store.isOriginal(id) : false);
+  const builtIn = (item: FurnitureItem): boolean => !!options.builtIn?.(item);
+  const sizeText = (i: FurnitureItem): string => `${Math.round(i.box.w * 100)} × ${Math.round(i.box.d * 100)} cm`;
+  const selectionOf = (item: FurnitureItem): FurnishSelection => {
+    const family = finishFamily(item);
+    return {
+      id: item.id, name: item.label, sizeText: sizeText(item), home: isHome(item.id), builtIn: builtIn(item), family,
+      finish: item.finish ? { ...item.finish } : null, finishText: family ? describeFinish(family, item.finish) : '',
+    };
+  };
+  /** the tray's list: every piece, labels numbered when two share a name ("Bed 1", "Bed 2") */
+  const piecesList = (): FurnishView['pieces'] => {
+    const all = store.all();
+    const count = new Map<string, number>();
+    for (const i of all) count.set(i.label, (count.get(i.label) ?? 0) + 1);
+    const seen = new Map<string, number>();
+    return all.map((i) => {
+      const n = (seen.get(i.label) ?? 0) + 1;
+      seen.set(i.label, n);
+      return { id: i.id, label: (count.get(i.label) ?? 0) > 1 ? `${i.label} ${n}` : i.label, home: isHome(i.id) };
+    });
+  };
+  const removedList = (): FurnishView['removed'] => (store.hiddenOriginals ? store.hiddenOriginals().map((i) => ({ id: i.id, label: i.label, builtIn: builtIn(i) })) : []);
+  const extras = (): Pick<FurnishView, 'pieces' | 'removed' | 'edited'> => ({ pieces: piecesList(), removed: removedList(), edited: store.isEdited ? store.isEdited() : false });
+
   const computeView = (): FurnishView => {
     const bc = buyerCount();
     const s = subject();
-    if (!s) return { phase: 'browse', message: BROWSE_TEXT, tone: null, canPlace: false, canRotate: false, canMove: false, canRemove: false, buyerCount: bc };
+    const ex = extras();
+    if (!s) return { phase: 'browse', message: BROWSE_TEXT, tone: null, canPlace: false, canRotate: false, canMove: false, canRemove: false, buyerCount: bc, workKind: null, selection: null, ...ex };
     if (work) {
       const r = check(s);
-      return { phase: 'edit', message: withSwingNote(r.message, s.box, s.id), tone: r.tone, canPlace: r.verdict !== 'blocked', canRotate: true, canMove: false, canRemove: false, buyerCount: bc };
+      let msg = withSwingNote(r.message, s.box, s.id);
+      if (work.kind === 'replace' && work.replaces) {
+        const orig = getItem(work.replaces);
+        if (orig && builtIn(orig)) msg = `${msg} ${BUILT_IN_NOTE}.`;
+      }
+      return { phase: 'edit', message: msg, tone: r.tone, canPlace: r.verdict !== 'blocked', canRotate: true, canMove: false, canRemove: false, buyerCount: bc, workKind: work.kind, selection: null, ...ex };
     }
-    if (s.item.source === 'real') {
-      return { phase: 'selected', message: realItemText(s.item), tone: null, canPlace: false, canRotate: false, canMove: false, canRemove: false, buyerCount: bc };
+    const sel = selectionOf(s.item);
+    if (sel.home) {
+      const note = sel.builtIn ? ` ${BUILT_IN_NOTE}.` : '';
+      return { phase: 'selected', message: realItemText(s.item) + note, tone: null, canPlace: false, canRotate: false, canMove: false, canRemove: true, buyerCount: bc, workKind: null, selection: sel, ...ex };
     }
     const r = check(s);
-    return { phase: 'selected', message: withSwingNote(r.message, s.box, s.id), tone: r.tone, canPlace: false, canRotate: false, canMove: true, canRemove: true, buyerCount: bc };
+    return { phase: 'selected', message: withSwingNote(r.message, s.box, s.id), tone: r.tone, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, ...ex };
   };
 
   /** Redraws the outline, the clearance lines and the tint, then pushes the view to the UI when it changed. */
@@ -333,6 +443,11 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishS
       const m = store.mesh(w.item.id);
       if (m) m.visible = true;
     }
+    if (w.kind === 'replace' && w.replaces) {
+      const m = store.mesh(w.replaces);
+      if (m) m.visible = true;
+      if (hasItem(w.replaces)) selectedId = w.replaces;
+    }
     touch();
   };
 
@@ -344,10 +459,10 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishS
     if (free) ctx.character.position = free;
   };
 
-  const startWork = (kind: 'new' | 'move', item: FurnitureItem, spec: CatalogItem, box: Box): Work => {
+  const startWork = (kind: Work['kind'], item: FurnitureItem, spec: CatalogItem, box: Box, replaces?: string): Work => {
     const mesh = buildFurnitureMesh({ ...item, box: copyBox(box) });
     ctx.viewer.scene.add(mesh);
-    const w: Work = { kind, item, spec, box: copyBox(box), origBox: copyBox(item.box), mesh };
+    const w: Work = { kind, item, spec, box: copyBox(box), origBox: copyBox(item.box), mesh, ...(replaces ? { replaces } : {}) };
     work = w;
     selectedId = null;
     drag = null;
@@ -430,6 +545,12 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishS
       const id = w.item.id;
       if (w.kind === 'new') {
         store.add({ ...w.item, box: copyBox(w.box) });
+      } else if (w.kind === 'replace' && w.replaces) {
+        const orig = getItem(w.replaces);
+        const m = store.mesh(w.replaces);
+        if (m) m.visible = true;
+        if (!store.replace?.(w.replaces, { ...w.item, box: copyBox(w.box) })) store.add({ ...w.item, box: copyBox(w.box) });
+        if (orig && builtIn(orig)) ctx.hud.toast(`${BUILT_IN_NOTE}.`);
       } else {
         const m = store.mesh(id);
         if (m) m.visible = true;
@@ -469,15 +590,91 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi): FurnishS
       return selectedId ? session.remove(selectedId) : false;
     },
     remove(id) {
-      if (work && work.item.id === id) discardWork();
+      if (work && (work.item.id === id || work.replaces === id)) discardWork();
       const item = getItem(id);
-      if (!item || item.source === 'real') return false;
-      store.remove(id);
+      if (!item) return false;
+      if (isHome(id)) { if (!store.hideOriginal?.(id)) return false; }
+      else store.remove(id);
       flushStore();
       if (selectedId === id) selectedId = null;
       touch();
       flush();
       return true;
+    },
+    replaceSelected(catalogId) {
+      const fromId = work?.kind === 'replace' ? work.replaces : selectedId;
+      if (!fromId) return null;
+      const orig = getItem(fromId);
+      if (!orig) return null;
+      let spec: CatalogItem;
+      try { spec = catalogItem(catalogId); } catch { return null; }
+      if (work) discardWork();
+      const raw = replacementBox(orig.box, spec);
+      const holeFree = ctx.gridWithout([orig.id]);
+      const box = snapToWalls(holeFree, raw);
+      const next = itemFromCatalog(catalogId, box, 'virtual');
+      const kept = sanitizeFinish(finishFamily(next), orig.finish);
+      if (kept) next.finish = kept;
+      const m = store.mesh(orig.id);
+      if (m) m.visible = false;
+      selectedId = orig.id;
+      startWork('replace', next, spec, box, orig.id);
+      flush();
+      return verdictOf();
+    },
+    rotateSelected(deltaDeg = -ROTATE_BIG_DEG) {
+      if (!session.beginMove()) return false;
+      session.rotate(deltaDeg);
+      return true;
+    },
+    pick(key, id) {
+      if (work || !selectedId) return false;
+      const item = getItem(selectedId);
+      const family = item ? finishFamily(item) : null;
+      if (!item || !family || !store.setFinish) return false;
+      const next = withPick(family, item.finish, key, id);
+      const ok = store.setFinish(item.id, next ?? null);
+      flushStore();
+      touch();
+      flush();
+      return ok;
+    },
+    surprise() {
+      if (work || !selectedId) return null;
+      const item = getItem(selectedId);
+      const family = item ? finishFamily(item) : null;
+      if (!item || !family || !store.setFinish) return null;
+      const next = surpriseFinish(family, item.finish);
+      store.setFinish(item.id, next);
+      flushStore();
+      touch();
+      flush();
+      return next;
+    },
+    clearLook() {
+      if (work || !selectedId || !store.setFinish) return false;
+      const ok = store.setFinish(selectedId, null);
+      flushStore();
+      touch();
+      flush();
+      return ok;
+    },
+    restore(id) {
+      const ok = store.restoreOriginal?.(id) ?? false;
+      if (ok) { flushStore(); selectedId = id; touch(); flush(); }
+      return ok;
+    },
+    resetLayout() {
+      discardWork();
+      selectedId = null;
+      store.reset?.();
+      flushStore();
+      nudgeCharacter();
+      touch();
+      flush();
+    },
+    shareLink(href) {
+      return shareUrl(href, store.layout ? store.layout() : { removed: [], added: [], finishes: {} });
     },
     clearAll() {
       const ids = store.buyerIds ? store.buyerIds() : store.all().filter((i) => i.source === 'virtual').map((i) => i.id);
@@ -539,12 +736,20 @@ function isTouchDevice(): boolean {
 const MODE_TEXT = {
   browse: 'Furnish · pick an item below',
   edit: 'Furnish · drag it into place',
-  selected: 'Furnish · move or remove it',
+  selected: 'Furnish · change, replace or remove it',
 } as const;
 
-export function createFurnishMode(ctx: BuyerContext): FurnishMode {
+export interface FurnishModeOptions {
+  /** ids of the pieces the drawing's designs file describes (with the scene origin they decide which pieces are built-ins) */
+  designedIds?: ReadonlySet<string>;
+}
+
+export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOptions = {}): FurnishMode {
   const touch = isTouchDevice();
   let session!: FurnishSession;
+  const origin = sceneOrigin({ id: ctx.property.id, subtitle: ctx.property.subtitle, hasSplat: !!ctx.property.splat });
+  const designed = modeOpts.designedIds ?? new Set<string>();
+  const builtInOf = (item: FurnitureItem): boolean => isBuiltIn(item, { origin, designed });
 
   // ---- tray DOM
   const root = h('div', 'wtf-root');
@@ -557,6 +762,7 @@ export function createFurnishMode(ctx: BuyerContext): FurnishMode {
   const text = h('div', 'wtf-text', bar);
   text.setAttribute('role', 'status');
   text.setAttribute('aria-live', 'polite');
+  const barName = h('div', 'wtf-name', text);
   const barMsg = h('div', 'wtf-msg', text);
   const barHint = h('div', 'wtf-hint', text);
 
@@ -571,6 +777,7 @@ export function createFurnishMode(ctx: BuyerContext): FurnishMode {
     b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); b.blur(); });
     return b;
   };
+  let lastView: FurnishView | null = null;
   const bRotate = btn('Rotate', 'is-ghost', () => session.rotate(-ROTATE_BIG_DEG), ROTATE_ICON);
   bRotate.dataset.act = 'rotate';
   const bCancel = btn('Cancel', 'is-ghost', () => session.cancel());
@@ -579,26 +786,53 @@ export function createFurnishMode(ctx: BuyerContext): FurnishMode {
   bPlace.dataset.act = 'place';
   const bMove = btn('Move', 'is-ghost', () => { session.beginMove(); });
   bMove.dataset.act = 'move';
-  const bRemove = btn('Remove', 'is-danger', () => { session.removeSelected(); });
+  const bTurn = btn('Rotate', 'is-ghost', () => { session.rotateSelected(); }, ROTATE_ICON);
+  bTurn.dataset.act = 'turn';
+  const bReplace = btn('Replace', 'is-ghost', () => setPanel(panelOpen === 'replace' ? null : 'replace'));
+  bReplace.dataset.act = 'replace';
+  const bLook = btn('Change look', 'is-ghost', () => setPanel(panelOpen === 'look' ? null : 'look'));
+  bLook.dataset.act = 'look';
+  // Remove asks twice for a built-in of a real drawing: hiding it needs its note read (BUILT_IN_NOTE sits in the bar above)
+  let removeArmed = false;
+  let removeTimer: ReturnType<typeof setTimeout> | null = null;
+  const disarmRemove = (): void => {
+    removeArmed = false;
+    if (removeTimer) { clearTimeout(removeTimer); removeTimer = null; }
+    bRemove.classList.remove('is-armed');
+    if (lastView?.selection) bRemove.querySelector('span')!.textContent = removeLabel(lastView.selection);
+  };
+  const removeLabel = (sel: FurnishSelection): string => (sel.builtIn ? 'Hide in my layout' : sel.home ? 'Hide' : 'Remove');
+  const bRemove = btn('Remove', 'is-danger', () => {
+    const sel = lastView?.selection;
+    if (sel?.builtIn && !removeArmed) {
+      removeArmed = true;
+      bRemove.classList.add('is-armed');
+      bRemove.querySelector('span')!.textContent = 'Tap again to hide';
+      removeTimer = setTimeout(disarmRemove, 3500);
+      return;
+    }
+    disarmRemove();
+    const name = sel?.name ?? 'piece';
+    const home = !!sel?.home;
+    if (session.removeSelected() && home) ctx.hud.toast(`${name} hidden in your layout. The home as drawn does not change.`);
+  });
   bRemove.dataset.act = 'remove';
 
-  const tray = h('div', 'wtf-tray', root);
-  tray.dataset.ui = '1';
-  const head = h('div', 'wtf-head', tray);
-  h('div', 'wtf-title', head, 'Add furniture');
-  const headRight = h('div', 'wtf-head-right', head);
-  const clearBtn = h('button', 'wtf-link', headRight, 'Clear all');
-  clearBtn.type = 'button';
-  clearBtn.dataset.ui = '1';
-  clearBtn.dataset.act = 'clear';
-  const doneBtn = h('button', 'wtf-link is-strong', headRight, 'Done');
-  doneBtn.type = 'button';
-  doneBtn.dataset.ui = '1';
-  doneBtn.dataset.act = 'done';
-  const cards = h('div', 'wtf-cards', tray);
-  cards.dataset.ui = '1';
-  for (const spec of CATALOG) {
-    const c = h('button', 'wtf-item', cards);
+  // ---- the panels under the bar: Replace and Change look
+  let panelOpen: 'replace' | 'look' | null = null;
+  const panel = h('div', 'wtf-panel', root);
+  panel.dataset.ui = '1';
+  panel.dataset.testid = 'furnish-panel';
+  panel.hidden = true;
+
+  const setPanel = (p: 'replace' | 'look' | null): void => {
+    panelOpen = p;
+    disarmRemove();
+    renderPanel();
+  };
+
+  const specCard = (parent: HTMLElement, spec: CatalogItem, onPick: () => void): void => {
+    const c = h('button', 'wtf-item', parent);
     c.type = 'button';
     c.dataset.ui = '1';
     c.dataset.catalogId = spec.id;
@@ -608,56 +842,248 @@ export function createFurnishMode(ctx: BuyerContext): FurnishMode {
     ic.innerHTML = icon(spec.kind);
     h('span', 'wtf-item-name', c, spec.name);
     h('span', 'wtf-item-size', c, spec.sizeLabel);
-    c.addEventListener('click', (e) => { e.stopPropagation(); session.spawn(spec.id); c.blur(); });
-  }
-
-  // Clear all asks twice (a stray tap must not wipe the buyer's layout)
-  let clearArmed = false;
-  let clearTimer: ReturnType<typeof setTimeout> | null = null;
-  const disarm = (): void => {
-    clearArmed = false;
-    if (clearTimer) { clearTimeout(clearTimer); clearTimer = null; }
-    clearBtn.textContent = 'Clear all';
-    clearBtn.classList.remove('is-armed');
+    c.addEventListener('click', (e) => { e.stopPropagation(); onPick(); c.blur(); });
   };
-  clearBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (!clearArmed) {
-      clearArmed = true;
-      clearBtn.textContent = 'Tap again to clear all';
-      clearBtn.classList.add('is-armed');
-      clearTimer = setTimeout(disarm, 3000);
+
+  const renderPanel = (): void => {
+    panel.textContent = '';
+    const v = lastView;
+    const sel = v?.selection ?? null;
+    const show = !!panelOpen && !!sel && v?.phase === 'selected';
+    panel.hidden = !show;
+    if (!show || !sel) return;
+    const top = h('div', 'wtf-panel-head', panel);
+    if (panelOpen === 'replace') {
+      h('div', 'wtf-panel-title', top, `Replace ${sel.name}`);
+      const x = h('button', 'wtf-link', top, 'Close');
+      x.type = 'button'; x.dataset.ui = '1'; x.dataset.act = 'panel-close';
+      x.addEventListener('click', (e) => { e.stopPropagation(); setPanel(null); });
+      const item = ctx.furniture.all().find((i) => i.id === sel.id);
+      if (!item) return;
+      const { same, other } = replacementChoices(item);
+      h('div', 'wtf-panel-note', panel, 'It lands at the same spot, squared to the wall, and the fit check runs. Sizes are the catalogue size.');
+      if (same.length > 0) {
+        h('div', 'wtf-sub', panel, 'Same kind');
+        const row = h('div', 'wtf-cards', panel);
+        for (const spec of same) specCard(row, spec, () => { session.replaceSelected(spec.id); setPanel(null); });
+      }
+      h('div', 'wtf-sub', panel, same.length > 0 ? 'Anything else' : 'Pick a piece');
+      const row2 = h('div', 'wtf-cards', panel);
+      for (const spec of other) specCard(row2, spec, () => { session.replaceSelected(spec.id); setPanel(null); });
       return;
     }
-    disarm();
+    // Change look
+    const fam = sel.family;
+    if (!fam) { panel.hidden = true; return; }
+    h('div', 'wtf-panel-title', top, `Change look · ${sel.name}`);
+    const x = h('button', 'wtf-link is-strong', top, 'Done');
+    x.type = 'button'; x.dataset.ui = '1'; x.dataset.act = 'panel-close';
+    x.addEventListener('click', (e) => { e.stopPropagation(); setPanel(null); });
+    const tools = h('div', 'wtf-panel-tools', panel);
+    const surprise = h('button', 'wtf-chipbtn', tools, 'Surprise me');
+    surprise.type = 'button'; surprise.dataset.ui = '1'; surprise.dataset.act = 'surprise';
+    surprise.addEventListener('click', (e) => { e.stopPropagation(); session.surprise(); });
+    const def = h('button', 'wtf-chipbtn', tools, 'As it was');
+    def.type = 'button'; def.dataset.ui = '1'; def.dataset.act = 'look-default';
+    def.disabled = !sel.finish;
+    def.addEventListener('click', (e) => { e.stopPropagation(); session.clearLook(); });
+    const slots = h('div', 'wtf-slots', panel);
+    for (const slot of FAMILY_SLOTS[fam]) {
+      const rowEl = h('div', 'wtf-slot', slots);
+      h('div', 'wtf-slot-label', rowEl, slot.label);
+      const opts = h('div', 'wtf-slot-opts', rowEl);
+      const cur = sel.finish?.[slot.key];
+      for (const id of slot.options) {
+        if (slot.key === 'style') {
+          const st = BED_STYLES.find((s) => s.id === id)!;
+          const b = h('button', `wtf-style${cur === id ? ' is-on' : ''}`, opts, st.name);
+          b.type = 'button'; b.dataset.ui = '1'; b.dataset.slot = slot.key; b.dataset.pick = id;
+          b.setAttribute('aria-pressed', String(cur === id));
+          b.addEventListener('click', (e) => { e.stopPropagation(); session.pick(slot.key, cur === id ? null : id); });
+          continue;
+        }
+        const sw = swatch(id)!;
+        const b = h('button', `wtf-swatch${cur === id ? ' is-on' : ''}`, opts);
+        b.type = 'button'; b.dataset.ui = '1'; b.dataset.slot = slot.key; b.dataset.pick = id;
+        b.style.setProperty('--sw', sw.hex);
+        b.title = sw.name;
+        b.setAttribute('aria-label', `${slot.label}: ${sw.name}`);
+        b.setAttribute('aria-pressed', String(cur === id));
+        b.addEventListener('click', (e) => { e.stopPropagation(); session.pick(slot.key, cur === id ? null : id); });
+      }
+    }
+    h('div', 'wtf-panel-note', panel, 'Colours and styles are illustrative. Sizes are exact.');
+  };
+
+  // ---- the tray
+  const tray = h('div', 'wtf-tray', root);
+  tray.dataset.ui = '1';
+  const head = h('div', 'wtf-head', tray);
+  const titleEl = h('div', 'wtf-title', head, 'Add furniture');
+  const headRight = h('div', 'wtf-head-right', head);
+  const clearBtn = h('button', 'wtf-link', headRight, 'Clear all');
+  clearBtn.type = 'button';
+  clearBtn.dataset.ui = '1';
+  clearBtn.dataset.act = 'clear';
+  const doneBtn = h('button', 'wtf-link is-strong', headRight, 'Done');
+  doneBtn.type = 'button';
+  doneBtn.dataset.ui = '1';
+  doneBtn.dataset.act = 'done';
+
+  // "Your layout · edited", with Share and Reset
+  const mineRow = h('div', 'wtf-mine', tray);
+  mineRow.dataset.ui = '1';
+  mineRow.dataset.testid = 'my-layout-row';
+  mineRow.hidden = true;
+  const mineText = h('div', 'wtf-mine-text', mineRow);
+  h('span', 'wtf-mine-chip', mineText, EDITED_CHIP);
+  h('span', 'wtf-mine-note', mineText, OVERLAY_NOTE);
+  const mineBtns = h('div', 'wtf-mine-btns', mineRow);
+  const shareBtn = h('button', 'wtf-link', mineBtns, 'Share');
+  shareBtn.type = 'button'; shareBtn.dataset.ui = '1'; shareBtn.dataset.act = 'share';
+  const resetBtn = h('button', 'wtf-link', mineBtns, RESET_LABEL);
+  resetBtn.type = 'button'; resetBtn.dataset.ui = '1'; resetBtn.dataset.act = 'reset';
+
+  // the pieces in this home, as chips, and the originals removed from it
+  const piecesWrap = h('div', 'wtf-pieces-wrap', tray);
+  h('div', 'wtf-sub', piecesWrap, 'In this home');
+  const pieces = h('div', 'wtf-pieces', piecesWrap);
+  pieces.dataset.ui = '1';
+  pieces.dataset.testid = 'furnish-pieces';
+  const removedWrap = h('div', 'wtf-removed', tray);
+  removedWrap.dataset.ui = '1';
+  removedWrap.dataset.testid = 'furnish-removed';
+
+  const addLabel = h('div', 'wtf-sub', tray, 'Add furniture');
+  const cards = h('div', 'wtf-cards', tray);
+  cards.dataset.ui = '1';
+  for (const spec of CATALOG) specCard(cards, spec, () => { session.spawn(spec.id); });
+
+  const renderPieces = (v: FurnishView): void => {
+    pieces.textContent = '';
+    for (const p of v.pieces) {
+      const b = h('button', `wtf-piece${v.selection?.id === p.id ? ' is-on' : ''}`, pieces, p.label);
+      b.type = 'button'; b.dataset.ui = '1'; b.dataset.itemId = p.id;
+      if (!p.home) b.classList.add('is-mine');
+      b.addEventListener('click', (e) => { e.stopPropagation(); session.select(v.selection?.id === p.id ? null : p.id); b.blur(); });
+    }
+    piecesWrap.hidden = v.pieces.length === 0;
+  };
+  const renderRemoved = (v: FurnishView): void => {
+    removedWrap.textContent = '';
+    removedWrap.hidden = v.removed.length === 0;
+    for (const r of v.removed) {
+      const row = h('div', 'wtf-removed-row', removedWrap);
+      const t = h('div', 'wtf-removed-text', row);
+      h('span', 'wtf-removed-name', t, `Removed: ${r.label} (as drawn)`);
+      if (r.builtIn) h('span', 'wtf-removed-note', t, `${BUILT_IN_NOTE}.`);
+      const u = h('button', 'wtf-link', row, 'Undo');
+      u.type = 'button'; u.dataset.ui = '1'; u.dataset.act = 'undo'; u.dataset.itemId = r.id;
+      u.addEventListener('click', (e) => { e.stopPropagation(); session.restore(r.id); });
+    }
+  };
+
+  // Clear all and Reset ask twice (a stray tap must not wipe the buyer's layout)
+  const armable = (b: HTMLButtonElement, idle: string, armed: string, run: () => void): { disarm(): void } => {
+    let on = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const disarmIt = (): void => {
+      on = false;
+      if (timer) { clearTimeout(timer); timer = null; }
+      b.textContent = idle;
+      b.classList.remove('is-armed');
+    };
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!on) {
+        on = true;
+        b.textContent = armed;
+        b.classList.add('is-armed');
+        timer = setTimeout(disarmIt, 3000);
+        return;
+      }
+      disarmIt();
+      run();
+    });
+    return { disarm: disarmIt };
+  };
+  const clearArm = armable(clearBtn, 'Clear all', 'Tap again to clear all', () => {
     const n = session.clearAll();
     if (n > 0) ctx.hud.toast(n === 1 ? 'Removed 1 item.' : `Removed ${n} items.`);
   });
+  const resetArm = armable(resetBtn, RESET_LABEL, 'Tap again to reset', () => {
+    session.resetLayout();
+    ctx.hud.toast('Back to the home as drawn.');
+  });
+  const disarm = (): void => { clearArm.disarm(); resetArm.disarm(); disarmRemove(); };
   doneBtn.addEventListener('click', (e) => { e.stopPropagation(); ctx.setMode('walk'); });
+  shareBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const url = session.shareLink(location.href);
+    void (async () => {
+      try {
+        if (touch && typeof navigator.share === 'function') { await navigator.share({ title: `${ctx.property.title} · my layout`, url }); return; }
+      } catch { /* cancelled or unsupported: fall through to copy */ }
+      try {
+        await navigator.clipboard.writeText(url);
+        ctx.hud.toast('Link copied. Anyone who opens it sees your arrangement.');
+      } catch {
+        try { window.prompt('Copy this link to share your layout', url); } catch { ctx.hud.toast('Could not copy the link here.'); }
+      }
+    })();
+  });
 
   let active = false;
+  let lastSelId: string | null = null;
   const ui: FurnishUi = {
     render(v) {
+      lastView = v;
+      // a different piece, or none: the panel and a half-confirmed Remove close
+      const selId = v.selection?.id ?? null;
+      if (selId !== lastSelId) { lastSelId = selId; panelOpen = null; disarmRemove(); }
+      barName.textContent = v.selection ? `${v.selection.name} · ${v.selection.sizeText}${v.selection.home ? ' · as drawn' : ''}${v.selection.finishText ? ` · ${v.selection.finishText}` : ''}` : '';
+      barName.hidden = !v.selection;
       barMsg.textContent = v.message;
       bar.dataset.tone = v.tone ?? 'none';
       bar.dataset.phase = v.phase;
       barHint.textContent = v.phase === 'edit'
-        ? (touch ? 'Drag it to move. Tap Rotate to turn it.' : 'Drag to move. Q / E turn it, R for a quarter turn.')
+        ? (v.workKind === 'replace' ? 'Drag to adjust. ' : '') + (touch ? 'Drag it to move. Tap Rotate to turn it.' : 'Drag to move. Q / E turn it, R for a quarter turn.')
         : '';
       barHint.hidden = v.phase !== 'edit';
       const showEdit = v.phase === 'edit';
+      const sel = v.phase === 'selected' && !!v.selection;
       bRotate.hidden = bCancel.hidden = bPlace.hidden = !showEdit;
-      bMove.hidden = bRemove.hidden = v.phase !== 'selected' || !v.canMove;
-      actions.hidden = !(showEdit || (v.phase === 'selected' && v.canMove));
+      bPlace.querySelector('span')!.textContent = v.workKind === 'replace' ? 'Replace' : 'Place';
+      bMove.hidden = !sel || !v.canMove;
+      bTurn.hidden = !sel || !v.canRotate;
+      bReplace.hidden = !sel;
+      bLook.hidden = !sel || !v.selection?.family;
+      bRemove.hidden = !sel || !v.canRemove;
+      if (v.selection && !removeArmed) bRemove.querySelector('span')!.textContent = removeLabel(v.selection);
+      bReplace.classList.toggle('is-on', panelOpen === 'replace');
+      bLook.classList.toggle('is-on', panelOpen === 'look');
+      actions.hidden = !(showEdit || sel);
       bPlace.disabled = !v.canPlace;
       clearBtn.hidden = v.buyerCount === 0;
-      if (v.buyerCount === 0) disarm();
+      if (v.buyerCount === 0) clearArm.disarm();
+      mineRow.hidden = !v.edited;
+      if (!v.edited) resetArm.disarm();
+      root.classList.toggle('is-selected', sel);
       cards.classList.toggle('is-editing', showEdit);
       tray.classList.toggle('is-editing', showEdit);
+      tray.classList.toggle('is-selected', sel);
+      titleEl.textContent = 'Add furniture';
+      addLabel.hidden = showEdit || sel;
+      cards.hidden = sel;
+      piecesWrap.classList.toggle('is-quiet', showEdit);
+      renderPieces(v);
+      renderRemoved(v);
+      removedWrap.classList.toggle('is-quiet', showEdit);
+      renderPanel();
       if (active) ctx.hud.setModeBar(MODE_TEXT[v.phase], () => ctx.setMode('walk'));
     },
   };
-  session = createFurnishSession(ctx, ui);
+  session = createFurnishSession(ctx, ui, { builtIn: builtInOf });
 
   // ---- pointer: press on the item being placed to drag it; anything else is the normal look drag or a tap
   const raycaster = new THREE.Raycaster();
@@ -695,7 +1121,7 @@ export function createFurnishMode(ctx: BuyerContext): FurnishMode {
     if (!hit) return null;
     let o: THREE.Object3D | null = hit.object;
     while (o) {
-      const id = o.userData?.itemId;
+      const id = o.userData?.itemId ?? o.userData?.openableFor;
       if (typeof id === 'string') return id;
       o = o.parent;
     }
@@ -779,6 +1205,16 @@ function installDebug(ctx: BuyerContext, mode: FurnishMode): void {
     move: () => s.beginMove(),
     removeSelected: () => s.removeSelected(),
     remove: (id: string) => s.remove(id),
+    /** Replace the selected piece with a catalogue one (a preview with a verdict; `place()` commits) */
+    replace: (catalogId: string) => s.replaceSelected(catalogId),
+    turn: (deg?: number) => s.rotateSelected(deg),
+    /** a choice for the selected piece's look, e.g. pick('fabric', 'fab-teal'); null clears it */
+    pick: (key: FinishSlotKey, id: string | null) => s.pick(key, id),
+    surprise: () => s.surprise(),
+    clearLook: () => s.clearLook(),
+    restore: (id: string) => s.restore(id),
+    reset: () => s.resetLayout(),
+    shareLink: () => s.shareLink(location.href),
     clearAll: () => s.clearAll(),
     verdict: () => s.verdict(),
     view: () => s.view(),

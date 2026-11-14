@@ -31,6 +31,8 @@ import type { PropertyFile, Vec2 } from '../types';
 import { ModeManager, createBuyerContext } from './context';
 import type { BuyerContext, BuyerModeId } from './context';
 import { createFurnishMode } from './furnish';
+import { mountLayoutChip, syncHosted } from './layout-chip';
+import { SHARE_PARAM } from './my-layout';
 import { chooseSpawn } from '../core/spawn';
 import { resolveStartRoom } from '../core/start-rooms';
 import { createGridOverlay } from './debug';
@@ -210,12 +212,13 @@ async function boot(): Promise<void> {
   setFurnitureDefaults({ style: 'real', tier: startTier });
   void furnitureKit.setTier(startTier).catch((err) => console.warn('[walkthru] furniture textures not loaded', err));
   const initialItems = applyDesigns(property.furniture, designs);
-  const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage });
+  const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage, shareCode: params.get(SHARE_PARAM) });
   const decor: Decor[] = buildDecor(designs, store.all(), startTier);
   for (const d of decor) furnitureRoot.add(d.group);
   // the drawing's chairs are sittable and block the walk grid (src/buyer/seats.ts)
   const seats = buildSeats(designs, store.all());
   store.setTemporary('seats', seats.obstacles());
+  syncHosted(store, decor, seats); // decor and chairs at a piece that My layout hides go with it
   if (look) {
     const lk = look;
     lk.attach({ shell, furnitureRoot });
@@ -337,7 +340,12 @@ async function boot(): Promise<void> {
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));
-  modes.registerLazy('furnish', () => createFurnishMode(ctx));
+  modes.registerLazy('furnish', () => createFurnishMode(ctx, { designedIds: new Set(Object.keys(designs?.items ?? {})) }));
+  mountLayoutChip(hud.root, store, () => { if (!blocking() && modes.id !== 'furnish') modes.set('furnish'); });
+  if (store.fromLink()) {
+    try { const u = new URL(location.href); u.searchParams.delete(SHARE_PARAM); history.replaceState(null, '', u.toString()); } catch { /* ignore */ }
+    setTimeout(() => hud.toast('Opened a shared layout. Reset it any time from Furnish.'), 1200);
+  }
   modes.onError = (id, err) => {
     const m = describe(err);
     console.warn(`[walkthru] mode "${id}" unavailable:`, err);
