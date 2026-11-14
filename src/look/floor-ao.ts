@@ -60,20 +60,22 @@ export function distanceCells(blocked: Uint8Array, nx: number, nz: number): Floa
  * `ao = 0.62 + 0.38 * smoothstep(0, 0.45 m, distance)`, distance measured from the face of the nearest blocked cell
  * (walls, void and obstacles of at least `minObstacleCm`), then a 3 x 3 box blur.
  */
-export function buildAoField(grid: Grid, opts: { minObstacleCm?: number } = {}): AoField {
+export function buildAoField(grid: Grid, opts: { minObstacleCm?: number; /** only furniture shades: walls and the void do not (a bake already has them) */ furnitureOnly?: boolean; minAo?: number; rangeM?: number } = {}): AoField {
   const { nx, nz, cellM } = grid;
   const minCm = opts.minObstacleCm ?? AO_MIN_OBSTACLE_CM;
+  const aoMin = opts.minAo ?? AO_MIN;
+  const range = opts.rangeM ?? AO_RANGE_M;
   const blocked = new Uint8Array(nx * nz);
   for (let k = 0; k < blocked.length; k++) {
     const v = grid.cells[k];
-    blocked[k] = v === GRID_VOID || v >= minCm ? 1 : 0;
+    blocked[k] = opts.furnitureOnly ? (v !== GRID_VOID && v >= minCm ? 1 : 0) : v === GRID_VOID || v >= minCm ? 1 : 0;
   }
   const dist = distanceCells(blocked, nx, nz);
   const raw = new Float32Array(nx * nz);
   for (let k = 0; k < raw.length; k++) {
-    if (blocked[k]) { raw[k] = AO_MIN; continue; }
+    if (blocked[k]) { raw[k] = aoMin; continue; }
     const m = Math.max(0, dist[k] - 0.5) * cellM;
-    raw[k] = AO_MIN + (1 - AO_MIN) * smoothstep(0, AO_RANGE_M, m);
+    raw[k] = aoMin + (1 - aoMin) * smoothstep(0, range, m);
   }
   const values = new Float32Array(nx * nz);
   for (let j = 0; j < nz; j++) {
