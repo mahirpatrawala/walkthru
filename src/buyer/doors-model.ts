@@ -21,7 +21,8 @@ export function buildDoorModel(d: Door, frameColor: string): DoorModel {
   const T = DOOR_THICKNESS_M;
   const H = Math.max(0.5, d.topM - DOOR_FLOOR_GAP_M);
   const W = d.panelWidthM;
-  const panelMat = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.55, metalness: 0 });
+  // a teak-laminate flush door: lighter than the dark frame so the panel reads as wood, not a black slab
+  const panelMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(frameColor).lerp(new THREE.Color('#A9794E'), 0.75), roughness: 0.55, metalness: 0 });
   const handleMat = new THREE.MeshStandardMaterial({ color: '#B9B4AA', roughness: 0.32, metalness: 0.75 });
   const geoms: THREE.BufferGeometry[] = [];
   const add = (g: THREE.BufferGeometry, mat: THREE.Material, name: string, x: number, y: number, z: number, rotX = 0): THREE.Mesh => {
