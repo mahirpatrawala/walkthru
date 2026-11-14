@@ -24,6 +24,7 @@
     "understand:raster": "tsx scripts/understand-raster.ts",
     "smoke:vision": "tsx scripts/vision-smoke.ts",
     "fetch:hershey": "tsx scripts/fetch-hershey.ts",
+    "bake": "tsx scripts/bake-scene.ts",
     "check:photo-bundle": "node scripts/check-photo-bundle.mjs"
   },
   "dependencies": {
