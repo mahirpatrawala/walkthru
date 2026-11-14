@@ -62,7 +62,8 @@ function cleanFinish(raw: unknown): FinishChoice | undefined {
 function kindOfItemId(id: string, kinds: Record<string, LookKind> | undefined): LookKind | null {
   if (kinds?.[id]) return kinds[id];
   const m = /^([a-z]+)-/.exec(id);
-  if (!m) return null;
+  // a counter is a desk, a bedside table, a dresser or a kitchen counter by its LABEL, which a sheet does not know: those are checked when resolved
+  if (!m || m[1] === 'counter') return null;
   return (LOOK_KINDS as string[]).includes(m[1]) ? (m[1] as LookKind) : null;
 }
 

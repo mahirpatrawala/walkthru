@@ -148,15 +148,15 @@ export function buildWardrobeModel(item: FurnitureItem, spec: OpenSpec, wd: Ward
   if (styled && styled.kind === 'wardrobe') {
     const wp = styled.params as unknown as WardrobeParams;
     const sp = wardrobeSpans(H, wp);
-    const zf = zFront - FRONT_RECESS;
     const env = { kit, q: GEN_QUALITY[kit.tier] };
     for (const s of spec.shutters) {
       const piv = new THREE.Group();
       piv.name = `shutter:${s.id}`;
-      piv.position.set(s.hingeU, 0, zf);
+      // the hinge axis is where the spec puts it (the box's front plane); the styled leaf stands a few mm behind it, like the closed wardrobe's
+      piv.position.set(s.hingeU, 0, zFront);
       const parts = new GenParts(env);
       addLeaf(parts, {
-        hingeX: 0, dir: s.dir, widthM: s.widthM, y0: sp.y0, y1: sp.yTop, zFront: 0, style: wp.shutterStyle, handle: wp.handle,
+        hingeX: 0, dir: s.dir, widthM: s.widthM, y0: sp.y0, y1: sp.yTop, zFront: -FRONT_RECESS, style: wp.shutterStyle, handle: wp.handle,
         handleYM: wp.handleYM, handleLenM: wp.handleLenM, fluteBand: wp.fluteBand, handleOnFree: true,
         names: { face: `shutter-slab:${s.id}`, flutes: `shutter-flutes:${s.id}`, handle: `shutter-handle:${s.id}`, back: `shutter-flute-back:${s.id}` },
       }, styled.roles.case ?? { key: 'wood' }, styled.roles.handle ?? { key: 'blackMetal' }, styled.roles.flute ?? styled.roles.case ?? { key: 'wood' });
