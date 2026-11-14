@@ -169,6 +169,8 @@ The 15 cm rule is ordinary mattress guidance (body length plus 15 cm). In the to
 6. Buttons "Place" (disabled while blocked) and "Cancel". Placed items are solid, block walking, and are interactable (lie, sit).
 7. Tapping a placed virtual item in furnish mode selects it: "Move", "Remove". Real items (tagged by the broker, `source: 'real'`) cannot be moved.
 8. Buyer placements persist per scene in `localStorage` key `walkthru:<sceneId>:placed`. "Clear all" link in the tray. Broker-staged virtual items come from `property.json`; a buyer may move or remove them for their own session.
+9. **My layout (14 Nov 2026).** Any piece can be selected (tap it, or pick it from "In this home" in the tray). The action card offers Move and Rotate (placed pieces only: a piece that came with the home cannot be moved), **Replace**, **Change look** and **Remove**. Replace lists the catalogue, the same family first (bed: single, double, queen, king; sofa: 2-seat, 3-seat, L-shaped; wardrobe: 2, 3, 4 doors; table: study, side, dining), then everything else. The replacement appears at the same spot with the old piece's back edge kept, squared to the wall (4.5), as a preview with the normal fit verdict (the piece it replaces is not an obstacle); Replace commits, Cancel brings the original back. A replacement shows its own catalogue size; the original's size never changes. Everything is a per-viewer overlay, never an edit of the home: the home as drawn (`property.json`) is the record. While the layout differs from it, a chip "Your layout · edited" shows in every mode, the tray lists "Removed: Bed (as drawn)" with Undo, and "Reset to the home as drawn" restores the exact original state. In a home from a REAL drawing, fixed built-ins (anything with a `designs.json` entry, and every wardrobe or counter) can only be hidden with the note "Built-in on the drawing: hidden in your layout only" (shown in the card, asked for twice, and kept in the removed list). Storage: `walkthru:<sceneId>:placed` (placed pieces, with their `finish`) and `walkthru:<sceneId>:mine` (`{ version: 1, removed, finishes }`), both written inside try/catch. Sharing: the overlay travels in `?my=1.<base64url JSON>` (`src/buyer/my-layout.ts`), checked against the home it opens on. Decor on a hidden or replaced piece (lived-in cushions, a drawing's chair at a hidden desk) goes with it; collision grid, poses, wardrobe opening and kit bed-head boards follow the store.
+10. **Change look.** Swatches from the finish palette (`src/look/finishes.ts`: woods, solid laminates, fabrics, metals, bedding). Bed: frame, headboard, bedding, style (panel, upholstered, storage box). Sofa and armchair: fabric, legs. Wardrobe: shutters, handles. Tables: top, legs. A kitchen counter has no look. The piece updates live; the choice is `FurnitureItem.finish` (ids only) on the placed piece, or in the overlay for a piece that came with the home. Looks are illustrative: sizes are exact (16.2 rule 4).
 
 ### 2.2 Broker editor flow
 
@@ -612,6 +614,15 @@ Beds are Indian mattress sizes; the footprint adds a 5 cm frame all round. Metre
 | `sofa-3` | 3-seat sofa | 210 × 90 cm | 2.10 × 0.90 | none | 0.85 | 0.43 | all of front >= 0.75 | in front / behind / on the left / on the right |
 | `dining-6` | 6-seat dining table | 180 × 90 cm table | 1.80 × 1.70 | none | 0.95 | 0.75 | all of front, back >= 0.60 | on the near side / on the far side / on the left / on the right |
 | `wardrobe-2` | 2-door wardrobe | 120 × 60 × 210 cm | 1.20 × 0.60 | none | 2.10 | 2.10 | all of front >= 0.90 | in front / behind / on the left / on the right |
+| `sofa-2` | 2-seat sofa | 150 × 85 cm | 1.50 × 0.85 | none | 0.85 | 0.43 | all of front >= 0.75 | sofa words |
+| `sofa-l` | L-shaped sofa | 250 × 160 cm overall | 2.50 × 1.60 | none | 0.85 | 0.43 | all of front >= 0.75 | sofa words |
+| `armchair` | Armchair | 80 × 85 cm | 0.80 × 0.85 | none | 0.85 | 0.43 | all of front >= 0.60 | sofa words |
+| `wardrobe-3` | 3-door wardrobe | 180 × 60 × 210 cm | 1.80 × 0.60 | none | 2.10 | 2.10 | all of front >= 0.90 | sofa words |
+| `wardrobe-4` | 4-door wardrobe | 240 × 60 × 210 cm | 2.40 × 0.60 | none | 2.10 | 2.10 | all of front >= 0.90 | sofa words |
+| `study-table` | Study table | 120 × 60 cm | 1.20 × 0.60 | none | 0.75 | 0.75 | all of front >= 0.60 | sofa words |
+| `side-table` | Side table | 45 × 45 cm | 0.45 × 0.45 | none | 0.55 | 0.55 | none | sofa words |
+
+The first seven rows are the original table; rows eight to fourteen were added for Replace (14 Nov 2026). A real counter still takes the fallback rule below, not the study table's.
 
 Defaults for broker-tagged real items: bed height 0.55 / surface 0.50; sofa 0.85 / 0.43; counter 0.85 / 0.85; wardrobe 2.10 / 2.10. Real items use the access rules and side words of the first catalogue item of their kind (counter: all of front >= 0.90, sofa words).
 

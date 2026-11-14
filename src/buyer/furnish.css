@@ -157,3 +157,12 @@
 .wtf-panel-note.is-strong { font-weight: 700; color: #7A5200; }
 /* a panel is open: only the action card's name line and buttons stay, the tray steps aside so the piece stays in view */
 .wtf-root.has-panel .wtf-tray, .wtf-root.has-panel .wtf-msg, .wtf-root.has-panel .wtf-hint { display: none; }
+@media (max-width: 600px) {
+  /* one scrolling row of swatches per choice, so every choice (the bed's Style too) fits above the fold */
+  .wtf-slot-opts { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .wtf-slot-opts::-webkit-scrollbar { display: none; }
+  .wtf-swatch, .wtf-style { flex: 0 0 auto; }
+  .wtf-slots { gap: 4px; }
+  .wtf-slot-label { margin-bottom: 2px; }
+  .wtf-panel { max-height: 44vh; }
+}

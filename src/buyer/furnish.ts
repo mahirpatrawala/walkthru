@@ -1056,7 +1056,12 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     const cam = ctx.camera as { focusOn?(c: Vec3, d: number, p: number, y?: number): void };
     if (!item || !cam.focusOn) return;
     const { w, d } = item.box;
-    const dist = Math.min(4.2, Math.max(2.3, Math.max(w, d) * 1.25 + 0.9));
+    // far enough that the piece fits the screen's width: a phone held upright sees much less sideways than a laptop
+    const cv = ctx.viewer.camera as { fov?: number; aspect?: number };
+    const aspect = typeof cv.aspect === 'number' && cv.aspect > 0 ? cv.aspect : 1.6;
+    const hHalf = Math.tan(((typeof cv.fov === 'number' ? cv.fov : 50) * DEG) / 2) * aspect;
+    const fit = (Math.max(w, d) / 2 + 0.3) / Math.max(0.2, hHalf);
+    const dist = Math.min(5, Math.max(2.3, Math.max(w, d) * 1.25 + 0.9, fit));
     const shift = Math.min(0.8, Math.max(0.3, dist * 0.18));
     const { a } = boxAxes(item.box);
     cam.focusOn({ x: item.box.cx + a.x * shift, y: Math.min(1.0, item.heightM * 0.45), z: item.box.cz + a.z * shift }, dist, 52, item.box.yawDeg + 180);
