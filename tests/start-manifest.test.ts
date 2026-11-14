@@ -90,12 +90,13 @@ describe('the manifest', () => {
     }
   });
 
-  it('lists every scene folder in the repo except developer fixtures (test-* other than test-sample-*)', () => {
+  it('lists every scene folder in the repo except developer fixtures (test-* other than test-sample-*) and link-only homes', () => {
     const ids = scanScenes(scenesDir, () => {}).scenes.map((s) => s.id);
     for (const d of fs.readdirSync(scenesDir, { withFileTypes: true })) {
       if (!d.isDirectory() || !fs.existsSync(path.join(scenesDir, d.name, 'property.json'))) continue;
       const fixture = /^test-/.test(d.name) && !/^test-sample-/.test(d.name);
-      if (fixture) expect(ids).not.toContain(d.name); else expect(ids).toContain(d.name);
+      const unlisted = JSON.parse(fs.readFileSync(path.join(scenesDir, d.name, 'property.json'), 'utf8')).unlisted === true;
+      if (fixture || unlisted) expect(ids).not.toContain(d.name); else expect(ids).toContain(d.name);
     }
   });
 });
