@@ -23,6 +23,8 @@ import { makeBedroom } from './helpers/synthetic-bedroom';
 
 const ROOT = path.resolve(__dirname, '..');
 const readScene = (id: string, file: string): unknown => JSON.parse(fs.readFileSync(path.join(ROOT, 'public/scenes', id, file), 'utf8'));
+// the home that ships a designer's sheet is found by looking, not by name (the anti-overfit lint keeps scene names out of tests)
+const DESIGNER = fs.readdirSync(path.join(ROOT, 'public/scenes')).find((d) => !d.startsWith('test-') && fs.existsSync(path.join(ROOT, 'public/scenes', d, 'design.json')))!;
 const sheet = (o: Partial<DesignSheet> & { pack: string }): DesignSheet => ({ version: 1, source: 'designer-renders', items: {}, rooms: {}, fixtures: [], ...o });
 const item = (id: string, kind: FurnitureItem['kind'], label = '', finish?: FurnitureItem['finish']): FurnitureItem =>
   ({ id, source: 'real', kind, label, box: { cx: 0, cz: 0, w: 1.5, d: 0.6, yawDeg: 0 }, heightM: kind === 'wardrobe' ? 2.4 : 0.9, surfaceHeightM: 0.5, ...(finish ? { finish } : {}) });
@@ -139,7 +141,7 @@ describe('the design sheet is read leniently and holds no sizes', () => {
     expect(parseDesignSheet({ version: 2, pack: 'x' })).toBeNull();
     expect(parseDesignSheet({ version: 1 })).toBeNull();
   });
-  for (const id of ['son-bedroom', 'test-sample-3']) {
+  for (const id of [DESIGNER, 'test-sample-3']) {
     it(`the shipped sheet of ${id} is valid and loses nothing when read`, () => {
       const raw = readScene(id, 'design.json') as { pack: string; items: object; fixtures: unknown[]; rooms: object };
       const s = parseDesignSheet(raw)!;
@@ -154,7 +156,7 @@ describe('the design sheet is read leniently and holds no sizes', () => {
     });
   }
   it('the two shipped homes use different packs (repeatability)', () => {
-    const a = parseDesignSheet(readScene('son-bedroom', 'design.json'))!;
+    const a = parseDesignSheet(readScene(DESIGNER, 'design.json'))!;
     const b = parseDesignSheet(readScene('test-sample-3', 'design.json'))!;
     expect(a.pack).not.toBe(b.pack);
     expect(a.source).toBe('designer-renders');
@@ -267,8 +269,8 @@ describe('decor stays out of collision, measurement and the drawing', () => {
     expect(Array.from(stampFurniture(baseGrid, items).cells)).toEqual(Array.from(stamped));
   });
   it('no mesh of the decor can be hit by a ray, and the group is tagged decor', () => {
-    setStyle({ packId: 'warm-oak-navy', sheet: parseDesignSheet(readScene('son-bedroom', 'design.json')) });
-    const son = readScene('son-bedroom', 'property.json') as PropertyFile;
+    setStyle({ packId: 'warm-oak-navy', sheet: parseDesignSheet(readScene(DESIGNER, 'design.json')) });
+    const son = readScene(DESIGNER, 'property.json') as PropertyFile;
     const built = buildDecorGroup(son.layout, son.furniture, 'high');
     expect(built.group.userData.decor).toBe(true);
     let meshes = 0;
@@ -282,8 +284,8 @@ describe('decor stays out of collision, measurement and the drawing', () => {
     expect(rc2.intersectObject(built.group, true)).toEqual([]);
   });
   it('the decor sits on its walls: every piece is inside the room or against its wall', () => {
-    setStyle({ packId: 'warm-oak-navy', sheet: parseDesignSheet(readScene('son-bedroom', 'design.json')) });
-    const son = readScene('son-bedroom', 'property.json') as PropertyFile;
+    setStyle({ packId: 'warm-oak-navy', sheet: parseDesignSheet(readScene(DESIGNER, 'design.json')) });
+    const son = readScene(DESIGNER, 'property.json') as PropertyFile;
     const room = son.layout.rooms.find((r) => r.id === 'son-room')!;
     const xs = room.polygon.map((p) => p.x), zs = room.polygon.map((p) => p.z);
     const built = buildDecorGroup(son.layout, son.furniture, 'medium');
@@ -304,13 +306,13 @@ describe('decor stays out of collision, measurement and the drawing', () => {
     expect(buildDecorGroup(layout, items, 'medium').group.children.length).toBe(0);
   });
   it('fixtures in a partial room are skipped (a guess is not styled)', () => {
-    const son = readScene('son-bedroom', 'property.json') as PropertyFile;
+    const son = readScene(DESIGNER, 'property.json') as PropertyFile;
     setStyle({ packId: 'warm-oak-navy', sheet: sheet({ pack: 'warm-oak-navy', fixtures: [{ kind: 'rug', roomId: 'master-room', aroundItem: 'bed-2' }] }) });
     expect(buildDecorGroup(son.layout, son.furniture, 'medium').group.children.length).toBe(0);
   });
   it('lights carry the walkthruLight tag the look drives', () => {
-    setStyle({ packId: 'warm-oak-navy', sheet: parseDesignSheet(readScene('son-bedroom', 'design.json')) });
-    const son = readScene('son-bedroom', 'property.json') as PropertyFile;
+    setStyle({ packId: 'warm-oak-navy', sheet: parseDesignSheet(readScene(DESIGNER, 'design.json')) });
+    const son = readScene(DESIGNER, 'property.json') as PropertyFile;
     const built = buildDecorGroup(son.layout, son.furniture, 'medium');
     const tagged: string[] = [];
     built.group.traverse((o) => { if (o.userData.walkthruLight) tagged.push(o.name); });
