@@ -137,6 +137,7 @@ export function buildDecorGroup(layout: Layout, items: FurnitureItem[], tier: Ti
         const u0 = Math.max(0, fx.u0), u1 = Math.min(f.length, fx.u1);
         const g = buildCurtain(env, { ...CURTAIN_DEFAULTS, widthM: u1 - u0, heightM: H - 0.04, trackYM: H - 0.05, sheer: fx.sheer ?? true, drape: fx.drape ?? 'sides', ...(fx.trackYM ? { trackYM: fx.trackYM } : {}) }, roles);
         placeOnWall(g, f, u0, 0.012);
+        nearFade(g);
         add('curtain', g);
         break;
       }
@@ -304,6 +305,25 @@ export interface DesignMount {
   /** rebuild for a new tier, or after the style changed */
   rebuild(tier?: Tier): void;
   dispose(): void;
+}
+
+/** Cloth hanging at a wall must not fill the screen when the camera backs into it: fragments closer than half a metre are dropped. */
+function nearFade(g: THREE.Object3D): void {
+  const seen = new Set<THREE.Material>();
+  g.traverse((o) => {
+    const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+    for (const mat of Array.isArray(m) ? m : m ? [m] : []) {
+      if (seen.has(mat)) continue;
+      seen.add(mat);
+      const prev = mat.onBeforeCompile;
+      mat.onBeforeCompile = (shader, renderer) => {
+        prev?.call(mat, shader, renderer);
+        shader.fragmentShader = shader.fragmentShader.replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\n  if (length(vViewPosition) < 0.5) discard;');
+      };
+      mat.customProgramCacheKey = () => 'wt-near-fade';
+      mat.needsUpdate = true;
+    }
+  });
 }
 
 export function mountDesign(o: DesignMountOptions): DesignMount {
