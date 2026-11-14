@@ -336,7 +336,12 @@
         "centreM": 16.294998842394637,
         "widthM": 0.7619997799501937,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
       },
       {
         "id": "door-2",
@@ -346,7 +351,12 @@
         "centreM": 14.494998325130926,
         "widthM": 0.7619997799501937,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "out",
+          "kind": "hinged"
+        }
       },
       {
         "id": "door-3",
@@ -356,7 +366,12 @@
         "centreM": 4.419604546143388,
         "widthM": 0.7620001814972465,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "in",
+          "kind": "hinged"
+        }
       },
       {
         "id": "door-4",
@@ -366,7 +381,12 @@
         "centreM": 1.4691968197004452,
         "widthM": 0.9143941142814953,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
       },
       {
         "id": "door-5",
@@ -376,7 +396,12 @@
         "centreM": 2.0000006639701366,
         "widthM": 0.9144206163869708,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "out",
+          "kind": "hinged"
+        }
       },
       {
         "id": "door-6",
@@ -386,7 +411,12 @@
         "centreM": 10.099999779280418,
         "widthM": 0.9144206163869708,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "out",
+          "kind": "hinged"
+        }
       },
       {
         "id": "door-7",
@@ -396,7 +426,12 @@
         "centreM": 10.494999406472969,
         "widthM": 0.9144206163869708,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "out",
+          "kind": "hinged"
+        }
       },
       {
         "id": "door-8",
@@ -406,7 +441,12 @@
         "centreM": 14.549999429574882,
         "widthM": 0.9144210179340235,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
       },
       {
         "id": "door-9",
@@ -416,7 +456,12 @@
         "centreM": 6.149999491884385,
         "widthM": 0.9144214194810761,
         "sillM": 0,
-        "headM": 2.1
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
       },
       {
         "id": "opening-1",
@@ -658,6 +703,6 @@
     "z": -2.1843948852484676,
     "yawDeg": 0
   },
-  "updatedAt": "2026-11-13T16:58:39.321Z",
+  "updatedAt": "2026-11-14T14:02:00.008Z",
   "subtitle": "Synthetic sample drawing, made-up flat"
 }
