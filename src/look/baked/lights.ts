@@ -1,4 +1,4 @@
-// SPEC 16.13: the light set-up the bake and the runtime agree on. Pure (no three, no DOM): where the sun is for each baked preset,
+// SPEC 16.14: the light set-up the bake and the runtime agree on. Pure (no three, no DOM): where the sun is for each baked preset,
 // which openings let the sky in (portals), where the recessed downlights go, and which points the probe grid samples.
 import { computeEdgeFrames, computeTunnels } from '../../core/layout-geom';
 import { distanceToSegment, pointInPolygon } from '../../core/geometry';
@@ -59,7 +59,7 @@ export const DOWNLIGHT_SPACING_M = 1.35;
 export const DOWNLIGHT_MAX_PER_ROOM = 12;
 
 /**
- * Recessed downlights on a grid inset from the walls of every furnished room (SPEC 16.13). A typical fitting, like the fan and the tube:
+ * Recessed downlights on a grid inset from the walls of every furnished room (SPEC 16.14). A typical fitting, like the fan and the tube:
  * "not from your drawing". Rooms of 3 m2 or less get one, balconies and partial rooms none. Deterministic.
  */
 export function planDownlights(layout: Layout): Fixture[] {

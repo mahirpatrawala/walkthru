@@ -1,4 +1,4 @@
-// The stable key of a mesh (SPEC 16.13): the names from the scene root down, same-named siblings numbered. The page that exports the scene
+// The stable key of a mesh (SPEC 16.14): the names from the scene root down, same-named siblings numbered. The page that exports the scene
 // and the runtime that applies the bake both call this, so a baked picture finds its mesh by name, never by order of creation.
 import type { Object3D } from 'three';
 import { meshKeyOf } from './checksum';

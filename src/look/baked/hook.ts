@@ -1,4 +1,4 @@
-// SPEC 16.13: what the look controller (look.ts) needs from a mounted bake, and nothing else. Types only, so look.ts never imports the loader.
+// SPEC 16.14: what the look controller (look.ts) needs from a mounted bake, and nothing else. Types only, so look.ts never imports the loader.
 import type { Grid } from '../../types';
 import type { AoField } from '../floor-ao';
 import type { Grade } from '../grade';

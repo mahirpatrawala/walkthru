@@ -1,4 +1,4 @@
-// IEEE half floats, for the probe file (SPEC 16.13): the pipeline writes them, the runtime reads them. Pure.
+// IEEE half floats, for the probe file (SPEC 16.14): the pipeline writes them, the runtime reads them. Pure.
 const f32 = new Float32Array(1);
 const u32 = new Uint32Array(f32.buffer);
 

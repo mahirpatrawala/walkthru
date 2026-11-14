@@ -1,4 +1,4 @@
-// SPEC 16.13: the inputs hash and the skip decision of `npm run bake`. Pure apart from node:crypto, so a test covers it without Blender.
+// SPEC 16.14: the inputs hash and the skip decision of `npm run bake`. Pure apart from node:crypto, so a test covers it without Blender.
 import crypto from 'node:crypto';
 import type { BakedManifest } from '../../src/look/baked/types';
 

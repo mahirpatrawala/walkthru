@@ -1,4 +1,4 @@
-// SPEC 16.13: giving baked UVs to meshes, by name. Pure three (no renderer, no DOM): the same code runs in the browser and in the tests.
+// SPEC 16.14: giving baked UVs to meshes, by name. Pure three (no renderer, no DOM): the same code runs in the browser and in the tests.
 import * as THREE from 'three';
 import { positionChecksum } from './checksum';
 import { meshPathKey } from './keys';

@@ -1,4 +1,4 @@
-// SPEC 16.13: the runtime of the baked look. Loads public/scenes/<id>/baked/manifest.json after first paint and swaps the baked lighting in:
+// SPEC 16.14: the runtime of the baked look. Loads public/scenes/<id>/baked/manifest.json after first paint and swaps the baked lighting in:
 //   * lightmap of the room (shell + kit): the baked components are mixed per time of day into one picture (composite.ts)
 //   * light probes (SH) for everything movable: furniture, door leaves, decor, the walker, pieces the buyer adds
 //   * per-object AO (own atlas) for movable pieces, a soft contact shadow of furniture on the floor (floor-ao.ts), downlight discs

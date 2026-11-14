@@ -1,4 +1,4 @@
-// SPEC 16.13: the one command that bakes the lighting of a home.
+// SPEC 16.14: the one command that bakes the lighting of a home.
 //   npm run bake -- <sceneId> [--quality draft|final] [--presets afternoon,night] [--force] [--gpu] [--url http://localhost:5173] [--keep]
 // Steps: (1) dump the scene the app builds, in headless Chrome; (2) hash it, stop if nothing changed; (3) check geometry parity; (4) make lightmap
 // UVs and pack the atlases; (5) bake in Blender (sky, suns, lamps, probes, per-object AO); (6) compress and write public/scenes/<id>/baked/.

@@ -1,4 +1,4 @@
-// SPEC 16.13 step 1: the SAME runtime three.js scene, as the app built it, dumped for the offline bake. Browser only, loaded on demand
+// SPEC 16.14 step 1: the SAME runtime three.js scene, as the app built it, dumped for the offline bake. Browser only, loaded on demand
 // (`window.__walkthru.bake.exportScene()`), never part of a buyer's first load. The driver (scripts/bake-scene.ts) calls it in headless Chrome.
 //
 // What is dumped: every lit mesh of the shell, the kit and the furniture root, in world coordinates, with the stable key, the material's

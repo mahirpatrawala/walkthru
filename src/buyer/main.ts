@@ -464,7 +464,7 @@ async function boot(): Promise<void> {
   // optional "Lived-in" decor (SPEC 16.6.7): a switch in the look sheet, a label in the rooms sheet; on by default only for made-up sample homes
   livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
 
-  // SPEC 16.13: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.
+  // SPEC 16.14: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.
   let baked: BakedHandle | null = null;
   if (look && params.get('bake') !== 'off' && !property.splat) {
     baked = mountBaked({ look, scene: viewer.scene, renderer: viewer.renderer, sceneId, layout, extraDynamic: () => [character.object] });
@@ -701,7 +701,7 @@ async function boot(): Promise<void> {
     },
     decor,
     seats,
-    /** SPEC 16.13: the offline bake dumps the scene as built (loaded on demand, never part of a first load) */
+    /** SPEC 16.14: the offline bake dumps the scene as built (loaded on demand, never part of a first load) */
     bake: {
       get handle() { return baked; },
       exportScene: async () => (await import('../look/baked/export')).exportScene({ scene: viewer.scene, sceneId, wallHeightM: layout.wallHeightM }),

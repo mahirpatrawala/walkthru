@@ -1,4 +1,4 @@
-// Drives the real app in headless Chrome to dump the scene it builds (SPEC 16.13 step 1). One source of geometry: the runtime's own.
+// Drives the real app in headless Chrome to dump the scene it builds (SPEC 16.14 step 1). One source of geometry: the runtime's own.
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import fs from 'node:fs';

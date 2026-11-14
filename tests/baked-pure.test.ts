@@ -1,4 +1,4 @@
-// SPEC 16.13 baked lighting: everything that can be tested without Blender and without a GPU. Manifest parsing, the hash no-op, lightmap
+// SPEC 16.14 baked lighting: everything that can be tested without Blender and without a GPU. Manifest parsing, the hash no-op, lightmap
 // assignment by name, fallbacks (missing, corrupt, other format), probe interpolation, parity, and the honesty invariants.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -53,7 +53,7 @@ function manifestObject(over: Record<string, unknown> = {}): Record<string, unkn
   };
 }
 
-describe('manifest parsing (16.13)', () => {
+describe('manifest parsing (16.14)', () => {
   it('reads a complete manifest', () => {
     const m = parseManifest(manifestObject());
     expect(m).not.toBeNull();
@@ -88,7 +88,7 @@ describe('manifest parsing (16.13)', () => {
 
 // ---------------------------------------------------------------- the hash no-op
 
-describe('inputs hash and the skip decision (16.13)', () => {
+describe('inputs hash and the skip decision (16.14)', () => {
   const inputs = { meshes: [{ key: 'a', bbox: [0, 0, 0, 1, 1, 1] }], bin: new Uint8Array([1, 2, 3, 4]), settings: { quality: 'draft', v: 1 }, sources: ['x:1'] };
   it('is stable for the same inputs and changes with any one of them', () => {
     const h = inputsHashOf(inputs);
@@ -121,7 +121,7 @@ describe('half floats', () => {
   });
 });
 
-describe('light probes (16.13)', () => {
+describe('light probes (16.14)', () => {
   const grid = { origin: [0, 0, 0] as [number, number, number], spacing: [1, 1, 1] as [number, number, number], dims: [3, 2, 3] as [number, number, number], coeffs: 9 as const, components: ['sky' as const, 'lamps' as const], file: 'p.bin', bytes: 0, validCount: 18 };
   const n = 3 * 2 * 3;
   /** radiance SH whose constant term is `c0` (rgb) at every probe */
@@ -170,7 +170,7 @@ describe('light probes (16.13)', () => {
   });
 });
 
-describe('weights (16.13)', () => {
+describe('weights (16.14)', () => {
   it('suns cross-fade by hour and always sum to 1', () => {
     for (const h of [6, 8.5, 10, 12, 15, 16, 17.8, 19, 21]) { const b = sunBlend(h); expect(b[0] + b[1] + b[2]).toBeCloseTo(1, 9); }
     expect(sunBlend(PRESET_HOURS.afternoon)).toEqual([0, 1, 0]);
@@ -193,7 +193,7 @@ describe('weights (16.13)', () => {
 
 // ---------------------------------------------------------------- unwrap and packing
 
-describe('atlas packing (16.13)', () => {
+describe('atlas packing (16.14)', () => {
   it('places every rectangle inside the square without overlap', () => {
     const rects = Array.from({ length: 40 }, (_, i) => ({ id: i, w: 8 + ((i * 37) % 60), h: 8 + ((i * 53) % 50) }));
     const placed = packRects(rects, 512)!;
@@ -215,7 +215,7 @@ function boxMesh(w: number, h: number, d: number, key = 'box'): UnwrapMesh {
   return { key, positions: g.getAttribute('position').array as Float32Array, normals: g.getAttribute('normal').array as Float32Array, texelsPerM: 20, maxLeanDeg: 25 };
 }
 
-describe('lightmap unwrap (16.13)', () => {
+describe('lightmap unwrap (16.14)', () => {
   it('a box is six charts, every uv is inside the atlas, and charts do not overlap', () => {
     const m = boxMesh(1, 2, 3);
     expect(buildCharts(m).length).toBe(6);
@@ -255,7 +255,7 @@ describe('lightmap unwrap (16.13)', () => {
 
 // ---------------------------------------------------------------- the lights set-up and the scene data
 
-describe('lights, portals, probe grid (16.13)', () => {
+describe('lights, portals, probe grid (16.14)', () => {
   const p = sample('test-sample-3');
   it('three baked suns, unit vectors that point up, from the same sun.ts the look uses', () => {
     const keys = sunKeys(p.layout, null);
@@ -301,7 +301,7 @@ function dumpOfShell(layout: ReturnType<typeof sample>['layout']): { key: string
   return out;
 }
 
-describe('geometry parity (16.13)', () => {
+describe('geometry parity (16.14)', () => {
   const p = sample('test-sample-3');
   it('the shell the app builds matches the layout to the millimetre', () => {
     const rep = checkParity(dumpOfShell(p.layout), p.layout, p.furniture);
@@ -359,7 +359,7 @@ function manifestFor(entries: Record<string, MeshEntry>): BakedManifest {
   return m;
 }
 
-describe('lightmap assignment by name (16.13)', () => {
+describe('lightmap assignment by name (16.14)', () => {
   it('finds meshes by their path key, gives them uv1, and treats unknown furniture as probe-lit', () => {
     const { scene, floor, bed, thing, extra } = miniScene();
     const keys = { floor: meshPathKey([scene, scene.children[0], floor]), bed: meshPathKey([scene, scene.children[2], scene.children[2].children[0], bed]) };
@@ -456,7 +456,7 @@ const fakeLook = (): Look & { bakedSet: unknown[] } => {
 };
 const fakeCompositor = (): CompositorLike => ({ target: { texture: new THREE.Texture() }, compose() {}, dispose() {} });
 
-describe('the runtime falls back to the normal lighting (16.13)', () => {
+describe('the runtime falls back to the normal lighting (16.14)', () => {
   it('fetchManifest: missing, HTML, broken JSON, another scene, another format all give null', async () => {
     expect(await fetchManifest('test-x', '/b', fakeFetch({}))).toBeNull();
     expect(await fetchManifest('test-x', '/b', fakeFetch({ 'manifest.json': '<!doctype html><html></html>' }))).toBeNull();

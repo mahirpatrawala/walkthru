@@ -1,4 +1,4 @@
-// SPEC 16.13 "Baked lighting". Shared types of the bake pipeline (tools/bake, scripts/bake-scene.ts) and the runtime loader.
+// SPEC 16.14 "Baked lighting". Shared types of the bake pipeline (tools/bake, scripts/bake-scene.ts) and the runtime loader.
 // Pure: no three, no DOM, no node. The pipeline writes a manifest with these shapes; the runtime parses it defensively.
 
 /** Bump when the manifest layout or the meaning of a baked channel changes. A runtime that sees another number ignores the bake. */
@@ -22,7 +22,7 @@ export type AtlasKind = 'static' | 'dyn';
 export interface ComponentFile {
   file: string;
   bytes: number;
-  /** decoded value of byte 255, in the unit of the component: lightmap irradiance in three's units for a unit light (see 16.13) */
+  /** decoded value of byte 255, in the unit of the component: lightmap irradiance in three's units for a unit light (see 16.14) */
   gain: number;
 }
 
@@ -48,7 +48,7 @@ export interface SunKey {
 export interface MeshEntry {
   /** vertex count of the runtime geometry the UVs were made for; a mismatch means the mesh changed and the entry is ignored */
   verts: number;
-  /** cheap checksum of the local positions (16.13), same function on both sides */
+  /** cheap checksum of the local positions (16.14), same function on both sides */
   checksum: number;
   atlas: AtlasKind;
   /** element offset into uv.bin (a Uint16 pair per vertex of the baked geometry) */
@@ -111,7 +111,7 @@ export interface BakedManifest {
   totals: { bytes: number; meshes: number; staticMeshes: number; dynMeshes: number };
 }
 
-// ---------------------------------------------------------------- the dump the page exports (16.13, step 1)
+// ---------------------------------------------------------------- the dump the page exports (16.14, step 1)
 
 export interface DumpMesh {
   key: string;

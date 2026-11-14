@@ -1,4 +1,4 @@
-// SPEC 16.13: geometry parity. The bake must be made from exactly the geometry the scene data describes: the shell's floors, ceilings and
+// SPEC 16.14: geometry parity. The bake must be made from exactly the geometry the scene data describes: the shell's floors, ceilings and
 // walls must match the layout to a millimetre, a piece of furniture must stay inside its drawn box, and (checked in Blender, see
 // tools/bake/bake_blender.py) every mesh must survive the round trip into the bake scene unchanged. Pure.
 import { boxCorners } from '../../core/geometry';

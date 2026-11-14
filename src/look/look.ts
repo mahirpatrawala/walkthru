@@ -81,7 +81,7 @@ export interface Look {
   registerInteriorLight(obj: THREE.Object3D, kind: InteriorLightKind): void;
   /** rescan the scene parts for tagged fixtures (attach(), refresh() and setLayout() do it too) */
   refreshInteriorLights(): void;
-  /** SPEC 16.13: the baked lighting of this home, once loaded (mountBaked calls this). Null hands the lighting back. */
+  /** SPEC 16.14: the baked lighting of this home, once loaded (mountBaked calls this). Null hands the lighting back. */
   setBaked(h: BakedHook | null): void;
   /** the bake is applied right now */
   readonly bakedActive: boolean;
@@ -130,7 +130,7 @@ const TRUE_COLOUR_HEMI = Math.PI;
 const EXPOSURE_TRUE = 1.0;
 /** the hemisphere intensities in grade.ts are for this tier value (medium and high); low is scaled from it */
 const HEMI_REFERENCE = 1.25;
-/** the screen-space AO of the high tier on top of a bake: the bake has the corners, so this only adds the contact detail of furniture (SPEC 16.13) */
+/** the screen-space AO of the high tier on top of a bake: the bake has the corners, so this only adds the contact detail of furniture (SPEC 16.14) */
 const BAKED_SSAO_STRENGTH = 0.55;
 
 export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: LookFile | null, opts: { tier?: Tier; storage?: Storage | null; hasSplat?: boolean; /** false keeps the flat background colour (the editor's orbit preview) */ backdrop?: boolean } = {}): Promise<Look> {
@@ -325,7 +325,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     needsShadowRefresh();
   }
 
-  /** SPEC 16.13: while a bake lights the home, the pooled lamps (the bake has their light), the wall-edge darkening and the grid AO of walls step back;
+  /** SPEC 16.14: while a bake lights the home, the pooled lamps (the bake has their light), the wall-edge darkening and the grid AO of walls step back;
    *  the floor's soft shadow then comes from the furniture alone. */
   function syncBaked(): void {
     const on = !!baked?.active;

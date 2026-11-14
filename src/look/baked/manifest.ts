@@ -1,4 +1,4 @@
-// Parses a baked-lighting manifest defensively (SPEC 16.13). Anything that is not exactly usable gives null, never a throw:
+// Parses a baked-lighting manifest defensively (SPEC 16.14). Anything that is not exactly usable gives null, never a throw:
 // a scene with a missing, corrupt or older-format bake renders exactly as it did before the bake existed.
 import { BAKE_FORMAT_VERSION, COMPONENTS, isFiniteNumber } from './types';
 import type { AtlasFiles, AtlasTier, DynAtlas, BakedManifest, ComponentFile, ComponentId, Fixture, MeshEntry, ProbeGrid, SunKey } from './types';

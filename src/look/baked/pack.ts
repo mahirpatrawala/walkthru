@@ -1,4 +1,4 @@
-// A small rectangle packer (MaxRects, best short side fit) for the lightmap atlas (SPEC 16.13). Pure and deterministic.
+// A small rectangle packer (MaxRects, best short side fit) for the lightmap atlas (SPEC 16.14). Pure and deterministic.
 
 export interface PackRect { id: number; w: number; h: number }
 export interface Placed { id: number; x: number; y: number; w: number; h: number }

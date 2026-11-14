@@ -1,4 +1,4 @@
-// SPEC 16.13: the lightmap compositor. The baked components (sky, three suns, lamps, cove) are mixed into ONE half-float picture by one
+// SPEC 16.14: the lightmap compositor. The baked components (sky, three suns, lamps, cove) are mixed into ONE half-float picture by one
 // full-screen draw whenever the light changes (the hour, a preset, True colours). Every lightmapped surface then needs a single texture
 // sample, whatever the time of day. Costs one draw at atlas size; nothing per frame.
 import * as THREE from 'three';

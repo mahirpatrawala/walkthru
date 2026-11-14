@@ -1,4 +1,4 @@
-// SPEC 16.13 step 2: lightmap UVs for any mesh, made in code from the dumped geometry (no per-scene work, no Blender unwrap).
+// SPEC 16.14 step 2: lightmap UVs for any mesh, made in code from the dumped geometry (no per-scene work, no Blender unwrap).
 // Triangles are grouped into charts (connected, nearly the same normal), each chart is projected flat on its average normal, rotated
 // to the tightest rectangle, scaled to a texel density and packed into one square atlas. Pure and deterministic.
 import { packSmallest } from './pack';
@@ -12,7 +12,7 @@ export interface UnwrapMesh {
   positions: Float32Array;
   normals: Float32Array;
   index?: Uint32Array;
-  /** texels per metre for this mesh (the surface tier, 16.13) */
+  /** texels per metre for this mesh (the surface tier, 16.14) */
   texelsPerM: number;
   /** how far a triangle's normal may lean from its chart's average, degrees */
   maxLeanDeg: number;

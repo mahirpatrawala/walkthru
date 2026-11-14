@@ -1,4 +1,4 @@
-// SPEC 16.13: what each baked component is multiplied by for the light in force. Pure: the compositor (lightmap) and the probe volume
+// SPEC 16.14: what each baked component is multiplied by for the light in force. Pure: the compositor (lightmap) and the probe volume
 // use the same numbers, so a movable piece and the wall behind it are lit by the same sun, sky and lamps.
 import type { Grade, Rgb } from '../grade';
 import { PRESET_HOURS } from '../grade';
@@ -39,7 +39,7 @@ export interface WeightInput {
   sunScale: number;
   /** sun hours that were baked, in order sun0, sun1, sun2 (absent = not baked) */
   sunHours: (number | null)[];
-  /** extra ambient from the sky so rooms read airy (16.13 "fill") */
+  /** extra ambient from the sky so rooms read airy (16.14 "fill") */
   skyBoost: number;
 }
 

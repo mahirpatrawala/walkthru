@@ -29,7 +29,7 @@ export interface PostChain {
   /** false = linear (True colours: nothing is rolled off or graded) */
   setToneMapping(on: boolean, mapper?: ToneMapperName): void;
   setAO(on: boolean): void;
-  /** 1 = the usual strength; a bake that already has the corner shade asks for less (SPEC 16.13) */
+  /** 1 = the usual strength; a bake that already has the corner shade asks for less (SPEC 16.14) */
   setAoStrength(k: number): void;
   dispose(): void;
 }

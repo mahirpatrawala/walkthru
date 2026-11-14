@@ -1,4 +1,4 @@
-// SPEC 16.13: the light-probe grid. Pure maths for the runtime and the pipeline: fill probes that sit in walls, mix the baked components
+// SPEC 16.14: the light-probe grid. Pure maths for the runtime and the pipeline: fill probes that sit in walls, mix the baked components
 // into one SH per probe, interpolate trilinearly, evaluate the irradiance of a normal. L2 spherical harmonics, y-up, per colour channel.
 import type { ProbeGrid } from './types';
 

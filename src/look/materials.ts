@@ -32,7 +32,7 @@ type Uniform<T> = { value: T };
 /** Uniforms shared by every look material, so one assignment updates all of them. */
 export interface SharedUniforms {
   plain: Uniform<number>;
-  /** 1 while a bake lights the room (SPEC 16.13): the wall-edge darkening steps back, the bake has the real corners */
+  /** 1 while a bake lights the room (SPEC 16.14): the wall-edge darkening steps back, the bake has the real corners */
   baked: Uniform<number>;
   floorAO: Uniform<THREE.Texture | null>; floorAORect: Uniform<THREE.Vector4>;
   ceilAO: Uniform<THREE.Texture | null>; ceilAORect: Uniform<THREE.Vector4>;
@@ -208,7 +208,7 @@ export interface LookMaterials extends ShellMaterialSet {
   setPlain(on: boolean): void;
   setFloorAO(f: AoField | null): void;
   setCeilingAO(f: AoField | null): void;
-  /** SPEC 16.13: a bake lights the room, so the wall-edge darkening steps back */
+  /** SPEC 16.14: a bake lights the room, so the wall-edge darkening steps back */
   setBakedMode(on: boolean): void;
   setWallHeight(h: number): void;
   /** applies the tier's material settings; call after the tier or assets change */

@@ -1,4 +1,4 @@
-// SPEC 16.13: the two small shader patches of the baked look. A lit three.js material gets its diffuse light from the hemisphere, the
+// SPEC 16.14: the two small shader patches of the baked look. A lit three.js material gets its diffuse light from the hemisphere, the
 // sun and the pooled lights. Where a bake exists, that light is replaced:
 //   static  (shell, kit): diffuse light = the composited lightmap; the hemisphere, environment and sun add nothing to the diffuse
 //   dynamic (furniture, doors, decor, the walker): diffuse ambient = the room's light probes (SH) at the object; the sun stays real and shadowed

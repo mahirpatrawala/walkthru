@@ -1,11 +1,11 @@
-# Walkthru offline lighting bake (SPEC 16.13). Runs inside Blender, headless:
+# Walkthru offline lighting bake (SPEC 16.14). Runs inside Blender, headless:
 #   Blender -b --factory-startup -P tools/bake/bake_blender.py -- <workdir>/job.json
 # Nothing here knows a scene, a room or a piece of furniture. It receives meshes (world space, with the lightmap UVs made by
 # src/look/baked/unwrap.ts), emitters, sun directions and probe positions, and writes:
 #   <out>/<tier>/<kind>-<component>.webp   lightmap pictures (kind: static = the room, dyn = per-object AO of movable pieces)
-#   <out>/probes.bin                        Float32 SH L2 per probe per component (the light-probe grid, section 16.13)
+#   <out>/probes.bin                        Float32 SH L2 per probe per component (the light-probe grid, section 16.14)
 #   <out>/results.json                      gains, timings, parity, calibration
-# Units (see SPEC 16.13): a baked pixel is the irradiance a surface of albedo 1 would receive, in three.js light units, for a UNIT light:
+# Units (see SPEC 16.14): a baked pixel is the irradiance a surface of albedo 1 would receive, in three.js light units, for a UNIT light:
 #   sky   = one unit of hemisphere light (sky radiance 1/pi)       sun = three DirectionalLight intensity 1
 #   lamps / cove = scaled so the mean floor irradiance of a lit room equals the job's target at level 1.
 import json
@@ -205,7 +205,7 @@ for i, m in enumerate(MESHES):
     objs.append(o)
 log('built', len(objs), 'meshes,', sum(len(o.tri) for o in objs), 'triangles')
 
-# parity (SPEC 16.13): the mesh Blender holds must be the mesh the page dumped, to the millimetre
+# parity (SPEC 16.14): the mesh Blender holds must be the mesh the page dumped, to the millimetre
 worst = (0.0, '')
 for o in objs:
     co = np.empty(len(o.me.vertices) * 3, dtype=np.float64)

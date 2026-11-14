@@ -1,4 +1,4 @@
-// CDP script body for tools/cdp.mjs: the "no ghost shadow" check of SPEC 16.13. Shoots a view with a piece of furniture, removes it through the
+// CDP script body for tools/cdp.mjs: the "no ghost shadow" check of SPEC 16.14. Shoots a view with a piece of furniture, removes it through the
 // store, shoots again, and prints the mean colour of the floor patch where it stood (before, after, and the same patch with the bake off).
 // env: ITEM=sofa-1  POS=x,z  YAW=deg  PATCH=x,z (world point on the floor where the piece stood)  NAME=prefix  PRESET=afternoon
 const item = process.env.ITEM || 'sofa-1';
