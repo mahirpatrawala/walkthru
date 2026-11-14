@@ -31,6 +31,9 @@ export function classify(chain: THREE.Object3D[]): { cls: Cls; group?: string } 
     if (tag.includes('static')) return { cls: 'static' };
     return { cls: 'dyn', group: (names[2] === 'lived-in' ? names[3] : names[2]) || names[1] };
   }
+  // door leaves (swing) and the design sheet's decor are movable too
+  if (root.startsWith('door:')) return { cls: 'dyn', group: root };
+  if (root === 'design') return { cls: 'dyn', group: names[2] || root };
   return { cls: null };
 }
 

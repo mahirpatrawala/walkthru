@@ -68,6 +68,8 @@ const SCENE_ID_RE = /^[a-z0-9-]{1,40}$/;
 /** the sky component is multiplied by this so that baked rooms (lit by what comes through the windows) read airy like a rendered interior */
 export const SKY_BOOST = 1.3;
 export const PROBE_FILL_SHADE = 0.55;
+/** a probe sits in open air, a wall texel sits in a corner of it: without this a sofa by the window reads brighter than the wall behind it */
+export const PROBE_GAIN = 0.7;
 /** debug only: `?bakesky=2&bakefill=0.3` while tuning a look by eye */
 function queryNumber(name: string, d: number): number {
   try { const v = Number(new URLSearchParams(location.search).get(name)); return Number.isFinite(v) && v > 0 ? v : d; } catch { return d; }
@@ -390,7 +392,7 @@ export function mountBaked(o: MountOptions): BakedHandle {
     compositor.compose(w, fill);
     // the lightmap's fill is shaded by the static AO (about 0.55 on average in a room); a probe has no such shade, so its fill is scaled to match
     const wkey = [...Object.values(w).flat(), ...fill].map((v) => v.toFixed(4)).join(',');
-    if (volume && wkey !== lastWeightsKey) { lastWeightsKey = wkey; volume.setWeights(w, [fill[0] * PROBE_FILL_SHADE, fill[1] * PROBE_FILL_SHADE, fill[2] * PROBE_FILL_SHADE]); weightsVersion++; }
+    if (volume && wkey !== lastWeightsKey) { lastWeightsKey = wkey; const gw: typeof w = { ...w }; for (const k of Object.keys(w) as (keyof typeof w)[]) gw[k] = [w[k][0] * PROBE_GAIN, w[k][1] * PROBE_GAIN, w[k][2] * PROBE_GAIN]; volume.setWeights(gw, [fill[0] * PROBE_FILL_SHADE * PROBE_GAIN, fill[1] * PROBE_FILL_SHADE * PROBE_GAIN, fill[2] * PROBE_FILL_SHADE * PROBE_GAIN]); weightsVersion++; }
     if (fixtures) {
       const lvl = Math.min(1, up.grade.interior.tube);
       (fixtures.material as THREE.MeshBasicMaterial).color.copy(FIXTURE_OFF).lerp(FIXTURE_ON, lvl);

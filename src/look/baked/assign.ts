@@ -65,6 +65,8 @@ export interface AssignResult { mesh: THREE.Mesh; key: string; kind: AssignKind 
 
 /** The roots a bake covers: the shell and the kit (the room) and the furniture root (movable). */
 export const BAKED_ROOTS = ['shell', 'kit', 'furniture'] as const;
+/** movable roots: furniture, the design sheet's decor, door leaves (named `door:<id>`) */
+export const isMovableRoot = (name: string): boolean => name === 'furniture' || name === 'design' || name.startsWith('door:');
 
 /**
  * Walks the shell, the kit and the furniture root of `scene`, matching meshes to manifest entries by their stable key. `skip` lets the
@@ -91,6 +93,6 @@ export function assignByName(scene: THREE.Object3D, mf: BakedManifest, g: BakedG
     }
     for (const c of obj.children) walk(c, here, movableRoot);
   };
-  for (const c of scene.children) if ((BAKED_ROOTS as readonly string[]).includes(c.name)) walk(c, [scene], c.name === 'furniture');
+  for (const c of scene.children) if ((BAKED_ROOTS as readonly string[]).includes(c.name) || isMovableRoot(c.name)) walk(c, [scene], isMovableRoot(c.name));
   return { assigned, rejected };
 }

@@ -50,7 +50,7 @@ export function itemBox(item: FurnitureItem): Box6 {
  * Checks the dump against the scene data: shell meshes must equal the layout's boxes to 1 mm; furniture groups of the drawing must stay
  * inside their drawn box (plan) and height, to 1 mm. Meshes with nothing to compare with (kit, decor, items the buyer added) are not judged here.
  */
-export function checkParity(meshes: Pick<DumpMesh, 'key' | 'bbox'>[], layout: Layout, items: FurnitureItem[], tol = PARITY_TOLERANCE_M): ParityReport {
+export function checkParity(meshes: Pick<DumpMesh, 'key' | 'bbox'>[], layout: Layout, items: FurnitureItem[], tol = PARITY_TOLERANCE_M, furnitureTol = tol): ParityReport {
   const failures: ParityFailure[] = [];
   let checked = 0, maxDelta = 0;
   const expected = expectedShellBoxes(layout);
@@ -76,7 +76,7 @@ export function checkParity(meshes: Pick<DumpMesh, 'key' | 'bbox'>[], layout: La
     const e = itemBox(it);
     const over = Math.max(e[0] - b[0], e[2] - b[2], b[3] - e[3], b[5] - e[5], b[4] - e[4]);
     if (over > 0) maxDelta = Math.max(maxDelta, over * 1000);
-    if (over > tol) failures.push({ key: `furniture:${it.id}`, what: 'sticks out of its drawn box', deltaMm: over * 1000 });
+    if (over > furnitureTol) failures.push({ key: `furniture:${it.id}`, what: 'sticks out of its drawn box', deltaMm: over * 1000 });
   }
   return { ok: failures.length === 0, checked, failures, maxDeltaMm: maxDelta };
 }

@@ -29,10 +29,10 @@ import type { PageDump } from './bake/page';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const BLENDER = process.env.BLENDER_BIN || '/Applications/Blender.app/Contents/MacOS/Blender';
 
-interface Args { scene: string; quality: BakeQuality; presets: LookPreset[]; force: boolean; gpu: boolean; url?: string; keep: boolean; reuseDump: boolean; dumpOnly: boolean }
+interface Args { scene: string; quality: BakeQuality; presets: LookPreset[]; force: boolean; gpu: boolean; url?: string; keep: boolean; reuseDump: boolean; dumpOnly: boolean; furnitureTolMm: number }
 
 function parseArgs(argv: string[]): Args {
-  const a: Args = { scene: '', quality: 'draft', presets: ['morning', 'afternoon', 'evening', 'night'], force: false, gpu: false, keep: false, reuseDump: false, dumpOnly: false };
+  const a: Args = { scene: '', quality: 'draft', presets: ['morning', 'afternoon', 'evening', 'night'], force: false, gpu: false, keep: false, reuseDump: false, dumpOnly: false, furnitureTolMm: 1 };
   for (let i = 0; i < argv.length; i++) {
     const v = argv[i];
     if (v === '--quality') { const q = argv[++i]; if (q !== 'draft' && q !== 'final') throw new Error('--quality is draft or final'); a.quality = q; }
@@ -46,6 +46,7 @@ function parseArgs(argv: string[]): Args {
     else if (v === '--keep') a.keep = true;
     else if (v === '--reuse-dump') a.reuseDump = true;
     else if (v === '--dump-only') a.dumpOnly = true;
+    else if (v === '--furniture-tolerance-mm') a.furnitureTolMm = Number(argv[++i]);
     else if (v === '--url') a.url = argv[++i];
     else if (!v.startsWith('--') && !a.scene) a.scene = v;
     else throw new Error(`unknown argument ${v}`);
@@ -156,7 +157,7 @@ async function main(): Promise<void> {
   // ---- 3. geometry parity against the scene data
   const designsPath = path.join(sceneDir, 'designs.json');
   const designs = fs.existsSync(designsPath) ? parseDesigns(JSON.parse(fs.readFileSync(designsPath, 'utf8'))) : null;
-  const parity = checkParity(dump.meshes, layout, applyDesigns(property.furniture, designs));
+  const parity = checkParity(dump.meshes, layout, applyDesigns(property.furniture, designs), 0.001, args.furnitureTolMm / 1000);
   console.log(`[bake] parity: ${parity.checked} meshes checked against the layout, worst ${parity.maxDeltaMm.toFixed(3)} mm`);
   if (!parity.ok) {
     for (const f of parity.failures.slice(0, 12)) console.error(`  PARITY FAIL ${f.key}: ${f.what} (${f.deltaMm.toFixed(2)} mm)`);
