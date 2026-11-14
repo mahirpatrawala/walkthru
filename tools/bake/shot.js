@@ -2,7 +2,7 @@
 // env: PRESETS=afternoon,night  POS=x,z  YAW=deg  NAME=prefix  WAIT=ms  EXTRA=js to run before each shot (optional)
 const presets = (process.env.PRESETS || 'afternoon,night').split(',');
 const [px, pz] = process.env.POS ? process.env.POS.split(',').map(Number) : [NaN, NaN];
-const yaw = process.env.YAW !== undefined ? Number(process.env.YAW) : undefined;
+const yaw = process.env.YAW ? Number(process.env.YAW) : undefined;
 const name = process.env.NAME || 'shot';
 const waitMs = Number(process.env.WAIT || 2500);
 for (let i = 0; i < 160; i++) { if (await ev('!!(window.__walkthru && window.__walkthru.look)')) break; await sleep(250); }

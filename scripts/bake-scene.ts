@@ -29,10 +29,10 @@ import type { PageDump } from './bake/page';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const BLENDER = process.env.BLENDER_BIN || '/Applications/Blender.app/Contents/MacOS/Blender';
 
-interface Args { scene: string; quality: BakeQuality; presets: LookPreset[]; force: boolean; gpu: boolean; url?: string; keep: boolean; reuseDump: boolean; dumpOnly: boolean; furnitureTolMm: number }
+interface Args { scene: string; quality: BakeQuality; presets: LookPreset[]; force: boolean; gpu: boolean; url?: string; keep: boolean; reuseDump: boolean; dumpOnly: boolean; furnitureTolMm: number; adoptHash: boolean }
 
 function parseArgs(argv: string[]): Args {
-  const a: Args = { scene: '', quality: 'draft', presets: ['morning', 'afternoon', 'evening', 'night'], force: false, gpu: false, keep: false, reuseDump: false, dumpOnly: false, furnitureTolMm: 1 };
+  const a: Args = { scene: '', quality: 'draft', presets: ['morning', 'afternoon', 'evening', 'night'], force: false, gpu: false, keep: false, reuseDump: false, dumpOnly: false, furnitureTolMm: 1, adoptHash: false };
   for (let i = 0; i < argv.length; i++) {
     const v = argv[i];
     if (v === '--quality') { const q = argv[++i]; if (q !== 'draft' && q !== 'final') throw new Error('--quality is draft or final'); a.quality = q; }
@@ -46,6 +46,7 @@ function parseArgs(argv: string[]): Args {
     else if (v === '--keep') a.keep = true;
     else if (v === '--reuse-dump') a.reuseDump = true;
     else if (v === '--dump-only') a.dumpOnly = true;
+    else if (v === '--adopt-hash') a.adoptHash = true;
     else if (v === '--furniture-tolerance-mm') a.furnitureTolMm = Number(argv[++i]);
     else if (v === '--url') a.url = argv[++i];
     else if (!v.startsWith('--') && !a.scene) a.scene = v;
@@ -150,6 +151,12 @@ async function main(): Promise<void> {
   const decision = decideBake(oldManifest, inputsHash, args.force, (f) => fs.existsSync(path.join(bakedDir, f)));
   if (decision.action === 'skip') {
     console.log(`[bake] up to date (inputs hash ${inputsHash}). Nothing to do. Use --force to bake again.`);
+    return;
+  }
+  if (args.adoptHash && oldManifest && decision.reason === 'inputs changed') {
+    // the pipeline's source changed in a way the maintainer knows does not change the output (a comment, a log line): keep the pictures, take the new hash
+    fs.writeFileSync(manifestPath, JSON.stringify({ ...oldManifest, inputsHash }));
+    console.log(`[bake] adopted the new inputs hash ${inputsHash} for the existing bake (nothing was baked)`);
     return;
   }
   console.log(`[bake] baking: ${decision.reason}`);
@@ -309,7 +316,8 @@ async function main(): Promise<void> {
   if (fs.existsSync(probeRaw) && results.probes) {
     const K = results.probes.components.length;
     const stride = K * 27;
-    const got = new Float32Array(fs.readFileSync(probeRaw).buffer.slice(0));
+    const rawBuf = fs.readFileSync(probeRaw);
+    const got = new Float32Array(rawBuf.buffer.slice(rawBuf.byteOffset, rawBuf.byteOffset + rawBuf.byteLength));
     const total = probes.valid.length;
     const grid = new Float32Array(total * stride);
     validIdx.forEach((p, i) => grid.set(got.subarray(i * stride, (i + 1) * stride), p * stride));

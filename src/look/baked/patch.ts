@@ -21,7 +21,8 @@ export function createPatchUniforms(): PatchUniforms {
 const STATIC_END = /* glsl */ `
 #if defined( RE_IndirectDiffuse ) && defined( USE_LIGHTMAP )
   irradiance = mix( irradiance, lightMapIrradiance, uWtBaked );
-  iblIrradiance *= ( 1.0 - uWtBaked );
+  // three's multi-scattering term adds env irradiance to the specular of metals: feed it the baked light, scaled by metalness (diffuse is already done above)
+  iblIrradiance = mix( iblIrradiance, lightMapIrradiance * metalnessFactor, uWtBaked );
 #endif
 reflectedLight.directDiffuse *= ( 1.0 - uWtBaked );
 #include <lights_fragment_end>
@@ -48,8 +49,9 @@ const DYNAMIC_END = /* glsl */ `
 #if defined( RE_IndirectDiffuse )
 {
   vec3 wtN = inverseTransformDirection( geometryNormal, viewMatrix );
-  irradiance = mix( irradiance, wtShIrradiance( wtN ), uWtProbe );
-  iblIrradiance *= ( 1.0 - uWtProbe );
+  vec3 wtE = wtShIrradiance( wtN );
+  irradiance = mix( irradiance, wtE, uWtProbe );
+  iblIrradiance = mix( iblIrradiance, wtE * metalnessFactor, uWtProbe );
 }
 #endif
 #include <lights_fragment_end>
