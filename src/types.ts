@@ -192,6 +192,8 @@ export interface LevelResult {
 }
 
 // ---------- property.json ----------
+/** The kind of place a scene is: a flat (home) or a shared space of a building. */
+export type SpaceKind = 'home' | 'lobby' | 'corridor' | 'gym' | 'hall' | 'pool' | 'garden' | 'other';
 export interface PropertyFile {
   version: 1;
   id: string;
@@ -203,6 +205,8 @@ export interface PropertyFile {
   spawn: { x: number; z: number; yawDeg: number };
   /** true keeps the home out of the gallery: it opens only by its link */
   unlisted?: boolean;
+  /** what kind of place this scene is. Absent means a home. Buildings set it per space; the catalogue shows only what belongs there. */
+  spaceKind?: SpaceKind;
   updatedAt: string; // ISO 8601
 }
 
