@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { validateBuilding } from '../src/building/validate';
-import { validateLayout } from '../src/core/layout-validate';
+import { validateLayout, validateProperty } from '../src/core/layout-validate';
 import { toLevel, roomsOnLevel } from '../src/building/geom';
 import { overlapAreaM2 } from '../src/core/layout-validate';
 import { buildSample, lookupOf } from '../scripts/building/make-sample-building';
@@ -37,6 +37,15 @@ describe('building validation', () => {
       expect(raw.spaceKind, `${id}/${s.id}`).toBe(s.kind);
       expect(readScene(s.sceneId)!.spaceKind, `${id}/${s.id} after validateProperty`).toBe(s.kind);
     }
+  });
+
+  it('validateProperty keeps a good spaceKind and refuses a bad one', () => {
+    const raw = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '..', 'public/scenes/test-tower-lobby/property.json'), 'utf8'));
+    expect(validateProperty(raw).spaceKind).toBe('lobby');
+    delete raw.spaceKind;
+    expect(validateProperty(raw).spaceKind).toBeUndefined();
+    raw.spaceKind = 'spa';
+    expect(() => validateProperty(raw)).toThrow(/spaceKind/);
   });
 
   it('the empty twin has no furniture anywhere; the furnished tower has some in the lobby and the flats', () => {
