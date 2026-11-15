@@ -53,16 +53,6 @@
           "swing": "in",
           "kind": "hinged"
         }
-      },
-      {
-        "id": "window-s1",
-        "roomId": "garden",
-        "edge": 2,
-        "type": "window",
-        "centreM": 7,
-        "widthM": 3,
-        "sillM": 0,
-        "headM": 2.8
       }
     ],
     "finishes": {

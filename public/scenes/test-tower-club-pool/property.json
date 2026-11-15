@@ -53,26 +53,6 @@
           "swing": "in",
           "kind": "hinged"
         }
-      },
-      {
-        "id": "window-s1",
-        "roomId": "pool",
-        "edge": 2,
-        "type": "window",
-        "centreM": 8,
-        "widthM": 3,
-        "sillM": 0,
-        "headM": 3.2
-      },
-      {
-        "id": "window-n1",
-        "roomId": "pool",
-        "edge": 0,
-        "type": "window",
-        "centreM": 8,
-        "widthM": 3,
-        "sillM": 0,
-        "headM": 3.2
       }
     ],
     "finishes": {

@@ -3341,3 +3341,29 @@ Regenerate: `npm run make:building` (needs the drawing reader: a few seconds; no
 - **Look and pack.** `pack` is the style pack a space opens in unless the viewer has picked one (`src/look/packs` ids). A per-space `look.json` already works because a space is a scene.
 - **Gym and pool.** The gym and the pool are scenes of kind `gym` and `pool` with their real room sizes and no furniture: equipment goes in as furniture or decor in those scenes, water as a stage-3 surface in the pool's.
 
+### 18.10 Verification (16 Nov 2026)
+
+On the built site (`npx vite build`, `npx vite preview`), driven by headless Chrome (`tools/cdp.mjs`, software GL: SwiftShader, about 6 frames a second, so every time below is slower than on a GPU), at 1440 x 900 and at 390 x 844 as a phone. The whole path was walked and every step looked at: start page with the Buildings section, building map (each level, a plan, a space picked), lobby, lift prompt, floor panel, the ride, the typical-floor corridor, a flat's door with its plate, into Flat 201, the living room, out through the main door, into Flat 203 (a different design, a mirror image), the lift to Level 1, the foyer, the hall, the gym, the pool placeholder, the map with "You are here". Back and Forward, a direct link to a space, a bad building and a bad home were checked too.
+
+**The leak check** (`window.__walkthruBuilding.go(space)` 27 times in one page, alternating the corridor and the flats, after a warm-up that opened one space of every kind):
+
+| After | JS heap | DOM elements | JS listeners | canvases / HUDs / pickers |
+| --- | --- | --- | --- | --- |
+| warm-up (7 spaces) | 10.6 MB | 542 | 140 | 1 / 1 / 1 |
+| +5, +10, +15, +20 spaces | 13.4, 11.8, 13.9, 12.2 MB | 576, 542, 576, 542 | 140, 140, 140, 140 | 1 / 1 / 1 |
+
+The elements, the listeners and the canvas count are identical every time the same kind of space is up. The heap moves with the kind of space (a flat is bigger than the corridor) and drifts by 1.6 MB in 20 spaces; two **heap snapshots** (full garbage collection each) after 14 and after 34 spaces differ by 1.25 MB in total, all of it compiled code and the browser's own performance-entry buffers; one WebGL2 context, one canvas, 37 WebGLTexture, 267 WebGLBuffer and 13 WebGLProgram objects in both. `renderer.info` of the live renderer at the end of each teardown (after every explicit dispose, before the renderer is handed on): geometries 235 down to 1, programs 17 down to 3, textures 31 down to 12, the same every time (the 12 are textures the furniture kit and the model library cache for the next space). The first version made a renderer per space and the snapshot showed 9 alive after 8 spaces (a shared texture keeps a `dispose` listener per renderer that drew it): that is why the renderer is shared (18.5).
+
+**Time per space** (from the portal to "ready", `lastBootMs`): 236 to 1,344 ms, mean 594 ms over 20 spaces, in the software-GL harness; the whole transition including the loading screen's fade or the lift ride is about 3 s there. A GPU was not measured.
+
+**Carried over** (checked): body height 188 cm, time of day 19:00 and the first-person view stayed through three spaces, the height picker did not open again, a sofa placed in Flat 201 was not in the corridor or in a different flat and was back in Flat 301 (the same design: My layout is per scene).
+
+**Tests** (`tests/building-*.test.ts`, 160+ cases): `building.json` parsing with every rejection and its message; the sample validates clean; each validation rule broken on purpose (door width on one side, a door moved, hinged on the wrong post, a missing scene, a portal on a window, two spaces overlapping, a narrow corridor, a blocked corridor, a lift door of the wrong width, a scene not labelled a sample); portal pairing and the landing of every portal of both buildings (inside the matching door, facing in, clear of the leaf and its sweep); the mirror (areas equal, hinge and swing flipped, `validateLayout` clean, mirror twice is the identity, furniture, designs); plate consistency; the generator is deterministic and the committed files are what it writes; the URL round trip; the guard removes every listener, timer and element a space added and keeps what is marked kept; `disposeTree` disposes each geometry, material and texture once; the map's plan, its areas and the "not measured" rule; portal looks and prompts; the list of buildings; the extension points.
+
+### 18.11 Honesty, and what stage 1 does not do
+
+- A made-up building says so: the tag "Sample building . made-up" on the start page card and the map, "Flat 203 . 2 BHK (A) . Level 2. Sample building, not a real home." under the room chip in the walk, "Sample layout for demonstration" on the map, "Sample" in every scene's subtitle (a test makes it an error to leave it out). Nothing about the plans implies structural or regulatory correctness.
+- Areas on the map come from the scenes' own rooms and follow the "not measured" rule (18.7). Three of the four flat types have rooms the reader could not measure, so the map shows "area not confirmed" for them and a number only for the 1 BHK.
+- The flats are synthetic drawings: the 3 BHK is 17 m long and the corridor door of every flat is one this generator added; the plan of a real tower would differ.
+- Stairs are not walkable, the street is not modelled, the letterbox wall is not drawn, the reception and security desks are the plain counter of the furniture generators, the pool and the garden are empty rooms. The lift is a ride, not a car you stand in.
+- Furnish, the catalogue and the look are not changed; `catalogueAllowedIn` and `pack` are in place for the stages that need them (18.9).
