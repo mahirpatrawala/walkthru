@@ -49,7 +49,8 @@ export function rapidPythonBackend(home = ocrHome()): Promise<OcrEngineStatus> {
   return new Promise((resolve) => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'walkthru-rapid-'));
     const args = ['-I', script, '--models', models, '--threads', process.env.WALKTHRU_OCR_THREADS || '2'];
-    for (const [flag, env] of [['--det', 'WALKTHRU_OCR_DET'], ['--rec', 'WALKTHRU_OCR_REC']] as const) if (process.env[env]) args.push(flag, process.env[env]!);
+    if (process.env.WALKTHRU_OCR_DET) args.push('--det', process.env.WALKTHRU_OCR_DET);
+    if (process.env.WALKTHRU_OCR_REC) args.push('--rec', process.env.WALKTHRU_OCR_REC);
     const child: ChildProcessWithoutNullStreams = spawn(python, args, { stdio: ['pipe', 'pipe', 'pipe'] });
     const pending = new Map<number, Pending>();
     // a worker that is alive must not keep the host process open, but a request in flight must (the timer is the keep-alive)
