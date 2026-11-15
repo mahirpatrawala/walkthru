@@ -1,6 +1,6 @@
-// The local raster path (no model, no network): a brochure plan or a phone photo of one, read with Tesseract and pixels alone.
+// The local raster path (no model, no network): a brochure plan or a phone photo of one, read with a local text reader (PP-OCR, else Tesseract) and pixels alone.
 //
-//   page -> clean (perspective, lighting, tilt) -> text blocks (thin dark marks grouped into lines and blocks) -> Tesseract on each
+//   page -> clean (perspective, lighting, tilt) -> text blocks (thin dark marks grouped into lines and blocks) -> the text reader on each
 //   block -> room labels (a room word and a printed size, repaired for what OCR garbles) -> walls (thick dark structures) ->
 //   from each label, the walls around it -> a scale fitted from label size against measured room size across the rooms
 //   -> checks -> statuses -> the same outputs as the vision path (pixels/write.ts)
@@ -9,11 +9,11 @@
 // its printed size agrees (2%) with the walls measured around its label, on a scale fitted WITHOUT that room from at least three other
 // rooms that agree with each other. A printed size that disagrees by more than 5% is a `conflict` and both numbers are kept. A read that
 // geometry had to choose among alternatives for stays `unverified`. With no scale the rooms still appear, as rectangles of their printed
-// sizes, and say so. Pure TypeScript apart from the Tesseract call in local/ocr.ts.
+// sizes, and say so. Pure TypeScript apart from the text-reading calls in local/ocr.ts (PP-OCR, or Tesseract as the fallback).
 import { createHash } from 'node:crypto';
 import type { ImportResult } from '../import/types';
 import type { Gray, Mat3, Rect } from './pixels/image';
-import { applyMat, matInv } from './pixels/image';
+import { applyMat, matInv, matMul, rotateQuarter } from './pixels/image';
 import { preprocess } from './pixels/preprocess';
 import { agrees, clearlyWrong, fitScale, labelFit, looFit, scaleFor } from './pixels/fit';
 import type { Evidence, LabelPair, ScaleFit } from './pixels/fit';
@@ -25,14 +25,14 @@ import { isRoomLabel, roomTypeOf, tokens } from './lexicon';
 import { findArea } from './units';
 import { roomSpans, textBlocks, textLayer, wallLayer } from './local/ink';
 import type { Spans } from './local/ink';
-import { ocrAvailable, readBlocks } from './local/ocr';
+import { ocrEngineName, readBlocks } from './local/ocr';
 import type { BlockRead } from './local/ocr';
 import { ocrArea, ocrNormalise, ocrSizeCandidates } from './local/sizes';
 import type { SizeCand } from './local/sizes';
 
 export interface LocalPage { id: string; image: Gray }
 export const LOCAL_NOTICE = 'Vision is off. Nothing leaves this computer. The picture is read here with local text recognition: the layout is a draft to correct, and nothing from it is confirmed until the geometry or a broker agrees.';
-const NO_OCR = 'Vision is off, and no local text reader (Tesseract) is installed, so this picture of a plan cannot be read. Install Tesseract, turn vision on, or trace the plan in the editor.';
+const NO_OCR = 'Vision is off, and no local text reader is installed (neither PP-OCR nor Tesseract), so this picture of a plan cannot be read. Run tools/understand/setup-ocr.sh, turn vision on, or trace the plan in the editor.';
 
 /** Printed-size band the geometry check allows (the fraction of a printed length), and the band where a disagreement is called wrong. */
 // the verified band is the inner half of the 2% tolerance (as verify.ts does for dimensions): what is called checked must be right with room to spare
@@ -85,24 +85,29 @@ export function labelFromRead(br: BlockRead, id: string): LocalLabel | null {
   if (!lines.length) return null;
   const joined = lines.join(' ');
   if (lines.length > 6 || joined.length > 80 || isTitleBlockText(joined)) return null;
-  // sizes: the block as text (a size split over lines joins up), and each line read with the digit whitelist
-  const reads: SizeCand[][] = [ocrSizeCandidates(joined)];
-  for (const t of br.more) { const j2 = t.split('\n').map(ocrNormalise).filter(Boolean).join(' '); if (j2) reads.push(ocrSizeCandidates(j2)); }
-  for (const l of br.lines) for (const d of l.digits) if (SIZEY.test(d)) reads.push(ocrSizeCandidates(d));
+  // sizes: the block as text (a size split over lines joins up), and each line read with the digit whitelist. The engine's own read of
+  // the block counts for more than a second opinion (a crop with a furniture line in it can read a wall as a digit), and a size that
+  // two readings give is a better size than one
+  const reads: { c: SizeCand[]; w: number }[] = [{ c: ocrSizeCandidates(joined), w: br.conf !== undefined ? 1.6 : 1 }];
+  for (const t of br.more) { const j2 = t.split('\n').map(ocrNormalise).filter(Boolean).join(' '); if (j2) reads.push({ c: ocrSizeCandidates(j2), w: 1 }); }
+  for (const l of br.lines) for (const d of l.digits) if (SIZEY.test(d)) reads.push({ c: ocrSizeCandidates(d), w: 1 });
   // a size split over two lines ("3800" then "x4125") reads as one when the lines are joined, in each reading
   const nRead = Math.max(0, ...br.lines.map((l) => l.digits.length));
-  for (let k = 0; k < nRead; k++) { const j = br.lines.map((l) => l.digits[k] ?? '').filter((d) => SIZEY.test(d)).join(' '); if (j) reads.push(ocrSizeCandidates(j)); }
-  const cands: SizeCand[] = []; let twoReads = false;
-  for (const r of reads) for (const c of r) {
+  for (let k = 0; k < nRead; k++) { const j = br.lines.map((l) => l.digits[k] ?? '').filter((d) => SIZEY.test(d)).join(' '); if (j) reads.push({ c: ocrSizeCandidates(j), w: 1 }); }
+  type Scored = SizeCand & { n?: number; score?: number };
+  const cands: Scored[] = []; let twoReads = false;
+  for (const { c: r, w } of reads) for (const c of r) {
     const hit = cands.find((o) => Math.abs(o.w - c.w) < 0.004 && Math.abs(o.l - c.l) < 0.004);
-    if (hit) { if (hit.rank > c.rank) hit.rank = c.rank; hit.text = hit.text || c.text; (hit as SizeCand & { n?: number }).n = ((hit as SizeCand & { n?: number }).n ?? 1) + 1; twoReads ||= true; } else cands.push({ ...c });
+    if (hit) { if (hit.rank > c.rank) hit.rank = c.rank; hit.text = hit.text || c.text; hit.n = (hit.n ?? 1) + 1; hit.score = (hit.score ?? 0) + w; twoReads ||= true; } else cands.push({ ...c, n: 1, score: w });
   }
-  cands.sort((a, b) => ((b as SizeCand & { n?: number }).n ?? 1) - ((a as SizeCand & { n?: number }).n ?? 1) || a.rank - b.rank);
+  cands.sort((a, b) => (b.score ?? 1) - (a.score ?? 1) || a.rank - b.rank);
   // a printed area ("102.08 Sq.m.") is not a room
   const areaOnly = findArea(joined);
-  // the name: the letters of the block, with every size, number and mark taken out
-  let name = joined.replace(/\d[\d.,'"\-\s xX×%*°/]*\d?["']?/g, ' ').replace(/[^A-Za-z&/.\-\s]/g, ' ').split(/\s+/).filter((w) => w && !/^[xXkK.\-/]+$/.test(w)).join(' ').trim();
-  name = keepRoomWords(name);
+  // the name: the letters of the block, with every size, number and mark taken out. A read whose name is not a room word (a letter read
+  // as a digit, "BEDRO0M") gives way to another reading of the same block that is one
+  const nameOf = (t: string): string => keepRoomWords(t.replace(/\d[\d.,'"\-\s xX×%*°/]*\d?["']?/g, ' ').replace(/[^A-Za-z&/.\-\s]/g, ' ').split(/\s+/).filter((w) => w && !/^[xXkK.\-/]+$/.test(w)).join(' ').trim());
+  let name = nameOf(joined);
+  if (!isRoomLabel(name)) for (const t of br.more) { const alt = nameOf(t.split('\n').map(ocrNormalise).filter(Boolean).join(' ')); if (isRoomLabel(alt)) { name = alt; break; } }
   const letters = name.replace(/[^A-Za-z]/g, '');
   if (letters.length < 3 || /\+/.test(joined) || !isRoomLabel(name)) return null;
   if (areaOnly && !cands.length && /\bsq/i.test(joined)) return null;
@@ -128,21 +133,36 @@ interface Meas { w: number; h: number; box: [number, number, number, number] }
 const measure = (s: Spans): Meas | null => (s.left !== null && s.right !== null && s.up !== null && s.down !== null && s.right > s.left && s.down > s.up ? { w: s.right - s.left, h: s.down - s.up, box: [s.left, s.up, s.right, s.down] } : null);
 
 /** The whole local run over one or more pages. */
-export async function readRasterLocal(pages: LocalPage[], opts: { jobs?: number; labels?: LocalLabel[] } = {}): Promise<RasterRun> {
+export async function readRasterLocal(pages: LocalPage[], opts: { jobs?: number; labels?: LocalLabel[]; /** a stand-in for the reader of a page's labels (tests) */ readLabels?: (img: Gray) => Promise<LocalLabel[]> } = {}): Promise<RasterRun> {
   const t0 = Date.now(); const stages: StageTime[] = [];
   const u = emptyUnderstanding(pages);
   const stage = async <T,>(name: string, f: () => Promise<T> | T): Promise<T> => { const s = Date.now(); try { return await f(); } finally { stages.push({ stage: name, ms: Date.now() - s }); } };
   if (!pages.length) return refusedLocal(u, 'No page was given.', stages, t0);
-  if (!opts.labels && !(await ocrAvailable())) return refusedLocal(u, NO_OCR, stages, t0);
+  if (!opts.labels && !opts.readLabels) {
+    const eng = await ocrEngineName();
+    if (!eng.name) return refusedLocal(u, eng.note && eng.note.startsWith('WALKTHRU_OCR=rapid') ? `Vision is off, and ${eng.note}` : NO_OCR, stages, t0);
+    if (eng.note) u.warnings.push(eng.note);
+  }
 
   // ---- 1. clean each page, read its labels, keep the page with the most
   const works: { page: LocalPage; pre: ReturnType<typeof preprocess>; labels: LocalLabel[] }[] = [];
   await stage('read-text', async () => {
     for (const p of pages) {
-      const pre = preprocess(p.image);
-      const labels = opts.labels ?? await readLabels(pre.image, { jobs: opts.jobs });
+      let pre = preprocess(p.image);
+      const read = opts.readLabels ?? ((im: Gray) => readLabels(im, { jobs: opts.jobs }));
+      let labels = opts.labels ?? await read(pre.image);
+      let turned: 0 | 90 | 270 = 0;
+      // a plan scanned or photographed on its side: with next to nothing readable upright, the page is read turned a quarter each way
+      // and the turn with the most room names wins (text and walls are then read upright, exactly as on any other page)
+      if (!opts.labels && labels.filter((l) => l.cands.length || roomTypeOf(l.name) !== 'other').length < 2) {
+        for (const cw of [90, 270] as const) {
+          const q = rotateQuarter(pre.image, cw);
+          const ls = await read(q.image);
+          if (ls.length > labels.length + 1) { labels = ls; turned = cw; pre = { ...pre, image: q.image, toImage: matMul(q.map, pre.toImage), steps: [...pre.steps, `turned ${cw} degrees to read the text upright`] }; break; }
+        }
+      }
       works.push({ page: p, pre, labels });
-      u.views.push({ id: p.id, page: works.length, kind: 'unknown', kindConfidence: 0, raster: true, steps: pre.steps, turnedCw: 0 });
+      u.views.push({ id: p.id, page: works.length, kind: 'unknown', kindConfidence: 0, raster: true, steps: pre.steps, turnedCw: turned });
     }
   });
   const best = works.reduce((a, b) => (b.labels.length > a.labels.length ? b : a));
@@ -166,9 +186,12 @@ export async function readRasterLocal(pages: LocalPage[], opts: { jobs?: number;
   const enclosed = (l: LocalLabel): boolean => measure(l.spans!) !== null;
   const rows = labels.filter((l) => l.cands.length && !enclosed(l) && [l.spans!.left, l.spans!.right, l.spans!.up, l.spans!.down].filter((x) => x !== null).length < 3);
   const bare = labels.filter((l) => !l.cands.length && enclosed(l));
+  // a table row finds its room by name even when the walls round the plan's label cannot be measured (a coloured brochure plan with
+  // faint walls): the name is on the plan once, and the table gives its size. Matching by geometry (below) still needs the walls.
+  const named = labels.filter((l) => !l.cands.length && !rows.includes(l));
   const claimed = new Set<LocalLabel>();
   for (const r of rows) {
-    const same = bare.filter((b) => !b.cands.length && keyOf(b) === keyOf(r)), rowsSame = rows.filter((x) => keyOf(x) === keyOf(r));
+    const same = named.filter((b) => !b.cands.length && keyOf(b) === keyOf(r)), rowsSame = rows.filter((x) => keyOf(x) === keyOf(r));
     if (same.length === 1 && rowsSame.length === 1) { same[0].cands = r.cands; same[0].text = `${same[0].text} ${r.text}`; same[0].areaM2 = r.areaM2; same[0].twoReads = r.twoReads; claimed.add(r); }
   }
   // a table row nothing matched by name waits for the scale (below)
@@ -193,6 +216,7 @@ export async function readRasterLocal(pages: LocalPage[], opts: { jobs?: number;
     const lp: LabelPair = { id: l.id, owner: l.id, wPx: m.w, hPx: m.h, a: c.w, b: c.l };
     ev.labels.push(lp);
   }
+  if (process.env.WT_DEBUG) for (const l of ev.labels) console.log('fitlabel', l.id, rooms0.find((x) => x.id === l.id)?.name, `${l.wPx}x${l.hPx}px`, `${l.a}x${l.b}m`, `~${(l.wPx / l.a).toFixed(1)} / ${(l.hPx / l.b).toFixed(1)} px/m`);
   const fit = fitScale(ev, FIT_REL);
   let scale: ScaleFit | null = fit && fit.ok && fit.inliers >= 0.4 * fit.total ? fit : null;
   let fallback = false;

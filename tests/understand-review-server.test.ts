@@ -11,7 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildSet, pdfOf } from '../scripts/make-drawing-sets';
 import { buildTwin } from '../scripts/eval/raster-world';
 import { unverifiedRoomsFromExtras } from '../src/core/room-trust';
-import { encodePng, isPng } from '../src/understand/pixels/image';
+import { encodePng, isPng, newGray } from '../src/understand/pixels/image';
 import { buildRows, progressOf } from '../src/understand/review-model';
 import type { ReviewFile, UnderstandingDoc } from '../src/understand/review-model';
 import type { PagesFile } from '../src/understand/page-geometry';
@@ -244,7 +244,9 @@ describe.skipIf(!hasPoppler)('C12e dev API', () => {
 
   describe('a picture of a plan', { timeout: 60_000 }, () => {
     it('with vision off the job fails in words a broker can act on, and nothing is written for the buyer', async () => {
-      const id = await upload('test-pic-off', png, 'plan photo.png');
+      // a blank picture has nothing to read, whichever local text reader is installed
+      const blank = Buffer.from(encodePng(newGray(900, 700, 255)));
+      const id = await upload('test-pic-off', blank, 'plan photo.png');
       const j = await run('test-pic-off', [id], { vision: false });
       expect(j.state).toBe('failed');
       expect(j.error).toMatch(/Vision is off/);
