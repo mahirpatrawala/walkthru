@@ -80,8 +80,10 @@ def main() -> int:
                 lines = []
                 if img is not None:
                     res = eng(img, use_cls=bool(req.get('cls', True)))
-                    if res.txts:
-                        for box, txt, sc in zip(res.boxes, res.txts, res.scores):
+                    # a page with nothing to detect comes back as a recognition-only result with no boxes: that is "no lines"
+                    boxes, txts, scores = getattr(res, 'boxes', None), getattr(res, 'txts', None), getattr(res, 'scores', None)
+                    if boxes is not None and txts and scores is not None:
+                        for box, txt, sc in zip(boxes, txts, scores):
                             lines.append({'box': [[float(x), float(y)] for x, y in box], 'text': txt, 'conf': float(sc)})
                 out.write(json.dumps({'id': rid, 'lines': lines, **stats()}) + '\n')
             elif op == 'rec':

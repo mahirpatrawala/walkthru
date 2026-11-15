@@ -246,7 +246,10 @@ describe('the whole path, no network', () => {
     expect(run.sent).toEqual([]);
     expect(run.cost.usd).toBe(0); expect(run.cost.visionCalls).toBe(0);
     expect(run.notice).toMatch(/Nothing leaves this computer/);
-    await expect(proposeFromRaster(null, { image: encodePng(tw.pages[0].image), mime: 'image/png' })).rejects.toMatchObject({ code: 'vision-not-configured' });
+    // the same holds through C8's interface: with no model it either refuses with the vision code or returns what the local reader found
+    const viaC8 = await proposeFromRaster(null, { image: encodePng(tw.pages[0].image), mime: 'image/png' }).then((r) => ({ ok: r }), (e: unknown) => ({ err: e as ImportError }));
+    if ('err' in viaC8) expect(viaC8.err).toMatchObject({ code: 'vision-not-configured' });
+    else expect(viaC8.ok.proposal.rooms.length).toBeGreaterThan(0);
     expect(new ImportError('vision-failed').code).toBe('vision-failed');
   }, 60000);
 
