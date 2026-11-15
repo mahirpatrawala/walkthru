@@ -114,9 +114,28 @@ function walkthruSceneIndex(): Plugin {
   };
 }
 
+/**
+ * The browser reader (src/upload/reader.worker.ts) runs the same pipeline as Node. One file on its path, src/understand/pixels/image.ts, imports
+ * `node:zlib` for the PNG helpers the picture readers use; the vector path never calls them (it reaches that file only for `newGray`). In the worker
+ * bundle that import is answered by a stub that throws if it is ever called, so the chunk imports no Node built-in and the file itself stays untouched.
+ */
+function browserShims(): Plugin {
+  const ID = '\0walkthru-zlib-shim';
+  return {
+    name: 'walkthru-browser-shims',
+    enforce: 'pre',
+    resolveId(id) { return id === 'node:zlib' ? ID : null; },
+    load(id) {
+      return id === ID ? "const no = () => { throw new Error('PNG compression is not available in the browser reader.'); };\nexport const deflateSync = no;\nexport const inflateSync = no;\n" : null;
+    },
+  };
+}
+
 export default defineConfig({
   // media API first: the scene API answers 404 for /api/scenes/... routes it does not know
   plugins: [walkthruSceneIndex(), walkthruMediaApi(), walkthruUnderstandApi(), walkthruPhotoApi(), walkthruDevApi()],
+  // the plan reader runs in a module Web Worker that loads pdf.js lazily (src/upload/reader.worker.ts); es format allows its code splitting
+  worker: { format: 'es', plugins: () => [browserShims()] },
   build: {
     // three + Spark are one big chunk; that is expected for this prototype
     chunkSizeWarningLimit: 4000,
