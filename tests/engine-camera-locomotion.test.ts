@@ -282,6 +282,73 @@ describe('stepLocomotion', () => {
   });
 });
 
+describe('FollowCamera first person (SPEC 16.6.8)', () => {
+  it('sits at the eyes, looks along the heading, hides the body (boom 0) and widens the view; third person comes back untouched', () => {
+    const { cam, camera } = makeCam(empty);
+    const thirdFov = camera.fov;
+    cam.yawDeg = 90; // looking +x
+    cam.setTarget({ x: 2, z: 2.5 }, 1.75);
+    cam.firstPerson = true;
+    cam.setEye({ x: 2.05, y: 1.62, z: 2.5 });
+    cam.update(1 / 60, NO_LOOK);
+    expect(camera.position.x).toBeCloseTo(2.05, 9);
+    expect(camera.position.y).toBeCloseTo(1.62, 9);
+    expect(cam.boom).toBe(0);
+    expect(camera.fov).toBeGreaterThan(thirdFov);
+    const dir = camera.getWorldDirection(new THREE.Vector3());
+    expect(dir.x).toBeCloseTo(1, 6);
+    expect(Math.abs(dir.y)).toBeLessThan(1e-6); // level to begin with
+    // dragging down looks down, dragging up looks up, both stop short of straight up and down
+    cam.update(1 / 60, { dx: 0, dy: 40, zoom: 0 });
+    expect(camera.getWorldDirection(new THREE.Vector3()).y).toBeLessThan(-0.1);
+    cam.update(1 / 60, { dx: 0, dy: -4000, zoom: 0 });
+    expect(camera.getWorldDirection(new THREE.Vector3()).y).toBeGreaterThan(0.95);
+    expect(camera.getWorldDirection(new THREE.Vector3()).y).toBeLessThan(0.99);
+    cam.firstPerson = false;
+    cam.update(1 / 60, NO_LOOK);
+    expect(camera.fov).toBe(thirdFov);
+    expect(cam.boom).toBeGreaterThan(1.9);
+    expect(cam.firstPerson).toBe(false);
+  });
+
+  it('on a bed (a steep focus) it looks up at the ceiling, on a sofa straight ahead, and turns to the way a seat points', () => {
+    const { cam, camera } = makeCam(empty);
+    cam.firstPerson = true;
+    cam.setTarget({ x: 2, z: 2.5 }, 1.75);
+    cam.setEye({ x: 2, y: 0.9, z: 2.5 });
+    cam.focusOn({ x: 2, y: 0.5, z: 2.5 }, 3, 50);
+    for (let i = 0; i < 120; i++) cam.update(1 / 60, NO_LOOK);
+    expect(camera.getWorldDirection(new THREE.Vector3()).y).toBeGreaterThan(0.6);
+    cam.releaseFocus();
+    for (let i = 0; i < 120; i++) cam.update(1 / 60, NO_LOOK);
+    expect(Math.abs(camera.getWorldDirection(new THREE.Vector3()).y)).toBeLessThan(0.05);
+    cam.yawDeg = 350;
+    cam.turnTo(10, 0.5); // the short way round, through 0
+    for (let i = 0; i < 20; i++) cam.update(1 / 60, NO_LOOK);
+    const mid = ((cam.viewYawDeg % 360) + 360) % 360;
+    expect(mid > 350 || mid < 10).toBe(true);
+    for (let i = 0; i < 60; i++) cam.update(1 / 60, NO_LOOK);
+    expect(((cam.viewYawDeg % 360) + 360) % 360).toBeCloseTo(10, 3);
+  });
+
+  it('the follow camera does not jitter while the walker speeds up, walks and stops (the position it follows is smooth)', () => {
+    const { cam, camera } = makeCam(empty);
+    cam.yawDeg = 90; // looking +x, the boom reaches back toward x = 0
+    const ch = fakeChar(2.2, 2.5, 1.75, 90);
+    const pos: number[] = [];
+    for (let i = 0; i < 240; i++) {
+      stepLocomotion(ch, fakeInput(0, i < 50 ? 1 : 0), 90, empty, 1 / 60);
+      cam.setTarget(ch.position, 1.75);
+      cam.update(1 / 60, NO_LOOK);
+      pos.push(camera.position.x);
+    }
+    // second difference of the camera position: no frame changes its speed by more than the acceleration allows (7 m/s^2 * (1/60)^2 = 0.002 m)
+    let worst = 0;
+    for (let i = 2; i < pos.length; i++) worst = Math.max(worst, Math.abs(pos[i] - 2 * pos[i - 1] + pos[i - 2]));
+    expect(worst).toBeLessThan(0.0025);
+  });
+});
+
 describe('furniture meshes', () => {
   const bounds = (g: THREE.Group): THREE.Box3 => new THREE.Box3().setFromObject(g);
 

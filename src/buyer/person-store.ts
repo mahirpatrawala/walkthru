@@ -77,3 +77,21 @@ export function savePerson(storage: StorageLike | null, p: PersonState): void {
   const n = normalisePerson(p);
   storageSet(storage, PERSON_KEY, JSON.stringify({ body: n.body, tone: n.tone, heightCm: n.heightCm }));
 }
+
+// ---------------------------------------------------------------- how the walker is seen
+
+/** SPEC 16.6.8: 'third' = see yourself (the follow camera, the default), 'first' = through your own eyes, no body in shot. */
+export type ViewMode = 'third' | 'first';
+export const VIEW_KEY = 'walkthru:view';
+export const DEFAULT_VIEW: ViewMode = 'third';
+
+export function viewFrom(v: unknown): ViewMode {
+  return v === 'first' ? 'first' : DEFAULT_VIEW;
+}
+/** Reads `walkthru:view`; anything else (nothing stored, blocked storage, junk) is the default. */
+export function loadView(storage: StorageLike | null): ViewMode {
+  return viewFrom(storageGet(storage, VIEW_KEY));
+}
+export function saveView(storage: StorageLike | null, v: ViewMode): void {
+  storageSet(storage, VIEW_KEY, viewFrom(v));
+}

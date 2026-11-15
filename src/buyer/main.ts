@@ -33,7 +33,8 @@ import { createInput } from '../engine/controls';
 import { FollowCamera } from '../engine/camera';
 import { stepLocomotion } from '../engine/locomotion';
 import { CHARACTER_RADIUS_M } from '../types';
-import { BODY_DEFAULT_CM, bodyFrom, clampPersonHeight, loadPerson, savePerson, tintForPerson } from './person-store';
+import { BODY_DEFAULT_CM, bodyFrom, clampPersonHeight, loadPerson, loadView, savePerson, saveView, tintForPerson } from './person-store';
+import type { ViewMode } from './person-store';
 import type { PersonBody } from '../look/people';
 import type { PropertyFile, Vec2 } from '../types';
 import { ModeManager, createBuyerContext } from './context';
@@ -430,12 +431,26 @@ async function boot(): Promise<void> {
   let heightCm = person.heightCm;
   character.setHeight(heightCm / 100, tintForPerson(person.body, heightCm));
 
+  // ---- view (SPEC 16.6.8): see yourself (the follow camera, the default) or look through your own eyes (no body in shot)
+  let view: ViewMode = loadView(storage);
+  const eyeNow = new THREE.Vector3();
+  let lastCharState = character.state;
+  function applyView(v: ViewMode, announce = true): void {
+    view = v;
+    saveView(storage, v);
+    camera.firstPerson = v === 'first';
+    if (v === 'first') character.setVisible(false);
+    picker?.syncView(v);
+    if (announce) hud.hint(v === 'first' ? 'First person · V to see yourself' : 'See yourself · V for first person', 2500);
+  }
+
   const blocking = (): boolean => picker.isOpen() || rooms.isOpen() || paintBusy;
 
   picker = createHeightPicker(document.body, {
     getCm: () => heightCm,
     onChange: (cm) => { heightCm = applyHeight(cm); },
     person: { get: () => ({ body: person.body, tone: person.tone }), onChange: (p) => { void applyPerson(p); } },
+    view: { get: () => view, onChange: (v) => applyView(v) },
     onClose: () => {
       savePerson(storage, person);
       hud.setVisible(true);
@@ -493,6 +508,8 @@ async function boot(): Promise<void> {
   }
 
   // ---- input events
+  camera.firstPerson = view === 'first';
+  input.on('view', () => { if (!blocking()) applyView(view === 'first' ? 'third' : 'first'); });
   input.on('interact', () => { if (!blocking()) void interactions.interact(); });
   input.on('measure', () => toggleMode('measure'));
   input.on('furnish', () => toggleMode('furnish'));
@@ -553,7 +570,13 @@ async function boot(): Promise<void> {
   let lastChip: string | null | undefined;
   let debugClock = 0;
   let gridClock = 0;
-  viewer.onFrame((dt) => {
+  // debug only (SPEC 16.6.8): freeze the simulation and advance it in exact steps, so a frame sequence has even spacing
+  const motionDebug = { paused: false, steps: 0, dt: 1 / 30, trace: null as null | { cam: number[]; char: number[] }[] };
+  viewer.onFrame((frameDt) => {
+    if (!motionDebug.paused) { tick(frameDt); return; }
+    while (motionDebug.steps > 0) { motionDebug.steps--; tick(motionDebug.dt); }
+  });
+  function tick(dt: number): void {
     const look = input.takeLook();
     const blocked = blocking();
     if (blocked) {
@@ -566,6 +589,13 @@ async function boot(): Promise<void> {
     wardrobes.update(dt);
     character.update(dt);
     camera.setTarget(character.position, character.heightM);
+    if (camera.firstPerson) {
+      camera.setEye(character.eyePosition(eyeNow, dt));
+      // sitting down or lying down, the view turns to face the way the seat or the bed points
+      const st = character.state;
+      if (st !== lastCharState && (st === 'sitting' || st === 'lying')) camera.turnTo(character.yawDeg, 0.6);
+      lastCharState = st;
+    } else lastCharState = character.state;
     camera.update(dt, blocked ? ZERO_LOOK : look);
     if (freeCam) {
       // debug only (screenshots from a chosen viewpoint): the follow camera is overridden after it has run
@@ -575,6 +605,10 @@ async function boot(): Promise<void> {
       if (freeCam.fov && viewer.camera.fov !== freeCam.fov) { viewer.camera.fov = freeCam.fov; viewer.camera.updateProjectionMatrix(); }
       viewer.camera.updateMatrixWorld(true);
       character.setVisible(false);
+    }
+    if (motionDebug.trace) {
+      const c = viewer.camera.position, p = character.object.position;
+      motionDebug.trace.push({ cam: [c.x, c.y, c.z], char: [p.x, p.y, p.z] });
     }
     // below a 0.7 m boom the character is hidden, above 0.8 m it comes back (SPEC 2.4)
     if (camera.boom < 0.7) character.setVisible(false);
@@ -602,7 +636,7 @@ async function boot(): Promise<void> {
         );
       }
     }
-  });
+  }
 
   // ---- debug hooks
   function snapshot() {
@@ -646,6 +680,15 @@ async function boot(): Promise<void> {
     freeCam: (pos: [number, number, number] | null, target?: [number, number, number], fov?: number, up?: [number, number, number]) => {
       freeCam = pos && target ? { pos, target, fov, up } : null;
       hud.setVisible(!freeCam);
+    },
+    /** Debug (motion captures): `pause(true, dt)` freezes the simulation, `step(n)` runs n frames of `dt` seconds, `trace(true)` records camera and character per frame. */
+    /** SPEC 16.6.8: 'third' (see yourself) or 'first' (your own eyes). `set` returns the view now in force. */
+    view: { get: () => view, set: (v: ViewMode) => { applyView(v === 'first' ? 'first' : 'third', false); return view; } },
+    motion: {
+      pause: (on: boolean, dt = 1 / 30) => { motionDebug.paused = on; motionDebug.dt = dt; motionDebug.steps = 0; },
+      step: (n: number) => { motionDebug.steps += n; },
+      pending: () => motionDebug.steps,
+      trace: (on: boolean) => { if (on) { motionDebug.trace = []; return []; } const t = motionDebug.trace ?? []; motionDebug.trace = null; return t; },
     },
     /** Moves the character to (x, z) (nearest free spot if blocked). While posed the release takes up to ~0.7 s. */
     teleport,
