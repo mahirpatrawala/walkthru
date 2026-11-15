@@ -11,6 +11,9 @@ import { createViewer } from '../engine/viewer';
 import type { Viewer, SplatHandle } from '../engine/viewer';
 import { Character } from '../engine/character';
 import { rebuildFurnitureTier, setFurnitureDefaults } from '../engine/furniture';
+import { fixturesToItems } from '../core/fixtures';
+import { setGenCeiling } from '../look/gen/ceiling';
+import { fetchFixtures } from './fixtures-load';
 import { applyDesigns, buildDecor, fetchDesigns } from '../look/designs';
 import type { Decor } from '../look/designs';
 import { furnitureKit } from '../look/furniture-materials';
@@ -181,6 +184,7 @@ async function boot(): Promise<void> {
   // the small optional JSON files go out together with property.json instead of one after another
   const lookFileP = fetchLookFile(sceneId);
   const extrasP = fetchExtras(sceneId);
+  const fixturesP = fetchFixtures(sceneId);
   loading.setProgress(0.05, 'Loading the layout…');
   const result = await fetchProperty(sceneId);
   if (result.kind === 'missing') {
@@ -232,6 +236,7 @@ async function boot(): Promise<void> {
   const designs = await designsP;
   const startTier = look?.tier ?? 'medium';
   setFurnitureDefaults({ style: 'real', tier: startTier });
+  setGenCeiling(layout.wallHeightM); // a hung swing's chains and hooks go up to this home's ceiling
   void furnitureKit.setTier(startTier).catch((err) => console.warn('[walkthru] furniture textures not loaded', err));
   // the style (SPEC 16.13): the designer's sheet when the home has one, else the default pack; the viewer's last pick wins (?style= for checks)
   const styleKey = `walkthru:style:${sceneId}`;
@@ -241,7 +246,10 @@ async function boot(): Promise<void> {
     const packId: string | undefined = picked && picked !== 'designer' && PACKS.some((p) => p.id === picked) ? picked : undefined;
     setStyle({ packId, sheet });
   }
-  const initialItems = applyDesigns(property.furniture, designs);
+  // the sanitary and kitchen fixtures the drawing reader recognised, at their drawn place (src/core/fixtures.ts)
+  const ownIds = new Set(property.furniture.map((f) => f.id));
+  const fixtureItems = fixturesToItems(await fixturesP, layout, property.furniture).filter((f) => !ownIds.has(f.id));
+  const initialItems = applyDesigns([...property.furniture, ...fixtureItems], designs);
   const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage, shareCode: params.get(SHARE_PARAM) });
   const decor: Decor[] = buildDecor(designs, store.all(), startTier);
   for (const d of decor) furnitureRoot.add(d.group);

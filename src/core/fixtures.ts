@@ -2,7 +2,7 @@
 // position. A fixture becomes a `real` furniture item of the catalogue piece that matches it: its box takes the symbol's size when that is
 // a believable size for the piece, otherwise the catalogue's standard size, and the card says which (SPEC 16.2: a number is never shown as
 // drawn when it was assumed). Heights are always the catalogue's standard. Pure.
-import { distanceToSegment, pointInPolygon } from './geometry';
+import { distanceToSegment, pointInBox, pointInPolygon } from './geometry';
 import { catalogItem } from './catalog';
 import type { FurnitureItem, Layout, Vec2 } from '../types';
 
@@ -64,12 +64,14 @@ export function fixturePieceId(f: SceneFixture): string | null {
   return base;
 }
 
-/** Real furniture items for the fixtures the catalogue can draw. Ids are `fx-<fixture id>`, so the same drawing gives the same items. */
-export function fixturesToItems(fixtures: readonly SceneFixture[], layout: Layout): FurnitureItem[] {
+/** Real furniture items for the fixtures the catalogue can draw (a fixture inside a piece the home already has is skipped). Ids are `fx-<fixture id>`, so the same drawing gives the same items. */
+export function fixturesToItems(fixtures: readonly SceneFixture[], layout: Layout, existing: readonly FurnitureItem[] = []): FurnitureItem[] {
   const out: FurnitureItem[] = [];
   for (const f of fixtures) {
     const pieceId = fixturePieceId(f);
     if (!pieceId || !f.at || !Number.isFinite(f.at.x) || !Number.isFinite(f.at.z)) continue;
+    // a sink the drawing draws inside a counter it already has as a piece of furniture is that counter's own: not drawn twice
+    if (existing.some((e) => pointInBox(f.at, e.box))) continue;
     const spec = catalogItem(pieceId);
     let w = spec.footprint.w, d = spec.footprint.d;
     let source: 'drawing' | 'standard' = 'standard';

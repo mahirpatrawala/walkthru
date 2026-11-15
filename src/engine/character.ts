@@ -785,6 +785,26 @@ export class Character {
     return this.moveTo({ x: t.x, z: t.z, y: t.y, tilt: 0 }, pose.yawDeg, SIT_MOVE_S, () => this.setState('sitting'));
   }
 
+  /**
+   * A seat that moves under a sitter (a swing): while sitting, shifts the body by (dx, dy, dz) world metres from where the pose put it and
+   * pitches it by `pitchRad` about its own sideways axis. `null` puts it back (`release` does too). A no-op unless sitting.
+   */
+  ride(o: { dx: number; dy: number; dz: number; pitchRad: number } | null): void {
+    if (!o) {
+      if (this.rideBase) {
+        this.object.position.set(this.rideBase.x, this.rideBase.y, this.rideBase.z);
+        this.tilt.rotation.x = 0;
+        this.rideBase = null;
+      }
+      return;
+    }
+    if (this._state !== 'sitting') return;
+    if (!this.rideBase) this.rideBase = this.object.position.clone();
+    this.object.position.set(this.rideBase.x + o.dx, this.rideBase.y + o.dy, this.rideBase.z + o.dz);
+    this.tilt.rotation.x = o.pitchRad;
+  }
+  private rideBase: THREE.Vector3 | null = null;
+
   /** Stands facing the item, in Idle_Loop. */
   standAt(pose: StandPose): Promise<void> {
     this.posed = 'stand';
@@ -798,6 +818,7 @@ export class Character {
    * grid), the character has no grid of its own. When not posed it just places the character at `to`.
    */
   release(to: Vec2): Promise<void> {
+    this.ride(null);
     const was = this.posed;
     this.posed = null;
     if (was === 'lie') this.applyHeight(this._heightM); // back to the standing scale

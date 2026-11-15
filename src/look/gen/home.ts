@@ -85,7 +85,7 @@ export function buildCabinet(env: GenEnv, size: GenSize, p: CabinetParams, roles
     box('shoe-plinth', dark, -w / 2 + 0.03, w / 2 - 0.03, 0, 0.07, -d / 2 + 0.02, d / 2 - 0.03, { c: 0 });
     box('shoe-carcass', body, -w / 2, w / 2, 0.07, H, -d / 2, zc);
     const n = 3, fh = (H - 0.1 - 0.02 - GAP * (n - 1)) / n;
-    for (let i = 0; i < n; i++) frontPanel(parts, 'shoe-flaps', face, hm, -w / 2 + 0.008, w / 2 - 0.008, 0.08 + i * (fh + GAP), 0.08 + i * (fh + GAP) + fh, zf, 'groove', 0.016);
+    for (let i = 0; i < n; i++) frontPanel(parts, 'shoe-flaps', face, hm, -w / 2 + 0.008, w / 2 - 0.008, 0.08 + i * (fh + GAP), 0.08 + i * (fh + GAP) + fh, zf, hd, 0.016);
   } else if (v === 'mandir-floor' || v === 'mandir-wall') {
     const y0 = v === 'mandir-wall' ? p.liftM : 0;
     const baseH = v === 'mandir-wall' ? 0.12 : 0.85;

@@ -166,3 +166,17 @@
   .wtf-slot-label { margin-bottom: 2px; }
   .wtf-panel { max-height: 44vh; }
 }
+
+/* the catalogue picker: a category selector and a search box over the card row (src/buyer/catalog-tray.ts) */
+.wtf-picker { display: flex; gap: 8px; padding: 0 12px 6px 4px; align-items: center; }
+.wtf-picker[hidden], .wtf-picker-empty[hidden] { display: none; }
+.wtf-picker-cat, .wtf-picker-search {
+  font: inherit; font-size: 13px; line-height: 1.2; min-height: 36px; box-sizing: border-box; border: 1px solid var(--wt-line, #E5E1D8); border-radius: 10px;
+  background: var(--wt-bg, #F6F4EF); color: inherit; padding: 6px 10px; min-width: 0;
+}
+.wtf-picker-cat { flex: 0 1 46%; font-weight: 700; }
+.wtf-picker-search { flex: 1 1 0; }
+.wtf-picker-search::placeholder { color: var(--wt-muted, #6B7280); }
+.wtf-picker-cat:focus-visible, .wtf-picker-search:focus-visible { outline: 2px solid var(--wt-accent, #B2472B); outline-offset: 1px; }
+.wtf-picker-empty { padding: 6px 12px 8px 4px; font-size: 13px; color: var(--wt-muted, #6B7280); }
+.wtf-tray.is-editing .wtf-picker, .wtf-tray.is-editing .wtf-picker-empty { display: none; }

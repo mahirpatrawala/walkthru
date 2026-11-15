@@ -12,6 +12,8 @@ import { activateNearestDoor, doorNoteForBox, nearestDoorPrompt } from './door-h
 import { toneColor } from './overlays';
 import { actionFor as kindAction, nearestInteractable } from './store';
 import { pieceAction, pieceSeatPose } from './piece-actions';
+import { createSwingMotion } from './swing-motion';
+import { pieceRule } from '../core/pieces';
 import type { PoseAction } from './store';
 
 /** The action of an item: its piece's own (a swing, a basin) or its kind's. */
@@ -70,6 +72,8 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   let promptClock = 0;
 
   const seats = extras.seats;
+  // a swing rocks under a seated walker (src/buyer/swing-motion.ts)
+  const swing = createSwingMotion({ ridePose: (o) => ctx.character.ride(o), meshOf: (id) => ctx.furniture.mesh(id) });
   const cardOf = (item: FurnitureItem, H: number) => {
     let card = seats?.card(item, H) ?? checkFor(item, H, ctx.property.layout.wallHeightM);
     const note = card.footer ? null : extras.cardNote?.(item) ?? null;
@@ -182,6 +186,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   async function releaseNow(switchMode: boolean): Promise<void> {
     const a = active;
     if (!a) return;
+    swing.stop();
     active = null;
     gen++;
     ctx.camera.releaseFocus();
@@ -245,6 +250,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   return {
     mode,
     update(dt) {
+      swing.update(dt, active && active.ready && pieceRule(active.item.catalogId)?.pose === 'swing' ? active.item : null);
       promptClock += dt;
       if (promptClock < 0.08) return;
       promptClock = 0;
@@ -268,6 +274,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     cancelTo(to) {
       const a = active;
       hideDims();
+      swing.stop();
       if (a) {
         active = null;
         gen++;

@@ -166,7 +166,7 @@ export function buildFit(env: GenEnv, size: GenSize, p: FitParams, roles: Roles)
     parts.box('tread-console', SCREEN, -0.15, 0.15, 1.16, H - 0.04, -d / 2 + 0.2 - 0.001, -d / 2 + 0.2 + 0.003, { c: 0 });
     bar(parts, 'tread-handrails', trim, [-w / 2 + 0.025, 1.18, -d / 2 + 0.12], [w / 2 - 0.025, 1.18, -d / 2 + 0.12], 0.018);
   } else if (v === 'yoga') {
-    parts.put('yoga-mat', role(roles, 'case', 'accent'), roundedBoxBetween(-w / 2, w / 2, 0, H, -d / 2, d / 2, Math.min(0.0024, H / 2.2), 1), { tile: 0.5 });
+    parts.put('yoga-mat', role(roles, 'accent', 'case'), roundedBoxBetween(-w / 2, w / 2, 0, H, -d / 2, d / 2, Math.min(0.0024, H / 2.2), 1), { tile: 0.5 });
   } else {
     // ironing board: a rounded-tip top on a crossed frame, an iron rest at the narrow end
     const topY = S;

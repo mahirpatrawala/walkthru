@@ -6,7 +6,7 @@ import type { GenEnv, MatSpec, Parts } from './core';
 import { cylinderY, rod } from './geo';
 
 export const GLASS: MatSpec = { key: 'sheer', tint: '#BFD6DD' };
-export const MIRROR: MatSpec = { key: 'metal', tint: '#E3ECF0' };
+export const MIRROR: MatSpec = { key: 'gloss', tint: '#BFD2DA' };
 export const CHROME: MatSpec = { key: 'metal', tint: '#D9DCDE' };
 export const CERAMIC: MatSpec = { key: 'gloss', tint: '#F5F3EF' };
 export const RUBBER: MatSpec = { key: 'dark', tint: '#2A2A2C' };

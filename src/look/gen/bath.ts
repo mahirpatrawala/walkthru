@@ -27,7 +27,7 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
   const q = env.q;
   const seg = rsides(env) * 2;
   const ceramic = roleOr(roles, CERAMIC, 'ceramic');
-  const tap = roleOr(roles, CHROME, 'fittings', 'handle');
+  const tap = roleOr(roles, CHROME, 'fittings');
   const lift = p.liftM;
   const rr = (x0: number, x1: number, z0: number, z1: number, r: number): [number, number][] => roundedRectOutline(x0, x1, z0, z1, [r, r, r, r], q.tier === 'low' ? 4 : 8);
   const box = (name: string, m: MatSpec, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, c = 0.003): void => parts.box(name, m, x0, x1, y0, y1, z0, z1, { c });

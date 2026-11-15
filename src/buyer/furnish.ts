@@ -7,14 +7,16 @@ import { ceilingIsKnown } from '../core/room-trust';
 import * as THREE from 'three';
 import './furnish.css';
 import { withSwingNote } from './wardrobe-hooks';
-import { CATALOG, catalogItem, itemFromCatalog, specFor } from '../core/catalog';
+import { CATALOG, catalogItem, itemFromCatalog, setCatalogCeiling, specFor } from '../core/catalog';
+import { roomAt } from '../core/layout-geom';
+import { mountCatalogPicker, catalogIcon } from './catalog-tray';
 import { pointInBox, sideEdge } from '../core/geometry';
 import { circleFree, nearestFree } from '../core/grid-query';
 import { checkPlacement, snapToWalls } from '../core/placement';
 import type { PointerEvt } from '../engine/controls';
 import { buildFurnitureMesh, setFurnitureTint } from '../engine/furniture';
 import { CHARACTER_RADIUS_M } from '../types';
-import type { Box, CatalogItem, FurnitureItem, FurnitureKind, Grid, PlacementResult, Side, Tone, Vec2, Vec3 } from '../types';
+import type { Box, CatalogItem, FurnitureItem, FurnitureKind, Grid, PlacementResult, Side, Tone, Vec2, Vec3, ZoneReading } from '../types';
 import { FAMILY_SLOTS, BED_STYLES, describeFinish, finishFamily, sanitizeFinish, surpriseFinish, swatch, withPick } from '../look/finishes';
 import type { Finish, FinishFamily, FinishSlotKey } from '../look/finishes';
 import { boxAxes } from '../core/geometry';
@@ -96,6 +98,19 @@ export function clearanceLines(box: Box, clearanceM: Record<Side, number>, y = L
     });
   }
   return out;
+}
+
+/** the swept area of a clearance zone, in its own tone, with the need (and what there is, when short) on a line from the piece's side */
+function zoneOverlay(ctx: BuyerContext, box: Box, z: ZoneReading, tag: string): OverlayHandle[] {
+  const color = toneColor(z.status === 'ok' ? 'good' : z.status === 'tight' ? 'warn' : 'bad');
+  const e = sideEdge(box, z.side);
+  const cm = (m: number): number => Math.round(m * 100);
+  const reach = z.status === 'ok' ? z.needM : Math.max(0.05, Math.min(z.haveM, z.needM));
+  const label = z.status === 'ok' ? `${cm(z.needM)} cm clear` : `${cm(z.haveM)} of ${cm(z.needM)} cm`;
+  return [
+    ctx.overlays.outlineBox(z.box, OUTLINE_Y, color, tag),
+    ctx.overlays.line({ x: e.mid.x, y: LINE_Y, z: e.mid.z }, { x: e.mid.x + e.normal.x * reach, y: LINE_Y, z: e.mid.z + e.normal.z * reach }, label, color, tag),
+  ];
 }
 
 /** The tray card text: "King bed · 183 × 198 cm (72 × 78 in)". */
@@ -315,6 +330,8 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
   let disposed = false;
 
   const ceilingM = (): number => ctx.property.layout.wallHeightM;
+  // a ceiling-height piece (a loft unit) is made to fit this home's ceiling
+  setCatalogCeiling(ceilingM());
   const getItem = (id: string): FurnitureItem | undefined => (store.get ? store.get(id) : store.all().find((i) => i.id === id));
   const hasItem = (id: string): boolean => (store.has ? store.has(id) : store.all().some((i) => i.id === id));
   const buyerCount = (): number => (store.buyerIds ? store.buyerIds().length : store.all().filter((i) => i.source === 'virtual').length);
@@ -343,7 +360,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
   };
 
   const check = (s: { id: string; spec: CatalogItem; box: Box }): PlacementResult =>
-    honestPlacement(checkPlacement(gridWithout(s.id), s.spec, s.box, ceilingM(), ceilingIsKnown()), s.spec.name, ctx.notMeasuredNear?.([{ x: s.box.cx, z: s.box.cz }]) ?? []);
+    honestPlacement(checkPlacement(gridWithout(s.id), s.spec, s.box, ceilingM(), ceilingIsKnown(), roomAt(ctx.property.layout, { x: s.box.cx, z: s.box.cz })?.roomType ?? null), s.spec.name, ctx.notMeasuredNear?.([{ x: s.box.cx, z: s.box.cz }]) ?? []);
 
   const verdictOf = (): FurnishVerdict | null => {
     const s = subject();
@@ -434,7 +451,10 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
       // the ribbon sits just outside the footprint, so a bed's frame does not hide it
       handles.push(ctx.overlays.outlineBox({ ...s.box, w: s.box.w + 2 * OUTLINE_RIBBON_M, d: s.box.d + 2 * OUTLINE_RIBBON_M }, OUTLINE_Y, color, tag));
       if (!real) {
-        for (const l of clearanceLines(s.box, r.clearanceM)) handles.push(ctx.overlays.line(l.from, l.to, l.label, LINE_COLOR, tag));
+        // a piece's own zones (a swing's arc, a fridge door) are drawn as their swept area with the need on a line, and replace the plain line on that side
+        const zoned = new Set((r.zones ?? []).map((z) => z.side));
+        for (const l of clearanceLines(s.box, r.clearanceM)) if (!zoned.has(l.side)) handles.push(ctx.overlays.line(l.from, l.to, l.label, LINE_COLOR, tag));
+        for (const z of r.zones ?? []) handles.push(...zoneOverlay(ctx, s.box, z, tag));
       }
       if (work) setFurnitureTint(work.mesh, r.tone);
     }
@@ -853,7 +873,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     c.title = cardLabel(spec);
     c.setAttribute('aria-label', cardLabel(spec));
     const ic = h('span', 'wtf-item-icon', c);
-    ic.innerHTML = icon(spec.kind);
+    ic.innerHTML = catalogIcon(spec);
     h('span', 'wtf-item-name', c, spec.name);
     h('span', 'wtf-item-size', c, spec.sizeLabel);
     c.addEventListener('click', (e) => { e.stopPropagation(); onPick(); c.blur(); });
@@ -972,7 +992,8 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   const addLabel = h('div', 'wtf-sub', tray, 'Add furniture');
   const cards = h('div', 'wtf-cards', tray);
   cards.dataset.ui = '1';
-  for (const spec of CATALOG) specCard(cards, spec, () => { session.spawn(spec.id); });
+  // a category selector and a search box over the catalogue (src/buyer/catalog-tray.ts) fill the card row
+  const picker = mountCatalogPicker(tray, cards, (parent, spec) => specCard(parent, spec, () => { session.spawn(spec.id); }));
 
   const renderPieces = (v: FurnishView): void => {
     pieces.textContent = '';
@@ -1111,6 +1132,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       titleEl.textContent = 'Add furniture';
       addLabel.hidden = showEdit || sel;
       cards.hidden = sel;
+      picker.setHidden(sel);
       piecesWrap.classList.toggle('is-quiet', showEdit);
       renderPieces(v);
       renderRemoved(v);

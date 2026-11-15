@@ -12,7 +12,8 @@
     "lampMetal": "brass", "acBody": "white-gloss",
     "rug": "shag-ivory", "curtainSheer": "sheer-white", "curtainDrape": "drape-sage",
     "door": "oak-light",
-    "wallPanel": "wall-white"
+    "wallPanel": "wall-white",
+    "chain": "steel", "swingWood": "oak-light", "applianceBody": "white-gloss", "applianceTrim": "steel", "fittings": "steel"
   },
   "generators": {
     "wardrobe": { "shutterStyle": "flat", "handle": "groove" },
@@ -23,7 +24,12 @@
     "side": { "style": "legs", "handle": "groove" },
     "dresser": { "base": "legs", "handle": "groove" },
     "counter": { "shutterStyle": "flat", "handle": "groove" },
-    "dining": { "chair": "slat", "legs": "tapered" }
+    "dining": { "chair": "slat", "legs": "tapered" },
+    "swing": { "cushion": true },
+    "tvunit": { "base": "legs", "handle": "groove" },
+    "cabinet": { "handle": "groove" },
+    "tablex": { "legs": "tapered", "handle": "groove" },
+    "seatx": { "legs": "metal" }
   },
   "room": { "wall": "wall-white", "floor": "tile-ivory-gloss", "ceiling": "ceiling-white" },
   "decor": { "rug": true, "curtains": true },
