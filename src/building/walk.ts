@@ -19,6 +19,7 @@ import type { BuildingMap } from './map';
 import { doorLooksFor } from './portal-looks';
 import { mountPortals } from './portals';
 import type { PortalHandle } from './portals';
+import type { PersonSpec } from '../buyer/people/manager';
 import type { MountedSpace, SpaceHost, SpaceSession } from './space-host';
 import type { BuildingFile, Portal } from './types';
 import { buildingUrl, parseBuildingUrl } from './url';
@@ -70,6 +71,7 @@ class BuildingWalk implements BuildingWalkApi {
     const loc = findSpace(this.building, spaceId);
     if (!loc) { o.screen.showError('This place is not in the building.', `There is no space "${spaceId}" in ${this.building.name}.`); return false; }
     const carry = this.session?.carry() ?? null;
+    const followers = this.session?.takeFollowers() ?? [];
     this.closePanels();
     this.portals?.dispose(); this.portals = null;
     this.session?.dispose(); this.session = null; this.mounted = null;
@@ -86,7 +88,7 @@ class BuildingWalk implements BuildingWalkApi {
       doorLooks: doorLooksFor(loc.space),
       arrival: o.opening ? (layout, grid) => { const a = arrivalAtDoor(layout, grid, o.opening!, o.fromM ?? ARRIVAL_FROM_M); return a ? { x: a.x, z: a.z, yawDeg: a.yawDeg } : null; } : null,
       tapClaim: null,
-      onMounted: (m) => this.onMounted(m, loc, host),
+      onMounted: (m) => this.onMounted(m, loc, host, followers),
     };
     let session: SpaceSession | null = null;
     const t0 = performance.now();
@@ -109,13 +111,14 @@ class BuildingWalk implements BuildingWalkApi {
     return true;
   }
 
-  private onMounted(m: MountedSpace, loc: Located, host: SpaceHost): void {
+  private onMounted(m: MountedSpace, loc: Located, host: SpaceHost, followers: PersonSpec[]): void {
     this.mounted = m;
     setSpaceContext(contextOf(this.building.id, loc.space));
     m.onDispose(() => setSpaceContext(null));
     this.portals = mountPortals(m, loc.space.portals, (p) => { void this.usePortal(p); });
     host.tapClaim = (e) => this.portals?.tap(e) ?? false;
     m.onDispose(() => { host.tapClaim = null; this.portals?.dispose(); this.portals = null; this.closePanels(); });
+    void this.setDownFollowers(m, followers);
     // the "Building map" button, beside the HUD's own
     const bar = m.hud.root.querySelector('.wt-buttons');
     if (bar) {
@@ -125,6 +128,25 @@ class BuildingWalk implements BuildingWalkApi {
       btn.innerHTML = MAP_ICON;
       btn.addEventListener('click', (e) => { e.stopPropagation(); this.openMap(); btn.blur(); });
       bar.insertBefore(btn, bar.firstChild);
+    }
+  }
+
+  /** The people who were following the walker come out of the portal with them: set down just behind, one after another, and told to follow again. */
+  private async setDownFollowers(m: MountedSpace, followers: PersonSpec[]): Promise<void> {
+    const w = m.ctx.character.position;
+    const yaw = (m.ctx.character.yawDeg * Math.PI) / 180;
+    const fx = Math.sin(yaw), fz = Math.cos(yaw);
+    // (back, side) offsets from the walker, nearest first
+    const spots: [number, number][] = [[0.9, 0.45], [0.9, -0.45], [1.5, 0], [1.5, 0.6], [1.5, -0.6], [2.1, 0.3], [2.1, -0.3]];
+    let n = 0;
+    for (const spec of followers) {
+      let done = false;
+      for (; n < spots.length && !done; n++) {
+        const [back, side] = spots[n];
+        const at = { x: w.x - fx * back + fz * side, z: w.z - fz * back - fx * side };
+        const r = await m.people.place(spec, { kind: 'stand', at, yawDeg: m.ctx.character.yawDeg });
+        if (r.ok) { m.people.setFollow(r.id, true); done = true; }
+      }
     }
   }
 

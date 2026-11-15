@@ -7,6 +7,7 @@ import type { LoadingScreen } from '../buyer/loading';
 import type { Look } from '../look/look';
 import type { Grid, Layout, PropertyFile } from '../types';
 import type { Viewer } from '../engine/viewer';
+import type { People, PersonSpec } from '../buyer/people/manager';
 import type { PointerEvt } from '../engine/controls';
 
 export interface Landing { x: number; z: number; yawDeg: number }
@@ -60,6 +61,8 @@ export interface MountedSpace {
   block(on: boolean): void;
   /** run when this space is taken down */
   onDispose(fn: () => void): void;
+  /** the people a buyer added to this space (src/buyer/people) */
+  people: People;
 }
 
 /** What `boot` hands back for a space in a building: take it down, completely. */
@@ -68,4 +71,6 @@ export interface SpaceSession {
   dispose(): void;
   /** the look and style to carry to the next space */
   carry(): { hour?: number; trueColours?: boolean };
+  /** the added people who are following the walker: taken out of this space's layout, to be set down beside the walker in the next */
+  takeFollowers(): PersonSpec[];
 }

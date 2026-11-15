@@ -68,6 +68,9 @@ import { disposeTree } from '../building/dispose';
 import type { MountedSpace, SpaceHost, SpaceSession } from '../building/space-host';
 import { mountAiPhoto } from '../photo/mount';
 import { createMeasureMode } from './measure';
+import { mountPeople } from './people';
+import type { MountedPeople } from './people';
+import type { PersonSpec } from './people/manager';
 import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
@@ -445,14 +448,16 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     classic: (): boolean => !!getStyle().pack.classic,
   };
   if (look) cleanup.push(mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); }, style: stylePicker }));
+  // the people a buyer adds (src/buyer/people): mounted below, once the walker, the store and the HUD exist
+  let people: MountedPeople | null = null;
   // C12f: the optional AI photo (SPEC 17.14). The button exists only if the server says the feature is on; nothing else loads until it is tapped.
   // never for an uploaded plan: a picture of the view would leave the device, and an upload is promised to stay on it
   if (!uploaded) cleanup.push(mountAiPhoto({
     host: hud.root, viewer, layout, items: () => store.all(), toast: (t) => hud.toast(t),
-    withoutCharacter: (fn) => { const was = character.object.visible; character.setVisible(false); livedIn?.setSuppressed(true); try { return fn(); } finally { character.setVisible(was); livedIn?.setSuppressed(!!scanHandle && scanVisible); } },
+    withoutCharacter: (fn) => { const was = character.object.visible; character.setVisible(false); livedIn?.setSuppressed(true); people?.people.setSuppressed(true); try { return fn(); } finally { character.setVisible(was); livedIn?.setSuppressed(!!scanHandle && scanVisible); people?.people.setSuppressed(false); } },
   }).dispose);
 
-  const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms, fittings });
+  const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms, fittings, extraTargets: () => people?.people.objects() ?? [] });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
   const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
   cleanup.push(() => wardrobes.dispose());
@@ -529,13 +534,41 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   }
 
   let extBlock = false; // a building's own panel (the lift's floor list, the map) is open
-  const blocking = (): boolean => picker.isOpen() || rooms.isOpen() || paintBusy || extBlock;
+  // the people a buyer adds: bodies of their own that block the walk like a body, kept in "My layout" (src/buyer/people)
+  people = mountPeople({
+    ctx, hud, store, seats, modes, storage, sceneId, shareCode: host ? null : params.get(SHARE_PARAM),
+    tier: () => look?.tier ?? 'medium',
+    surfaceProbe: (x, z) => character.surfaceProbe?.(x, z) ?? null,
+    onBodies: () => baked?.rescan(),
+    otherBlocking: () => picker.isOpen() || rooms.isOpen() || paintBusy,
+    walker: {
+      position: () => character.position,
+      yawDeg: () => character.yawDeg,
+      heightCm: () => heightCm,
+      body: () => ({ body: person.body, tone: person.tone }),
+      poseOn: () => interactions.pose()?.itemId ?? null,
+      state: () => character.state,
+      getUp: () => interactions.getUp(),
+      swapTo: async (p) => {
+        await applyPerson({ body: p.body, tone: p.tone });
+        heightCm = applyHeight(p.heightCm);
+        resetLocomotion(character);
+        character.position = p.at;
+        character.yawDeg = p.yawDeg;
+        character.object.position.y = 0;
+        camera.setTarget(p.at, character.heightM);
+      },
+    },
+  });
+  cleanup.push(() => { people?.ui.dispose(); people?.people.dispose(); people = null; }); // their bodies, sheets and timers go with the space (their records stay in My layout)
+  const blocking = (): boolean => picker.isOpen() || rooms.isOpen() || paintBusy || extBlock || people!.ui.blocking();
 
   picker = createHeightPicker(document.body, {
     getCm: () => heightCm,
     onChange: (cm) => { heightCm = applyHeight(cm); },
     person: { get: () => ({ body: person.body, tone: person.tone }), onChange: (p) => { void applyPerson(p); } },
     view: { get: () => view, onChange: (v) => applyView(v) },
+    addPerson: { ...people.ui.addOption(), onClick: () => { picker.close(); people!.ui.openAdd(); } },
     onClose: () => {
       savePerson(storage, person);
       hud.setVisible(true);
@@ -546,6 +579,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     },
   });
   rooms = createRoomsSheet(document.body, layout, () => { /* nothing to resume */ }, unverifiedRooms);
+  rooms.setPeopleNote(people.ui.note());
+  people.people.onChange(() => rooms.setPeopleNote(people!.ui.note()));
   // look-kit: typical Indian-flat fittings (decor only, labelled, 'Plain' removes them). The style's room finishes are applied first (the kit's
   // floors read them), and the kit is taken off and put back whenever the style changes them.
   let kit: KitHandle | null = null;
@@ -569,7 +604,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   // SPEC 16.14: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.
   let baked: BakedHandle | null = null;
   if (look && params.get('bake') !== 'off' && !property.splat) {
-    baked = mountBaked({ look, scene: viewer.scene, renderer: viewer.renderer, sceneId, layout, extraDynamic: () => [character.object] });
+    baked = mountBaked({ look, scene: viewer.scene, renderer: viewer.renderer, sceneId, layout, extraDynamic: () => [character.object, ...people!.people.objects()] });
     cleanup.push(() => { baked?.dispose(); baked = null; });
     const lk = look;
     store.onChange(() => { setTimeout(() => baked?.rescan(), 150); });
@@ -606,9 +641,10 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   input.onTap((e) => {
     if (blocking() || modes.id !== 'walk') return;
     if (host?.tapClaim?.(e)) return; // a tap on a building's portal door or lift is the portal's, not a piece to select
-    // the same hit-test as in Furnish: the nearest thing under the tap, furniture or fitting
+    // the same hit-test as in Furnish: the nearest thing under the tap, furniture, fitting or an added person
     const hit = ctx.pickAt?.(e) ?? null;
-    if (!hit) return;
+    if (people!.ui.handleTap(e, hit)) return; // placing a person, or a person was tapped
+    if (!hit || hit.kind === 'person') return;
     if (hit.kind === 'item' && !store.all().some((i) => i.id === hit.id)) return;
     if (!modes.set('furnish')) return;
     const session = (modes.active() as { session?: { select(id: string | null): void; selectFitting(id: string | null): void } } | undefined)?.session;
@@ -616,6 +652,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   });
   input.on('cancel', () => {
     if (blocking()) return;
+    if (people!.ui.placing() || people!.ui.selected()) { people!.ui.cancel(); return; } // Esc puts a person down, or closes their card
     const m = modes.id;
     if (m === 'pose') void interactions.getUp();
     else if (m === 'measure' || m === 'furnish') modes.set('walk');
@@ -688,7 +725,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
       if (character.state === 'walk' || character.state === 'jog') character.setLocomotion(0, false);
       resetLocomotion(character); // a sheet that opens mid-stride stops the walker; it does not glide on when the sheet closes
     } else if (modes.id !== 'pose') {
-      stepLocomotion(character, input, camera.viewYawDeg, store.grid(), dt);
+      stepLocomotion(character, input, camera.viewYawDeg, people!.people.walkGrid(store.grid()), dt);
     } else resetLocomotion(character);
     modes.update(dt);
     interactions.update(dt);
@@ -716,6 +753,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
       const c = viewer.camera.position, p = character.object.position;
       motionDebug.trace.push({ cam: [c.x, c.y, c.z], char: [p.x, p.y, p.z] });
     }
+    people!.people.update(dt);
+    people!.ui.update(dt);
     // below a 0.7 m boom the character is hidden, above 0.8 m it comes back (SPEC 2.4)
     if (camera.boom < 0.7) character.setVisible(false);
     else if (camera.boom > 0.8) character.setVisible(true);
@@ -851,6 +890,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     },
     decor,
     seats,
+    /** the people a buyer added (src/buyer/people): the model, and the sheets and card */
+    people: { get model() { return people!.people; }, get ui() { return people!.ui; } },
     /** SPEC 16.14: the offline bake dumps the scene as built (loaded on demand, never part of a first load) */
     bake: {
       get handle() { return baked; },
@@ -888,7 +929,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   // ---- go
   if (disposed) return null; // the building moved on while this space was still loading
   host?.onMounted({
-    sceneId, property, layout, ctx, hud, viewer, doors, look, blocked: blocking, block: (on) => { extBlock = on; },
+    sceneId, property, layout, ctx, hud, viewer, doors, look, blocked: blocking, block: (on) => { extBlock = on; }, people: people!.people,
     onDispose: (fn) => { cleanup.push(fn); },
   });
   loading.setProgress(1, 'Ready');
@@ -900,6 +941,14 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     sceneId,
     dispose: teardown,
     carry: () => (look ? { hour: look.hour, trueColours: look.trueColours } : {}),
+    // the people who were following the walker leave this space's layout and come out of the portal with them
+    takeFollowers: () => {
+      const pp = people?.people;
+      if (!pp) return [];
+      const out: PersonSpec[] = [];
+      for (const r of pp.list()) if (pp.isFollowing(r.id)) { out.push({ body: r.body, tone: r.tone, heightCm: r.heightCm }); pp.remove(r.id); }
+      return out;
+    },
   };
 }
 

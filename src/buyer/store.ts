@@ -16,6 +16,7 @@ import { finishFamily, sanitizeFinish } from '../look/finishes';
 import type { Finish } from '../look/finishes';
 import { cloneMoved, decodeLayout, mineKey, parseMine, serializeMine } from './my-layout';
 import type { MyLayout } from './my-layout';
+import type { PersonRec } from './people/rec';
 import { applyEdit, editOf, isNoEdit, sizeChanged as itemSizeChanged } from './resize';
 import type { OriginalEdit } from './resize';
 import { cloneFittings, emptyFittings, isEmptyFittings, sameFittings } from '../look/fittings';
@@ -355,6 +356,13 @@ export interface FurnitureStoreImpl extends FurnitureStore {
   isEdited(): boolean;
   /** back to the home as drawn: placed pieces gone, hidden originals back, looks and staged moves undone. Clears storage. */
   reset(): void;
+  /**
+   * People the viewer added (src/buyer/people) travel in "My layout" but are not pieces: the store keeps none, it asks this source when
+   * the layout is read and edited-ness is asked, and tells it on `reset()`. Returns a function that saves and announces a change to the listeners.
+   */
+  attachPeople(src: { list(): PersonRec[]; clear(): void } | null): () => void;
+  /** the people this layout opened with: a shared link's, else the ones kept in this browser (stored in the same "mine" value as moves and fittings) */
+  initialPeople(): PersonRec[];
   /** true when this visit opened a shared layout link */
   fromLink(): boolean;
   /** the home as drawn: a deep copy of what property.json handed the store (for tests and the reset check) */
@@ -413,6 +421,9 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
   let fittingsOverlay: FittingsOverlay = emptyFittings();
   const ceilingM = opts.ceilingM ?? 2.6;
   let linked = false;
+  let peopleSrc: { list(): PersonRec[]; clear(): void } | null = null;
+  /** the people this layout opened with (a shared link's, else this browser's own) */
+  let startPeople: PersonRec[] = [];
 
   const mk = (item: FurnitureItem, origin: Entry['origin']): void => {
     const old = entries.get(item.id);
@@ -465,9 +476,11 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     const shared = decodeLayout(opts.shareCode, drawnById);
     if (shared) {
       linked = true;
+      startPeople = shared.people ?? [];
       seed(shared);
     } else {
       const mine = parseMine(tryGet(storage, mineKey(sceneId)), drawnById);
+      startPeople = mine.people ?? [];
       seed({ removed: mine.removed, finishes: mine.finishes, moved: mine.moved, fittings: mine.fittings, added: loadPlaced(storage, sceneId) });
     }
   }
@@ -485,12 +498,13 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     finishes: Object.fromEntries([...looks].map(([k, v]) => [k, { ...v }])),
     moved: cloneMoved(Object.fromEntries(edits)),
     fittings: cloneFittings(fittingsOverlay),
+    ...(peopleSrc && peopleSrc.list().length ? { people: peopleSrc.list() } : {}),
   });
   const saveNow = (): void => {
     if (saveTimer !== null) { clearTimeout(saveTimer); saveTimer = null; }
     dirty = false;
     savePlaced(storage, sceneId, buyerItems());
-    const mine = serializeMine([...hidden.keys()], Object.fromEntries(looks), Object.fromEntries(edits), fittingsOverlay);
+    const mine = serializeMine([...hidden.keys()], Object.fromEntries(looks), Object.fromEntries(edits), fittingsOverlay, peopleSrc?.list() ?? []);
     if (mine === null) tryRemove(storage, mineKey(sceneId)); else trySet(storage, mineKey(sceneId), mine);
   };
   const scheduleSave = (): void => {
@@ -721,7 +735,7 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     },
     layout: layoutNow,
     isEdited() {
-      if (hidden.size > 0 || looks.size > 0 || edits.size > 0 || !isEmptyFittings(fittingsOverlay)) return true;
+      if (hidden.size > 0 || looks.size > 0 || edits.size > 0 || !isEmptyFittings(fittingsOverlay) || (peopleSrc?.list().length ?? 0) > 0) return true;
       for (const e of entries.values()) {
         if (e.origin === 'buyer') return true;
         const d = drawnById.get(e.item.id);
@@ -730,6 +744,7 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
       return false;
     },
     reset() {
+      peopleSrc?.clear();
       for (const [id, e] of [...entries]) {
         const d = drawnById.get(id);
         const keep = e.origin === 'property' && d && !looks.has(id) && !edits.has(id) && JSON.stringify(d.box) === JSON.stringify(e.item.box);
@@ -744,6 +759,8 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
       saveNow();
       changed();
     },
+    attachPeople(src) { peopleSrc = src; return () => { scheduleSave(); changed(); }; },
+    initialPeople: () => startPeople.map((p) => ({ ...p })),
     fromLink: () => linked,
     pristine: () => drawn.map(cloneItem),
     drawnGrid: () => stampFurniture(baseGrid, [...drawn, ...(temporary.get('seats') ?? [])]),

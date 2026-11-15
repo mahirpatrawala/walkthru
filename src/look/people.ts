@@ -70,9 +70,14 @@ export async function loadPersonGLTF(body: PersonBody, tier: PersonTier): Promis
   const url = personUrl(body, tier);
   const [buf, src] = await Promise.all([fetchBuffer(url), clips()]);
   const gltf = await loader().parseAsync(buf.slice(0), PEOPLE_BASE);
-  retargetOnto(gltf, src);
+  // the clips a body plays are retargeted onto its skeleton once, and shared by every person of that body (the walker and the people a
+  // buyer adds): clips are read-only data, each character has its own mixer and actions
+  const shared = retargeted.get(url);
+  if (shared) gltf.animations = shared;
+  else { retargetOnto(gltf, src); retargeted.set(url, gltf.animations); }
   return gltf;
 }
+const retargeted = new Map<string, THREE.AnimationClip[]>();
 
 /** Retargets `src`'s clips onto `gltf`'s skeleton, in place (replaces `gltf.animations`). */
 export function retargetOnto(gltf: GLTF, src: GLTF): void {

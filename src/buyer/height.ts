@@ -32,15 +32,28 @@ export interface ViewOptions {
   onChange(v: ViewMode): void;
 }
 
+/** The same sheet, reused for the people a buyer adds (src/buyer/people): its own title and button, a way out, and a link from the walker's sheet. */
+export interface SheetExtras {
+  title?: string;
+  /** `data-testid` of the sheet (the walker's own stays `height-picker`) */
+  testId?: string;
+  /** the main button's words (default: Start walking, then Done) */
+  goLabel?: string;
+  /** a second, quiet button and the Escape key; absent = no way out but the main button */
+  onCancel?(): void;
+  /** on the walker's sheet: "Add a person" */
+  addPerson?: { label(): string; enabled(): boolean; onClick(): void };
+}
+
 export function createHeightPicker(
   parent: HTMLElement,
-  opts: { getCm(): number; onChange(cm: number): void; onClose(): void; person?: PersonOptions; view?: ViewOptions },
+  opts: { getCm(): number; onChange(cm: number): void; onClose(): void; person?: PersonOptions; view?: ViewOptions } & SheetExtras,
 ): HeightPicker {
   const modal = el('div', 'wt-modal', undefined, parent);
-  modal.dataset.testid = 'height-picker';
+  modal.dataset.testid = opts.testId ?? 'height-picker';
   modal.hidden = true;
   const sheet = el('div', 'wt-sheet', undefined, modal);
-  el('h2', undefined, opts.person ? "Who's walking?" : 'How tall are you?', sheet);
+  el('h2', undefined, opts.title ?? (opts.person ? "Who's walking?" : 'How tall are you?'), sheet);
 
   // body: four portrait cards (the family). Each shows a still of that person (no second renderer, so a phone pays nothing for it).
   const cards: { body: PersonBody; btn: HTMLButtonElement }[] = [];
@@ -138,8 +151,21 @@ export function createHeightPicker(
   const plus = el('button', 'wt-step-btn', '+', stepper);
   plus.type = 'button';
   plus.setAttribute('aria-label', 'One centimetre taller');
+  let addBtn: HTMLButtonElement | null = null;
+  if (opts.addPerson) {
+    addBtn = el('button', 'wt-add-person', undefined, sheet);
+    addBtn.type = 'button';
+    addBtn.dataset.testid = 'add-person';
+    addBtn.addEventListener('click', () => { if (!addBtn!.disabled) opts.addPerson!.onClick(); });
+  }
   const go = el('button', 'wt-go', 'Start walking', sheet);
   go.type = 'button';
+  let cancel: HTMLButtonElement | null = null;
+  if (opts.onCancel) {
+    cancel = el('button', 'wt-cancel-btn', 'Cancel', sheet);
+    cancel.type = 'button';
+    cancel.addEventListener('click', () => { if (!modal.hidden) { modal.hidden = true; opts.onCancel!(); } });
+  }
 
   let cm = clampPersonHeight(person.body, opts.getCm());
   let opened = false;
@@ -174,6 +200,7 @@ export function createHeightPicker(
   const onKey = (e: KeyboardEvent): void => {
     if (modal.hidden) return;
     if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); close(); }
+    else if (e.key === 'Escape' && opts.onCancel) { e.preventDefault(); e.stopPropagation(); modal.hidden = true; opts.onCancel(); }
     else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); set(cm - 1); }
     else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); set(cm + 1); }
   };
@@ -184,7 +211,8 @@ export function createHeightPicker(
     cm = clampPersonHeight(person.body, opts.getCm());
     if (opts.person) { person = opts.person.get(); renderPerson(); }
     renderView();
-    go.textContent = first && !opened ? 'Start walking' : 'Done';
+    go.textContent = opts.goLabel ?? (first && !opened ? 'Start walking' : 'Done');
+    if (addBtn && opts.addPerson) { addBtn.textContent = opts.addPerson.label(); addBtn.disabled = !opts.addPerson.enabled(); }
     opened = true;
     render();
     modal.hidden = false;

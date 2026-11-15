@@ -11,6 +11,8 @@ import { emptyFittings, fittingsFromWire, fittingsToWire, isEmptyFittings, sanit
 import type { FittingsOverlay, FittingsWire } from '../look/fittings';
 import type { OriginalEdit } from './resize';
 import type { Box, FurnitureItem } from '../types';
+import { cloneRec, peopleFromWire, peopleToWire, sanitizeRecs } from './people/rec';
+import type { PersonRec, WirePerson } from './people/rec';
 
 export interface MyLayout {
   removed: string[];
@@ -20,11 +22,14 @@ export interface MyLayout {
   moved: Record<string, OriginalEdit>;
   /** the fittings (AC, fan, curtains, plants, the drawing's chairs ...) removed, moved or resized, by stable fitting id */
   fittings: FittingsOverlay;
+  /** people the viewer added (src/buyer/people): never part of the home, absent when there are none */
+  people?: PersonRec[];
 }
 
 export const emptyLayout = (): MyLayout => ({ removed: [], added: [], finishes: {}, moved: {}, fittings: emptyFittings() });
 export const isEmptyLayout = (l: MyLayout): boolean =>
-  l.removed.length === 0 && l.added.length === 0 && Object.keys(l.finishes).length === 0 && Object.keys(l.moved).length === 0 && isEmptyFittings(l.fittings);
+  l.removed.length === 0 && l.added.length === 0 && Object.keys(l.finishes).length === 0 && Object.keys(l.moved).length === 0 && isEmptyFittings(l.fittings)
+  && !(l.people && l.people.length > 0);
 export const cloneMoved = (m: Record<string, OriginalEdit>): Record<string, OriginalEdit> => Object.fromEntries(Object.entries(m).map(([k, v]) => [k, { ...v }]));
 
 // ---------------------------------------------------------------- the words (SPEC 16.2: say what is and is not from the drawing)
@@ -80,7 +85,7 @@ const sanitizeMoved = (raw: unknown, originals: ReadonlyMap<string, FurnitureIte
   return out;
 };
 
-export interface Mine { removed: string[]; finishes: Record<string, Finish>; moved: Record<string, OriginalEdit>; fittings: FittingsOverlay }
+export interface Mine { removed: string[]; finishes: Record<string, Finish>; moved: Record<string, OriginalEdit>; fittings: FittingsOverlay; /** the people the viewer added; absent when there are none */ people?: PersonRec[] }
 
 /** The stored `{ version: 1 | 2, removed, finishes, moved?, fittings? }` (version 1 has no moved or fittings), or empty for anything malformed. Finishes are sanitised against `originals`. */
 export function parseMine(raw: string | null, originals: ReadonlyMap<string, FurnitureItem>): Mine {
@@ -89,7 +94,7 @@ export function parseMine(raw: string | null, originals: ReadonlyMap<string, Fur
   let json: unknown;
   try { json = JSON.parse(raw); } catch { return out; }
   if (!json || typeof json !== 'object') return out;
-  const o = json as { removed?: unknown; finishes?: unknown; moved?: unknown; fittings?: unknown };
+  const o = json as { removed?: unknown; finishes?: unknown; moved?: unknown; fittings?: unknown; people?: unknown };
   if (Array.isArray(o.removed)) {
     for (const id of o.removed) if (typeof id === 'string' && originals.has(id) && !out.removed.includes(id)) out.removed.push(id);
   }
@@ -102,13 +107,15 @@ export function parseMine(raw: string | null, originals: ReadonlyMap<string, Fur
   }
   out.moved = sanitizeMoved(o.moved, originals);
   out.fittings = sanitizeFittings(o.fittings);
+  const people = sanitizeRecs(o.people);
+  if (people.length) out.people = people;
   return out;
 }
 
-export function serializeMine(removed: string[], finishes: Record<string, Finish>, moved: Record<string, OriginalEdit> = {}, fittings: FittingsOverlay = emptyFittings()): string | null {
-  if (removed.length === 0 && Object.keys(finishes).length === 0 && Object.keys(moved).length === 0 && isEmptyFittings(fittings)) return null;
-  const plain = Object.keys(moved).length === 0 && isEmptyFittings(fittings);
-  return JSON.stringify(plain ? { version: 1, removed, finishes } : { version: 2, removed, finishes, moved, fittings });
+export function serializeMine(removed: string[], finishes: Record<string, Finish>, moved: Record<string, OriginalEdit> = {}, fittings: FittingsOverlay = emptyFittings(), people: readonly PersonRec[] = []): string | null {
+  if (removed.length === 0 && Object.keys(finishes).length === 0 && Object.keys(moved).length === 0 && isEmptyFittings(fittings) && people.length === 0) return null;
+  const plain = Object.keys(moved).length === 0 && isEmptyFittings(fittings) && people.length === 0;
+  return JSON.stringify(plain ? { version: 1, removed, finishes } : { version: 2, removed, finishes, moved, fittings, ...(people.length ? { people: people.map(cloneRec) } : {}) });
 }
 
 // ---------------------------------------------------------------- the link: compact, versioned
@@ -117,6 +124,8 @@ export function serializeMine(removed: string[], finishes: Record<string, Finish
 export const SHARE_PARAM = 'my';
 /** Version 1 carries removed pieces, added pieces and looks. Version 2 adds moved/resized originals and fittings; a layout with neither is still written as 1, so old readers keep working. */
 const VERSION = 2;
+/** fittings a person may sit on: the drawing's chairs (`seat:`) and fixed fittings (`fx-`) */
+const SEAT_HOST_RE = /^(seat:|fx-)/;
 const MAX_ADDED = 60;
 const MAX_MOVED = 60;
 const MAX_CODE_CHARS = 8000;
@@ -127,6 +136,7 @@ interface Wire {
   /** finishes of originals, by id */ f?: Record<string, WireFinish>;
   /** version 2: moved or resized originals: [id, cx cm, cz cm, yaw deg x10, w cm, d cm, height cm, surface height cm] */ p?: Array<[string, number, number, number, number, number, number, number]>;
   /** version 2: fittings (AC, fan, curtains, plants ...) removed, moved or resized */ x?: FittingsWire;
+  /** version 2: people the viewer added (people/rec.ts), "h" for humans: a link without it has none */ h?: WirePerson[];
 }
 type WireFinish = { p?: string; s?: string; f?: string; t?: string };
 
@@ -186,7 +196,12 @@ export function encodeLayout(l: MyLayout): string | null {
   if (moved.length) wire.p = moved;
   const fx = fittingsToWire(l.fittings);
   if (fx) wire.x = fx;
-  return `${wire.p || wire.x ? VERSION : 1}.${b64urlEncode(JSON.stringify(wire))}`;
+  if (l.people && l.people.length) {
+    const slot = new Map(added.map((i, n) => [i.id, n + 1]));
+    const allAdded = new Set(l.added.map((i) => i.id));
+    wire.h = peopleToWire(l.people, (id) => (slot.has(id) ? `#${slot.get(id)}` : allAdded.has(id) ? null : id));
+  }
+  return `${wire.p || wire.x || wire.h ? VERSION : 1}.${b64urlEncode(JSON.stringify(wire))}`;
 }
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -241,6 +256,14 @@ export function decodeLayout(code: string | null | undefined, originals: Readonl
       out.moved = sanitizeMoved(rows, originals);
     }
     if (wire.x) out.fittings = fittingsFromWire(wire.x);
+    if (Array.isArray(wire.h)) {
+      const people = peopleFromWire(wire.h, (ref) => {
+        if (ref.startsWith('#')) return out.added[Number(ref.slice(1)) - 1]?.id ?? null;
+        // a piece of this home that is still there, or a fitting of the drawing (a chair, a swing: checked when the person is made)
+        return (originals.has(ref) && !out.removed.includes(ref)) || !!SEAT_HOST_RE.test(ref) ? ref : null;
+      });
+      if (people.length) out.people = people;
+    }
   }
   return isEmptyLayout(out) ? null : out;
 }
