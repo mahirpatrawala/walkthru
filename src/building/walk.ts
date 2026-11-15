@@ -10,6 +10,7 @@ import { createLoadingScreen } from '../buyer/loading';
 import type { LoadingScreen } from '../buyer/loading';
 import { ARRIVAL_FROM_M, arrivalAtDoor } from './arrival';
 import { createCurtain } from './curtain';
+import { contextOf, setSpaceContext } from './extension';
 import { openLiftPanel } from './lift-panel';
 import type { LiftPanel } from './lift-panel';
 import { NotFound, fetchBuilding, fetchScene } from './load';
@@ -52,6 +53,8 @@ class BuildingWalk implements BuildingWalkApi {
   private liftPanel: LiftPanel | null = null;
   private map: { root: HTMLElement; view: BuildingMap; off: () => void } | null = null;
   private busy = false;
+  /** Back or Forward was pressed while a transition was running: follow the address once it is done */
+  private popAgain = false;
   private count = 0;
 
   constructor(readonly building: BuildingFile) {}
@@ -75,6 +78,7 @@ class BuildingWalk implements BuildingWalkApi {
       first: o.first,
       carry,
       bare: b.bare === true,
+      space: { id: loc.space.id, kind: loc.space.kind, outdoor: loc.space.outdoor === true, pack: loc.space.pack ?? null },
       tagText: b.sample ? `${loc.space.name} · ${loc.level.label}. Sample building, not a real home.` : `${loc.space.name} · ${loc.level.label}`,
       loading: o.screen,
       doorLooks: doorLooksFor(loc.space),
@@ -102,6 +106,8 @@ class BuildingWalk implements BuildingWalkApi {
 
   private onMounted(m: MountedSpace, loc: Located): void {
     this.mounted = m;
+    setSpaceContext(contextOf(this.building.id, loc.space));
+    m.onDispose(() => setSpaceContext(null));
     this.portals = mountPortals(m, loc.space.portals, (p) => { void this.usePortal(p); });
     m.onDispose(() => { this.portals?.dispose(); this.portals = null; this.closePanels(); });
     // the "Building map" button, beside the HUD's own
@@ -165,7 +171,7 @@ class BuildingWalk implements BuildingWalkApi {
       const curtain = createCurtain({ kind: t.kind, title: t.title, sub: t.sub, floors: t.floors });
       await curtain.covered;
       await this.enter(spaceId, { opening: t.opening, fromM: t.fromM, screen: curtain.screen, first: false, history: 'push' });
-    } finally { this.busy = false; }
+    } finally { this.busy = false; this.followAddress(); }
   }
 
   async go(spaceId: string): Promise<void> {
@@ -187,13 +193,19 @@ class BuildingWalk implements BuildingWalkApi {
     if (!u || u.building !== this.building.id) { location.reload(); return; }
     const loc = findSpace(this.building, u.space) ?? startSpaceOf(this.building);
     if (this.here?.space.id === loc.space.id) return;
-    if (this.busy) return;
+    if (this.busy) { this.popAgain = true; return; }
     this.busy = true;
     try {
       const curtain = createCurtain({ kind: 'door', title: loc.space.name, sub: loc.level.label });
       await curtain.covered;
       await this.enter(loc.space.id, { opening: loc.space.portals[0]?.opening ?? null, screen: curtain.screen, first: false, history: 'none' });
-    } finally { this.busy = false; }
+    } finally { this.busy = false; this.followAddress(); }
+  }
+
+  private followAddress(): void {
+    if (!this.popAgain) return;
+    this.popAgain = false;
+    void this.onPop();
   }
 
   // ---------------------------------------------------------------- panels

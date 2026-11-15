@@ -77,6 +77,8 @@ function parseSpace(v: unknown, path: string): Space {
   if (v.type !== undefined) s.type = str(v, 'type', path);
   if (v.mirrored !== undefined) { if (typeof v.mirrored !== 'boolean') fail(`${path}.mirrored`, 'must be true or false'); s.mirrored = v.mirrored as boolean; }
   if (v.comingNext !== undefined) s.comingNext = v.comingNext === true;
+  if (v.outdoor !== undefined) { if (typeof v.outdoor !== 'boolean') fail(`${path}.outdoor`, 'must be true or false'); s.outdoor = v.outdoor as boolean; }
+  if (v.pack !== undefined) s.pack = str(v, 'pack', path);
   if (v.notes !== undefined) s.notes = arr(v, 'notes', path).map((n, i) => (typeof n === 'string' ? n : fail(`${path}.notes[${i}]`, 'must be text')));
   return s;
 }

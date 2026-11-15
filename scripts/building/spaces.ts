@@ -3,7 +3,7 @@
 // corridor 1.8 m, lift car 1.1 x 1.4 m with a 0.9 m door, main doors 1.0 m. The pool and the garden are plain rooms until stage 3.
 import { catalogItem } from '../../src/core/catalog';
 import type { DoorLeaf, FurnitureItem, Opening, PropertyFile, RoomTag } from '../../src/types';
-import { finishes, openingAt, rectOf, rectRoom, sceneFile, windowAt } from './scene-kit';
+import { finishes, openingAt, rectRoom, sceneFile, windowAt } from './scene-kit';
 import type { Rect, Side } from './scene-kit';
 import type { Plate } from './plate';
 
@@ -24,12 +24,8 @@ const other = (s: Side): Side => ({ N: 'S', S: 'N', E: 'W', W: 'E' } as const)[s
 export { other as oppositeSide };
 
 /** The two sides of one doorway between two scenes drawn in the same plan frame: the leaf opens into B, hinged on the same post. */
-export function doorPair(a: { room: RoomTag; side: Side; at: number; id: string }, b: { room: RoomTag; id: string }, width: number, phys: 'low' | 'high' = 'low', wallM = 0.3): { a: Opening; b: Opening } {
+export function doorPair(a: { room: RoomTag; side: Side; at: number; id: string }, b: { room: RoomTag; id: string }, width: number, phys: 'low' | 'high' = 'low'): { a: Opening; b: Opening } {
   const bSide = other(a.side);
-  const ra = rectOf(a.room);
-  // B's wall is `wallM` beyond A's, along the same axis
-  const rb = rectOf(b.room);
-  void ra; void rb;
   return {
     a: openingAt(a.room, a.side, a.at, { id: a.id, widthM: width, leaf: { hinge: hingeEnd(a.side, phys), swing: 'out', kind: 'hinged' } }),
     b: openingAt(b.room, bSide, a.at, { id: b.id, widthM: width, leaf: { hinge: hingeEnd(bSide, phys), swing: 'in', kind: 'hinged' } }),

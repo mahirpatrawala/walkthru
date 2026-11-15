@@ -46,36 +46,66 @@ function isTouchDevice(): boolean {
 }
 
 /**
+ * A building opens one space after another in the same page. The renderer (and so the WebGL context, the compiled programs and the canvas)
+ * is made once and handed to each space's viewer in turn: a texture or geometry that two spaces share would otherwise keep a listener on
+ * every renderer that ever drew it. Held while a shared viewer is alive or waiting for the next space.
+ */
+let sharedGL: { renderer: THREE.WebGLRenderer; canvas: HTMLCanvasElement; antialias: boolean; container: HTMLElement } | null = null;
+
+/** Lets go of the shared renderer for good (the page is leaving buildings, or the next space needs another kind of context). */
+export function releaseSharedRenderer(): void {
+  if (!sharedGL) return;
+  sharedGL.renderer.setAnimationLoop(null);
+  sharedGL.renderer.dispose();
+  sharedGL.renderer.forceContextLoss();
+  sharedGL.canvas.remove();
+  sharedGL = null;
+}
+
+/**
  * Builds the renderer in `container`. `antialias` is on unless the scene has a splat (Spark needs it off).
  * sRGB output, no tone mapping, pixel ratio min(dpr, 2) on desktop and min(dpr, 1.5) on touch devices, one
  * HemisphereLight and one DirectionalLight, no shadow maps. FOV 60, or 70 in portrait.
+ * `shared`: reuse the renderer and canvas of the last shared viewer (a building's spaces); `dispose` then leaves them for the next one.
  */
-export function createViewer(container: HTMLElement, opts: { hasSplat: boolean }): Viewer {
+export function createViewer(container: HTMLElement, opts: { hasSplat: boolean; shared?: boolean }): Viewer {
+  const antialias = !opts.hasSplat;
+  const share = opts.shared === true;
   let renderer: THREE.WebGLRenderer;
-  try {
-    renderer = new THREE.WebGLRenderer({ antialias: !opts.hasSplat });
-  } catch (err) {
-    throw new Error(`createViewer: could not start WebGL (${String(err)}). Try another browser or enable hardware acceleration.`);
+  let canvas: HTMLCanvasElement;
+  let disposed = false;
+  if (share && sharedGL && sharedGL.antialias === antialias && sharedGL.container === container && sharedGL.canvas.isConnected) {
+    renderer = sharedGL.renderer;
+    canvas = sharedGL.canvas;
+  } else {
+    if (share) releaseSharedRenderer();
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias });
+    } catch (err) {
+      throw new Error(`createViewer: could not start WebGL (${String(err)}). Try another browser or enable hardware acceleration.`);
+    }
+    canvas = renderer.domElement;
+    canvas.style.display = 'block';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.touchAction = 'none';
+    canvas.style.outline = 'none';
+    container.appendChild(canvas);
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      if (disposed) return; // we let go of it ourselves
+      console.error('[walkthru] WebGL context lost. Reload the page if the view stays blank.');
+    });
+    if (share) sharedGL = { renderer, canvas, antialias, container };
   }
+  // the state every viewer starts from (a shared renderer may have been left otherwise by the last space)
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
+  renderer.toneMappingExposure = 1;
   renderer.shadowMap.enabled = false;
+  renderer.info.autoReset = true;
   const touch = isTouchDevice();
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, touch ? 1.5 : 2));
-
-  const canvas = renderer.domElement;
-  canvas.style.display = 'block';
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
-  canvas.style.touchAction = 'none';
-  canvas.style.outline = 'none';
-  container.appendChild(canvas);
-  let disposed = false;
-  canvas.addEventListener('webglcontextlost', (e) => {
-    e.preventDefault();
-    if (disposed) return; // we let go of it ourselves (a building swaps spaces in one page)
-    console.error('[walkthru] WebGL context lost. Reload the page if the view stays blank.');
-  });
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(BACKGROUND);
@@ -136,10 +166,9 @@ export function createViewer(container: HTMLElement, opts: { hasSplat: boolean }
       callbacks.clear();
       resizeCbs.clear();
       sparkRenderer?.dispose?.();
+      if (share) return; // the renderer and the canvas wait for the next space (releaseSharedRenderer ends it)
       disposed = true;
       renderer.dispose();
-      // hand the context back at once: a page that opens many spaces in a row must not wait for the garbage collector to free them
-      renderer.forceContextLoss();
       canvas.remove();
     },
   };

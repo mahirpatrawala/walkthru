@@ -33,7 +33,7 @@ export function createCurtain(o: CurtainOptions): Curtain {
   let display: HTMLElement | null = null;
   if (o.kind === 'lift') { el('div', 'wb-lift-door l', root); el('div', 'wb-lift-door r', root); display = el('div', 'wb-display', root); }
   const cap = el('div', 'wb-cap', root);
-  const title = el('b', '', cap, o.title);
+  el('b', '', cap, o.title);
   const sub = el('span', '', cap, o.sub ?? '');
   sub.hidden = !o.sub;
   const bar = el('div', 'wb-bar', cap);
@@ -51,8 +51,6 @@ export function createCurtain(o: CurtainOptions): Curtain {
   const floors = o.floors && o.floors.length > 1 ? o.floors : null;
   const rideMs = o.rideMs ?? 1300;
   if (display && floors) {
-    const up = (): string => '▲';
-    void up;
     const show = (i: number): void => { display!.textContent = ''; const s = document.createElement('span'); s.textContent = floors[i]; const a = document.createElement('small'); a.textContent = floorArrow(floors, i); display!.append(a, s); };
     let i = 0;
     show(0);
@@ -104,7 +102,6 @@ export function createCurtain(o: CurtainOptions): Curtain {
     hide() { void finish(); },
     isShowingError: () => errorScreen?.isShowingError() ?? false,
   };
-  void title;
   return { screen, covered };
 }
 

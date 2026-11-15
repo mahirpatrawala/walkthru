@@ -237,7 +237,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   if (!app) throw new Error('index.html has no #app element.');
   let viewer: Viewer;
   try {
-    viewer = createViewer(app, { hasSplat: !!property.splat });
+    viewer = createViewer(app, { hasSplat: !!property.splat, shared: !!host });
   } catch (err) {
     loading.showError('Could not start 3D.', `${describe(err)}\nTry another browser, or turn on hardware acceleration.`);
     return failed();
@@ -245,6 +245,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   probeViewer = viewer;
   cleanup.push(() => {
     // last to go: everything below is registered after it and taken down first
+    disposeTree(viewer.scene); // anything still hanging in the scene (a module that does not dispose its own parts)
     if (host) {
       const i = viewer.renderer.info;
       (window as unknown as { __walkthruTeardown?: unknown }).__walkthruTeardown = { before: heldBefore, after: { geometries: i.memory.geometries, textures: i.memory.textures, programs: i.programs?.length ?? 0 } };
@@ -283,7 +284,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   const styleKey = `walkthru:style:${host?.styleScope ?? sceneId}`;
   const sheet = await sheetP;
   {
-    const picked = params.get('style') ?? storageGet(storage, styleKey);
+    const picked = params.get('style') ?? storageGet(storage, styleKey) ?? host?.space.pack ?? null;
     const packId: string | undefined = picked && picked !== 'designer' && PACKS.some((p) => p.id === picked) ? picked : undefined;
     setStyle({ packId, sheet });
   }

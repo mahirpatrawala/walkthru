@@ -52,8 +52,6 @@ export function levelPlan(b: BuildingFile, level: Level, scenes: ReadonlyMap<str
   const unverified: Record<string, string> = {};
   let wall = 2.7;
   const boxes: SpaceBox[] = [];
-  const floorPlate = (name: string): string => `${name}`;
-  void floorPlate;
   for (const s of level.spaces) {
     const sc = scenes.get(s.sceneId);
     if (!sc) continue;
@@ -116,6 +114,3 @@ export function levelPlan(b: BuildingFile, level: Level, scenes: ReadonlyMap<str
   svg = svg.replace(/<\/svg>$/, `${over.join('')}</svg>`);
   return { svg, aspect: pic.aspect, boxes };
 }
-
-/** "Flats 201 to 204": the part of a level's summary the lift panel and the stack show. */
-export const levelTitle = (l: Level): string => `${l.label}`;

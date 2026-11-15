@@ -35,6 +35,10 @@ export interface Space {
   /** a placeholder for a later stage: enterable as an empty room, labelled on the map */
   comingNext?: boolean;
   notes?: string[];
+  /** a space under the sky (no ceiling): read and handed to the walk, not drawn that way yet (SPEC 18.9) */
+  outdoor?: boolean;
+  /** the style pack this space opens in, unless the viewer has picked one (src/look/packs ids) */
+  pack?: string;
 }
 
 export interface Level {

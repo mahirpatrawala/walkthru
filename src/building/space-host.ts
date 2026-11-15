@@ -21,6 +21,8 @@ export interface SpaceHost {
   carry: { hour?: number; trueColours?: boolean } | null;
   /** a bare building has none of the added decor by default */
   bare: boolean;
+  /** which space this is (SPEC 18.9): its kind, whether it is outdoors, the style pack it opens in */
+  space: { id: string; kind: string; outdoor: boolean; pack: string | null };
   /** replaces the sample tag under the room chip ("Sample building. Not a real home.") */
   tagText: string | null;
   /** the loading screen already showing, so the walk does not make a second one */

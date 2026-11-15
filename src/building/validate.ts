@@ -3,7 +3,6 @@
 import { stampFurniture, rasterizeLayout } from '../core/layout-raster';
 import { overlapAreaM2, validateLayout } from '../core/layout-validate';
 import { sceneOrigin } from '../buyer/scene-tag';
-import { polygonArea } from '../core/geometry';
 import type { PropertyFile } from '../types';
 import { arrivalAtDoor, reachable } from './arrival';
 import { doorFrame, dirToLevel, roomsOnLevel, toLevel } from './geom';
@@ -141,6 +140,5 @@ export function validateBuilding(b: BuildingFile, scene: SceneLookup): BuildingR
 
   // ---- the made-up label
   if (b.sample && !/sample/i.test(`${b.name} ${b.note}`)) warnings.push('A sample building should say "sample" in its name or note.');
-  void polygonArea;
   return { errors, warnings };
 }
