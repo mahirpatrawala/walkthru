@@ -198,10 +198,26 @@ function diningChair(parts: Parts, size: GenSize, x: number, side: 1 | -1, wood:
   else for (const sx of [-1, 0, 1]) mk(rb(x + sx * 0.1 - 0.02, x + sx * 0.1 + 0.02, 0.08, len - 0.08, -0.007, 0.007, 0.003), 'chair-legs', wood);
 }
 
-export function buildDining(env: GenEnv, size: GenSize, p: DiningParams, roles: Roles): THREE.Group {
+/** where the chairs of a dining set stand, in the set's own frame (turned when the box is deeper than wide): x along the long side, which side of the table */
+export function diningChairLayout(size: GenSize, p: DiningParams): { turned: boolean; w: number; d: number; slots: { x: number; side: 1 | -1 }[] } {
+  const turned = size.d > size.w * 1.25;
+  const w = turned ? size.d : size.w, d = turned ? size.w : size.d;
+  // only as many chairs a side as the table's length holds, and none past its ends
+  const nSide = Math.max(1, Math.min(Math.round(p.chairs / 2), Math.floor(w / 0.5)));
+  const reach = Math.max(0, w / 2 - 0.22 - 0.02);
+  const slots: { x: number; side: 1 | -1 }[] = [];
+  for (const side of [-1, 1] as const) for (let i = 0; i < nSide; i++) {
+    const k = nSide === 1 ? 0 : (i / (nSide - 1) - 0.5) * 2;
+    slots.push({ x: k * Math.min(reach, w / 1.8 * 0.6), side });
+  }
+  return { turned, w, d, slots };
+}
+
+/** `chairs: false` builds the table alone (the model library puts its own chairs round it) */
+export function buildDining(env: GenEnv, size: GenSize, p: DiningParams, roles: Roles, opts: { chairs?: boolean } = {}): THREE.Group {
   // the chairs line the long sides: a box drawn deeper than wide is built turned a quarter, so nothing leaves the drawn footprint
   if (size.d > size.w * 1.25) {
-    const g = buildDining(env, { ...size, w: size.d, d: size.w }, p, roles);
+    const g = buildDining(env, { ...size, w: size.d, d: size.w }, p, roles, opts);
     const turned = new THREE.Group();
     g.rotation.y = Math.PI / 2;
     turned.add(g);
@@ -223,12 +239,6 @@ export function buildDining(env: GenEnv, size: GenSize, p: DiningParams, roles: 
   const ax0 = w / 2 - 0.14, az0 = tableD / 2 - 0.12;
   parts.box('table-apron', wood, -ax0, ax0, S - topT - 0.07, S - topT, -az0 - 0.01, -az0 + 0.01, { c: 0.002, grain: 'x' });
   parts.box('table-apron', wood, -ax0, ax0, S - topT - 0.07, S - topT, az0 - 0.01, az0 + 0.01, { c: 0.002, grain: 'x' });
-  // only as many chairs a side as the table's length holds, and none past its ends
-  const nSide = Math.max(1, Math.min(Math.round(p.chairs / 2), Math.floor(w / 0.5)));
-  const reach = Math.max(0, w / 2 - 0.22 - 0.02);
-  for (const side of [-1, 1] as const) for (let i = 0; i < nSide; i++) {
-    const k = nSide === 1 ? 0 : (i / (nSide - 1) - 0.5) * 2;
-    diningChair(parts, size, k * Math.min(reach, w / 1.8 * 0.6), side, wood, fab, p);
-  }
+  if (opts.chairs !== false) for (const c of diningChairLayout(size, p).slots) diningChair(parts, size, c.x, c.side, wood, fab, p);
   return parts.done();
 }

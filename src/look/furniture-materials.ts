@@ -68,7 +68,7 @@ export const DEFS: Record<MatKey, Def> = {
 };
 
 const DETAIL_VERT_PARS = '';
-function patchDetail(mat: THREE.MeshStandardMaterial, mean: number, strength = 1): void {
+export function patchDetail(mat: THREE.MeshStandardMaterial, mean: number, strength = 1): void {
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uFMean = { value: mean };
     shader.uniforms.uFStrength = { value: strength };

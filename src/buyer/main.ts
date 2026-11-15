@@ -27,6 +27,9 @@ import { mountDesign } from '../look/design-mount';
 import { PACKS } from '../look/packs';
 import { doorPanelColour, finishNote, getStyle, onStyleChange, setStyle } from '../look/style';
 import { resolveItemLook } from '../look/furniture-real';
+import { modelNote } from '../look/models/apply';
+import { setModelsEnabled } from '../look/models/library';
+import { modelStats, modelsIdle } from '../look/models/load';
 import type { Look } from '../look/look';
 import { mountLookPanel } from '../look/look-panel';
 import { createInput } from '../engine/controls';
@@ -108,6 +111,7 @@ async function fetchExtras(sceneId: string): Promise<ReturnType<typeof unverifie
 // ---------------------------------------------------------------- page boot
 
 const params = new URLSearchParams(location.search);
+setModelsEnabled(params.get('models') !== 'off'); // ?models=off: the generated furniture and decor only (SPEC 16.15)
 // src/buyer/entry.ts only loads this file when ?scene= names a home; with no scene the start page opens instead
 const sceneId = (params.get('scene') ?? '').trim();
 const requestedRoom = params.get('room');
@@ -283,6 +287,7 @@ async function boot(): Promise<void> {
       void furnitureKit.setTier(t).then(() => {
         rebuildFurnitureTier(furnitureRoot, t);
         design?.rebuild(t);
+        livedIn?.setTier(t);
         for (const d of decor) d.rebuild(t);
         look!.refresh(store.grid());
       });
@@ -376,7 +381,7 @@ async function boot(): Promise<void> {
   const doors = mountDoors({ ctx, store, layout });
   doors.setPanelColour(doorPanelColour());
   onStyleChange(() => { doors.setPanelColour(doorPanelColour()); }); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
-  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name)) });
+  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name) + modelNote(item.id)) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));
@@ -462,7 +467,7 @@ async function boot(): Promise<void> {
     look?.refresh(store.grid());
   });
   // optional "Lived-in" decor (SPEC 16.6.7): a switch in the look sheet, a label in the rooms sheet; on by default only for made-up sample homes
-  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
+  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), models: () => (getStyle().pack.classic ? null : getStyle().pack.models ?? null), defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
 
   // SPEC 16.14: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.
   let baked: BakedHandle | null = null;
@@ -704,8 +709,11 @@ async function boot(): Promise<void> {
     /** SPEC 16.14: the offline bake dumps the scene as built (loaded on demand, never part of a first load) */
     bake: {
       get handle() { return baked; },
-      exportScene: async () => (await import('../look/baked/export')).exportScene({ scene: viewer.scene, sceneId, wallHeightM: layout.wallHeightM }),
+      // library models (SPEC 16.15) arrive after first paint: the dump waits for them, so the bake lights what the viewer sees
+      exportScene: async () => { await modelsIdle(); return (await import('../look/baked/export')).exportScene({ scene: viewer.scene, sceneId, wallHeightM: layout.wallHeightM }); },
     },
+    /** the CC0 model library (SPEC 16.15): files fetched so far, and a promise for when nothing is loading */
+    models: { stats: modelStats, idle: modelsIdle, lived: () => livedIn?.pieces() ?? [] },
     /** open-wardrobe hooks for the acceptance scripts */
     wardrobe: wardrobes.debug,
     /** SPEC 16.8 hooks. `ready` is the current tier's asset promise (a getter, so it follows tier changes). */

@@ -11,8 +11,10 @@ import { furnitureKit } from './furniture-materials';
 import type { FurnitureKit, MatKey } from './furniture-materials';
 import { GENERATORS, GEN_QUALITY, sizeOf } from './gen';
 import { moveChildren } from './gen/core';
-import { resolveLook } from './style';
+import { getStyle, resolveLook } from './style';
 import type { ResolvedLook } from './style';
+import { planFurniture } from './models/library';
+import { attachModel, clearModelUse } from './models/apply';
 
 export type FurnitureLookName = 'bed' | 'sofa' | 'wardrobe' | 'study' | 'side' | 'counter' | 'dining';
 
@@ -472,6 +474,10 @@ const BUILDERS: Record<FurnitureLookName, (b: Build, item: FurnitureItem) => voi
  * Does not touch the group's position or rotation.
  */
 export function buildRealFurniture(group: THREE.Group, item: FurnitureItem, tier: Tier, kit: FurnitureKit = furnitureKit): void {
+  // a rebuild starts over: an answer from a model fetched for the previous build is dropped (src/look/models/apply.ts)
+  group.userData.modelToken = {};
+  delete group.userData.model;
+  clearModelUse(item.id);
   // a style pack other than Classic builds the piece with the parametric generators (src/look/gen), same box, same heights
   const look = resolveItemLook(item);
   if (look) {
@@ -480,6 +486,9 @@ export function buildRealFurniture(group: THREE.Group, item: FurnitureItem, tier
     group.userData.look = look;
     // the generator consumed item.finish itself (src/look/style.ts finishLayer): the old colour-swap pass stands down
     group.userData.finishApplied = true;
+    // a free CC0 model stands in for the generated piece when it fits the drawn size (SPEC 16.15); the generated piece shows until it arrives
+    const plan = planFurniture(item, look, getStyle().pack.models ?? null);
+    if (plan) void attachModel(group, item, look, plan, tier, kit);
     return;
   }
   group.userData.finishApplied = false;

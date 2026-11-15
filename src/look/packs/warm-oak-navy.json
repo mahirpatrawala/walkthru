@@ -26,5 +26,6 @@
     "dining": { "chair": "padded", "legs": "tapered" }
   },
   "room": { "wall": "wall-beige", "floor": "tile-beige-gloss", "ceiling": "ceiling-white" },
-  "decor": { "rug": true, "curtains": true }
+  "decor": { "rug": true, "curtains": true },
+  "models": { "bed": "generator", "sofa": "generator", "bench": "generator", "wardrobe": "generator", "study": "generator", "side": "generator", "dresser": "generator", "counter": "generator", "dining": "generator" }
 }
