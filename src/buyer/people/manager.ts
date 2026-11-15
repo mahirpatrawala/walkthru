@@ -301,7 +301,8 @@ export function createPeople(deps: PeopleDeps): People {
       ch.setShadowVisible(true);
       ch.setVisible(!suppressed);
       deps.scene.add(ch.object);
-      await applyPose(l, instant);
+      // the pose plays out over the next frames (0.3 to 0.9 s); the person is "added" as soon as the body is in the scene
+      if (instant) await applyPose(l, true); else void applyPose(l, false);
       deps.onBodies?.();
     } catch (err) {
       console.warn('[walkthru] a person could not be loaded:', err);
@@ -390,7 +391,7 @@ export function createPeople(deps: PeopleDeps): People {
     l.follow = false;
     syncObstacles();
     changed();
-    if (l.ch) await track(applyPose(l, false));
+    if (l.ch) void applyPose(l, false);
     return { ok: true, id };
   }
 
