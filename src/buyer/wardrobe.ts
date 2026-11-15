@@ -79,6 +79,8 @@ interface Rec {
   result: OpenResult | null;
   arcs: THREE.Group | null;
   lastBox: Box;
+  /** built for a place or size the viewer changed in My layout (the drawing's gaps and conflicts left out) */
+  edited: boolean;
 }
 
 /** How much room a wardrobe needs in front: its catalogue access rule (SPEC 4.4, "all of front >= 0.90"). */
@@ -124,9 +126,25 @@ export function createWardrobes(deps: { ctx: BuyerContext; store: FurnitureStore
 
   // ------------------------------------------------------------ building and finding wardrobes
 
+  /**
+   * A drawn wardrobe that the viewer moved or resized in My layout: its bays and shutters scale with the width, and what the drawing says about the
+   * gap to its neighbours, its conflicts and the inside of its bays (heights) belongs to the drawn place and size, so it is left out.
+   */
+  function editedDesign(item: FurnitureItem, o: NonNullable<DesignsFile['items'][string]['openable']>): NonNullable<DesignsFile['items'][string]['openable']> {
+    const drawn = store.drawnItem?.(item.id);
+    if (!drawn) return o;
+    const k = drawn.box.w > 1e-6 ? item.box.w / drawn.box.w : 1;
+    const moved = !sameBox(drawn.box, item.box);
+    const high = Math.abs(drawn.heightM - item.heightM) > 1e-6;
+    if (!moved && !high) return o;
+    return {
+      ...o, bayPitchM: o.bayPitchM * k, shutterWidthM: o.shutterWidthM * k, bayCentresFromLeftM: o.bayCentresFromLeftM.map((c) => c * k),
+      gaps: [], conflicts: [], cardConflict: undefined, ...(high ? { interior: undefined } : {}),
+    };
+  }
   function specFor(item: FurnitureItem): { spec: OpenSpec; wd: WardrobeDesign | null } | null {
     const d = designs?.items[item.id];
-    if (d?.openable) return { spec: specFromDesign(item, d.openable), wd: d.wardrobe ?? null };
+    if (d?.openable) return { spec: specFromDesign(item, editedDesign(item, d.openable)), wd: d.wardrobe ?? null };
     const c = specFromCatalogue(item);
     return c ? { spec: c, wd: null } : null;
   }
@@ -156,7 +174,9 @@ export function createWardrobes(deps: { ctx: BuyerContext; store: FurnitureStore
       if (!built) continue;
       seen.add(item.id);
       const have = recs.get(item.id);
-      if (have && have.item.box.w === item.box.w && have.item.box.d === item.box.d && have.item.heightM === item.heightM && sameFinish(have.item.finish, item.finish)) {
+      const drawnItem = store.drawnItem?.(item.id);
+      const editedNow = !!drawnItem && !sameBox(drawnItem.box, item.box);
+      if (have && have.edited === editedNow && have.item.box.w === item.box.w && have.item.box.d === item.box.d && have.item.heightM === item.heightM && sameFinish(have.item.finish, item.finish)) {
         // moved while open (furnish mode): shut it where it stood, so no obstacle is left behind
         if (!sameBox(have.item.box, item.box) && (anyOpen(have) || !have.settled)) forceClose(have);
         have.item = item;
@@ -170,7 +190,7 @@ export function createWardrobes(deps: { ctx: BuyerContext; store: FurnitureStore
       parent.add(model.group);
       const rec: Rec = {
         item, storeMesh: store.mesh(item.id), spec: built.spec, wd: built.wd, model, target: new Map(), hold: new Map(), open: new Set(), settled: true, waiters: [],
-        result: null, arcs: null, lastBox: { ...item.box },
+        result: null, arcs: null, lastBox: { ...item.box }, edited: editedNow,
       };
       for (const s of built.spec.shutters) rec.target.set(s.id, 0);
       recs.set(item.id, rec);

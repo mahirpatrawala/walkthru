@@ -196,6 +196,8 @@ export interface Decor {
   group: THREE.Group;
   /** rebuild for another tier, in place */
   rebuild(tier: Tier): void;
+  /** stand somewhere else (the piece it stands at moved, or the viewer moved it) */
+  place(at: { x: number; z: number; yawDeg: number }): void;
   dispose(): void;
 }
 
@@ -240,7 +242,7 @@ export function buildDecor(d: DesignsFile | null, items: FurnitureItem[], tier: 
     fill(tier);
     root.userData.decor = true;
     root.updateMatrixWorld(true);
-    out.push({ id: spec.id, hostId: spec.tiedTo, group: root, rebuild: fill, dispose: () => { disposeChildren(root); root.removeFromParent(); } });
+    out.push({ id: spec.id, hostId: spec.tiedTo, group: root, rebuild: fill, place: (p) => { root.position.set(p.x, 0, p.z); root.rotation.y = (p.yawDeg * Math.PI) / 180; root.updateMatrixWorld(true); }, dispose: () => { disposeChildren(root); root.removeFromParent(); } });
   }
   return out;
 }
