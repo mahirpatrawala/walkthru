@@ -127,6 +127,8 @@ export interface ContextDeps {
   modes: ModeManager;
   /** rooms whose size was not measured (drawing import), id -> reason; omitted when every room is measured */
   unverifiedRooms?: UnverifiedRooms;
+  /** more things a ray may hit besides the shell and the furniture: the people a buyer added, so the measure tool can measure against them */
+  extraTargets?: () => THREE.Object3D[];
 }
 
 /** Builds the BuyerContext handed to every mode (SPEC 7.1). */
@@ -153,7 +155,7 @@ export function createBuyerContext(d: ContextDeps): BuyerContext {
     mode: () => d.modes.id,
     raycast(e) {
       setRay(e);
-      const hits = raycaster.intersectObjects([d.shell, d.furnitureRoot], true);
+      const hits = raycaster.intersectObjects([d.shell, d.furnitureRoot, ...(d.extraTargets?.() ?? [])], true);
       const h = hits[0];
       if (!h) return null;
       return { point: { x: h.point.x, y: h.point.y, z: h.point.z }, object: h.object };

@@ -16,6 +16,7 @@ import { finishFamily, sanitizeFinish } from '../look/finishes';
 import type { Finish } from '../look/finishes';
 import { decodeLayout, mineKey, parseMine, serializeMine } from './my-layout';
 import type { MyLayout } from './my-layout';
+import type { PersonRec } from './people/rec';
 
 // ---------------------------------------------------------------- storage
 
@@ -334,6 +335,11 @@ export interface FurnitureStoreImpl extends FurnitureStore {
   isEdited(): boolean;
   /** back to the home as drawn: placed pieces gone, hidden originals back, looks and staged moves undone. Clears storage. */
   reset(): void;
+  /**
+   * People the viewer added (src/buyer/people) travel in "My layout" but are not pieces: the store keeps none, it asks this source when
+   * the layout is read and edited-ness is asked, and tells it on `reset()`. Returns a function that announces a change to the listeners.
+   */
+  attachPeople(src: { list(): PersonRec[]; clear(): void } | null): () => void;
   /** true when this visit opened a shared layout link */
   fromLink(): boolean;
   /** the home as drawn: a deep copy of what property.json handed the store (for tests and the reset check) */
@@ -387,6 +393,7 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
   /** the viewer's looks for originals (a placed piece carries its own `finish`) */
   const looks = new Map<string, Finish>();
   let linked = false;
+  let peopleSrc: { list(): PersonRec[]; clear(): void } | null = null;
 
   const mk = (item: FurnitureItem, origin: Entry['origin']): void => {
     const old = entries.get(item.id);
@@ -445,6 +452,7 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     removed: [...hidden.keys()],
     added: buyerItems(),
     finishes: Object.fromEntries([...looks].map(([k, v]) => [k, { ...v }])),
+    ...(peopleSrc && peopleSrc.list().length ? { people: peopleSrc.list() } : {}),
   });
   const saveNow = (): void => {
     if (saveTimer !== null) { clearTimeout(saveTimer); saveTimer = null; }
@@ -617,7 +625,7 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     },
     layout: layoutNow,
     isEdited() {
-      if (hidden.size > 0 || looks.size > 0) return true;
+      if (hidden.size > 0 || looks.size > 0 || (peopleSrc?.list().length ?? 0) > 0) return true;
       for (const e of entries.values()) {
         if (e.origin === 'buyer') return true;
         const d = drawnById.get(e.item.id);
@@ -626,6 +634,7 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
       return false;
     },
     reset() {
+      peopleSrc?.clear();
       for (const [id, e] of [...entries]) {
         const d = drawnById.get(id);
         const keep = e.origin === 'property' && d && !looks.has(id) && JSON.stringify(d.box) === JSON.stringify(e.item.box);
@@ -638,6 +647,7 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
       saveNow();
       changed();
     },
+    attachPeople(src) { peopleSrc = src; return changed; },
     fromLink: () => linked,
     pristine: () => drawn.map(cloneItem),
     drawnGrid: () => stampFurniture(baseGrid, [...drawn, ...(temporary.get('seats') ?? [])]),

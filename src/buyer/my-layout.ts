@@ -8,15 +8,19 @@ import { CATALOG, itemFromCatalog } from '../core/catalog';
 import { finishFamily, sanitizeFinish } from '../look/finishes';
 import type { Finish } from '../look/finishes';
 import type { Box, FurnitureItem } from '../types';
+import { peopleFromWire, peopleToWire } from './people/rec';
+import type { PersonRec, WirePerson } from './people/rec';
 
 export interface MyLayout {
   removed: string[];
   added: FurnitureItem[];
   finishes: Record<string, Finish>;
+  /** people the viewer added (src/buyer/people): never part of the home, absent when there are none */
+  people?: PersonRec[];
 }
 
 export const emptyLayout = (): MyLayout => ({ removed: [], added: [], finishes: {} });
-export const isEmptyLayout = (l: MyLayout): boolean => l.removed.length === 0 && l.added.length === 0 && Object.keys(l.finishes).length === 0;
+export const isEmptyLayout = (l: MyLayout): boolean => l.removed.length === 0 && l.added.length === 0 && Object.keys(l.finishes).length === 0 && !(l.people && l.people.length > 0);
 
 // ---------------------------------------------------------------- the words (SPEC 16.2: say what is and is not from the drawing)
 
@@ -84,6 +88,7 @@ interface Wire {
   /** removed original ids */ r?: string[];
   /** added pieces: [catalogId, cx cm, cz cm, yaw deg x10, finish?] */ a?: Array<[string, number, number, number, WireFinish?]>;
   /** finishes of originals, by id */ f?: Record<string, WireFinish>;
+  /** people the viewer added (people/rec.ts); a link without this field is a link made before people existed */ p?: WirePerson[];
 }
 type WireFinish = { p?: string; s?: string; f?: string; t?: string };
 
@@ -139,6 +144,11 @@ export function encodeLayout(l: MyLayout): string | null {
   const fin: Record<string, WireFinish> = {};
   for (const [id, f] of Object.entries(l.finishes)) { const w = toWire(f); if (w) fin[id] = w; }
   if (Object.keys(fin).length) wire.f = fin;
+  if (l.people && l.people.length) {
+    const slot = new Map(added.map((i, n) => [i.id, n + 1]));
+    const allAdded = new Set(l.added.map((i) => i.id));
+    wire.p = peopleToWire(l.people, (id) => (slot.has(id) ? `#${slot.get(id)}` : allAdded.has(id) ? null : id));
+  }
   return `${VERSION}.${b64urlEncode(JSON.stringify(wire))}`;
 }
 
@@ -182,6 +192,14 @@ export function decodeLayout(code: string | null | undefined, originals: Readonl
       const clean = item ? sanitizeFinish(finishFamily(item), fromWire(w)) : undefined;
       if (clean) out.finishes[id] = clean;
     }
+  }
+  if (Array.isArray(wire.p)) {
+    const people = peopleFromWire(wire.p, (ref) => {
+      if (ref.startsWith('#')) return out.added[Number(ref.slice(1)) - 1]?.id ?? null;
+      // a piece of this home, or one of the drawing's chairs (their ids are checked when the person is made)
+      return (originals.has(ref) && !out.removed.includes(ref)) || ref.startsWith('seat:') ? ref : null;
+    });
+    if (people.length) out.people = people;
   }
   return isEmptyLayout(out) ? null : out;
 }

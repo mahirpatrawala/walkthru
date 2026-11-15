@@ -58,6 +58,8 @@ import { mountDoors } from './doors';
 import { createLoadingScreen } from './loading';
 import { mountAiPhoto } from '../photo/mount';
 import { createMeasureMode } from './measure';
+import { mountPeople } from './people';
+import type { MountedPeople } from './people';
 import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
@@ -378,14 +380,16 @@ async function boot(): Promise<void> {
     classic: (): boolean => !!getStyle().pack.classic,
   };
   if (look) mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); }, style: stylePicker });
+  // the people a buyer adds (src/buyer/people): mounted below, once the walker, the store and the HUD exist
+  let people: MountedPeople | null = null;
   // C12f: the optional AI photo (SPEC 17.14). The button exists only if the server says the feature is on; nothing else loads until it is tapped.
   // never for an uploaded plan: a picture of the view would leave the device, and an upload is promised to stay on it
   if (!uploaded) mountAiPhoto({
     host: hud.root, viewer, layout, items: () => store.all(), toast: (t) => hud.toast(t),
-    withoutCharacter: (fn) => { const was = character.object.visible; character.setVisible(false); livedIn?.setSuppressed(true); try { return fn(); } finally { character.setVisible(was); livedIn?.setSuppressed(!!scanHandle && scanVisible); } },
+    withoutCharacter: (fn) => { const was = character.object.visible; character.setVisible(false); livedIn?.setSuppressed(true); people?.people.setSuppressed(true); try { return fn(); } finally { character.setVisible(was); livedIn?.setSuppressed(!!scanHandle && scanVisible); people?.people.setSuppressed(false); } },
   });
 
-  const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms });
+  const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms, extraTargets: () => people?.people.objects() ?? [] });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
   const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
   const doors = mountDoors({ ctx, store, layout });
@@ -458,13 +462,40 @@ async function boot(): Promise<void> {
     if (announce) hud.hint(v === 'first' ? 'First person · V to see yourself' : 'See yourself · V for first person', 2500);
   }
 
-  const blocking = (): boolean => picker.isOpen() || rooms.isOpen() || paintBusy;
+  // the people a buyer adds: bodies of their own that block the walk like a body, kept in "My layout" (src/buyer/people)
+  people = mountPeople({
+    ctx, hud, store, seats, modes, storage, sceneId, shareCode: params.get(SHARE_PARAM),
+    tier: () => look?.tier ?? 'medium',
+    surfaceProbe: (x, z) => character.surfaceProbe?.(x, z) ?? null,
+    onBodies: () => baked?.rescan(),
+    otherBlocking: () => picker.isOpen() || rooms.isOpen() || paintBusy,
+    walker: {
+      position: () => character.position,
+      yawDeg: () => character.yawDeg,
+      heightCm: () => heightCm,
+      body: () => ({ body: person.body, tone: person.tone }),
+      poseOn: () => interactions.pose()?.itemId ?? null,
+      state: () => character.state,
+      getUp: () => interactions.getUp(),
+      swapTo: async (p) => {
+        await applyPerson({ body: p.body, tone: p.tone });
+        heightCm = applyHeight(p.heightCm);
+        resetLocomotion(character);
+        character.position = p.at;
+        character.yawDeg = p.yawDeg;
+        character.object.position.y = 0;
+        camera.setTarget(p.at, character.heightM);
+      },
+    },
+  });
+  const blocking = (): boolean => picker.isOpen() || rooms.isOpen() || paintBusy || people!.ui.blocking();
 
   picker = createHeightPicker(document.body, {
     getCm: () => heightCm,
     onChange: (cm) => { heightCm = applyHeight(cm); },
     person: { get: () => ({ body: person.body, tone: person.tone }), onChange: (p) => { void applyPerson(p); } },
     view: { get: () => view, onChange: (v) => applyView(v) },
+    addPerson: { ...people.ui.addOption(), onClick: () => { picker.close(); people!.ui.openAdd(); } },
     onClose: () => {
       savePerson(storage, person);
       hud.setVisible(true);
@@ -475,6 +506,8 @@ async function boot(): Promise<void> {
     },
   });
   rooms = createRoomsSheet(document.body, layout, () => { /* nothing to resume */ }, unverifiedRooms);
+  rooms.setPeopleNote(people.ui.note());
+  people.people.onChange(() => rooms.setPeopleNote(people!.ui.note()));
   // look-kit: typical Indian-flat fittings (decor only, labelled, 'Plain' removes them). The style's room finishes are applied first (the kit's
   // floors read them), and the kit is taken off and put back whenever the style changes them.
   let kit: KitHandle | null = null;
@@ -496,7 +529,7 @@ async function boot(): Promise<void> {
   // SPEC 16.14: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.
   let baked: BakedHandle | null = null;
   if (look && params.get('bake') !== 'off' && !property.splat) {
-    baked = mountBaked({ look, scene: viewer.scene, renderer: viewer.renderer, sceneId, layout, extraDynamic: () => [character.object] });
+    baked = mountBaked({ look, scene: viewer.scene, renderer: viewer.renderer, sceneId, layout, extraDynamic: () => [character.object, ...people!.people.objects()] });
     const lk = look;
     store.onChange(() => { setTimeout(() => baked?.rescan(), 150); });
     lk.onChange(() => baked?.rescan());
@@ -530,6 +563,7 @@ async function boot(): Promise<void> {
   // a tap on any piece while walking opens it in Furnish with that piece selected: its size, and change look, replace or remove
   input.onTap((e) => {
     if (blocking() || modes.id !== 'walk') return;
+    if (people!.ui.handleTap(e)) return; // placing a person, or a person was tapped
     let o: THREE.Object3D | null = ctx.raycast(e)?.object ?? null;
     let id: string | null = null;
     while (o && !id) {
@@ -611,7 +645,7 @@ async function boot(): Promise<void> {
       if (character.state === 'walk' || character.state === 'jog') character.setLocomotion(0, false);
       resetLocomotion(character); // a sheet that opens mid-stride stops the walker; it does not glide on when the sheet closes
     } else if (modes.id !== 'pose') {
-      stepLocomotion(character, input, camera.viewYawDeg, store.grid(), dt);
+      stepLocomotion(character, input, camera.viewYawDeg, people!.people.walkGrid(store.grid()), dt);
     } else resetLocomotion(character);
     modes.update(dt);
     interactions.update(dt);
@@ -639,6 +673,8 @@ async function boot(): Promise<void> {
       const c = viewer.camera.position, p = character.object.position;
       motionDebug.trace.push({ cam: [c.x, c.y, c.z], char: [p.x, p.y, p.z] });
     }
+    people!.people.update(dt);
+    people!.ui.update(dt);
     // below a 0.7 m boom the character is hidden, above 0.8 m it comes back (SPEC 2.4)
     if (camera.boom < 0.7) character.setVisible(false);
     else if (camera.boom > 0.8) character.setVisible(true);
@@ -773,6 +809,8 @@ async function boot(): Promise<void> {
     },
     decor,
     seats,
+    /** the people a buyer added (src/buyer/people): the model, and the sheets and card */
+    people: { get model() { return people!.people; }, get ui() { return people!.ui; } },
     /** SPEC 16.14: the offline bake dumps the scene as built (loaded on demand, never part of a first load) */
     bake: {
       get handle() { return baked; },
