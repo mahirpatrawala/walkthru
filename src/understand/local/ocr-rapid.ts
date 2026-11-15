@@ -21,15 +21,16 @@ const hasDigit = (s: string): boolean => /\d/.test(s);
 interface PageLine { rect: Rect; text: string; conf: number; vertical: boolean; h: number }
 
 /**
- * The scale the page is read at. PP-OCR reads text from about 10 px tall, so enlarging is for the very small (a line of 14 px is the
- * aim) and for the detector's minimum input; a big page is brought down so the detector's cost stays in seconds (it grows with area).
+ * The scale the page is read at: a line of text about 20 px tall, the long side between 1600 and 2400 px. Measured on the development
+ * sets: reading at 14 px lines and 2000 px found 26 of 47 printed sizes, at 20 px and 2400 px 30, at 30 px and 3200 px 31 for a third
+ * more CPU. The detector's cost grows with area, so a big page is brought down.
  */
 export function readScale(g: Gray, lineHs: number[]): number {
   const long = Math.max(g.width, g.height);
   const medH = lineHs.length ? med(lineHs) : 14;
-  let k = Math.max(0.4, Math.min(3, 14 / Math.max(5, medH)));
-  k = Math.max(k, 1100 / long);
-  k = Math.min(k, 2000 / long);
+  let k = Math.max(0.4, Math.min(3, 20 / Math.max(5, medH)));
+  k = Math.max(k, 1600 / long);
+  k = Math.min(k, 2400 / long);
   return k;
 }
 
@@ -127,6 +128,7 @@ export async function readBlocksRapid(g: Gray, ink: TextBlock[], be: OcrBackend,
   const blocks = [...alone.map((p) => ({ rect: p.rect, lines: [p.rect], glyphs: Math.max(3, p.text.length), lineH: p.h })), ...linesToBlocks(stackable.map((p) => ({ rect: p.rect, n: Math.max(3, p.text.length), h: p.h })))]
     // a long stack of lines is a table of sizes or a paragraph: each line is a block of its own
     .flatMap((b) => (b.lines.length > 6 ? b.lines.map((r) => ({ rect: r, lines: [r], glyphs: 3, lineH: r[3] - r[1] })) : [b]));
+  type Work = { rect: Rect; lines: PageLine[]; lineH: number; vertical: boolean };
   const works: Work[] = blocks.map((b) => {
     const ls = horizontal.filter((p) => b.lines.some((r) => r === p.rect)).sort((a, c) => a.rect[1] - c.rect[1]);
     return { rect: b.rect, lines: ls, lineH: ls.reduce((a, p) => a + heightOf(p), 0) / Math.max(1, ls.length), vertical: false };

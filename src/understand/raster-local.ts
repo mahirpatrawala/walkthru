@@ -13,7 +13,7 @@
 import { createHash } from 'node:crypto';
 import type { ImportResult } from '../import/types';
 import type { Gray, Mat3, Rect } from './pixels/image';
-import { applyMat, matInv } from './pixels/image';
+import { applyMat, matInv, matMul, rotateQuarter } from './pixels/image';
 import { preprocess } from './pixels/preprocess';
 import { agrees, clearlyWrong, fitScale, labelFit, looFit, scaleFor } from './pixels/fit';
 import type { Evidence, LabelPair, ScaleFit } from './pixels/fit';
@@ -133,12 +133,12 @@ interface Meas { w: number; h: number; box: [number, number, number, number] }
 const measure = (s: Spans): Meas | null => (s.left !== null && s.right !== null && s.up !== null && s.down !== null && s.right > s.left && s.down > s.up ? { w: s.right - s.left, h: s.down - s.up, box: [s.left, s.up, s.right, s.down] } : null);
 
 /** The whole local run over one or more pages. */
-export async function readRasterLocal(pages: LocalPage[], opts: { jobs?: number; labels?: LocalLabel[] } = {}): Promise<RasterRun> {
+export async function readRasterLocal(pages: LocalPage[], opts: { jobs?: number; labels?: LocalLabel[]; /** a stand-in for the reader of a page's labels (tests) */ readLabels?: (img: Gray) => Promise<LocalLabel[]> } = {}): Promise<RasterRun> {
   const t0 = Date.now(); const stages: StageTime[] = [];
   const u = emptyUnderstanding(pages);
   const stage = async <T,>(name: string, f: () => Promise<T> | T): Promise<T> => { const s = Date.now(); try { return await f(); } finally { stages.push({ stage: name, ms: Date.now() - s }); } };
   if (!pages.length) return refusedLocal(u, 'No page was given.', stages, t0);
-  if (!opts.labels) {
+  if (!opts.labels && !opts.readLabels) {
     const eng = await ocrEngineName();
     if (!eng.name) return refusedLocal(u, eng.note && eng.note.startsWith('WALKTHRU_OCR=rapid') ? `Vision is off, and ${eng.note}` : NO_OCR, stages, t0);
     if (eng.note) u.warnings.push(eng.note);
@@ -148,10 +148,21 @@ export async function readRasterLocal(pages: LocalPage[], opts: { jobs?: number;
   const works: { page: LocalPage; pre: ReturnType<typeof preprocess>; labels: LocalLabel[] }[] = [];
   await stage('read-text', async () => {
     for (const p of pages) {
-      const pre = preprocess(p.image);
-      const labels = opts.labels ?? await readLabels(pre.image, { jobs: opts.jobs });
+      let pre = preprocess(p.image);
+      const read = opts.readLabels ?? ((im: Gray) => readLabels(im, { jobs: opts.jobs }));
+      let labels = opts.labels ?? await read(pre.image);
+      let turned: 0 | 90 | 270 = 0;
+      // a plan scanned or photographed on its side: with next to nothing readable upright, the page is read turned a quarter each way
+      // and the turn with the most room names wins (text and walls are then read upright, exactly as on any other page)
+      if (!opts.labels && labels.filter((l) => l.cands.length || roomTypeOf(l.name) !== 'other').length < 2) {
+        for (const cw of [90, 270] as const) {
+          const q = rotateQuarter(pre.image, cw);
+          const ls = await read(q.image);
+          if (ls.length > labels.length + 1) { labels = ls; turned = cw; pre = { ...pre, image: q.image, toImage: matMul(q.map, pre.toImage), steps: [...pre.steps, `turned ${cw} degrees to read the text upright`] }; break; }
+        }
+      }
       works.push({ page: p, pre, labels });
-      u.views.push({ id: p.id, page: works.length, kind: 'unknown', kindConfidence: 0, raster: true, steps: pre.steps, turnedCw: 0 });
+      u.views.push({ id: p.id, page: works.length, kind: 'unknown', kindConfidence: 0, raster: true, steps: pre.steps, turnedCw: turned });
     }
   });
   const best = works.reduce((a, b) => (b.labels.length > a.labels.length ? b : a));

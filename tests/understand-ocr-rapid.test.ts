@@ -13,13 +13,15 @@ import { ocrNormalise, ocrSizeCandidates } from '../src/understand/local/sizes';
 import { NO_ENGINE_NOTE, rapidPythonBackend } from '../src/understand/local/ocr-backend';
 import type { OcrBackend, OcrLine } from '../src/understand/local/ocr-backend';
 import { lineCrop, mergeRows, pageLines, readBlocksRapid, readScale } from '../src/understand/local/ocr-rapid';
-import { labelFromRead } from '../src/understand/raster-local';
+import { labelFromRead, readRasterLocal } from '../src/understand/raster-local';
+import { drawBrochure, twoBhk } from '../scripts/drawing-sets/brochure';
+import { rotateQuarter } from '../src/understand/pixels/image';
 
 const box = (x0: number, y0: number, x1: number, y1: number): [number, number][] => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 const line = (text: string, r: [number, number, number, number], conf = 0.95): OcrLine => ({ box: box(...r), text, conf });
 const fakeBackend = (lines: OcrLine[], rec: (n: number) => { text: string; conf: number } = () => ({ text: '', conf: 0 })): OcrBackend & { calls: { page: number; rec: number } } => {
   const calls = { page: 0, rec: 0 };
-  return { name: 'fake', info: 'fake', calls, page: async () => { calls.page++; return lines; }, lines: async (imgs) => { calls.rec += imgs.length; return imgs.map((_, i) => rec(i)); }, close: () => undefined, stats: () => ({ cpuSeconds: 0, peakRssMb: 0, calls: calls.page + calls.rec }) };
+  return { name: 'fake', info: 'fake', calls, page: async (img) => { calls.page++; const f = img.width / 1200; return lines.map((l) => ({ ...l, box: l.box.map(([x, y]) => [x * f, y * f] as [number, number]) })); }, lines: async (imgs) => { calls.rec += imgs.length; return imgs.map((_, i) => rec(i)); }, close: () => undefined, stats: () => ({ cpuSeconds: 0, peakRssMb: 0, calls: calls.page + calls.rec }) };
 };
 const sizes = (t: string): string[] => ocrSizeCandidates(t).map((c) => `${c.w.toFixed(2)}x${c.l.toFixed(2)}`);
 
@@ -55,12 +57,13 @@ describe('reading a page with a detection and recognition engine', () => {
   const page = (): Gray => newGray(1200, 800, 255);
   const ink = (rects: [number, number, number, number][]): TextBlock[] => rects.map((r) => ({ rect: r, lines: [r], glyphs: 8, lineH: r[3] - r[1] }));
 
-  it('scales a page so text is about 14 px tall, never past 2000 px or under 1100 px on the long side', () => {
+  it('scales a page so text is about 20 px tall, with the long side between 1600 and 2400 px', () => {
     const g = page();
-    expect(readScale(g, [7])).toBeCloseTo(2000 / 1200, 5); // 14/7 = 2 would be 2400 px: capped at 2000
-    expect(readScale(g, [10])).toBeCloseTo(1.4, 5);
-    expect(readScale(g, [30])).toBeCloseTo(1100 / 1200, 5); // big text still gets the detector its minimum input
-    expect(readScale(newGray(4000, 3000, 255), [20])).toBeCloseTo(0.5, 5);
+    expect(readScale(g, [7])).toBeCloseTo(2, 5); // 20/7 would be 2.86: capped at 2400/1200
+    expect(readScale(g, [10])).toBeCloseTo(2, 5);
+    expect(readScale(g, [16])).toBeCloseTo(1600 / 1200, 5); // 20/16 = 1.25, raised to the 1600 px floor
+    expect(readScale(g, [30])).toBeCloseTo(1600 / 1200, 5); // big text still gets the detector its minimum input
+    expect(readScale(newGray(4000, 3000, 255), [20])).toBeCloseTo(0.6, 5);
   });
 
   it('drops empty and low-confidence lines and tells upright from vertical text', () => {
@@ -173,4 +176,24 @@ done
       s.engine.close();
     } finally { fs.rmSync(home, { recursive: true, force: true }); }
   });
+});
+
+describe('a plan photographed on its side', () => {
+  it('with nothing readable upright the page is read turned a quarter each way, and the view records the turn', async () => {
+    const b = drawBrochure(twoBhk());
+    expect(b.image.width).toBeGreaterThan(b.image.height);
+    const side = rotateQuarter(b.image, 90).image; // tall: the text runs up the page
+    const seen: [number, number][] = [];
+    const run = await readRasterLocal([{ id: 'p1', image: side }], { readLabels: async (img) => { seen.push([img.width, img.height]); return img.width > img.height ? b.labels : []; } });
+    expect(seen.length).toBe(2); // upright (tall) read nothing, the first quarter turn made it wide and read the labels
+    expect(run.understanding.views[0].turnedCw).toBe(90);
+    expect(run.understanding.views[0].steps.join(' ')).toMatch(/turned 90 degrees/);
+  }, 60000);
+  it('a page that reads upright is not turned', async () => {
+    const b = drawBrochure(twoBhk());
+    let calls = 0;
+    const run = await readRasterLocal([{ id: 'p1', image: b.image }], { readLabels: async () => { calls++; return b.labels; } });
+    expect(calls).toBe(1);
+    expect(run.understanding.views[0].turnedCw).toBe(0);
+  }, 60000);
 });
