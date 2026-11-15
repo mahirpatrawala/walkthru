@@ -123,7 +123,11 @@ export function textBlocks(glyphs: Comp[], imgW: number, imgH: number, opts: { g
     if (cs.length < 2 || tall < 1) continue;
     lines.push({ rect, n: cs.length, h: rect[3] - rect[1] });
   }
-  // lines into blocks: next line below, similar height, overlapping horizontally
+  return linesToBlocks(lines);
+}
+
+/** Lines of text (a box, a glyph count, a height) into blocks: the next line below, of similar height, overlapping along the line. */
+export function linesToBlocks(lines: { rect: Rect; n: number; h: number }[]): TextBlock[] {
   const lp = lines.map((_, i) => i);
   const lf = (i: number): number => { while (lp[i] !== i) { lp[i] = lp[lp[i]]; i = lp[i]; } return lp[i]; };
   for (let i = 0; i < lines.length; i++) for (let j = 0; j < lines.length; j++) {

@@ -18,7 +18,7 @@ import type { OcrFloor } from './eval/ocr-floor';
 export interface RealSet { id: string; dir: string; split: 'dev' | 'held-out'; firm: string; file: string; kind: 'pdf' | 'image'; truth: LabelTruth; meta: Record<string, unknown> }
 export interface RealResult {
   id: string; split: string; firm: string; kind: string; format: string; path: 'vector' | 'raster'; seconds: number;
-  outcome: string; error?: string; score: LabelScore; ocr?: OcrFloor;
+  outcome: string; error?: string; score: LabelScore; ocr?: OcrFloor; /** the text engine's own cost on this plan, from its worker (raster sets) */ engine?: { name: string; info: string; cpuSeconds: number; peakRssMb: number };
   read?: { rooms: { label: string; type: string; sides: [number, number]; status: string; labelDims?: { w: number; l: number }; method?: string }[]; warnings: string[]; unmapped: string[]; scaleAgreeing?: number; scaleVotes?: number; dims: number };
 }
 
@@ -42,6 +42,13 @@ export function loadRealSets(root: string): RealSet[] {
 
 const polyArea = (p: [number, number][]): number => { let s = 0; for (let i = 0; i < p.length; i++) { const a = p[i], b = p[(i + 1) % p.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s / 2); };
 
+/** The text engine's cost so far in this process (one plan per process in the evaluation), or undefined when it was not used. */
+async function engineCost(): Promise<RealResult['engine']> {
+  const { ocrEngineStats } = await import('../src/understand/local/ocr-backend');
+  const st = await ocrEngineStats();
+  return st ? { name: st.name, info: st.info, cpuSeconds: st.cpuSeconds, peakRssMb: st.peakRssMb } : undefined;
+}
+
 export async function runSet(s: RealSet, opts: { ocr?: boolean } = {}): Promise<RealResult> {
   const t0 = Date.now();
   const base = { id: s.id, split: s.split, firm: s.firm, kind: s.kind, format: String(s.meta.format ?? s.kind) };
@@ -63,7 +70,7 @@ export async function runSet(s: RealSet, opts: { ocr?: boolean } = {}): Promise<
           const files = await renderPdf(s.file, dir, 200);
           const run = await readRasterPages(await Promise.all(files.map(async (f, i) => ({ id: `p${i + 1}`, image: await loadGray(f) }))), { provider: null });
           const pred: LabelPrediction = run.status === 'ok' ? predictionOfRaster(run) : { attempted: false, error: run.reason, rooms: [] };
-          const res: RealResult = { ...base, path: 'raster', seconds: (Date.now() - t0) / 1000, outcome: run.status === 'ok' ? `ok, ${pred.rooms.length} rooms (picture in PDF, local)` : `refused: ${run.reason}`, error: run.reason, score: scoreLabelSet(pred, s.truth) };
+          const res: RealResult = { ...base, path: 'raster', seconds: (Date.now() - t0) / 1000, outcome: run.status === 'ok' ? `ok, ${pred.rooms.length} rooms (picture in PDF, local)` : `refused: ${run.reason}`, error: run.reason, score: scoreLabelSet(pred, s.truth), engine: await engineCost() };
           if (run.status === 'ok') res.read = { rooms: pred.rooms.map((x) => ({ label: x.label, type: x.roomType, sides: x.sides, status: x.status, labelDims: x.labelDims, method: x.method })), warnings: run.understanding.warnings, unmapped: [], dims: 0 };
           return res;
         } finally { fs.rmSync(dir, { recursive: true, force: true }); }
@@ -106,7 +113,7 @@ export async function runSet(s: RealSet, opts: { ocr?: boolean } = {}): Promise<
   } catch (e) { outcome = `crash: ${(e as Error).message}`; error = outcome; }
   const pred: LabelPrediction = run && run.status === 'ok' ? predictionOfRaster(run) : { attempted: false, error: error ?? outcome, rooms: [] };
   if (pred.attempted) outcome = `ok, ${pred.rooms.length} rooms (local)`;
-  const res: RealResult = { ...base, path: 'raster', seconds: (Date.now() - t0) / 1000, outcome, error, score: scoreLabelSet(pred, s.truth) };
+  const res: RealResult = { ...base, path: 'raster', seconds: (Date.now() - t0) / 1000, outcome, error, score: scoreLabelSet(pred, s.truth), engine: await engineCost() };
   if (run && pred.attempted) res.read = { rooms: pred.rooms.map((x) => ({ label: x.label, type: x.roomType, sides: x.sides, status: x.status, labelDims: x.labelDims, method: x.method })), warnings: run.understanding.warnings, unmapped: [], dims: run.understanding.dimensions.length };
   if (opts.ocr) res.ocr = await ocrFloor(s.file, s.truth);
   return res;
@@ -142,6 +149,8 @@ export function formatReal(results: RealResult[], sets: RealSet[]): string {
     const refused = rs.filter((r) => !r.score.attempted).length;
     out.push(`${title.toUpperCase()}, ${path} path: ${rs.length} sets (${sets.filter((s) => rs.some((r) => r.id === s.id)).map((s) => s.firm).filter((v, i, a) => a.indexOf(v) === i).length} builders), ${refused} refused, ${rs.length - refused} read`);
     for (const row of summariseLabel(tot)) out.push(`  ${row.label.padEnd(60)} ${row.value.padStart(6)}   bar ${row.bar}   [${row.detail}]`);
+    const eng = rs.filter((r) => r.engine);
+    if (eng.length) out.push(`  Text engine ${eng[0].engine!.name}: CPU ${(eng.reduce((a, r) => a + r.engine!.cpuSeconds, 0) / eng.length).toFixed(1)} s per plan (mean of ${eng.length}, max ${Math.max(...eng.map((r) => r.engine!.cpuSeconds)).toFixed(1)}), peak RAM ${Math.max(...eng.map((r) => r.engine!.peakRssMb)).toFixed(0)} MB  [${eng[0].engine!.info}]`);
     out.push('');
   }
   return out.join('\n');
@@ -178,6 +187,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
 
 export function perSetTable(results: RealResult[]): string {
   const out = [`${'set'.padEnd(5)}${'split'.padEnd(10)}${'format'.padEnd(26)}${'truth'.padStart(6)}${'found'.padStart(6)}${'paired'.padStart(7)}${'typed'.padStart(6)}${'size ok'.padStart(8)}${'walls'.padStart(6)}${'verif'.padStart(6)}  outcome / ocr floor (sizes, names)`];
-  for (const r of results) { const x = r.score; out.push(`${r.id.padEnd(5)}${r.split.padEnd(10)}${r.format.slice(0, 24).padEnd(26)}${String(x.truthRooms).padStart(6)}${String(x.predRooms).padStart(6)}${String(x.matched).padStart(7)}${String(x.typed).padStart(6)}${String(x.sizeRight).padStart(8)}${String(x.wallMatched).padStart(6)}${String(x.verifiedStrict.n).padStart(6)}  ${r.outcome.slice(0, 50)}${r.ocr ? `  | ocr ${r.ocr.sizesFound}/${r.ocr.sizesTruth}, ${r.ocr.namesFound}/${r.ocr.namesTruth}` : ''}`); }
+  for (const r of results) { const x = r.score; out.push(`${r.id.padEnd(5)}${r.split.padEnd(10)}${r.format.slice(0, 24).padEnd(26)}${String(x.truthRooms).padStart(6)}${String(x.predRooms).padStart(6)}${String(x.matched).padStart(7)}${String(x.typed).padStart(6)}${String(x.sizeRight).padStart(8)}${String(x.wallMatched).padStart(6)}${String(x.verifiedStrict.n).padStart(6)}  ${r.outcome.slice(0, 50)}${r.engine ? `  | cpu ${r.engine.cpuSeconds.toFixed(1)} s, ${r.engine.peakRssMb.toFixed(0)} MB` : ''}${r.ocr ? `  | ocr ${r.ocr.sizesFound}/${r.ocr.sizesTruth}, ${r.ocr.namesFound}/${r.ocr.namesTruth}` : ''}`); }
   return out.join('\n');
 }

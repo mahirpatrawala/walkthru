@@ -1,7 +1,9 @@
-// Local raster path, reading text blocks with Tesseract (Node only; one of the files allowed to start a process, SPEC 17.3). Each text
-// block is cut from the grey page, enlarged until a line is about 48 px tall, and read twice: the whole block as text (names and
-// sizes), then every line again in single-line mode with a digits-and-marks whitelist (sizes). Nothing is installed by the project:
-// with no Tesseract `ocrAvailable()` says so and the local path declines to run.
+// Local raster path, reading text blocks (Node only; one of the files allowed to start a process, SPEC 17.3). Two engines behind
+// `readBlocks`: PP-OCR through local/ocr-backend.ts (preferred, SPEC 17.17: the whole page is detected and read, lines are re-read
+// from crops for second opinions), and Tesseract as the fallback when PP-OCR is not installed: each text block is cut from the grey
+// page, enlarged until a line is about 48 px tall, and read twice, the whole block as text, then every line again in single-line mode
+// with a digits-and-marks whitelist. Nothing is installed by the project: with neither engine `ocrAvailable()` says so and the local
+// path declines to run.
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -9,6 +11,8 @@ import path from 'node:path';
 import type { Gray, Rect } from '../pixels/image';
 import { cropGray, encodePng, resizeGray } from '../pixels/image';
 import type { TextBlock } from './ink';
+import { NO_ENGINE_NOTE, ocrEngine } from './ocr-backend';
+import { readBlocksRapid } from './ocr-rapid';
 
 const CANDIDATES = ['/opt/homebrew/bin/tesseract', '/usr/local/bin/tesseract', '/usr/bin/tesseract', 'tesseract'];
 const run = (cmd: string, args: string[], timeoutMs = 20000): Promise<{ ok: boolean; out: string }> =>
@@ -20,10 +24,18 @@ export async function ocrBinary(): Promise<string | null> {
   for (const c of CANDIDATES) if ((await run(c, ['--version'], 5000)).ok) { found = c; return c; }
   found = null; return null;
 }
-export const ocrAvailable = async (): Promise<boolean> => (await ocrBinary()) !== null;
+/** Which engine reads, and the one-line note for the run when it is not the preferred one. */
+export async function ocrEngineName(): Promise<{ name: 'rapidocr' | 'tesseract' | null; note?: string; info?: string }> {
+  const s = await ocrEngine();
+  if (s.engine) return { name: 'rapidocr', info: s.engine.info };
+  if (process.env.WALKTHRU_OCR === 'rapid') return { name: null, note: `WALKTHRU_OCR=rapid but the PP-OCR reader is not available: ${s.reason}` };
+  if (await ocrBinary()) return { name: 'tesseract', note: NO_ENGINE_NOTE(s.reason) };
+  return { name: null, note: NO_ENGINE_NOTE(s.reason) };
+}
+export const ocrAvailable = async (): Promise<boolean> => (await ocrEngineName()).name !== null;
 
 export const SIZE_WHITELIST = `0123456789.,xX'"-/ `;
-export interface BlockRead { rect: Rect; lineH: number; /** the block as text, lines joined with \n */ text: string; /** the same block read again at another size and padding: a second opinion */ more: string[]; /** each line read alone with the size whitelist (empty when the block did not earn a second read) */ lines: { rect: Rect; digits: string[] }[] }
+export interface BlockRead { /** the engine's own confidence in the block's text, 0 to 1 (absent for Tesseract) */ conf?: number; rect: Rect; lineH: number; /** the block as text, lines joined with \n */ text: string; /** the same block read again at another size and padding: a second opinion */ more: string[]; /** each line read alone with the size whitelist (empty when the block did not earn a second read) */ lines: { rect: Rect; digits: string[] }[] }
 
 async function readPng(bin: string, png: Uint8Array, dir: string, name: string, psm: string, whitelist?: string): Promise<string> {
   const f = path.join(dir, `${name}.png`);
@@ -46,8 +58,15 @@ function enlarged(g: Gray, rect: Rect, lineH: number, padFrac = 0.5, target = 48
   return encodePng(up);
 }
 
-/** Read every block. At most `jobs` Tesseract processes run at once. */
+/** Read the page's text: PP-OCR when installed, else every block with Tesseract. */
 export async function readBlocks(g: Gray, blocks: TextBlock[], opts: { jobs?: number; /** does this block's first read earn a second, line by line? */ second?: (text: string) => boolean } = {}): Promise<BlockRead[]> {
+  const s = await ocrEngine();
+  if (s.engine) return readBlocksRapid(g, blocks, s.engine, { second: opts.second });
+  return readBlocksTesseract(g, blocks, opts);
+}
+
+/** Read every block. At most `jobs` Tesseract processes run at once. */
+async function readBlocksTesseract(g: Gray, blocks: TextBlock[], opts: { jobs?: number; second?: (text: string) => boolean } = {}): Promise<BlockRead[]> {
   const jobs = opts.jobs ?? 4;
   const bin = await ocrBinary();
   if (!bin) return [];
