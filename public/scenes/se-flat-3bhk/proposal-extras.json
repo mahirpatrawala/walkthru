@@ -1,0 +1,430 @@
+{
+  "version": 1,
+  "sourceFile": "drawing set",
+  "planPage": 1,
+  "scale": {
+    "ptPerM": 39,
+    "votes": [
+      {
+        "source": "room Terrace short side",
+        "ptPerM": 37.127996826171874
+      },
+      {
+        "source": "room Terrace long side",
+        "ptPerM": 37.46557266985784
+      },
+      {
+        "source": "room Store Room long side",
+        "ptPerM": 38.92878090463034
+      },
+      {
+        "source": "room Living Room area",
+        "ptPerM": 38.98551523457728
+      },
+      {
+        "source": "room Lobby long side",
+        "ptPerM": 38.9882786684526
+      },
+      {
+        "source": "furniture BED 1.05 x 1.85 m short side",
+        "ptPerM": 38.9990234375
+      },
+      {
+        "source": "furniture BED 1.05 x 1.85 m long side",
+        "ptPerM": 38.99999670080236
+      },
+      {
+        "source": "furniture BED 1.50 x 1.85 m long side",
+        "ptPerM": 38.99999670080236
+      },
+      {
+        "source": "furniture BED 1.85 x 2.00 m long side",
+        "ptPerM": 39
+      },
+      {
+        "source": "furniture BED 1.50 x 1.85 m short side",
+        "ptPerM": 39
+      },
+      {
+        "source": "furniture SOFA 0.90 x 2.00 m long side",
+        "ptPerM": 39
+      },
+      {
+        "source": "room Kitchen short side",
+        "ptPerM": 39
+      },
+      {
+        "source": "room Store Room short side",
+        "ptPerM": 39
+      },
+      {
+        "source": "room Master Bedroom short side",
+        "ptPerM": 39.000004069010416
+      },
+      {
+        "source": "room Living Room short side",
+        "ptPerM": 39.000004069010416
+      },
+      {
+        "source": "room Master Bedroom long side",
+        "ptPerM": 39.000005954649396
+      },
+      {
+        "source": "furniture SOFA 0.90 x 2.00 m short side",
+        "ptPerM": 39.00000678168403
+      },
+      {
+        "source": "room Lobby short side",
+        "ptPerM": 39.00000939002404
+      },
+      {
+        "source": "furniture BED 1.85 x 2.00 m short side",
+        "ptPerM": 39.00001319679054
+      },
+      {
+        "source": "room Living Room long side",
+        "ptPerM": 39.00022356697682
+      },
+      {
+        "source": "room Kitchen long side",
+        "ptPerM": 39.000345865885414
+      }
+    ],
+    "agreeing": 19,
+    "disagreementPct": 4.800894973624463
+  },
+  "rooms": [
+    {
+      "id": "store-room",
+      "label": "Store Room",
+      "roomType": "other",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 2.75,
+        "l": 8.2
+      },
+      "areaM2": 22.50882075383112,
+      "verified": true
+    },
+    {
+      "id": "lobby",
+      "label": "Lobby",
+      "roomType": "other",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 1.3,
+        "l": 16.55
+      },
+      "areaM2": 21.508538910702732,
+      "verified": false,
+      "note": "size not confirmed yet"
+    },
+    {
+      "id": "living-room",
+      "label": "Living Room",
+      "roomType": "living",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 3.75,
+        "l": 4.45
+      },
+      "labelAreaM2": 16.7,
+      "areaM2": 16.687597401946825,
+      "verified": true
+    },
+    {
+      "id": "master-bedroom",
+      "label": "Master Bedroom",
+      "roomType": "bedroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 3.75,
+        "l": 4.1
+      },
+      "areaM2": 15.375003951635357,
+      "verified": true
+    },
+    {
+      "id": "kids-bedroom",
+      "label": "Kids Bedroom",
+      "roomType": "bedroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "areaM2": 15.000001565004005,
+      "verified": false,
+      "note": "size not confirmed yet"
+    },
+    {
+      "id": "bedroom",
+      "label": "Bedroom",
+      "roomType": "bedroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "areaM2": 13.687499080559899,
+      "verified": false,
+      "note": "size not confirmed yet"
+    },
+    {
+      "id": "kitchen",
+      "label": "Kitchen",
+      "roomType": "kitchen",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 2.75,
+        "l": 3
+      },
+      "areaM2": 8.250073163937298,
+      "verified": true
+    },
+    {
+      "id": "room-9",
+      "label": "Room 9",
+      "roomType": "bathroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "areaM2": 4.8124999999999964,
+      "verified": false,
+      "note": "size not confirmed yet"
+    },
+    {
+      "id": "room-10",
+      "label": "Room 10",
+      "roomType": "bathroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "areaM2": 4.812499999999998,
+      "verified": false,
+      "note": "size not confirmed yet"
+    },
+    {
+      "id": "room-11",
+      "label": "Room 11",
+      "roomType": "other",
+      "method": "walls",
+      "confidence": 0.9,
+      "areaM2": 3.849998278495592,
+      "verified": false,
+      "note": "size not confirmed yet"
+    },
+    {
+      "id": "terrace",
+      "label": "Terrace",
+      "roomType": "balcony",
+      "method": "walls+strokes",
+      "confidence": 0.7,
+      "labelDims": {
+        "w": 1.25,
+        "l": 3.05
+      },
+      "areaM2": 3.4866995995154824,
+      "verified": false,
+      "note": "size not confirmed yet"
+    }
+  ],
+  "ceiling": {
+    "heightM": 2.75,
+    "method": "default",
+    "page": null,
+    "candidatesM": [],
+    "confidence": 0.1,
+    "verified": false
+  },
+  "furniture": [
+    {
+      "id": "bed-1",
+      "source": "real",
+      "kind": "bed",
+      "label": "Bed",
+      "box": {
+        "cx": -6.222513052133413,
+        "cz": -3.01499997652494,
+        "w": 1.8500006260016026,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5,
+      "inner": {
+        "w": 1.85,
+        "d": 2
+      }
+    },
+    {
+      "id": "bed-2",
+      "source": "real",
+      "kind": "bed",
+      "label": "Bed",
+      "box": {
+        "cx": -2.0475002191005607,
+        "cz": -3.0900000547751403,
+        "w": 1.0499737079326923,
+        "d": 1.8499998434995995,
+        "yawDeg": 0
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5,
+      "inner": {
+        "w": 1.05,
+        "d": 1.85
+      }
+    },
+    {
+      "id": "bed-3",
+      "source": "real",
+      "kind": "bed",
+      "label": "Bed",
+      "box": {
+        "cx": 1.877486791366186,
+        "cz": -3.0900000547751403,
+        "w": 1.5,
+        "d": 1.8499998434995995,
+        "yawDeg": 0
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5,
+      "inner": {
+        "w": 1.5,
+        "d": 1.85
+      }
+    },
+    {
+      "id": "sofa-1",
+      "source": "real",
+      "kind": "sofa",
+      "label": "Sofa",
+      "box": {
+        "cx": 6.052512535682092,
+        "cz": -3.5649998982747397,
+        "w": 2,
+        "d": 0.9000001565004007,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "wardrobe-1",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "Wardrobe",
+      "box": {
+        "cx": -6.222513052133413,
+        "cz": -2.78999993739984,
+        "w": 1.75,
+        "d": 1.4500000782502003,
+        "yawDeg": 0
+      },
+      "heightM": 2.13,
+      "surfaceHeightM": 2.13
+    },
+    {
+      "id": "wardrobe-2",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "Wardrobe",
+      "box": {
+        "cx": -0.3575130364833734,
+        "cz": -2.13999997652494,
+        "w": 1.8499998434995995,
+        "d": 0.5999998434995993,
+        "yawDeg": 270
+      },
+      "heightM": 2.13,
+      "surfaceHeightM": 2.13
+    },
+    {
+      "id": "wardrobe-3",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "Wardrobe",
+      "box": {
+        "cx": 3.4074867444160657,
+        "cz": -2.13999997652494,
+        "w": 1.8499998434995995,
+        "d": 0.5999998434995993,
+        "yawDeg": 270
+      },
+      "heightM": 2.13,
+      "surfaceHeightM": 2.13
+    },
+    {
+      "id": "wardrobe-4",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "",
+      "box": {
+        "cx": -4.472513052133413,
+        "cz": -2.13999997652494,
+        "w": 2.300000313000801,
+        "d": 0.6000006260016033,
+        "yawDeg": 270
+      },
+      "heightM": 2.13,
+      "surfaceHeightM": 2.13
+    },
+    {
+      "id": "counter-1",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": -1.5225133651342146,
+        "cz": 3.7150000547751403,
+        "w": 2.75,
+        "d": 0.5999998434995993,
+        "yawDeg": 180
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    }
+  ],
+  "unmapped": [],
+  "spawn": {
+    "x": 4.179999718299279,
+    "z": 2.6399999765249396,
+    "yawDeg": 0
+  },
+  "warnings": [
+    "This sheet holds 2 flats (Flat 1: 5 rooms, Flat 2: 5 rooms). The rooms of all of them are listed, but a walk-through is of one flat: keep the rooms of one flat and delete the rest in the editor.",
+    "3 closed space(s) with no label were added as unnamed rooms. Name them in the editor.",
+    "Master Bedroom has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Kids Bedroom has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Bedroom has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Kitchen has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Room 9 has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Room 10 has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Room 11 has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Terrace has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Ceiling height not found on the elevation pages. Using 2.75 m. Confirm it.",
+    "Printed room sizes against the drawn walls: 4 of 4 rooms agree on one scale; 4 rooms checked."
+  ],
+  "units": [
+    {
+      "id": "flat-1",
+      "label": "Flat 1",
+      "roomIds": [
+        "living-room",
+        "master-bedroom",
+        "kids-bedroom",
+        "bedroom",
+        "terrace"
+      ]
+    },
+    {
+      "id": "flat-2",
+      "label": "Flat 2",
+      "roomIds": [
+        "store-room",
+        "kitchen",
+        "room-9",
+        "room-10",
+        "room-11"
+      ]
+    }
+  ]
+}
