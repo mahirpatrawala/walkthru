@@ -483,6 +483,8 @@ export function buildRealFurniture(group: THREE.Group, item: FurnitureItem, tier
   if (look) {
     const built = GENERATORS[look.kind].build({ kit, q: GEN_QUALITY[tier] }, sizeOf(item), look.params, look.roles);
     moveChildren(built, group);
+    // a swing's moving parts are driven by the buyer page (src/buyer/swing-motion.ts), which reads this from the item's mesh
+    if (built.userData.swingRig) group.userData.swingRig = built.userData.swingRig; else delete group.userData.swingRig;
     group.userData.look = look;
     // the generator consumed item.finish itself (src/look/style.ts finishLayer): the old colour-swap pass stands down
     group.userData.finishApplied = true;

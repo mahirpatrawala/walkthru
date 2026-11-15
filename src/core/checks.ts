@@ -74,12 +74,12 @@ export function chairCheck(widthM: number, depthM: number, seatHeightM: number, 
   return { title: `${label} · ${cm(widthM)} × ${cm(depthM)} cm`, tone: v.tone, headline: v.line, lines: [], footer: provenance };
 }
 
-/** Stand at the counter. Comfortable top is `0.63 * height - 0.15`, give or take 7 cm. */
-export function counterCheck(topM: number, heightM: number, label: string): CheckCard {
+/** Stand at the counter. Comfortable top is `0.63 * height - 0.15`, give or take 7 cm (a basin or a sink, a fitting with a standard rim, is judged give or take 12 cm). */
+export function counterCheck(topM: number, heightM: number, label: string, tolM = 0.07): CheckCard {
   const diff = topM - (0.63 * heightM - 0.15);
   let tone: CheckCard['tone'];
   let headline: string;
-  if (Math.abs(diff) <= 0.07 + 1e-9) {
+  if (Math.abs(diff) <= tolM + 1e-9) {
     tone = 'good'; headline = 'Comfortable working height for you.';
   } else if (diff < 0) {
     tone = 'warn'; headline = 'Low for you. Expect to stoop.';
@@ -170,7 +170,7 @@ function pieceCard(item: FurnitureItem, heightM: number, ceilingM: number): Chec
     }
     case 'swing': return swingCheck(item, heightM, ceilingM);
     case 'stand': {
-      const c = counterCheck(item.surfaceHeightM, heightM, item.label);
+      const c = counterCheck(item.surfaceHeightM, heightM, item.label, rule.category === 'bathroom' || rule.category === 'kitchen' ? 0.12 : 0.07);
       return { ...c, lines: [...c.lines, ...zl], footer };
     }
     default: {

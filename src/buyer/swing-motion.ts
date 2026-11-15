@@ -46,10 +46,10 @@ export function poseSwingMesh(mesh: THREE.Object3D, a: number): SwingRig | null 
   const { forward, up } = swingOffsets(rig.lengthM, a);
   if (rig.mode === 'parallel') {
     mesh.getObjectByName('swing-seat')?.position.set(0, up, forward);
-    for (const n of ['swing-chains-front', 'swing-chains-back']) { const g = mesh.getObjectByName(n); if (g) g.rotation.x = -a; }
+    for (const n of ['swing-chains-front', 'swing-chains-back']) { const g = mesh.getObjectByName(n); if (g) g.rotation.x = a === 0 ? 0 : -a; }
   } else {
     const g = mesh.getObjectByName('swing-rig');
-    if (g) g.rotation.x = -a;
+    if (g) g.rotation.x = a === 0 ? 0 : -a;
   }
   return rig;
 }
@@ -72,8 +72,7 @@ export function createSwingMotion(host: SwingHost, reduced: () => boolean = pref
   let t = 0;
   let mesh: THREE.Object3D | null = null;
   const stop = (): void => {
-    if (mesh) restSwingMesh(mesh);
-    host.ridePose(null);
+    if (mesh) { restSwingMesh(mesh); host.ridePose(null); }
     id = null; mesh = null; t = 0;
   };
   return {

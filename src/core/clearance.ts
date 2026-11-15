@@ -124,12 +124,8 @@ export function evaluatePiece(
     verdict = !worst || worst.status === 'ok' ? 'fits' : worst.status === 'tight' ? 'tight' : 'blocked';
     reason = verdict === 'fits' ? 'ok' : swingZ ? 'swing' : 'access';
     const assume = [...new Set(zones.map((z) => z.assumption))];
-    if (swingZ) {
-      const L = chainLengthM(swingZ, ceilingM);
-      assume[0] = `${swingZ.assumption}, chains ${cm(L)} cm long`;
-    }
     const head = `${swingZ ? 'Swing' : spec.name} needs ${listOf(zones, readings)} (${assume.join('; ')})`;
-    if (verdict === 'fits') sentence = `${head}. That space is clear.`;
+    if (verdict === 'fits') sentence = `${head}. It has that space.`;
     else {
       const bad = readings.filter((r) => r.status !== 'ok');
       const badText = bad.map((r) => `${cm(r.haveM)} cm ${spec.sideWords[r.side]}`).join(' and ');
