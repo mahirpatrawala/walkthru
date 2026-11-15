@@ -14,19 +14,25 @@ export interface Arrival { x: number; z: number; yawDeg: number; roomId: string 
 export const ARRIVAL_CLEAR_M = 0.45;
 /** The walker's margin from a door's leaf, at every angle the leaf can take. */
 export const ARRIVAL_LEAF_CLEAR_M = CHARACTER_RADIUS_M + 0.05;
+/** Nearest a landing is searched from: far enough in that the walking camera behind the walker is inside the room, not in the doorway. */
+export const ARRIVAL_FROM_M = 1.9;
 
 /**
  * The landing spot for the door opening `openingId` of `layout`, or null when the opening is not a door or no spot is clear.
  * It is searched along the line going into the room from the doorway's middle, nearest first, then a little to either side.
  */
-export function arrivalAtDoor(layout: Layout, grid: Grid, openingId: string, fromM = 0.9): Arrival | null {
+export function arrivalAtDoor(layout: Layout, grid: Grid, openingId: string, fromM = ARRIVAL_FROM_M): Arrival | null {
   const f = doorFrame(layout, openingId);
   if (!f) return null;
   const inward: Vec2 = { x: -f.out.x, z: -f.out.z };
   const doors = resolveDoors(layout);
   const room = layout.rooms.find((r) => r.id === f.roomId);
   if (!room) return null;
-  for (let d = fromM; d <= 3.2 + 1e-9; d += 0.05) {
+  // as far in as asked first, then deeper; a narrow corridor has nothing that deep, so then as near to it as the room allows
+  const depths: number[] = [];
+  for (let d = fromM; d <= 3.2 + 1e-9; d += 0.05) depths.push(d);
+  for (let d = fromM - 0.05; d >= 0.8 - 1e-9; d -= 0.05) depths.push(d);
+  for (const d of depths) {
     for (const lat of [0, 0.15, -0.15, 0.3, -0.3]) {
       const p = { x: f.centre.x + inward.x * d + f.dir.x * lat, z: f.centre.z + inward.z * d + f.dir.z * lat };
       if (roomAt(layout, p)?.id !== room.id) continue;

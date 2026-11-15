@@ -85,6 +85,7 @@
               "kind": "outside",
               "opening": "door-street",
               "label": "The street",
+              "prompt": "To the street",
               "look": "glass"
             },
             {
@@ -114,6 +115,7 @@
                 "portal": "walkway"
               },
               "label": "The clubhouse (level 1)",
+              "prompt": "To the clubhouse",
               "look": "glass"
             }
           ]
@@ -165,6 +167,7 @@
                 "portal": "clubhouse"
               },
               "label": "The ground floor",
+              "prompt": "To the ground floor",
               "look": "glass"
             },
             {
@@ -176,6 +179,7 @@
                 "portal": "foyer"
               },
               "label": "Community hall",
+              "prompt": "Enter the community hall",
               "look": "plain"
             },
             {
@@ -187,6 +191,7 @@
                 "portal": "foyer"
               },
               "label": "Gym",
+              "prompt": "Enter the gym",
               "look": "plain"
             },
             {
@@ -198,6 +203,7 @@
                 "portal": "foyer"
               },
               "label": "Pool area",
+              "prompt": "Enter the pool area",
               "look": "plain"
             },
             {
@@ -209,6 +215,7 @@
                 "portal": "foyer"
               },
               "label": "Garden",
+              "prompt": "Enter the garden",
               "look": "plain"
             }
           ]
@@ -236,6 +243,7 @@
                 "portal": "hall"
               },
               "label": "The clubhouse foyer",
+              "prompt": "To the clubhouse foyer",
               "look": "plain"
             }
           ]
@@ -263,6 +271,7 @@
                 "portal": "gym"
               },
               "label": "The clubhouse foyer",
+              "prompt": "To the clubhouse foyer",
               "look": "plain"
             }
           ]
@@ -290,6 +299,7 @@
                 "portal": "pool"
               },
               "label": "The clubhouse foyer",
+              "prompt": "To the clubhouse foyer",
               "look": "plain"
             }
           ],
@@ -318,6 +328,7 @@
                 "portal": "garden"
               },
               "label": "The clubhouse foyer",
+              "prompt": "To the clubhouse foyer",
               "look": "plain"
             }
           ],
@@ -369,6 +380,7 @@
                 "portal": "main"
               },
               "label": "Flat 201",
+              "prompt": "Enter Flat 201",
               "look": "main",
               "plate": "201"
             },
@@ -381,6 +393,7 @@
                 "portal": "main"
               },
               "label": "Flat 202",
+              "prompt": "Enter Flat 202",
               "look": "main",
               "plate": "202"
             },
@@ -393,6 +406,7 @@
                 "portal": "main"
               },
               "label": "Flat 203",
+              "prompt": "Enter Flat 203",
               "look": "main",
               "plate": "203"
             },
@@ -405,6 +419,7 @@
                 "portal": "main"
               },
               "label": "Flat 204",
+              "prompt": "Enter Flat 204",
               "look": "main",
               "plate": "204"
             }
@@ -431,6 +446,7 @@
                 "portal": "flat-201"
               },
               "label": "The corridor",
+              "prompt": "To the corridor",
               "look": "main",
               "plate": "201"
             }
@@ -457,6 +473,7 @@
                 "portal": "flat-202"
               },
               "label": "The corridor",
+              "prompt": "To the corridor",
               "look": "main",
               "plate": "202"
             }
@@ -484,6 +501,7 @@
                 "portal": "flat-203"
               },
               "label": "The corridor",
+              "prompt": "To the corridor",
               "look": "main",
               "plate": "203"
             }
@@ -511,6 +529,7 @@
                 "portal": "flat-204"
               },
               "label": "The corridor",
+              "prompt": "To the corridor",
               "look": "main",
               "plate": "204"
             }
@@ -562,6 +581,7 @@
                 "portal": "main"
               },
               "label": "Flat 301",
+              "prompt": "Enter Flat 301",
               "look": "main",
               "plate": "301"
             },
@@ -574,6 +594,7 @@
                 "portal": "main"
               },
               "label": "Flat 302",
+              "prompt": "Enter Flat 302",
               "look": "main",
               "plate": "302"
             },
@@ -586,6 +607,7 @@
                 "portal": "main"
               },
               "label": "Flat 303",
+              "prompt": "Enter Flat 303",
               "look": "main",
               "plate": "303"
             },
@@ -598,6 +620,7 @@
                 "portal": "main"
               },
               "label": "Flat 304",
+              "prompt": "Enter Flat 304",
               "look": "main",
               "plate": "304"
             }
@@ -624,6 +647,7 @@
                 "portal": "flat-301"
               },
               "label": "The corridor",
+              "prompt": "To the corridor",
               "look": "main",
               "plate": "301"
             }
@@ -650,6 +674,7 @@
                 "portal": "flat-302"
               },
               "label": "The corridor",
+              "prompt": "To the corridor",
               "look": "main",
               "plate": "302"
             }
@@ -677,6 +702,7 @@
                 "portal": "flat-303"
               },
               "label": "The corridor",
+              "prompt": "To the corridor",
               "look": "main",
               "plate": "303"
             }
@@ -704,6 +730,7 @@
                 "portal": "flat-304"
               },
               "label": "The corridor",
+              "prompt": "To the corridor",
               "look": "main",
               "plate": "304"
             }

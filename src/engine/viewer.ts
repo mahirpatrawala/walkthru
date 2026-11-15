@@ -70,8 +70,10 @@ export function createViewer(container: HTMLElement, opts: { hasSplat: boolean }
   canvas.style.touchAction = 'none';
   canvas.style.outline = 'none';
   container.appendChild(canvas);
+  let disposed = false;
   canvas.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
+    if (disposed) return; // we let go of it ourselves (a building swaps spaces in one page)
     console.error('[walkthru] WebGL context lost. Reload the page if the view stays blank.');
   });
 
@@ -134,7 +136,10 @@ export function createViewer(container: HTMLElement, opts: { hasSplat: boolean }
       callbacks.clear();
       resizeCbs.clear();
       sparkRenderer?.dispose?.();
+      disposed = true;
       renderer.dispose();
+      // hand the context back at once: a page that opens many spaces in a row must not wait for the garbage collector to free them
+      renderer.forceContextLoss();
       canvas.remove();
     },
   };

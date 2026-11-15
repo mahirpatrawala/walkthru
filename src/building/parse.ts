@@ -53,11 +53,11 @@ function parsePortal(v: unknown, path: string): Portal {
   if (kind === 'door') {
     const to = v.to;
     if (!isObj(to)) return fail(`${path}.to`, 'must be {space, portal}');
-    return { id, kind, opening, to: { space: str(to, 'space', `${path}.to`), portal: str(to, 'portal', `${path}.to`) }, label: str(v, 'label', path), look: look(), ...(typeof v.plate === 'string' ? { plate: v.plate } : {}) };
+    return { id, kind, opening, to: { space: str(to, 'space', `${path}.to`), portal: str(to, 'portal', `${path}.to`) }, label: str(v, 'label', path), look: look(), ...(typeof v.prompt === 'string' ? { prompt: v.prompt } : {}), ...(typeof v.plate === 'string' ? { plate: v.plate } : {}) };
   }
   if (kind === 'lift') return { id, kind, opening, lift: str(v, 'lift', path), ...(typeof v.label === 'string' ? { label: v.label } : {}) };
   if (kind === 'stairs') return { id, kind, opening, ...(typeof v.label === 'string' ? { label: v.label } : {}) };
-  if (kind === 'outside') return { id, kind, opening, label: str(v, 'label', path), look: look() };
+  if (kind === 'outside') return { id, kind, opening, label: str(v, 'label', path), look: look(), ...(typeof v.prompt === 'string' ? { prompt: v.prompt } : {}) };
   return fail(`${path}.kind`, `must be door, lift, stairs or outside (got ${String(kind)})`);
 }
 

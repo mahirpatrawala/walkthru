@@ -12,11 +12,11 @@ export interface Placement { x: number; z: number; rotDeg: 0 | 90 | 180 | 270 }
 export type DoorLook = 'main' | 'glass' | 'plain' | 'lift' | 'stairs';
 
 export type Portal =
-  | { id: string; kind: 'door'; /** the door opening (id in this space's scene) */ opening: string; to: { space: string; portal: string }; label: string; look?: DoorLook; /** shown on the number plate */ plate?: string }
+  | { id: string; kind: 'door'; /** the door opening (id in this space's scene) */ opening: string; to: { space: string; portal: string }; label: string; look?: DoorLook; /** the words on the prompt: "Enter Flat 302" */ prompt?: string; /** shown on the number plate */ plate?: string }
   | { id: string; kind: 'lift'; opening: string; lift: string; label?: string }
   | { id: string; kind: 'stairs'; opening: string; label?: string }
   /** a door to the street or anywhere the sample does not model: it says so */
-  | { id: string; kind: 'outside'; opening: string; label: string; look?: DoorLook };
+  | { id: string; kind: 'outside'; opening: string; label: string; look?: DoorLook; prompt?: string };
 
 export interface Space {
   /** unique in the building; the `space=` of the URL. Equals the scene id unless one scene is used by several spaces. */

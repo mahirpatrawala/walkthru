@@ -13,16 +13,22 @@ export interface DoorPrompts {
 }
 
 let prompts: DoorPrompts | null = null;
+/** A building's portals (src/building/portals.ts): a door that leads to another space is offered before an ordinary "Open door". */
+let portals: Pick<DoorPrompts, 'nearest' | 'activate'> | null = null;
 
 export function setDoorPrompts(p: DoorPrompts | null): void {
   prompts = p;
 }
+export function setPortalPrompts(p: Pick<DoorPrompts, 'nearest' | 'activate'> | null): void {
+  portals = p;
+}
 
 export function nearestDoorPrompt(p: Vec2): { distM: number; prompt: string } | null {
-  return prompts ? prompts.nearest(p) : null;
+  return portals?.nearest(p) ?? (prompts ? prompts.nearest(p) : null);
 }
 
 export function activateNearestDoor(p: Vec2): boolean {
+  if (portals?.activate(p)) return true;
   return prompts ? prompts.activate(p) : false;
 }
 
