@@ -44,13 +44,16 @@ export function startRead(file: File, sceneId: string, title: string, subtitle: 
     const sha256 = await digest(bytes);
     if (over) return; // cancelled while the file was being read
     try { worker = makeWorker(); } catch { return end({ ok: false, problem: problem('no-worker') }); }
+    let heard = false;
     worker.onmessage = (ev: MessageEvent<ReadMessage>): void => {
+      heard = true;
       const m = ev.data;
       if (m.type === 'progress') onProgress(m.progress);
       else if (m.type === 'done') end({ ok: true, data: m.data });
       else if (m.type === 'problem') end({ ok: false, problem: m.problem });
     };
-    worker.onerror = (): void => end({ ok: false, problem: problem('failed', { detail: 'The reader stopped unexpectedly.' }) });
+    // an error before the reader said anything is a browser that cannot start a module worker; later it is the reader itself stopping
+    worker.onerror = (): void => end({ ok: false, problem: heard ? problem('failed', { detail: 'The reader stopped unexpectedly.' }) : problem('no-worker') });
     timer = setTimeout(() => end({ ok: false, problem: problem('timeout') }), LIMITS.maxSeconds * 1000);
     const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
     const req: ReadRequest = { type: 'read', bytes: buf, sceneId, title, subtitle, sha256 };

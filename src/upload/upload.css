@@ -96,9 +96,9 @@
 .wc-box.is-conflict { background: #FDEFE9; }
 .wc-box h2 { margin-top: 0 !important; }
 .wc-time { font-size: 12px; color: var(--wt-muted); }
-.wc-bar { position: sticky; bottom: 0; margin: 6px -18px -18px; padding: 12px 18px calc(14px + var(--wt-safe-b)); background: var(--wt-card); border-radius: 0 0 20px 6px; box-shadow: 0 -6px 14px rgba(70, 38, 20, 0.08); display: flex; flex-direction: column; gap: 6px; align-items: stretch; z-index: 2; }
-.wc-bar .wu-btn { width: 100%; }
-.wc-bar .wu-link { align-self: center; }
+.wc-bar { position: sticky; bottom: 0; margin: 6px -18px -18px; padding: 12px 18px calc(14px + var(--wt-safe-b)); background: var(--wt-card); border-radius: 0 0 20px 6px; box-shadow: 0 -6px 14px rgba(70, 38, 20, 0.08); display: flex; flex-direction: row; gap: 10px; align-items: center; z-index: 2; }
+.wc-bar .wu-btn { flex: 1 1 auto; min-width: 0; padding: 0 16px; }
+.wc-bar .wu-link { flex: none; white-space: nowrap; padding: 8px 4px; }
 @media (min-width: 900px) {
   .wc { flex-direction: row; align-items: flex-start; }
   .wc-plan { flex: 1 1 auto; min-width: 0; aspect-ratio: auto; height: min(70vh, 660px); position: sticky; top: 0; }

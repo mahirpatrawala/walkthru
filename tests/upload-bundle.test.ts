@@ -88,15 +88,27 @@ describe('the built chunks', () => {
     expect(bad).toEqual([]);
   });
 
+  it('no eval and no new Function in the reader or in pdf.js (nothing is run from a string)', () => {
+    const bad: string[] = [];
+    for (const f of closure) {
+      const t = read(f);
+      if (/(^|[^\w$.])eval\s*\(/.test(t)) bad.push(`${f}: eval(`);
+      if (/new\s+Function\s*\(/.test(t)) bad.push(`${f}: new Function(`);
+    }
+    expect(bad).toEqual([]);
+  });
+
   it('pdf.js and the reader pipeline are in the worker’s chunks only, never in the start page or the buyer page', () => {
     const page = files().filter((f) => /^(index|start|main|check|flow|card|honesty|store|local-fetch|notes-panel|local-index)-/.test(f));
     expect(page.length).toBeGreaterThan(3);
     for (const f of page) {
       const t = read(f);
       expect(t.includes('getOperatorList'), `${f} holds pdf.js`).toBe(false);
-      expect(t.includes('understandPages') || t.includes('Printed room sizes against the drawn walls'), `${f} holds the reader`).toBe(false);
+      // strings only the reader's own modules carry: the pdf.js adapter's shape check and the elevation reader's question
+      expect(t.includes('pdf.js shape changed') || t.includes('Which wall does'), `${f} holds the reader`).toBe(false);
     }
     expect([...closure].some((f) => read(f).includes('getOperatorList'))).toBe(true);
+    expect([...closure].some((f) => read(f).includes('Which wall does'))).toBe(true);
   });
 
   it('ships the sample plan beside the page', () => {
