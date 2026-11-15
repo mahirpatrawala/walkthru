@@ -15,7 +15,7 @@ export interface Input {
   moveX: number; moveY: number; jog: boolean;
   /** consume accumulated look drag (px) and zoom (wheel notches / pinch) since the last call */
   takeLook(): { dx: number; dy: number; zoom: number };
-  on(evt: 'interact' | 'cancel' | 'measure' | 'furnish' | 'rotate-left' | 'rotate-right' | 'rotate-90', cb: () => void): () => void;
+  on(evt: 'interact' | 'cancel' | 'measure' | 'furnish' | 'rotate-left' | 'rotate-right' | 'rotate-90' | 'view', cb: () => void): () => void;
   onTap(cb: (e: PointerEvt) => void): () => void;
   /** claimant returns true on 'down' to receive that pointer's moves and up instead of the look drag */
   claimPointer(fn: ((e: PointerEvt) => boolean) | null): void;
@@ -160,6 +160,7 @@ class InputImpl implements Input {
       case 'e': if (this.interactMode === 'rotate') this.emit('rotate-right'); else if (!e.repeat) this.emit('interact'); break;
       case 'q': this.emit('rotate-left'); break;
       case 'r': if (!e.repeat) this.emit('rotate-90'); break;
+      case 'v': if (!e.repeat) this.emit('view'); break;
       case 'm': if (!e.repeat) this.emit('measure'); break;
       case 'f': if (!e.repeat) this.emit('furnish'); break;
       case 'Escape': if (!e.repeat) this.emit('cancel'); break;

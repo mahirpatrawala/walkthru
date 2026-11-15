@@ -39,6 +39,13 @@ function smooth(k: number): number {
 
 interface Focus { centre: Vec3; distance: number; pitchDeg: number; yawDeg: number }
 
+/** First person (SPEC 16.6.8): vertical field of view, and how far down and up the walker may look. */
+const FP_FOV_DEG = 70;
+const FP_PITCH_MIN_DEG = -80;
+const FP_PITCH_MAX_DEG = 80;
+/** Lying on a bed the walker looks at the ceiling: this much above level, eased in. */
+const FP_LIE_PITCH_DEG = -55;
+
 export class FollowCamera {
   /** Heading the camera looks along, degrees. Walk input is relative to this. */
   yawDeg = 0;
@@ -59,11 +66,19 @@ export class FollowCamera {
   private boomLen = DEFAULT_BOOM_M;
   private haveBoom = false;
   private viewYaw = 0;
+  private firstPersonOn = false;
+  private fpEye: Vec3 | null = null;
+  private fpPitch = 0;
+  private fpBias = 0;
+  private fpBiasTarget = 0;
+  private thirdFov: number;
+  private yawTween: { from: number; to: number; t: number; dur: number } | null = null;
 
   constructor(camera: THREE.PerspectiveCamera, getGrid: () => Grid, ceilingM: number) {
     this.camera = camera;
     this.getGrid = getGrid;
     this.ceilingM = ceilingM;
+    this.thirdFov = camera.fov;
     camera.near = 0.05;
     camera.far = 200;
     camera.updateProjectionMatrix();
@@ -79,6 +94,35 @@ export class FollowCamera {
     return this.viewYaw;
   }
 
+  /** True in the first-person view: no body in shot, the camera sits at the walker's eyes. */
+  get firstPerson(): boolean {
+    return this.firstPersonOn;
+  }
+  set firstPerson(on: boolean) {
+    if (on === this.firstPersonOn) return;
+    this.firstPersonOn = on;
+    this.focusActive = false;
+    this.focusT = 0;
+    this.focus = null;
+    this.fpPitch = 0;
+    this.fpBias = 0;
+    this.fpBiasTarget = 0;
+    this.yawTween = null;
+    this.camera.fov = on ? FP_FOV_DEG : this.thirdFov;
+    this.camera.updateProjectionMatrix();
+    if (!on) { this.haveBoom = false; this.boomLen = this.distance; }
+  }
+
+  /** The eyes, world metres, each frame while `firstPerson` is on (the walker's `eyePosition`). */
+  setEye(p: Vec3): void {
+    this.fpEye = { x: p.x, y: p.y, z: p.z };
+  }
+
+  /** Eases the heading to `yawDeg` over `seconds` by the short way round (first person: face the way a seat or a bed points). */
+  turnTo(yawDeg: number, seconds = 0.5): void {
+    this.yawTween = { from: this.yawDeg, to: this.yawDeg + angleDiff(this.yawDeg, yawDeg), t: 0, dur: Math.max(0.05, seconds) };
+  }
+
   setTarget(pos: Vec2, heightM: number): void {
     this.target = { x: pos.x, z: pos.z };
     this.heightM = heightM;
@@ -90,6 +134,11 @@ export class FollowCamera {
    * The boom collision rule still applies.
    */
   focusOn(centre: Vec3, distance: number, pitchDeg: number, yawDeg?: number): void {
+    if (this.firstPersonOn) {
+      // no figure to frame: on the bed (a steep view of it) the walker looks up at the ceiling, on a sofa straight ahead
+      this.fpBiasTarget = pitchDeg >= 40 ? FP_LIE_PITCH_DEG : 0;
+      return;
+    }
     // a portrait phone sees a much narrower slice: pull back so the whole bed or sofa stays in frame (never past the 8 m cap)
     const aspect = this.camera.aspect > 0 ? this.camera.aspect : 1.6;
     const fit = aspect < 1 ? clamp(0.75 / aspect, 1, 1.7) : 1;
@@ -125,11 +174,13 @@ export class FollowCamera {
 
   /** Swings back to following the character. The heading it had in the focus is kept. */
   releaseFocus(): void {
+    if (this.firstPersonOn) { this.fpBiasTarget = 0; return; }
     if (this.focus) this.yawDeg = this.focus.yawDeg;
     this.focusActive = false;
   }
 
   update(dt: number, look: { dx: number; dy: number; zoom: number }): void {
+    if (this.firstPersonOn) { this.updateFirstPerson(dt, look); return; }
     // 1. look and zoom act on the focus while one is active, otherwise on the follow values
     const f = this.focusActive ? this.focus : null;
     if (f) {
@@ -184,5 +235,25 @@ export class FollowCamera {
 
     this.camera.position.set(pivot.x + dir.x * this.boomLen, pivot.y + dir.y * this.boomLen, pivot.z + dir.z * this.boomLen);
     this.camera.lookAt(pivot.x, pivot.y, pivot.z);
+  }
+
+  private updateFirstPerson(dt: number, look: { dx: number; dy: number; zoom: number }): void {
+    if (this.yawTween) {
+      const tw = this.yawTween;
+      tw.t += dt;
+      const k = Math.min(1, tw.t / tw.dur);
+      this.yawDeg = tw.from + (tw.to - tw.from) * smooth(k);
+      if (look.dx !== 0 || k >= 1) this.yawTween = null;
+    }
+    this.yawDeg += look.dx * LOOK_DEG_PER_PX;
+    this.fpPitch = clamp(this.fpPitch + look.dy * LOOK_DEG_PER_PX, FP_PITCH_MIN_DEG, FP_PITCH_MAX_DEG);
+    this.fpBias += (this.fpBiasTarget - this.fpBias) * (1 - Math.exp(-dt * 3));
+    this.viewYaw = this.yawDeg;
+    this.boomLen = 0; // the buyer page hides the body below a 0.7 m boom
+    const eye = this.fpEye ?? { x: this.target.x, y: PIVOT_HEIGHT_RATIO * this.heightM, z: this.target.z };
+    const pitch = clamp(this.fpPitch + this.fpBias, FP_PITCH_MIN_DEG, FP_PITCH_MAX_DEG) * DEG;
+    const yr = this.yawDeg * DEG;
+    this.camera.position.set(eye.x, eye.y, eye.z);
+    this.camera.lookAt(eye.x + Math.sin(yr) * Math.cos(pitch), eye.y - Math.sin(pitch), eye.z + Math.cos(yr) * Math.cos(pitch));
   }
 }

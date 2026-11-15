@@ -6,9 +6,8 @@
 //   conflict    a dimension string or label that disagrees with the drawing, both numbers kept
 //   unverified  everything measured from the walls, symbols and furniture boxes, and the wall height
 //
-// Pure TypeScript (no pdf.js, no files). When C12c lands, its elevation and symbol readers add `unit`, `height` and `elevations` to
+// Pure TypeScript (no pdf.js, no files, no Node built-ins: it also runs in the browser reader, src/upload). When C12c lands, its elevation and symbol readers add `unit`, `height` and `elevations` to
 // the same file and nothing downstream (review rows, writer) changes. Every id is a hash of the field path and the source box.
-import { createHash } from 'node:crypto';
 import { boxCorners } from '../core/geometry';
 import type { Vec2 } from '../types';
 import type { ProposalExtras, RoomFinding, VectorPage } from '../import/types';
@@ -17,6 +16,7 @@ import { addElevationData } from './write';
 import type { Check, Extracted, Method, Status } from './types';
 import type { UnderstandingDoc } from './review-model';
 import { fmtFtIn } from './review-model';
+import { sha1Hex } from './hash';
 import type { BaseOutputs } from './review-apply';
 
 export type { BaseOutputs };
@@ -28,7 +28,7 @@ export interface VectorRun {
 }
 export const GENERIC_SOURCE = (pages: number): string => `Imported drawing set, ${pages} page${pages === 1 ? '' : 's'}`;
 
-const hash = (s: string): string => createHash('sha1').update(s).digest('hex').slice(0, 10);
+const hash = (s: string): string => sha1Hex(s).slice(0, 10);
 type Box4 = [number, number, number, number];
 const R = (v: number): number => Math.round(v * 10) / 10;
 const bboxOf = (pts: [number, number][]): Box4 => [R(Math.min(...pts.map((p) => p[0]))), R(Math.min(...pts.map((p) => p[1]))), R(Math.max(...pts.map((p) => p[0]))), R(Math.max(...pts.map((p) => p[1])))];

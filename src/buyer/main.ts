@@ -27,13 +27,17 @@ import { mountDesign } from '../look/design-mount';
 import { PACKS } from '../look/packs';
 import { doorPanelColour, finishNote, getStyle, onStyleChange, setStyle } from '../look/style';
 import { resolveItemLook } from '../look/furniture-real';
+import { modelNote } from '../look/models/apply';
+import { setModelsEnabled } from '../look/models/library';
+import { modelStats, modelsIdle } from '../look/models/load';
 import type { Look } from '../look/look';
 import { mountLookPanel } from '../look/look-panel';
 import { createInput } from '../engine/controls';
 import { FollowCamera } from '../engine/camera';
-import { stepLocomotion } from '../engine/locomotion';
+import { resetLocomotion, stepLocomotion } from '../engine/locomotion';
 import { CHARACTER_RADIUS_M } from '../types';
-import { BODY_DEFAULT_CM, bodyFrom, clampPersonHeight, loadPerson, savePerson, tintForPerson } from './person-store';
+import { BODY_DEFAULT_CM, bodyFrom, clampPersonHeight, loadPerson, loadView, savePerson, saveView, tintForPerson } from './person-store';
+import type { ViewMode } from './person-store';
 import type { PersonBody } from '../look/people';
 import type { PropertyFile, Vec2 } from '../types';
 import { ModeManager, createBuyerContext } from './context';
@@ -58,6 +62,7 @@ import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
 import { mountSceneTag, sceneOrigin, sceneTagText } from './scene-tag';
+import { isLocalHomeId } from '../upload/tag';
 import { createLivedIn, mountLivedInToggle } from '../look/lived-in';
 import type { LivedIn } from '../look/lived-in';
 import { mountPartialBadge, partialRoomInView } from './partial-badge';
@@ -108,6 +113,7 @@ async function fetchExtras(sceneId: string): Promise<ReturnType<typeof unverifie
 // ---------------------------------------------------------------- page boot
 
 const params = new URLSearchParams(location.search);
+setModelsEnabled(params.get('models') !== 'off'); // ?models=off: the generated furniture and decor only (SPEC 16.15)
 // src/buyer/entry.ts only loads this file when ?scene= names a home; with no scene the start page opens instead
 const sceneId = (params.get('scene') ?? '').trim();
 const requestedRoom = params.get('room');
@@ -161,6 +167,12 @@ function guessedBodyTier(): 'low' | 'medium' {
 }
 
 async function boot(): Promise<void> {
+  // an uploaded plan (`?scene=local-...`) is a home in this browser's own store: its files are answered from there, nothing is fetched (src/upload/local-fetch.ts)
+  let uploaded: Awaited<ReturnType<typeof import('../upload/local-fetch').installLocalScene>> = null;
+  if (isLocalHomeId(sceneId)) {
+    uploaded = await (await import('../upload/local-fetch')).installLocalScene(sceneId);
+    if (!uploaded) { loading.showError('This plan is not on this device', 'Uploaded plans stay in the browser that read them. Open Walkthru in that browser, or upload the plan again from the start page.'); return; }
+  }
   // C11b: the body, its clips and the drawing's designs download while the layout and the look start up
   const early = loadPerson(storage);
   prefetchPerson(early.body, guessedBodyTier());
@@ -283,6 +295,7 @@ async function boot(): Promise<void> {
       void furnitureKit.setTier(t).then(() => {
         rebuildFurnitureTier(furnitureRoot, t);
         design?.rebuild(t);
+        livedIn?.setTier(t);
         for (const d of decor) d.rebuild(t);
         look!.refresh(store.grid());
       });
@@ -313,6 +326,7 @@ async function boot(): Promise<void> {
   hud.setVisible(false);
   const tagText = sceneTagText(property);
   if (tagText) mountSceneTag(hud.root, tagText);
+  if (uploaded) { const up = uploaded; void import('../upload/notes-panel').then((m) => m.mountUploadNote(hud.root, up.data.notes, sceneId, up.source === 'sample')); }
   mountHomeLink(hud.root);
   const partialBadge = mountPartialBadge(hud.root);
   // C11c: the painterly mode is a lazy chunk, fetched only when the buyer taps "Show as a painting"
@@ -365,7 +379,8 @@ async function boot(): Promise<void> {
   };
   if (look) mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); }, style: stylePicker });
   // C12f: the optional AI photo (SPEC 17.14). The button exists only if the server says the feature is on; nothing else loads until it is tapped.
-  mountAiPhoto({
+  // never for an uploaded plan: a picture of the view would leave the device, and an upload is promised to stay on it
+  if (!uploaded) mountAiPhoto({
     host: hud.root, viewer, layout, items: () => store.all(), toast: (t) => hud.toast(t),
     withoutCharacter: (fn) => { const was = character.object.visible; character.setVisible(false); livedIn?.setSuppressed(true); try { return fn(); } finally { character.setVisible(was); livedIn?.setSuppressed(!!scanHandle && scanVisible); } },
   });
@@ -376,7 +391,7 @@ async function boot(): Promise<void> {
   const doors = mountDoors({ ctx, store, layout });
   doors.setPanelColour(doorPanelColour());
   onStyleChange(() => { doors.setPanelColour(doorPanelColour()); }); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
-  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name)) });
+  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name) + modelNote(item.id)) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));
@@ -430,12 +445,26 @@ async function boot(): Promise<void> {
   let heightCm = person.heightCm;
   character.setHeight(heightCm / 100, tintForPerson(person.body, heightCm));
 
+  // ---- view (SPEC 16.6.8): see yourself (the follow camera, the default) or look through your own eyes (no body in shot)
+  let view: ViewMode = loadView(storage);
+  const eyeNow = new THREE.Vector3();
+  let lastCharState = character.state;
+  function applyView(v: ViewMode, announce = true): void {
+    view = v;
+    saveView(storage, v);
+    camera.firstPerson = v === 'first';
+    if (v === 'first') character.setVisible(false);
+    picker?.syncView(v);
+    if (announce) hud.hint(v === 'first' ? 'First person · V to see yourself' : 'See yourself · V for first person', 2500);
+  }
+
   const blocking = (): boolean => picker.isOpen() || rooms.isOpen() || paintBusy;
 
   picker = createHeightPicker(document.body, {
     getCm: () => heightCm,
     onChange: (cm) => { heightCm = applyHeight(cm); },
     person: { get: () => ({ body: person.body, tone: person.tone }), onChange: (p) => { void applyPerson(p); } },
+    view: { get: () => view, onChange: (v) => applyView(v) },
     onClose: () => {
       savePerson(storage, person);
       hud.setVisible(true);
@@ -462,7 +491,7 @@ async function boot(): Promise<void> {
     look?.refresh(store.grid());
   });
   // optional "Lived-in" decor (SPEC 16.6.7): a switch in the look sheet, a label in the rooms sheet; on by default only for made-up sample homes
-  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
+  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), models: () => (getStyle().pack.classic ? null : getStyle().pack.models ?? null), defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
 
   // SPEC 16.14: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.
   let baked: BakedHandle | null = null;
@@ -493,6 +522,8 @@ async function boot(): Promise<void> {
   }
 
   // ---- input events
+  camera.firstPerson = view === 'first';
+  input.on('view', () => { if (!blocking()) applyView(view === 'first' ? 'third' : 'first'); });
   input.on('interact', () => { if (!blocking()) void interactions.interact(); });
   input.on('measure', () => toggleMode('measure'));
   input.on('furnish', () => toggleMode('furnish'));
@@ -553,19 +584,33 @@ async function boot(): Promise<void> {
   let lastChip: string | null | undefined;
   let debugClock = 0;
   let gridClock = 0;
-  viewer.onFrame((dt) => {
+  // debug only (SPEC 16.6.8): freeze the simulation and advance it in exact steps, so a frame sequence has even spacing
+  const motionDebug = { paused: false, steps: 0, dt: 1 / 30, trace: null as null | { cam: number[]; char: number[] }[] };
+  viewer.onFrame((frameDt) => {
+    if (!motionDebug.paused) { tick(frameDt); return; }
+    while (motionDebug.steps > 0) { motionDebug.steps--; tick(motionDebug.dt); }
+  });
+  function tick(dt: number): void {
     const look = input.takeLook();
     const blocked = blocking();
     if (blocked) {
       if (character.state === 'walk' || character.state === 'jog') character.setLocomotion(0, false);
+      resetLocomotion(character); // a sheet that opens mid-stride stops the walker; it does not glide on when the sheet closes
     } else if (modes.id !== 'pose') {
       stepLocomotion(character, input, camera.viewYawDeg, store.grid(), dt);
-    }
+    } else resetLocomotion(character);
     modes.update(dt);
     interactions.update(dt);
     wardrobes.update(dt);
     character.update(dt);
     camera.setTarget(character.position, character.heightM);
+    if (camera.firstPerson) {
+      camera.setEye(character.eyePosition(eyeNow, dt));
+      // sitting down or lying down, the view turns to face the way the seat or the bed points
+      const st = character.state;
+      if (st !== lastCharState && (st === 'sitting' || st === 'lying')) camera.turnTo(character.yawDeg, 0.6);
+      lastCharState = st;
+    } else lastCharState = character.state;
     camera.update(dt, blocked ? ZERO_LOOK : look);
     if (freeCam) {
       // debug only (screenshots from a chosen viewpoint): the follow camera is overridden after it has run
@@ -575,6 +620,10 @@ async function boot(): Promise<void> {
       if (freeCam.fov && viewer.camera.fov !== freeCam.fov) { viewer.camera.fov = freeCam.fov; viewer.camera.updateProjectionMatrix(); }
       viewer.camera.updateMatrixWorld(true);
       character.setVisible(false);
+    }
+    if (motionDebug.trace) {
+      const c = viewer.camera.position, p = character.object.position;
+      motionDebug.trace.push({ cam: [c.x, c.y, c.z], char: [p.x, p.y, p.z] });
     }
     // below a 0.7 m boom the character is hidden, above 0.8 m it comes back (SPEC 2.4)
     if (camera.boom < 0.7) character.setVisible(false);
@@ -602,7 +651,7 @@ async function boot(): Promise<void> {
         );
       }
     }
-  });
+  }
 
   // ---- debug hooks
   function snapshot() {
@@ -646,6 +695,15 @@ async function boot(): Promise<void> {
     freeCam: (pos: [number, number, number] | null, target?: [number, number, number], fov?: number, up?: [number, number, number]) => {
       freeCam = pos && target ? { pos, target, fov, up } : null;
       hud.setVisible(!freeCam);
+    },
+    /** Debug (motion captures): `pause(true, dt)` freezes the simulation, `step(n)` runs n frames of `dt` seconds, `trace(true)` records camera and character per frame. */
+    /** SPEC 16.6.8: 'third' (see yourself) or 'first' (your own eyes). `set` returns the view now in force. */
+    view: { get: () => view, set: (v: ViewMode) => { applyView(v === 'first' ? 'first' : 'third', false); return view; } },
+    motion: {
+      pause: (on: boolean, dt = 1 / 30) => { motionDebug.paused = on; motionDebug.dt = dt; motionDebug.steps = 0; },
+      step: (n: number) => { motionDebug.steps += n; },
+      pending: () => motionDebug.steps,
+      trace: (on: boolean) => { if (on) { motionDebug.trace = []; return []; } const t = motionDebug.trace ?? []; motionDebug.trace = null; return t; },
     },
     /** Moves the character to (x, z) (nearest free spot if blocked). While posed the release takes up to ~0.7 s. */
     teleport,
@@ -704,8 +762,11 @@ async function boot(): Promise<void> {
     /** SPEC 16.14: the offline bake dumps the scene as built (loaded on demand, never part of a first load) */
     bake: {
       get handle() { return baked; },
-      exportScene: async () => (await import('../look/baked/export')).exportScene({ scene: viewer.scene, sceneId, wallHeightM: layout.wallHeightM }),
+      // library models (SPEC 16.15) arrive after first paint: the dump waits for them, so the bake lights what the viewer sees
+      exportScene: async () => { await modelsIdle(); return (await import('../look/baked/export')).exportScene({ scene: viewer.scene, sceneId, wallHeightM: layout.wallHeightM }); },
     },
+    /** the CC0 model library (SPEC 16.15): files fetched so far, and a promise for when nothing is loading */
+    models: { stats: modelStats, idle: modelsIdle, lived: () => livedIn?.pieces() ?? [] },
     /** open-wardrobe hooks for the acceptance scripts */
     wardrobe: wardrobes.debug,
     /** SPEC 16.8 hooks. `ready` is the current tier's asset promise (a getter, so it follows tier changes). */

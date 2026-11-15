@@ -6,6 +6,7 @@ import { PERSON_BODIES } from '../look/people';
 import type { PersonBody } from '../look/people';
 import { el } from './hud';
 import { BODY_CHIPS_CM, BODY_RANGE_CM, PERSON_LABELS, clampPersonHeight, tintForPerson } from './person-store';
+import type { ViewMode } from './person-store';
 
 export interface HeightPicker {
   open(first: boolean): void;
@@ -15,6 +16,8 @@ export interface HeightPicker {
   sync(cm: number): void;
   /** keep the body and skin tone in step when they are set from outside */
   syncPerson(p: { body: PersonBody; tone: number }): void;
+  /** keep the view switch in step when the view is changed from outside (the V key) */
+  syncView(v: ViewMode): void;
 }
 
 /** SPEC 16.6.4: the body and skin tone half of the picker. Absent (the editor, old callers) = height only. */
@@ -23,9 +26,15 @@ export interface PersonOptions {
   onChange(p: { body: PersonBody; tone: number }): void;
 }
 
+/** SPEC 16.6.8: see yourself, or look through your own eyes. */
+export interface ViewOptions {
+  get(): ViewMode;
+  onChange(v: ViewMode): void;
+}
+
 export function createHeightPicker(
   parent: HTMLElement,
-  opts: { getCm(): number; onChange(cm: number): void; onClose(): void; person?: PersonOptions },
+  opts: { getCm(): number; onChange(cm: number): void; onClose(): void; person?: PersonOptions; view?: ViewOptions },
 ): HeightPicker {
   const modal = el('div', 'wt-modal', undefined, parent);
   modal.dataset.testid = 'height-picker';
@@ -78,6 +87,27 @@ export function createHeightPicker(
     for (const c of cards) { c.btn.classList.toggle('is-on', c.body === person.body); c.btn.setAttribute('aria-pressed', String(c.body === person.body)); }
     toneBtns.forEach((b, i) => b.classList.toggle('is-on', i === person.tone));
     renderChips();
+  }
+
+  // how you are seen: the follow camera with your body in shot, or your own eyes with no body at all
+  const viewBtns: { v: ViewMode; btn: HTMLButtonElement }[] = [];
+  if (opts.view) {
+    const seg = el('div', 'wt-view', undefined, sheet);
+    seg.setAttribute('role', 'group');
+    seg.setAttribute('aria-label', 'View');
+    seg.dataset.testid = 'view-switch';
+    for (const [v, label] of [['third', 'See yourself'], ['first', 'First person']] as const) {
+      const b = el('button', 'wt-view-btn', label, seg);
+      b.type = 'button';
+      b.dataset.view = v;
+      b.addEventListener('click', () => { opts.view!.onChange(v); renderView(); });
+      viewBtns.push({ v, btn: b });
+    }
+  }
+  function renderView(): void {
+    if (!opts.view) return;
+    const cur = opts.view.get();
+    for (const b of viewBtns) { b.btn.classList.toggle('is-on', b.v === cur); b.btn.setAttribute('aria-pressed', String(b.v === cur)); }
   }
 
   const chips = el('div', 'wt-chips', undefined, sheet);
@@ -153,6 +183,7 @@ export function createHeightPicker(
   function open(first: boolean): void {
     cm = clampPersonHeight(person.body, opts.getCm());
     if (opts.person) { person = opts.person.get(); renderPerson(); }
+    renderView();
     go.textContent = first && !opened ? 'Start walking' : 'Done';
     opened = true;
     render();
@@ -167,11 +198,13 @@ export function createHeightPicker(
   }
   render();
   renderPerson();
+  renderView();
 
   return {
     open, close,
     isOpen: () => !modal.hidden,
     sync(next) { cm = clampPersonHeight(person.body, next); render(); },
     syncPerson(p) { person = p; renderPerson(); render(); },
+    syncView() { renderView(); },
   };
 }

@@ -16,9 +16,22 @@ What they were made from
 - Garments (kurta, pyjama, kameez, salwar, blouse, saree, dupatta, pallu, trim), hair, bun, braid, pigtails and pupils were modelled
   for walkthru by tools/make_family.py from the shape of the skin itself (revised 15 Nov 2026: the kurta, kameez and saree skirt hang as one panel per leg
   so a stride never tears them, and the dupatta and pallu are draped bands with thickness and soft folds). They contain no third-party asset and are CC0 with the rest.
-- The six animation clips in clips.glb are the Universal Animation Library clips Idle_Loop, Walk_Loop, Jog_Fwd_Loop, Sitting_Enter,
-  Sitting_Idle_Loop, Sitting_Exit by Quaternius (CC0, https://quaternius.com/packs/universalanimationlibrary.html), taken from
-  public/characters/mannequin.glb and retargeted onto these bodies when the page loads. Look_Around and Reach_Forward are made at load time from them.
+- The animation clips in clips.glb (rebuilt 15 Nov 2026 by tools/make-clips.mjs) come from two Quaternius libraries, both CC0 1.0, both the free
+  "Standard" download from the author's itch.io pages (no purchase, no login, fetched 15 Nov 2026), the Unreal-Godot glb files with root motion off:
+    Universal Animation Library [Standard], https://quaternius.itch.io/universal-animation-library (also https://quaternius.com/packs/universalanimationlibrary.html)
+      zip SHA-256 cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724, UAL1_Standard.glb SHA-256 69591853d817488edaa8fd9bf8fc1d821eaeaf789f8627b3cd23b41c4ed67997
+      clips used: Idle_Loop, Walk_Loop, Walk_Formal_Loop, Jog_Fwd_Loop, Sitting_Enter, Sitting_Idle_Loop, Sitting_Exit, Interact
+    Universal Animation Library 2 [Standard], https://quaternius.itch.io/universal-animation-library-2 (also https://quaternius.com/packs/universalanimationlibrary2.html)
+      zip SHA-256 4008ea208a604773a2b2177d965f0f5d3195498b5bf838c3f5785d68e95f2a68, UAL2_Standard.glb SHA-256 8cee20ab1bc55130092447e810e26df22dd2803eccc54f52137a7d54d7ab88a8
+      clips used: Idle_FoldArms_Loop
+  Each zip carries License.txt (SHA-256 6d01f55c6e4c49a2c9963e147e561945ae2c83958c8ca667d90a6bffdbfac061): "CC0 1.0 Universal (CC0 1.0) Public Domain Dedication", and each
+  pack's page says "Free to use in personal, educational and commercial projects". Only the free Standard files are used; the paid Pro and Source files are not.
+  The clips are retargeted onto these bodies when the page loads (src/look/retarget.ts). Look_Around, Turn_Step (the feet stepping while the body turns on the spot)
+  and Lie_Pose (legs straight, with the idle's own breathing) are made at load time from the retargeted Idle_Loop; Reach_Forward is the library's Interact.
 
 Inspected and not used: Quaternius Ultimate Animated Character Pack (CC0, https://opengameart.org/content/animated-characters-pack, zip
 SHA-256 0295062cbc72da52ee804f39ac38694901a40458011f9b2638fc7ef13ed509da, fetched 13 Nov 2026): chibi proportions, not usable for a measuring product.
+Inspected and not used: Quaternius Universal Base Characters [Standard] (CC0, https://quaternius.itch.io/universal-base-characters, zip SHA-256
+fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40, fetched 15 Nov 2026): two adult "Superhero" bodies in underwear (male 1.82 m, female 1.78 m), no child, no
+elder, no clothes and no Indian garments in the free file; heroic proportions are not acceptable for a measuring product (SPEC 16.6.2).
+Not used: Mixamo (needs an Adobe login, and its terms restrict redistributing the raw clips) and every other pack that is paid or not CC0.

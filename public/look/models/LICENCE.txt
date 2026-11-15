@@ -1,0 +1,22 @@
+Every model under public/look/models/ is derived from a Poly Haven asset (https://polyhaven.com) and is CC0 1.0 (public domain), no credit required.
+https://polyhaven.com/license
+Licence read on the official page on 2026-11-15: "Our assets are all licensed as CC0".
+
+Source models and their authors:
+  Dining Chair 02 (dining_chair_02) by James Ray Cock  https://polyhaven.com/a/dining_chair_02
+  Side Table 01 (side_table_01) by James Ray Cock  https://polyhaven.com/a/side_table_01
+  Modern Wooden Cabinet (modern_wooden_cabinet) by Patrik Pangerl  https://polyhaven.com/a/modern_wooden_cabinet
+  Potted Plant 01 (potted_plant_01) by Rico Cilliers  https://polyhaven.com/a/potted_plant_01
+  Potted Plant 02 (potted_plant_02) by Rico Cilliers  https://polyhaven.com/a/potted_plant_02
+  Jug 01 (jug_01) by Kuutti Siitonen  https://polyhaven.com/a/jug_01
+  Ceramic Vase 01 (ceramic_vase_01) by James Ray Cock  https://polyhaven.com/a/ceramic_vase_01
+  Ceramic Vase 02 (ceramic_vase_02) by James Ray Cock  https://polyhaven.com/a/ceramic_vase_02
+  Ceramic Vase 04 (ceramic_vase_04) by James Ray Cock  https://polyhaven.com/a/ceramic_vase_04
+  Wooden Bowl 01 (wooden_bowl_01) by Oliver Harries  https://polyhaven.com/a/wooden_bowl_01
+  Food Apple 01 (food_apple_01) by Oliver Harries  https://polyhaven.com/a/food_apple_01
+  Lemon (lemon) by Kuutti Siitonen  https://polyhaven.com/a/lemon
+  Food Pomegranate 01 (food_pomegranate_01) by Oliver Harries  https://polyhaven.com/a/food_pomegranate_01
+  Wall Clock (wall_clock) by PierreB3D  https://polyhaven.com/a/wall_clock
+
+The GLB files here are our own optimised conversions (decimated, textures resized to WebP, meshopt-compressed) by tools/optimise-look-models.mjs.
+models.lock.json records every source file's URL, size, MD5 (checked against the Poly Haven API) and SHA-256, and the SHA-256 of every output.

@@ -73,6 +73,14 @@ html, body {
   border: 0; border-left: 6px solid var(--wt-good); pointer-events: auto; display: block;
   clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%); box-shadow: none;
 }
+.wt-stack .wt-card { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.wt-stack .wt-card:active { cursor: grabbing; }
+.wt-card-close {
+  position: absolute; top: 2px; right: 22px; width: 44px; height: 44px; border: 0; background: none; color: var(--wt-muted, #6B5E55);
+  font-size: 22px; line-height: 1; cursor: pointer; border-radius: 50%;
+}
+.wt-card-close:hover { color: var(--wt-ink, #2B211C); }
+.wt-stack .wt-card .wt-card-title { padding-right: 44px; }
 .wt-stack .wt-card[data-tone="warn"] { border-left-color: var(--wt-warn); }
 .wt-stack .wt-card[data-tone="bad"] { border-left-color: var(--wt-bad); }
 .wt-card-title { font-size: 12px; color: var(--wt-muted); }
@@ -155,6 +163,11 @@ html, body {
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
 }
 .wt-tone.is-on { box-shadow: 0 0 0 3px var(--wt-accent); }
+.wt-view { display: flex; gap: 4px; margin: -4px 0 16px; padding: 4px; border-radius: 999px; background: #f3f4f7; }
+.wt-view-btn {
+  flex: 1; min-height: 40px; border: 0; border-radius: 999px; background: transparent; color: var(--wt-ink); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.wt-view-btn.is-on { background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18); color: var(--wt-ink); }
 .wt-chips { display: flex; gap: 10px; }
 .wt-chip-btn {
   flex: 1; min-height: 52px; border: 2px solid transparent; border-radius: 12px; background: #f3f4f7; color: var(--wt-ink); font-size: 15px; font-weight: 600; cursor: pointer;

@@ -1,4 +1,5 @@
-// C8. SPEC 13.6. The only file in src/import that imports pdfjs-dist. Node/tests/CLI only, never bundled.
+// C8. SPEC 13.6. The only file in src/import that imports pdfjs-dist. Used by Node (tests, CLI, the broker upload job) and by the
+// browser reader (src/upload), where it is bundled into a lazy worker chunk, never into the page.
 // Output is in PDF user space, origin at the page's media box corner, y UP, text angles as written.
 // `normalizePage` (vector-page.ts) turns that into the y-down, text-reads-left-to-right model.
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
@@ -128,7 +129,19 @@ function parseSubpaths(op: string, data: ArrayLike<number>, ctm: M): Sub[] {
   return subs;
 }
 
-export async function loadVectorPages(data: Uint8Array): Promise<VectorPage[]> {
+/** Optional guards and progress for a caller that reads files it did not choose (the public upload). The default is no limit, as before. */
+export interface LoadOptions {
+  /** refuse a document with more pages than this, before reading any of them */
+  maxPages?: number;
+  /** refuse a page whose drawing has more painting operators than this (a whole-site CAD export) */
+  maxOperators?: number;
+  /** called with the 1-based page number and the page count as each page is read */
+  onPage?: (n: number, total: number) => void;
+  /** polled between pages: true stops the read */
+  cancelled?: () => boolean;
+}
+
+export async function loadVectorPages(data: Uint8Array, opts: LoadOptions = {}): Promise<VectorPage[]> {
   const OPS = pdfjs.OPS as unknown as Record<string, number>;
   if (!OPS) throw new ImportError('pdfjs-shape', 'pdf.js shape changed: OPS is missing. Expected pdfjs-dist 6.4.x.');
   const need = (name: string): number => {
@@ -152,12 +165,22 @@ export async function loadVectorPages(data: Uint8Array): Promise<VectorPage[]> {
 
   const doc = await pdfjs.getDocument({ data: data.slice(), useSystemFonts: false, verbosity: 0 }).promise;
   const pages: VectorPage[] = [];
+  if (opts.maxPages !== undefined && doc.numPages > opts.maxPages) {
+    try { await (doc as unknown as { destroy?: () => Promise<void> }).destroy?.(); } catch { /* ignore */ }
+    throw new ImportError('too-many-pages', `This PDF has ${doc.numPages} pages (the limit is ${opts.maxPages}).`);
+  }
   for (let pn = 1; pn <= doc.numPages; pn++) {
+    if (opts.cancelled?.()) throw new ImportError('cancelled', 'Stopped.');
+    opts.onPage?.(pn, doc.numPages);
     const page = await doc.getPage(pn);
     const [vx0, vy0, vx1, vy1] = page.view as number[];
     const width = vx1 - vx0; const height = vy1 - vy0;
     const base: M = [1, 0, 0, 1, -vx0, -vy0];
     const ol = await page.getOperatorList();
+    if (opts.maxOperators !== undefined && ol.fnArray.length > opts.maxOperators) {
+      try { await (doc as unknown as { destroy?: () => Promise<void> }).destroy?.(); } catch { /* ignore */ }
+      throw new ImportError('too-complex', `Page ${pn} holds ${ol.fnArray.length} drawing operations (the limit is ${opts.maxOperators}).`);
+    }
     const fills: VFill[] = []; const strokes: VStroke[] = [];
     let imageArea = 0;
     let st: GState = { ctm: base, fill: '#000000', stroke: '#000000', lw: 1 };

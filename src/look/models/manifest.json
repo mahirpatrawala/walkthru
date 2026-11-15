@@ -1,0 +1,776 @@
+{
+ "version": 1,
+ "models": {
+  "ceramic_vase_01": {
+   "id": "ceramic_vase_01",
+   "files": {
+    "low": {
+     "file": "ceramic_vase_01.low.glb",
+     "bytes": 13136
+    },
+    "full": {
+     "file": "ceramic_vase_01.glb",
+     "bytes": 34444
+    }
+   },
+   "parts": {
+    "body": {
+     "tris": {
+      "low": 1040,
+      "full": 2000
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.6478,
+     "detailCv": 0.011
+    }
+   },
+   "dims": {
+    "w": 0.2036,
+    "h": 0.4003,
+    "d": 0.2036
+   },
+   "tris": {
+    "low": 1040,
+    "full": 2000
+   },
+   "place": "floor"
+  },
+  "ceramic_vase_02": {
+   "id": "ceramic_vase_02",
+   "files": {
+    "low": {
+     "file": "ceramic_vase_02.low.glb",
+     "bytes": 18228
+    },
+    "full": {
+     "file": "ceramic_vase_02.glb",
+     "bytes": 75628
+    }
+   },
+   "parts": {
+    "body": {
+     "tris": {
+      "low": 1402,
+      "full": 2000
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.5563,
+     "detailCv": 0.178
+    }
+   },
+   "dims": {
+    "w": 0.2184,
+    "h": 0.3092,
+    "d": 0.2184
+   },
+   "tris": {
+    "low": 1402,
+    "full": 2000
+   },
+   "place": "floor"
+  },
+  "ceramic_vase_04": {
+   "id": "ceramic_vase_04",
+   "files": {
+    "low": {
+     "file": "ceramic_vase_04.low.glb",
+     "bytes": 15032
+    },
+    "full": {
+     "file": "ceramic_vase_04.glb",
+     "bytes": 59632
+    }
+   },
+   "parts": {
+    "body": {
+     "tris": {
+      "low": 932,
+      "full": 2000
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.5696,
+     "detailCv": 0.158
+    }
+   },
+   "dims": {
+    "w": 0.1811,
+    "h": 0.3419,
+    "d": 0.1811
+   },
+   "tris": {
+    "low": 932,
+    "full": 2000
+   },
+   "place": "floor"
+  },
+  "dining_chair_02": {
+   "id": "dining_chair_02",
+   "files": {
+    "low": {
+     "file": "dining_chair_02.low.glb",
+     "bytes": 34920
+    },
+    "full": {
+     "file": "dining_chair_02.glb",
+     "bytes": 135384
+    }
+   },
+   "parts": {
+    "legs": {
+     "tris": {
+      "low": 1263,
+      "full": 2471
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.0169,
+     "detailCv": 0.913
+    },
+    "fabric": {
+     "tris": {
+      "low": 1362,
+      "full": 4026
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.0169,
+     "detailCv": 0.913
+    }
+   },
+   "dims": {
+    "w": 0.4336,
+    "h": 0.9734,
+    "d": 0.5764
+   },
+   "tris": {
+    "low": 2625,
+    "full": 6497
+   },
+   "place": "floor",
+   "surfaceM": 0.45
+  },
+  "food_apple_01": {
+   "id": "food_apple_01",
+   "files": {
+    "low": {
+     "file": "food_apple_01.low.glb",
+     "bytes": 11884
+    },
+    "full": {
+     "file": "food_apple_01.glb",
+     "bytes": 32372
+    }
+   },
+   "parts": {
+    "body": {
+     "tris": {
+      "low": 646,
+      "full": 1280
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.0564,
+     "detailCv": 1.012
+    }
+   },
+   "dims": {
+    "w": 0.0976,
+    "h": 0.0854,
+    "d": 0.0959
+   },
+   "tris": {
+    "low": 646,
+    "full": 1280
+   },
+   "place": "floor"
+  },
+  "food_pomegranate_01": {
+   "id": "food_pomegranate_01",
+   "files": {
+    "low": {
+     "file": "food_pomegranate_01.low.glb",
+     "bytes": 9732
+    },
+    "full": {
+     "file": "food_pomegranate_01.glb",
+     "bytes": 34196
+    }
+   },
+   "parts": {
+    "body": {
+     "tris": {
+      "low": 450,
+      "full": 1328
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.0474,
+     "detailCv": 0.875
+    }
+   },
+   "dims": {
+    "w": 0.1143,
+    "h": 0.115,
+    "d": 0.1154
+   },
+   "tris": {
+    "low": 450,
+    "full": 1328
+   },
+   "place": "floor"
+  },
+  "jug_01": {
+   "id": "jug_01",
+   "files": {
+    "low": {
+     "file": "jug_01.low.glb",
+     "bytes": 15832
+    },
+    "full": {
+     "file": "jug_01.glb",
+     "bytes": 51740
+    }
+   },
+   "parts": {
+    "body": {
+     "tris": {
+      "low": 1196,
+      "full": 2600
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.8999,
+     "detailCv": 0.17
+    }
+   },
+   "dims": {
+    "w": 0.2753,
+    "h": 0.2113,
+    "d": 0.1675
+   },
+   "tris": {
+    "low": 1196,
+    "full": 2600
+   },
+   "place": "floor"
+  },
+  "lemon": {
+   "id": "lemon",
+   "files": {
+    "low": {
+     "file": "lemon.low.glb",
+     "bytes": 8920
+    },
+    "full": {
+     "file": "lemon.glb",
+     "bytes": 39332
+    }
+   },
+   "parts": {
+    "body": {
+     "tris": {
+      "low": 650,
+      "full": 1100
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.2717,
+     "detailCv": 0.166
+    }
+   },
+   "dims": {
+    "w": 0.0687,
+    "h": 0.0954,
+    "d": 0.0683
+   },
+   "tris": {
+    "low": 650,
+    "full": 1100
+   },
+   "place": "floor"
+  },
+  "modern_wooden_cabinet": {
+   "id": "modern_wooden_cabinet",
+   "files": {
+    "low": {
+     "file": "modern_wooden_cabinet.low.glb",
+     "bytes": 137820
+    },
+    "full": {
+     "file": "modern_wooden_cabinet.glb",
+     "bytes": 268952
+    }
+   },
+   "parts": {
+    "body": {
+     "tris": {
+      "low": 4271,
+      "full": 6435
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.0375,
+     "detailCv": 1.447
+    },
+    "legs": {
+     "tris": {
+      "low": 454,
+      "full": 1166
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.0375,
+     "detailCv": 1.447
+    },
+    "slats": {
+     "tris": {
+      "low": 3288,
+      "full": 3288
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.0375,
+     "detailCv": 1.447
+    }
+   },
+   "dims": {
+    "w": 2.44,
+    "h": 0.6801,
+    "d": 0.52
+   },
+   "tris": {
+    "low": 8013,
+    "full": 10889
+   },
+   "place": "floor",
+   "surfaceM": 0.68
+  },
+  "potted_plant_01": {
+   "id": "potted_plant_01",
+   "files": {
+    "low": {
+     "file": "potted_plant_01.low.glb",
+     "bytes": 137156
+    },
+    "full": {
+     "file": "potted_plant_01.glb",
+     "bytes": 407136
+    }
+   },
+   "parts": {
+    "pot": {
+     "tris": {
+      "low": 1224,
+      "full": 1636
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.1929,
+     "detailCv": 0.277
+    },
+    "leaves": {
+     "tris": {
+      "low": 6919,
+      "full": 8832
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.0923,
+     "detailCv": 0.796
+    }
+   },
+   "dims": {
+    "w": 0.5874,
+    "h": 1.3365,
+    "d": 0.6336
+   },
+   "tris": {
+    "low": 8143,
+    "full": 10468
+   },
+   "place": "floor"
+  },
+  "potted_plant_02": {
+   "id": "potted_plant_02",
+   "files": {
+    "low": {
+     "file": "potted_plant_02.low.glb",
+     "bytes": 137384
+    },
+    "full": {
+     "file": "potted_plant_02.glb",
+     "bytes": 359268
+    }
+   },
+   "parts": {
+    "pot": {
+     "tris": {
+      "low": 5832,
+      "full": 7370
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.1932,
+     "detailCv": 0.226
+    },
+    "leaves": {
+     "tris": {
+      "low": 2237,
+      "full": 3959
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.1311,
+     "detailCv": 0.812
+    }
+   },
+   "dims": {
+    "w": 0.7012,
+    "h": 0.8412,
+    "d": 0.6574
+   },
+   "tris": {
+    "low": 8069,
+    "full": 11329
+   },
+   "place": "floor"
+  },
+  "side_table_01": {
+   "id": "side_table_01",
+   "files": {
+    "low": {
+     "file": "side_table_01.low.glb",
+     "bytes": 45460
+    },
+    "full": {
+     "file": "side_table_01.glb",
+     "bytes": 155492
+    }
+   },
+   "parts": {
+    "body": {
+     "tris": {
+      "low": 1854,
+      "full": 2756
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.1404,
+     "detailCv": 0.366
+    }
+   },
+   "dims": {
+    "w": 0.55,
+    "h": 0.5507,
+    "d": 0.45
+   },
+   "tris": {
+    "low": 1854,
+    "full": 2756
+   },
+   "place": "floor",
+   "surfaceM": 0.55
+  },
+  "wall_clock": {
+   "id": "wall_clock",
+   "files": {
+    "low": {
+     "file": "wall_clock.low.glb",
+     "bytes": 25324
+    },
+    "full": {
+     "file": "wall_clock.glb",
+     "bytes": 78276
+    }
+   },
+   "parts": {
+    "body": {
+     "tris": {
+      "low": 981,
+      "full": 2402
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.3466,
+     "detailCv": 0.758
+    }
+   },
+   "dims": {
+    "w": 0.3205,
+    "h": 0.3205,
+    "d": 0.0354
+   },
+   "tris": {
+    "low": 981,
+    "full": 2402
+   },
+   "place": "wall"
+  },
+  "wooden_bowl_01": {
+   "id": "wooden_bowl_01",
+   "files": {
+    "low": {
+     "file": "wooden_bowl_01.low.glb",
+     "bytes": 15468
+    },
+    "full": {
+     "file": "wooden_bowl_01.glb",
+     "bytes": 80920
+    }
+   },
+   "parts": {
+    "body": {
+     "tris": {
+      "low": 1014,
+      "full": 2400
+     },
+     "material": {
+      "alphaMode": "OPAQUE",
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "emissive": [
+       0,
+       0,
+       0
+      ]
+     },
+     "detailMean": 0.0578,
+     "detailCv": 0.966
+    }
+   },
+   "dims": {
+    "w": 0.3131,
+    "h": 0.0937,
+    "d": 0.3091
+   },
+   "tris": {
+    "low": 1014,
+    "full": 2400
+   },
+   "place": "floor"
+  }
+ }
+}

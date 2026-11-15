@@ -63,7 +63,7 @@ export function sceneEntry(f: SceneFiles): { entry: SceneEntry | null; problem?:
   };
 }
 
-const ORIGIN_RANK: Record<SceneOrigin, number> = { real: 0, sample: 1, video: 2 };
+const ORIGIN_RANK: Record<SceneOrigin, number> = { real: 0, sample: 1, video: 2, upload: 3 };
 
 /** Real drawings first, then the sample homes (test-sample-* before the older test flats), then phone-video scenes. */
 export function compareScenes(a: SceneEntry, b: SceneEntry): number {

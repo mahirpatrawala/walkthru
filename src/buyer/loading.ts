@@ -98,11 +98,14 @@ export function createLoadingScreen(parent: HTMLElement): LoadingScreen {
       if (text !== undefined) status.textContent = text;
     },
     showNotSetUp(sceneId) {
-      const a = el('a', 'wt-link-btn', 'Open the editor');
-      a.href = `/editor.html?scene=${encodeURIComponent(sceneId)}`;
-      const home = el('a', 'wt-link-btn is-secondary', 'All homes');
+      const home = el('a', 'wt-link-btn', 'All homes');
       home.href = '/';
-      toError('This home is not set up yet.', `There is no layout for "${sceneId}" yet. A broker can trace one in the editor.`, [a, home]);
+      // the editor is a broker tool that only saves on a development machine: the public site does not offer it
+      if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) {
+        const a = el('a', 'wt-link-btn is-secondary', 'Open the editor');
+        a.href = `/editor.html?scene=${encodeURIComponent(sceneId)}`;
+        toError('This home is not set up yet.', `There is no layout for "${sceneId}" yet. A broker can trace one in the editor.`, [home, a]);
+      } else toError('This home is not available.', `There is no home called "${sceneId}" here.`, [home]);
     },
     showError(title, message) {
       toError(title, message, [reloadBtn()]);

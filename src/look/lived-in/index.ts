@@ -10,6 +10,7 @@ import { buildDecorGroup } from './build';
 import type { BuiltDecor } from './build';
 import { boxesOverlap, pieceBox, planLivedIn } from './plan';
 import type { DecorKind, DecorPiece } from './plan';
+import type { ModelPolicy } from '../models/library';
 
 export { planLivedIn, pieceBox } from './plan';
 export type { DecorPiece, DecorKind } from './plan';
@@ -56,6 +57,8 @@ export interface LivedInOpts {
   tier?: Tier;
   /** kinds of decor to leave out (the style pack's own curtains and rugs replace them), read each time the home is planned */
   omit?: () => DecorKind[];
+  /** the active style pack's model policy (SPEC 16.15), read each time the decor is built; null = generated pieces only */
+  models?: () => ModelPolicy | null;
 }
 
 export interface LivedIn {
@@ -66,6 +69,8 @@ export interface LivedIn {
   setEnabled(on: boolean, remember?: boolean): void;
   /** plan again (the set of kinds to leave out changed) */
   replan(): void;
+  /** the quality tier changed: rebuild the pieces (and their model files) for it */
+  setTier(t: Tier): void;
   /** hide the decor without changing the switch (a scan is on show, an AI photo is being taken) */
   setSuppressed(on: boolean): void;
   onChange(cb: (enabled: boolean) => void): () => void;
@@ -99,7 +104,7 @@ export function createLivedIn(opts: LivedInOpts): LivedIn {
 
   const apply = (): void => {
     if (enabled && !built && plan().length > 0) {
-      built = buildDecorGroup(plan(), opts.tier ?? 'medium');
+      built = buildDecorGroup(plan(), opts.tier ?? 'medium', opts.models?.() ?? null);
       opts.parent.add(built.group);
       reconcile();
     }
@@ -141,6 +146,11 @@ export function createLivedIn(opts: LivedInOpts): LivedIn {
       built = null;
       apply();
       for (const cb of [...listeners]) cb(enabled);
+    },
+    setTier(t) {
+      if (t === (opts.tier ?? 'medium')) return;
+      opts.tier = t;
+      if (built) { built.dispose(); built = null; apply(); }
     },
     setSuppressed(on) { suppressed = on; apply(); },
     onChange(cb) { listeners.add(cb); return () => { listeners.delete(cb); }; },

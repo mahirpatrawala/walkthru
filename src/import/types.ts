@@ -48,7 +48,7 @@ export interface ProposalExtras {
 }
 export interface ImportResult { proposal: LayoutProposal; extras: ProposalExtras }
 
-export type ImportErrorCode = 'no-plan-page' | 'raster-plan' | 'pdfjs-shape' | 'vision-not-configured' | 'image-unreadable' | 'vision-failed';
+export type ImportErrorCode = 'no-plan-page' | 'raster-plan' | 'pdfjs-shape' | 'vision-not-configured' | 'image-unreadable' | 'vision-failed' | 'too-many-pages' | 'too-complex' | 'cancelled';
 export class ImportError extends Error {
   readonly code: ImportErrorCode;
   constructor(code: ImportErrorCode, message?: string) {
