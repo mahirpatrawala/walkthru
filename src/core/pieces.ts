@@ -4,8 +4,11 @@
 // stand. Pure data and pure maths, no three.js. Rows of the original table (beds, sofas, wardrobes...) have no rule here and behave as before.
 import type { RoomType, Side } from '../types';
 import { MORE_PIECES } from './catalog-more';
+import { SPACE_PIECES } from './catalog-spaces';
 
-export type PieceCategory = 'seating' | 'beds' | 'storage' | 'tables' | 'kitchen' | 'kids' | 'balcony' | 'fitness' | 'swing' | 'bathroom';
+export type PieceCategory = 'seating' | 'beds' | 'storage' | 'tables' | 'kitchen' | 'kids' | 'balcony' | 'fitness' | 'swing' | 'bathroom'
+  // the shared spaces of a building (src/core/places.ts decides which of them a kind of space shows)
+  | 'cardio' | 'strength' | 'freeweights' | 'studio' | 'amenities' | 'reception' | 'decor' | 'stage' | 'games';
 export const CATEGORIES: { id: PieceCategory; label: string }[] = [
   { id: 'seating', label: 'Seating' },
   { id: 'beds', label: 'Beds' },
@@ -17,10 +20,25 @@ export const CATEGORIES: { id: PieceCategory; label: string }[] = [
   { id: 'balcony', label: 'Balcony' },
   { id: 'fitness', label: 'Fitness' },
   { id: 'swing', label: 'Swing' },
+  { id: 'cardio', label: 'Cardio' },
+  { id: 'strength', label: 'Strength' },
+  { id: 'freeweights', label: 'Free weights' },
+  { id: 'studio', label: 'Studio' },
+  { id: 'amenities', label: 'Amenities' },
+  { id: 'reception', label: 'Reception & security' },
+  { id: 'decor', label: 'Plants & decor' },
+  { id: 'stage', label: 'Stage & AV' },
+  { id: 'games', label: 'Games' },
 ];
 
 /** What the walker does at a piece. `swing` is a seat that rocks; `stand` is "stand at the counter"; `dims` is the size card. */
-export type PoseKind = 'lie' | 'sit' | 'chair' | 'swing' | 'stand' | 'dims';
+export type PoseKind = 'lie' | 'sit' | 'chair' | 'swing' | 'stand' | 'dims' | 'walk-on';
+
+/**
+ * Where a walker sits on a machine, a bench, a bike or a rower: the hips `z` metres from the middle of the footprint toward its front (negative: toward the back),
+ * facing `face` (+1 the front, -1 the back), with the seat at the item's `surfaceHeightM`.
+ */
+export interface SeatSpec { z: number; face: 1 | -1 }
 
 /** The finish families a piece can name (src/look/finishes.ts is the owner of the slots). */
 export type PieceFamily = 'bed' | 'sofa' | 'wardrobe' | 'table' | 'chair' | 'swing' | 'storage' | 'appliance' | 'pouf' | 'bunk' | 'plain' | 'sanitary';
@@ -45,6 +63,8 @@ export interface Zone {
   tightText: string;
   /** a pendulum: the chains hang from `hang` (the ceiling, or a height in metres) and swing `angleDeg` each way */
   swing?: { angleDeg: number; hang: 'ceiling' | number; seatHalfM: number; seatTopM: number; minCeilingM?: number };
+  /** how the zone's sentence names the piece when it is a hung one that is not a swing (a heavy bag): "Heavy bag needs ..." */
+  label?: string;
   /** never less than this, whatever the arc maths gives */
   minNeedM?: number;
   /** a door as wide as the piece (or a share of it): the need is `widthFrac * footprint width + needM` instead of a fixed number */
@@ -79,6 +99,8 @@ export interface PieceRule {
   hung?: boolean;
   /** a surface the tests probe from above (x, z in the piece's frame) */
   probe?: [number, number];
+  /** where a walker sits (`pose` 'sit' or 'chair' on a machine): see `SeatSpec` */
+  seat?: SeatSpec;
 }
 
 /**
@@ -89,15 +111,17 @@ export interface PieceRule {
  */
 export type SizeMode = 'none' | 'wd' | 'wdh';
 const FIXED_SIZE = new Set(['coffee-round', 'dining-round-4', 'planter-pot', 'bar-stool', 'office-chair', 'bunk-bed', 'diwan', 'shower-over', 'shower-hand', 'balcony-chair', 'hang-chair', 'hang-chair-stand', 'bean-bag', 'floor-drain', 'yoga-mat']);
+const NO_STRETCH = new Set<PieceCategory>(['cardio', 'strength', 'freeweights', 'studio', 'amenities', 'stage', 'games', 'decor']);
 const STRETCH_HEIGHT = new Set(['shoe-rack', 'bookshelf-narrow', 'bookshelf-wide', 'chest-drawers', 'crockery-unit', 'sideboard', 'steel-almirah']);
 export function sizeModeOf(id: string | undefined | null): SizeMode | null {
   const r = pieceRule(id);
   if (!r) return null;
-  if (r.look.kind === 'swing' || FIXED_SIZE.has(r.id)) return 'none';
+  // equipment, stage modules and fixed fittings have parts of one size: only the lobby and hall furniture below can stretch
+  if (r.look.kind === 'swing' || FIXED_SIZE.has(r.id) || NO_STRETCH.has(r.category)) return 'none';
   return STRETCH_HEIGHT.has(r.id) ? 'wdh' : 'wd';
 }
 
-export const PIECE_RULES: Record<string, PieceRule> = Object.fromEntries(MORE_PIECES.map((p) => [p.rule.id, p.rule]));
+export const PIECE_RULES: Record<string, PieceRule> = Object.fromEntries([...MORE_PIECES, ...SPACE_PIECES].map((p) => [p.rule.id, p.rule]));
 
 export function pieceRule(catalogId: string | undefined | null): PieceRule | null {
   return catalogId ? (PIECE_RULES[catalogId] ?? null) : null;

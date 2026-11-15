@@ -1,5 +1,6 @@
 import type { AccessRule, Box, CatalogItem, FurnitureItem, FurnitureKind, Side } from '../types';
 import { MORE_ROWS } from './catalog-more';
+import { EXTRA_PLACES, SPACE_ROWS } from './catalog-spaces';
 import { pieceRule } from './pieces';
 
 const BED_ACCESS: AccessRule[] = [{ sides: ['left', 'right'], minM: 0.6, mode: 'any' }];
@@ -27,7 +28,7 @@ function copyRule(r: AccessRule): AccessRule {
 }
 
 /** SPEC 4.4. Beds are Indian mattress sizes; the footprint adds a 5 cm frame all round. The first seven rows are the original table. */
-export const CATALOG: CatalogItem[] = [
+const RAW_CATALOG: CatalogItem[] = [
   bed('bed-single', 'Single bed', '91 × 183 cm (36 × 72 in)', 1.01, 1.93, 0.91, 1.83),
   bed('bed-double', 'Double bed', '122 × 183 cm (48 × 72 in)', 1.32, 1.93, 1.22, 1.83),
   bed('bed-queen', 'Queen bed', '152 × 198 cm (60 × 78 in)', 1.62, 2.08, 1.52, 1.98),
@@ -85,7 +86,12 @@ export const CATALOG: CatalogItem[] = [
   },
   // ---- the rows added after that table (src/core/catalog-more.ts): swings, more seating, beds, storage, tables, kitchen, bathroom, kids, balcony, fitness
   ...MORE_ROWS,
+  // ---- the shared spaces of a building (src/core/catalog-spaces.ts): gym equipment, lobby and hall pieces. They carry their own `places`.
+  ...SPACE_ROWS,
 ];
+
+/** Every row says where it is offered: a row that names no places is a home piece, plus the few places the overlap table gives it (a sofa in a lobby, a table in a hall). */
+export const CATALOG: CatalogItem[] = RAW_CATALOG.map((r) => ({ ...r, places: r.places ?? ['home', ...(EXTRA_PLACES[r.id] ?? [])] }));
 
 /** Defaults for broker-tagged real items (SPEC 4.4). */
 export const REAL_ITEM_DEFAULTS: Record<FurnitureKind, { heightM: number; surfaceHeightM: number }> = {

@@ -91,7 +91,8 @@ describe('finish palette', () => {
     expect(f('counter', 'Kitchen')).toBeNull();
     expect(f('counter', '')).toBeNull();
     // every catalogue piece has a family, except none: all are loose furniture
-    for (const c of CATALOG) expect(finishFamily({ kind: c.kind, label: c.name, catalogId: c.id, box: c.footprint }), c.id).not.toBeNull();
+    // (gym equipment, which has no finish to choose, is the exception: SPEC 16.17)
+    for (const c of CATALOG.filter((x) => x.places?.includes('home'))) expect(finishFamily({ kind: c.kind, label: c.name, catalogId: c.id, box: c.footprint }), c.id).not.toBeNull();
   });
 });
 
@@ -571,10 +572,11 @@ describe('replacement geometry and choices', () => {
     expect(ids(replacementChoices({ kind: 'counter', label: 'Study' }).same)).toEqual(expect.arrayContaining(['dining-6', 'side-table', 'study-table', 'coffee-rect', 'dining-4']));
     const kitchen = replacementChoices({ kind: 'counter', label: 'Kitchen' });
     expect(kitchen.same).toEqual([]);
-    expect(kitchen.other).toHaveLength(CATALOG.length); // anything else from the catalogue
+    const HOME = CATALOG.filter((x) => x.places?.includes('home')).length; // a home offers its own pieces (SPEC 16.17)
+    expect(kitchen.other).toHaveLength(HOME); // anything else from the catalogue
     for (const kind of ['bed', 'sofa', 'wardrobe'] as const) {
       const c = replacementChoices({ kind, label: '' });
-      expect(c.same.length + c.other.length).toBe(CATALOG.length);
+      expect(c.same.length + c.other.length).toBe(HOME);
     }
   });
 });

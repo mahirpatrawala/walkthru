@@ -128,7 +128,7 @@ export function evaluatePiece(
     verdict = !worst || worst.status === 'ok' ? 'fits' : worst.status === 'tight' ? 'tight' : 'blocked';
     reason = verdict === 'fits' ? 'ok' : swingZ ? 'swing' : 'access';
     const assume = [...new Set(zones.map((z) => zoneAssumption(z, spec.footprint)))];
-    const head = `${swingZ ? 'Swing' : spec.name} needs ${listOf(zones, readings)} (${assume.join('; ')})`;
+    const head = `${swingZ ? (swingZ.label ?? 'Swing') : spec.name} needs ${listOf(zones, readings)} (${assume.join('; ')})`;
     if (verdict === 'fits') sentence = `${head}. It has that space.`;
     else {
       const bad = readings.filter((r) => r.status !== 'ok');

@@ -10,6 +10,7 @@ import { withSwingNote } from './wardrobe-hooks';
 import { CATALOG, catalogItem, itemFromCatalog, setCatalogCeiling, specFor } from '../core/catalog';
 import { roomAt } from '../core/layout-geom';
 import { categoryOf } from '../core/pieces';
+import { allowedIn, categoryIn, notHereNote, rowsFor, spaceKindOf, trayWords } from '../core/places';
 import { mountCatalogPicker, catalogIcon } from './catalog-tray';
 import { pointInBox, sideEdge } from '../core/geometry';
 import { circleFree, nearestFree } from '../core/grid-query';
@@ -17,7 +18,7 @@ import { checkPlacement, snapToWalls } from '../core/placement';
 import type { PointerEvt } from '../engine/controls';
 import { buildFurnitureMesh, setFurnitureTint } from '../engine/furniture';
 import { CHARACTER_RADIUS_M } from '../types';
-import type { Box, CatalogItem, FurnitureItem, FurnitureKind, Grid, PlacementResult, Side, Tone, Vec2, Vec3, ZoneReading } from '../types';
+import type { Box, CatalogItem, FurnitureItem, FurnitureKind, Grid, PlacementResult, Side, SpaceKind, Tone, Vec2, Vec3, ZoneReading } from '../types';
 import { FAMILY_SLOTS, BED_STYLES, describeFinish, finishFamily, sanitizeFinish, surpriseFinish, swatch, withPick } from '../look/finishes';
 import type { Finish, FinishFamily, FinishSlotKey } from '../look/finishes';
 import { boxAxes } from '../core/geometry';
@@ -147,14 +148,22 @@ export function replacementBox(old: Box, spec: CatalogItem): Box {
   return { cx: back.x + a.x * (spec.footprint.d / 2), cz: back.z + a.z * (spec.footprint.d / 2), w: spec.footprint.w, d: spec.footprint.d, yawDeg: old.yawDeg };
 }
 
-/** Catalogue pieces in the order a Replace list shows them: the same family first (a bed for a bed), then everything else. */
-export function replacementChoices(item: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }): { same: CatalogItem[]; other: CatalogItem[] } {
+/**
+ * Catalogue pieces in the order a Replace list shows them, from what the space offers (a gym replaces a treadmill with a rower, not a sofa; a
+ * home is as before): in a home the same family first (a bed for a bed), in a shared space the same tray category first (cardio for cardio).
+ */
+export function replacementChoices(item: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }, spaceKind?: SpaceKind): { same: CatalogItem[]; other: CatalogItem[] } {
+  const rows = rowsFor(spaceKind, CATALOG);
+  if (spaceKind && spaceKind !== 'home' && spaceKind !== 'other') {
+    const mine = item.catalogId ? categoryIn(item.catalogId, spaceKind) : null;
+    return { same: rows.filter((c) => mine && categoryIn(c.id, spaceKind) === mine), other: rows.filter((c) => !mine || categoryIn(c.id, spaceKind) !== mine) };
+  }
   const fam = (c: CatalogItem): string => familyKey({ kind: c.kind, label: c.name, catalogId: c.id, box: c.footprint });
   const mine = familyKey(item);
   // the rest of the catalogue is long now: pieces of the same tray category come first
   const cat = item.catalogId ? categoryOf(item.catalogId) : null;
   const near = (c: CatalogItem): number => (cat && categoryOf(c.id) === cat ? 0 : 1);
-  return { same: CATALOG.filter((c) => fam(c) === mine), other: CATALOG.filter((c) => fam(c) !== mine).sort((a, b) => near(a) - near(b)) };
+  return { same: rows.filter((c) => fam(c) === mine), other: rows.filter((c) => fam(c) !== mine).sort((a, b) => near(a) - near(b)) };
 }
 function familyKey(i: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }): string {
   return finishFamily(i) ?? `${i.kind}`;
@@ -235,7 +244,7 @@ export interface FurnishView {
   /** the fitting being looked at (phase 'fitting') */
   fitting: FittingSelection | null;
   /** every piece in the home right now, for the tray list */
-  pieces: Array<{ id: string; label: string; home: boolean }>;
+  pieces: Array<{ id: string; label: string; home: boolean; /** a piece this kind of space does not offer: kept, and flagged */ notHere?: boolean }>;
   /** originals and fittings removed in this layout, with an Undo each */
   removed: Array<{ id: string; label: string; builtIn: boolean; fitting?: boolean }>;
   /** true when this layout differs from the home as drawn (the chip shows) */
@@ -411,6 +420,8 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
   let disposed = false;
 
   const ceilingM = (): number => ctx.property.layout.wallHeightM;
+  /** what kind of space this is (a home when the scene says nothing): the tray and the Replace list offer only what belongs there */
+  const spaceKind = (): SpaceKind => spaceKindOf(ctx.property);
   // a ceiling-height piece (a loft unit) is made to fit this home's ceiling
   setCatalogCeiling(ceilingM());
   const getItem = (id: string): FurnitureItem | undefined => (store.get ? store.get(id) : store.all().find((i) => i.id === id));
@@ -545,13 +556,13 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
       const name = pieceName(i);
       const n = (seen.get(name) ?? 0) + 1;
       seen.set(name, n);
-      return { id: i.id, label: (count.get(name) ?? 0) > 1 ? `${name} ${n}` : name, home: isHome(i.id) };
+      return { id: i.id, label: (count.get(name) ?? 0) > 1 ? `${name} ${n}` : name, home: isHome(i.id), ...(i.catalogId && !allowedIn(i.catalogId, spaceKind()) ? { notHere: true } : {}) };
     });
   };
   const removedList = (): FurnishView['removed'] => [...(store.hiddenOriginals ? store.hiddenOriginals().map((i) => ({ id: i.id, label: pieceName(i), builtIn: builtIn(i) })) : []), ...removedFittings()];
   const extras = (): Pick<FurnishView, 'pieces' | 'removed' | 'edited'> => ({ pieces: piecesList(), removed: removedList(), edited: store.isEdited ? store.isEdited() : false });
 
-  const computeView = (): FurnishView => {
+  const computeViewBase = (): FurnishView => {
     const bc = buyerCount();
     const ex = extras();
     const rec = fitRec();
@@ -586,6 +597,14 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     }
     const r = check(s);
     return { phase: 'selected', message: withSwingNote(r.message, s.box, s.id), tone: r.tone, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, fitting: null, ...ex };
+  };
+
+  /** the view, with the note of a piece this space does not offer (it came with a share link or a stored layout): kept as it is, and said so */
+  const computeView = (): FurnishView => {
+    const v = computeViewBase();
+    const sel = v.selection ? getItem(v.selection.id) : work ? work.item : undefined;
+    const note = sel ? notHereNote(sel.catalogId, pieceName(sel), spaceKind()) : null;
+    return note && (v.phase === 'selected' || v.phase === 'edit') ? { ...v, message: `${v.message} ${note}` } : v;
   };
 
   /** Redraws the outline, the clearance lines and the tint, then pushes the view to the UI when it changed. */
@@ -1330,7 +1349,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       x.addEventListener('click', (e) => { e.stopPropagation(); setPanel(null); });
       const item = ctx.furniture.all().find((i) => i.id === sel.id);
       if (!item) return;
-      const { same, other } = replacementChoices(item);
+      const { same, other } = replacementChoices(item, spaceKindOf(ctx.property));
       h('div', 'wtf-panel-note', panel, 'It lands at the same spot, squared to the wall, and the fit check runs. A replacement shows its own catalogue size.');
       if (sel.builtIn) h('div', 'wtf-panel-note is-strong', panel, `${BUILT_IN_NOTE}.`);
       if (same.length > 0) {
@@ -1390,7 +1409,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   const tray = h('div', 'wtf-tray', root);
   tray.dataset.ui = '1';
   const head = h('div', 'wtf-head', tray);
-  const titleEl = h('div', 'wtf-title', head, 'Add furniture');
+  const titleEl = h('div', 'wtf-title', head, trayWords(spaceKindOf(ctx.property)).title);
   const headRight = h('div', 'wtf-head-right', head);
   const clearBtn = h('button', 'wtf-link', headRight, 'Clear all');
   clearBtn.type = 'button';
@@ -1425,11 +1444,11 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   removedWrap.dataset.ui = '1';
   removedWrap.dataset.testid = 'furnish-removed';
 
-  const addLabel = h('div', 'wtf-sub', tray, 'Add furniture');
+  const addLabel = h('div', 'wtf-sub', tray, trayWords(spaceKindOf(ctx.property)).title);
   const cards = h('div', 'wtf-cards', tray);
   cards.dataset.ui = '1';
   // a category selector and a search box over the catalogue (src/buyer/catalog-tray.ts) fill the card row
-  const picker = mountCatalogPicker(tray, cards, (parent, spec) => specCard(parent, spec, () => { session.spawn(spec.id); }));
+  const picker = mountCatalogPicker(tray, cards, (parent, spec) => specCard(parent, spec, () => { session.spawn(spec.id); }), spaceKindOf(ctx.property));
 
   const renderPieces = (v: FurnishView): void => {
     pieces.textContent = '';
@@ -1597,7 +1616,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       cards.classList.toggle('is-editing', showEdit);
       tray.classList.toggle('is-editing', showEdit);
       tray.classList.toggle('is-selected', selected);
-      titleEl.textContent = 'Add furniture';
+      titleEl.textContent = trayWords(spaceKindOf(ctx.property)).title;
       addLabel.hidden = showEdit || selected;
       cards.hidden = selected;
       picker.setHidden(selected);

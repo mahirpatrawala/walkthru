@@ -53,6 +53,7 @@ import { editNote } from './resize';
 import { SHARE_PARAM } from './my-layout';
 import { chooseSpawn } from '../core/spawn';
 import { resolveStartRoom } from '../core/start-rooms';
+import { spaceKindOf } from '../core/places';
 import { createGridOverlay } from './debug';
 import type { GridOverlay } from './debug';
 import { createHeightPicker } from './height';
@@ -195,6 +196,8 @@ async function boot(): Promise<void> {
     return;
   }
   const property = result.property;
+  // what kind of space this is: the scene's own `spaceKind`, or `?spaceKind=gym` (a debug override) so the catalogue can be tried without a building
+  { const k = spaceKindOf(property, location.search); if (k !== 'home' || property.spaceKind) property.spaceKind = k; }
   document.title = `${property.title} · walkthru`;
   loading.setTitle(property.title, property.subtitle);
   loading.setNote(sizesNote(property.layout));

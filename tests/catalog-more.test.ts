@@ -25,7 +25,7 @@ describe('the second catalogue table', () => {
   it('has 40 or more rows with unique ids that are in CATALOG after the original fourteen', () => {
     expect(rows.length).toBeGreaterThanOrEqual(40);
     expect(new Set(CATALOG.map((c) => c.id)).size).toBe(CATALOG.length);
-    expect(CATALOG.slice(14).map((c) => c.id)).toEqual(rows.map((r) => r.id));
+    expect(CATALOG.slice(14, 14 + rows.length).map((c) => c.id)).toEqual(rows.map((r) => r.id));
   });
   it('every row has positive sizes, a surface within its height, and a rule with a known category, generator, family and pose', () => {
     const cats = new Set(CATEGORIES.map((c) => c.id));
@@ -53,7 +53,9 @@ describe('the second catalogue table', () => {
   });
   it('pieces of the original table have no rule', () => {
     for (const c of CATALOG.slice(0, 14)) expect(pieceRule(c.id)).toBeNull();
-    expect(Object.keys(PIECE_RULES).length).toBe(rows.length);
+    expect(Object.keys(PIECE_RULES).length).toBeGreaterThanOrEqual(rows.length);
+    // the second table's rules are all there (the shared-space table adds its own, tests/space-pieces.test.ts)
+    for (const r of rows) expect(PIECE_RULES[r.id], r.id).toBeDefined();
   });
 });
 

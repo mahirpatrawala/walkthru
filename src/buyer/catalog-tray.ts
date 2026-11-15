@@ -2,9 +2,10 @@
 // `filterCatalog` is pure and tested; `mountCatalogPicker` builds the two controls above the card row and keeps the row in step. It works on a
 // 390 px phone: one row (a native select and a search box), the cards scroll sideways as before.
 import { CATALOG } from '../core/catalog';
-import { CATEGORIES, categoryLabel, categoryOf, pieceRule } from '../core/pieces';
+import { categoryLabel, categoryOf, pieceRule } from '../core/pieces';
 import type { PieceCategory } from '../core/pieces';
-import type { CatalogItem } from '../types';
+import { allowedIn, categoriesFor, categoryIn, trayWords } from '../core/places';
+import type { CatalogItem, SpaceKind } from '../types';
 
 export type CategoryChoice = PieceCategory | 'all';
 
@@ -14,16 +15,20 @@ export function searchText(spec: CatalogItem): string {
   return `${spec.name} ${spec.sizeLabel} ${categoryLabel(categoryOf(spec.id))} ${rule?.keywords.join(' ') ?? ''} ${spec.id.replace(/-/g, ' ')}`.toLowerCase();
 }
 
-/** Catalogue rows in `category` (or all) whose text holds every word of `query`. Order is the catalogue's. */
-export function filterCatalog(category: CategoryChoice, query: string, rows: readonly CatalogItem[] = CATALOG): CatalogItem[] {
+/**
+ * Catalogue rows offered in a space of kind `kind` (a home when absent), in `category` (or all), whose text holds every word of `query`.
+ * Order is the catalogue's. A search finds only what the space offers: "treadmill" in a flat finds the home treadmill, never the gym one.
+ */
+export function filterCatalog(category: CategoryChoice, query: string, rows: readonly CatalogItem[] = CATALOG, kind?: SpaceKind): CatalogItem[] {
   const words = query.toLowerCase().split(/[\s,]+/).filter(Boolean);
-  return rows.filter((c) => (category === 'all' || categoryOf(c.id) === category) && words.every((w) => searchText(c).includes(w)));
+  return rows.filter((c) => allowedIn(c.id, kind) && (category === 'all' || categoryIn(c.id, kind) === category) && words.every((w) => searchText(c).includes(w)));
 }
 
-/** how many pieces each category holds (for the selector's labels) */
-export function categoryCounts(rows: readonly CatalogItem[] = CATALOG): Record<CategoryChoice, number> {
-  const out = { all: rows.length } as Record<CategoryChoice, number>;
-  for (const c of CATEGORIES) out[c.id] = rows.filter((r) => categoryOf(r.id) === c.id).length;
+/** how many pieces each category holds in a space of this kind (for the selector's labels) */
+export function categoryCounts(rows: readonly CatalogItem[] = CATALOG, kind?: SpaceKind): Record<CategoryChoice, number> {
+  const here = rows.filter((r) => allowedIn(r.id, kind));
+  const out = { all: here.length } as Record<CategoryChoice, number>;
+  for (const c of categoriesFor(kind)) out[c.id] = here.filter((r) => categoryIn(r.id, kind) === c.id).length;
   return out;
 }
 
@@ -37,6 +42,15 @@ const ICONS: Record<PieceCategory, string> = {
   kids: '<path d="M5 20V8M19 20V8M5 11h14M5 16h14M9 8v12M15 8v12M5 8h14"/>',
   balcony: '<path d="M12 21v-8"/><path d="M12 13c-4 0-6-3-6-7 4 0 6 3 6 7zM12 15c4 0 6-3 6-6-4 0-6 2-6 6z"/><path d="M8 21h8"/>',
   fitness: '<path d="M6 8v8M3.5 10v4M18 8v8M20.5 10v4M6 12h12"/>',
+  cardio: '<path d="M3 12h4l2.2-5.5 3.4 11 2.4-5.5H21"/>',
+  strength: '<path d="M6 4v16M6 6.5h9.5M15.5 6.5V12h4v8M6 20h13.5M9 10h4M9 14h4"/>',
+  freeweights: '<path d="M2.5 12h19M5 8.5v7M8 6v12M16 6v12M19 8.5v7"/>',
+  studio: '<rect x="3.5" y="9" width="17" height="6.5" rx="3.2"/><circle cx="7" cy="12.2" r="1.3"/><path d="M11 12.2h6"/>',
+  amenities: '<path d="M12 3s6 6.4 6 10.4a6 6 0 0 1-12 0C6 9.4 12 3 12 3z"/><path d="M9.5 14a2.5 2.5 0 0 0 2.5 2.5"/>',
+  reception: '<path d="M3 10.5h18V14H3zM5 14v6M19 14v6M8.5 10.5V6h7v4.5"/>',
+  decor: '<path d="M12 21v-8"/><path d="M12 13c-4 0-6-3-6-7 4 0 6 3 6 7zM12 15c4 0 6-3 6-6-4 0-6 2-6 6z"/><path d="M8 21h8"/>',
+  stage: '<path d="M3 17.5h18M5 17.5V10h14v7.5M9.5 10V5.5h5V10"/>',
+  games: '<rect x="3.5" y="6.5" width="17" height="11" rx="2"/><path d="M12 6.5v11M3.5 12h17"/>',
   swing: '<path d="M7 3v9M17 3v9M4.5 3h15"/><path d="M5 12h14v3H5z"/><path d="M5 15v1.5M19 15v1.5"/>',
 };
 export const catalogIcon = (spec: CatalogItem): string =>
@@ -56,7 +70,7 @@ export interface CatalogPicker {
  * Builds the controls before `cards` inside `tray` and fills `cards` with `renderCard(parent, spec)` for each match. Typing or choosing
  * refills the row and scrolls it back to the start.
  */
-export function mountCatalogPicker(tray: HTMLElement, cards: HTMLElement, renderCard: (parent: HTMLElement, spec: CatalogItem) => void): CatalogPicker {
+export function mountCatalogPicker(tray: HTMLElement, cards: HTMLElement, renderCard: (parent: HTMLElement, spec: CatalogItem) => void, spaceKind?: SpaceKind): CatalogPicker {
   const bar = document.createElement('div');
   bar.className = 'wtf-picker';
   bar.dataset.ui = '1';
@@ -66,8 +80,9 @@ export function mountCatalogPicker(tray: HTMLElement, cards: HTMLElement, render
   select.dataset.ui = '1';
   select.dataset.act = 'category';
   select.setAttribute('aria-label', 'Category');
-  const counts = categoryCounts();
-  for (const [id, label] of [['all', 'All furniture'], ...CATEGORIES.map((c) => [c.id, c.label] as const)] as [CategoryChoice, string][]) {
+  const counts = categoryCounts(CATALOG, spaceKind);
+  const words = trayWords(spaceKind);
+  for (const [id, label] of [['all', words.all], ...categoriesFor(spaceKind).map((c) => [c.id, c.label] as const)] as [CategoryChoice, string][]) {
     const o = document.createElement('option');
     o.value = id;
     o.textContent = `${label} (${counts[id]})`;
@@ -78,7 +93,7 @@ export function mountCatalogPicker(tray: HTMLElement, cards: HTMLElement, render
   search.className = 'wtf-picker-search';
   search.dataset.ui = '1';
   search.dataset.act = 'search';
-  search.placeholder = 'Search: swing, fridge, mandir';
+  search.placeholder = spaceKind && spaceKind !== 'home' ? `Search ${words.noun}` : 'Search: swing, fridge, mandir';
   search.setAttribute('aria-label', 'Search the catalogue');
   search.autocomplete = 'off';
   search.spellcheck = false;
@@ -91,7 +106,7 @@ export function mountCatalogPicker(tray: HTMLElement, cards: HTMLElement, render
   tray.insertBefore(empty, cards);
   let ids: string[] = [];
   const refill = (): void => {
-    const rows = filterCatalog(select.value as CategoryChoice, search.value);
+    const rows = filterCatalog(select.value as CategoryChoice, search.value, CATALOG, spaceKind);
     ids = rows.map((r) => r.id);
     cards.textContent = '';
     for (const spec of rows) renderCard(cards, spec);

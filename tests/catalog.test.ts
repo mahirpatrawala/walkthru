@@ -5,6 +5,9 @@ import type { FurnitureItem } from '../src/types';
 const BED_WORDS = { front: 'at the foot', back: 'at the head', left: 'on the left', right: 'on the right' };
 const SOFA_WORDS = { front: 'in front', back: 'behind', left: 'on the left', right: 'on the right' };
 
+/** the original rows are checked as SPEC 4.4 has them: `places` (SPEC 16.17) is the one field added since */
+const withoutPlaces = (c: ReturnType<typeof catalogItem>): Omit<ReturnType<typeof catalogItem>, 'places'> => { const { places, ...rest } = c; void places; return rest; };
+
 describe('catalogue matches SPEC 4.4 exactly', () => {
   const beds = [
     ['bed-single', 'Single bed', '91 × 183 cm (36 × 72 in)', 1.01, 1.93, 0.91, 1.83],
@@ -29,27 +32,27 @@ describe('catalogue matches SPEC 4.4 exactly', () => {
   });
   for (const [id, name, label, fw, fd, iw, idp] of beds) {
     it(id, () => {
-      expect(catalogItem(id)).toEqual({
+      expect(withoutPlaces(catalogItem(id))).toEqual({
         id, kind: 'bed', name, sizeLabel: label, footprint: { w: fw, d: fd }, heightM: 0.9, surfaceHeightM: 0.5,
         inner: { w: iw, d: idp }, access: [{ sides: ['left', 'right'], minM: 0.6, mode: 'any' }], sideWords: BED_WORDS,
       });
     });
   }
   it('sofa-3', () => {
-    expect(catalogItem('sofa-3')).toEqual({
+    expect(withoutPlaces(catalogItem('sofa-3'))).toEqual({
       id: 'sofa-3', kind: 'sofa', name: '3-seat sofa', sizeLabel: '210 × 90 cm', footprint: { w: 2.1, d: 0.9 },
       heightM: 0.85, surfaceHeightM: 0.43, access: [{ sides: ['front'], minM: 0.75, mode: 'all' }], sideWords: SOFA_WORDS,
     });
   });
   it('dining-6', () => {
-    expect(catalogItem('dining-6')).toEqual({
+    expect(withoutPlaces(catalogItem('dining-6'))).toEqual({
       id: 'dining-6', kind: 'dining', name: '6-seat dining table', sizeLabel: '180 × 90 cm table', footprint: { w: 1.8, d: 1.7 },
       heightM: 0.95, surfaceHeightM: 0.75, access: [{ sides: ['front', 'back'], minM: 0.6, mode: 'all' }],
       sideWords: { front: 'on the near side', back: 'on the far side', left: 'on the left', right: 'on the right' },
     });
   });
   it('wardrobe-2', () => {
-    expect(catalogItem('wardrobe-2')).toEqual({
+    expect(withoutPlaces(catalogItem('wardrobe-2'))).toEqual({
       id: 'wardrobe-2', kind: 'wardrobe', name: '2-door wardrobe', sizeLabel: '120 × 60 × 210 cm', footprint: { w: 1.2, d: 0.6 },
       heightM: 2.1, surfaceHeightM: 2.1, access: [{ sides: ['front'], minM: 0.9, mode: 'all' }], sideWords: SOFA_WORDS,
     });
