@@ -1,4 +1,4 @@
-// The committed Sample Tower (public/buildings, public/scenes/st-* and se-*), read the way the site serves it.
+// The committed Sample Tower (public/buildings, public/scenes/test-tower-*), read the way the site serves it.
 import fs from 'node:fs';
 import path from 'node:path';
 import { validateProperty } from '../../src/core/layout-validate';

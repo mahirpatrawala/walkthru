@@ -33,13 +33,13 @@ describe('building validation', () => {
 
   it('the empty twin has no furniture anywhere; the furnished tower has some in the lobby and the flats', () => {
     for (const l of readBuilding('sample-tower-empty').levels) for (const s of l.spaces) expect(readScene(s.sceneId)!.furniture, s.sceneId).toEqual([]);
-    expect(readScene('st-lobby')!.furniture.length).toBeGreaterThan(0);
-    expect(readScene('st-flat-2bhk-a')!.furniture.length).toBeGreaterThan(0);
+    expect(readScene('test-tower-lobby')!.furniture.length).toBeGreaterThan(0);
+    expect(readScene('test-tower-flat-2bhk-a')!.furniture.length).toBeGreaterThan(0);
   });
 
   it('realistic sizes: corridor 1.8 m, lift car 1.1 x 1.4 m with a 0.9 m door, main doors 1.0 m, taller lobby', () => {
     const b = readBuilding('sample-tower');
-    const cor = readScene('st-corridor')!;
+    const cor = readScene('test-tower-corridor')!;
     const room = cor.layout.rooms.find((r) => r.label === 'Corridor')!;
     const xs = room.polygon.map((p) => p.x);
     expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(1.8, 2);
@@ -49,8 +49,8 @@ describe('building validation', () => {
       if (p.kind === 'lift') expect(o.widthM).toBeCloseTo(0.9, 2);
       if (p.kind === 'door' && p.look === 'main') expect(o.widthM).toBeCloseTo(1.0, 1);
     }
-    expect(readScene('st-lobby')!.layout.wallHeightM).toBeGreaterThan(readScene('st-corridor')!.layout.wallHeightM);
-    const gym = readScene('st-1-gym')!.layout.rooms[0];
+    expect(readScene('test-tower-lobby')!.layout.wallHeightM).toBeGreaterThan(readScene('test-tower-corridor')!.layout.wallHeightM);
+    const gym = readScene('test-tower-club-gym')!.layout.rooms[0];
     const gx = gym.polygon.map((p) => p.x), gz = gym.polygon.map((p) => p.z);
     expect([Math.max(...gx) - Math.min(...gx), Math.max(...gz) - Math.min(...gz)].map((v) => Math.round(v * 100) / 100).sort((a, b) => a - b)).toEqual([8, 12]);
   });
@@ -97,21 +97,21 @@ describe('validation catches what it is for', () => {
   const b = readBuilding('sample-tower');
 
   it('a main door of another width on one side', () => {
-    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'st-flat-3bhk') p.layout.openings.find((o) => o.id === 'door-main')!.widthM = 0.9; }));
+    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'test-tower-flat-3bhk') p.layout.openings.find((o) => o.id === 'door-main')!.widthM = 0.9; }));
     expect(rep.errors.some((e) => /door widths differ \(0\.90 m and 1\.00 m\)/.test(e))).toBe(true);
   });
   it('a door moved along the wall so the two sides no longer meet', () => {
-    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'st-corridor') { const o = p.layout.openings.find((q) => q.id === 'door-ne')!; o.centreM += 1.4; } }));
+    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'test-tower-corridor') { const o = p.layout.openings.find((q) => q.id === 'door-ne')!; o.centreM += 1.4; } }));
     expect(rep.errors.some((e) => /the two doors are .* m apart on the plan/.test(e))).toBe(true);
   });
   it('a door hinged on the wrong side', () => {
-    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'st-corridor') { const o = p.layout.openings.find((q) => q.id === 'door-ne')!; o.leaf = { ...o.leaf!, hinge: o.leaf!.hinge === 'start' ? 'end' : 'start' }; } }));
+    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'test-tower-corridor') { const o = p.layout.openings.find((q) => q.id === 'door-ne')!; o.leaf = { ...o.leaf!, hinge: o.leaf!.hinge === 'start' ? 'end' : 'start' }; } }));
     expect(rep.errors.some((e) => /hinged on opposite sides/.test(e))).toBe(true);
   });
   it('a missing scene, a portal on an opening that is not there, one on a window', () => {
-    expect(validateBuilding(b, (id) => (id === 'st-1-gym' ? undefined : readScene(id))).errors.some((e) => /scene "st-1-gym" is missing/.test(e))).toBe(true);
-    expect(validateBuilding(b, lookup((id, p) => { if (id === 'st-corridor') p.layout.openings = p.layout.openings.filter((o) => o.id !== 'door-se'); })).errors.some((e) => /no opening "door-se"/.test(e))).toBe(true);
-    expect(validateBuilding(b, lookup((id, p) => { if (id === 'st-corridor') p.layout.openings.find((o) => o.id === 'door-se')!.type = 'window'; })).errors.some((e) => /is a window, not a door/.test(e))).toBe(true);
+    expect(validateBuilding(b, (id) => (id === 'test-tower-club-gym' ? undefined : readScene(id))).errors.some((e) => /scene "test-tower-club-gym" is missing/.test(e))).toBe(true);
+    expect(validateBuilding(b, lookup((id, p) => { if (id === 'test-tower-corridor') p.layout.openings = p.layout.openings.filter((o) => o.id !== 'door-se'); })).errors.some((e) => /no opening "door-se"/.test(e))).toBe(true);
+    expect(validateBuilding(b, lookup((id, p) => { if (id === 'test-tower-corridor') p.layout.openings.find((o) => o.id === 'door-se')!.type = 'window'; })).errors.some((e) => /is a window, not a door/.test(e))).toBe(true);
   });
   it('two spaces overlapping on one plate', () => {
     const moved = clone(b);
@@ -119,19 +119,19 @@ describe('validation catches what it is for', () => {
     expect(validateBuilding(moved, readScene).errors.some((e) => /overlap by/.test(e))).toBe(true);
   });
   it('a corridor narrower than 1.5 m', () => {
-    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'st-corridor') { const r = p.layout.rooms.find((q) => q.id === 'corridor')!; for (const q of r.polygon) if (q.x > 0) q.x = 0.5; } }));
+    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'test-tower-corridor') { const r = p.layout.rooms.find((q) => q.id === 'corridor')!; for (const q of r.polygon) if (q.x > 0) q.x = 0.5; } }));
     expect(rep.errors.some((e) => /the corridor is only/.test(e))).toBe(true);
   });
   it('a corridor blocked across its width', () => {
-    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'st-corridor') p.furniture.push({ id: 'crate', source: 'real', kind: 'counter', label: 'Crate', box: { cx: 0, cz: 8, w: 1.8, d: 0.6, yawDeg: 0 }, heightM: 1, surfaceHeightM: 1 }); }));
+    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'test-tower-corridor') p.furniture.push({ id: 'crate', source: 'real', kind: 'counter', label: 'Crate', box: { cx: 0, cz: 8, w: 1.8, d: 0.6, yawDeg: 0 }, heightM: 1, surfaceHeightM: 1 }); }));
     expect(rep.errors.some((e) => /is blocked/.test(e))).toBe(true);
   });
   it('a lift door that is not the car door', () => {
-    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'st-lobby') p.layout.openings.find((o) => o.id === 'lift-a')!.widthM = 1.0; }));
+    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'test-tower-lobby') p.layout.openings.find((o) => o.id === 'lift-a')!.widthM = 1.0; }));
     expect(rep.errors.some((e) => /the door is 1\.00 m but the car's door is 0\.90 m/.test(e))).toBe(true);
   });
   it('a sample building whose scene does not say sample', () => {
-    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'st-lobby') p.subtitle = 'A lobby'; }));
+    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'test-tower-lobby') p.subtitle = 'A lobby'; }));
     expect(rep.errors.some((e) => /not labelled as a sample/.test(e))).toBe(true);
   });
 });

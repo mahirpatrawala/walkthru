@@ -40,12 +40,12 @@ describe('arriving through a portal', () => {
   }
 
   it('a lobby wide enough lands the walker as far in as asked; a narrow corridor lands them as near as it can', () => {
-    const lobby = readScene('st-lobby')!;
+    const lobby = readScene('test-tower-lobby')!;
     const lg = stampFurniture(rasterizeLayout(lobby.layout), lobby.furniture);
     const a = arrivalAtDoor(lobby.layout, lg, 'door-street')!;
     const f = doorFrame(lobby.layout, 'door-street')!;
     expect(Math.hypot(a.x - f.centre.x, a.z - f.centre.z)).toBeGreaterThanOrEqual(ARRIVAL_FROM_M - 0.01);
-    const cor = readScene('st-corridor')!;
+    const cor = readScene('test-tower-corridor')!;
     const cg = rasterizeLayout(cor.layout);
     const c = arrivalAtDoor(cor.layout, cg, 'door-ne')!;
     const cf = doorFrame(cor.layout, 'door-ne')!;
@@ -53,12 +53,12 @@ describe('arriving through a portal', () => {
   });
 
   it('an opening that is not a door has no landing', () => {
-    const p = readScene('st-lobby')!;
+    const p = readScene('test-tower-lobby')!;
     expect(arrivalAtDoor(p.layout, rasterizeLayout(p.layout), 'no-such-opening')).toBeNull();
   });
 
   it('reachable: a corridor reaches its doors, and a wall between does not', () => {
-    const p = readScene('st-corridor')!;
+    const p = readScene('test-tower-corridor')!;
     const g = rasterizeLayout(p.layout);
     const a = arrivalAtDoor(p.layout, g, 'lift-a')!;
     const doors = ['door-ne', 'door-se', 'door-nw', 'door-sw'].map((id) => arrivalAtDoor(p.layout, g, id)!);

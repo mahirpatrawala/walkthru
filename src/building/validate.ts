@@ -2,7 +2,6 @@
 // Errors are things that break a walk or a drawing; warnings are things worth a look.
 import { stampFurniture, rasterizeLayout } from '../core/layout-raster';
 import { overlapAreaM2, validateLayout } from '../core/layout-validate';
-import { sceneOrigin } from '../buyer/scene-tag';
 import type { PropertyFile } from '../types';
 import { arrivalAtDoor, reachable } from './arrival';
 import { doorFrame, dirToLevel, roomsOnLevel, toLevel } from './geom';
@@ -48,7 +47,7 @@ export function validateBuilding(b: BuildingFile, scene: SceneLookup): BuildingR
     if (!checked.has(s.sceneId)) {
       checked.add(s.sceneId);
       for (const e of validateLayout(p.layout).errors) errors.push(`Scene "${s.sceneId}": ${e}`);
-      if (b.sample && sceneOrigin({ id: p.id, subtitle: p.subtitle }) !== 'sample') errors.push(`Scene "${s.sceneId}" belongs to a sample building but is not labelled as a sample (its subtitle should say "sample").`);
+      if (b.sample && !/sample|synthetic/i.test(p.subtitle ?? '')) errors.push(`Scene "${s.sceneId}" belongs to a sample building but is not labelled as a sample (its subtitle should say "sample").`);
     }
     for (const portal of s.portals) {
       const o = p.layout.openings.find((q) => q.id === portal.opening);

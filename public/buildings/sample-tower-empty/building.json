@@ -9,21 +9,21 @@
   "flatTypes": {
     "1bhk": {
       "name": "1 BHK",
-      "sceneId": "se-flat-1bhk"
+      "sceneId": "test-tower-empty-flat-1bhk"
     },
     "2bhk-a": {
       "name": "2 BHK (A)",
-      "sceneId": "se-flat-2bhk-a",
-      "mirrorSceneId": "se-flat-2bhk-a-m"
+      "sceneId": "test-tower-empty-flat-2bhk-a",
+      "mirrorSceneId": "test-tower-empty-flat-2bhk-a-m"
     },
     "2bhk-b": {
       "name": "2 BHK (B)",
-      "sceneId": "se-flat-2bhk-b",
-      "mirrorSceneId": "se-flat-2bhk-b-m"
+      "sceneId": "test-tower-empty-flat-2bhk-b",
+      "mirrorSceneId": "test-tower-empty-flat-2bhk-b-m"
     },
     "3bhk": {
       "name": "3 BHK",
-      "sceneId": "se-flat-3bhk"
+      "sceneId": "test-tower-empty-flat-3bhk"
     }
   },
   "lifts": [
@@ -67,10 +67,10 @@
       "floorToFloorM": 4.2,
       "spaces": [
         {
-          "id": "se-lobby",
+          "id": "lobby",
           "kind": "lobby",
           "name": "Entrance lobby",
-          "sceneId": "se-lobby",
+          "sceneId": "test-tower-empty-lobby",
           "placement": {
             "x": 0,
             "z": 0,
@@ -111,7 +111,7 @@
               "kind": "door",
               "opening": "door-clubhouse",
               "to": {
-                "space": "st-1-foyer",
+                "space": "clubhouse",
                 "portal": "walkway"
               },
               "label": "The clubhouse (level 1)",
@@ -130,10 +130,10 @@
       "floorToFloorM": 4.2,
       "spaces": [
         {
-          "id": "st-1-foyer",
+          "id": "clubhouse",
           "kind": "corridor",
           "name": "Clubhouse foyer",
-          "sceneId": "st-1-foyer",
+          "sceneId": "test-tower-club-foyer",
           "placement": {
             "x": 0,
             "z": 0,
@@ -163,7 +163,7 @@
               "kind": "door",
               "opening": "door-walkway",
               "to": {
-                "space": "se-lobby",
+                "space": "lobby",
                 "portal": "clubhouse"
               },
               "label": "The ground floor",
@@ -175,7 +175,7 @@
               "kind": "door",
               "opening": "door-hall",
               "to": {
-                "space": "st-1-hall",
+                "space": "hall",
                 "portal": "foyer"
               },
               "label": "Community hall",
@@ -187,7 +187,7 @@
               "kind": "door",
               "opening": "door-gym",
               "to": {
-                "space": "st-1-gym",
+                "space": "gym",
                 "portal": "foyer"
               },
               "label": "Gym",
@@ -199,7 +199,7 @@
               "kind": "door",
               "opening": "door-pool",
               "to": {
-                "space": "st-1-pool",
+                "space": "pool",
                 "portal": "foyer"
               },
               "label": "Pool area",
@@ -211,7 +211,7 @@
               "kind": "door",
               "opening": "door-garden",
               "to": {
-                "space": "st-1-garden",
+                "space": "garden",
                 "portal": "foyer"
               },
               "label": "Garden",
@@ -221,10 +221,10 @@
           ]
         },
         {
-          "id": "st-1-hall",
+          "id": "hall",
           "kind": "hall",
           "name": "Community hall",
-          "sceneId": "st-1-hall",
+          "sceneId": "test-tower-club-hall",
           "placement": {
             "x": 0,
             "z": 0,
@@ -239,7 +239,7 @@
               "kind": "door",
               "opening": "door-foyer",
               "to": {
-                "space": "st-1-foyer",
+                "space": "clubhouse",
                 "portal": "hall"
               },
               "label": "The clubhouse foyer",
@@ -249,10 +249,10 @@
           ]
         },
         {
-          "id": "st-1-gym",
+          "id": "gym",
           "kind": "gym",
           "name": "Gym",
-          "sceneId": "st-1-gym",
+          "sceneId": "test-tower-club-gym",
           "placement": {
             "x": 0,
             "z": 0,
@@ -267,7 +267,7 @@
               "kind": "door",
               "opening": "door-foyer",
               "to": {
-                "space": "st-1-foyer",
+                "space": "clubhouse",
                 "portal": "gym"
               },
               "label": "The clubhouse foyer",
@@ -277,10 +277,10 @@
           ]
         },
         {
-          "id": "st-1-pool",
+          "id": "pool",
           "kind": "pool",
           "name": "Pool area",
-          "sceneId": "st-1-pool",
+          "sceneId": "test-tower-club-pool",
           "placement": {
             "x": 0,
             "z": 0,
@@ -295,7 +295,7 @@
               "kind": "door",
               "opening": "door-foyer",
               "to": {
-                "space": "st-1-foyer",
+                "space": "clubhouse",
                 "portal": "pool"
               },
               "label": "The clubhouse foyer",
@@ -306,10 +306,10 @@
           "comingNext": true
         },
         {
-          "id": "st-1-garden",
+          "id": "garden",
           "kind": "garden",
           "name": "Garden",
-          "sceneId": "st-1-garden",
+          "sceneId": "test-tower-club-garden",
           "placement": {
             "x": 0,
             "z": 0,
@@ -324,7 +324,7 @@
               "kind": "door",
               "opening": "door-foyer",
               "to": {
-                "space": "st-1-foyer",
+                "space": "clubhouse",
                 "portal": "garden"
               },
               "label": "The clubhouse foyer",
@@ -346,7 +346,7 @@
           "id": "f2-corridor",
           "kind": "corridor",
           "name": "Corridor and lift lobby",
-          "sceneId": "st-corridor",
+          "sceneId": "test-tower-corridor",
           "placement": {
             "x": 0,
             "z": 0,
@@ -429,7 +429,7 @@
           "id": "f2-201",
           "kind": "flat",
           "name": "Flat 201 · 3 BHK",
-          "sceneId": "se-flat-3bhk",
+          "sceneId": "test-tower-empty-flat-3bhk",
           "type": "3bhk",
           "placement": {
             "x": 9.472513365134214,
@@ -456,7 +456,7 @@
           "id": "f2-202",
           "kind": "flat",
           "name": "Flat 202 · 1 BHK",
-          "sceneId": "se-flat-1bhk",
+          "sceneId": "test-tower-empty-flat-1bhk",
           "type": "1bhk",
           "placement": {
             "x": 4.257492441485127,
@@ -483,7 +483,7 @@
           "id": "f2-203",
           "kind": "flat",
           "name": "Flat 203 · 2 BHK (A)",
-          "sceneId": "se-flat-2bhk-a-m",
+          "sceneId": "test-tower-empty-flat-2bhk-a-m",
           "type": "2bhk-a",
           "mirrored": true,
           "placement": {
@@ -511,7 +511,7 @@
           "id": "f2-204",
           "kind": "flat",
           "name": "Flat 204 · 2 BHK (B)",
-          "sceneId": "se-flat-2bhk-b-m",
+          "sceneId": "test-tower-empty-flat-2bhk-b-m",
           "type": "2bhk-b",
           "mirrored": true,
           "placement": {
@@ -547,7 +547,7 @@
           "id": "f3-corridor",
           "kind": "corridor",
           "name": "Corridor and lift lobby",
-          "sceneId": "st-corridor",
+          "sceneId": "test-tower-corridor",
           "placement": {
             "x": 0,
             "z": 0,
@@ -630,7 +630,7 @@
           "id": "f3-301",
           "kind": "flat",
           "name": "Flat 301 · 3 BHK",
-          "sceneId": "se-flat-3bhk",
+          "sceneId": "test-tower-empty-flat-3bhk",
           "type": "3bhk",
           "placement": {
             "x": 9.472513365134214,
@@ -657,7 +657,7 @@
           "id": "f3-302",
           "kind": "flat",
           "name": "Flat 302 · 1 BHK",
-          "sceneId": "se-flat-1bhk",
+          "sceneId": "test-tower-empty-flat-1bhk",
           "type": "1bhk",
           "placement": {
             "x": 4.257492441485127,
@@ -684,7 +684,7 @@
           "id": "f3-303",
           "kind": "flat",
           "name": "Flat 303 · 2 BHK (A)",
-          "sceneId": "se-flat-2bhk-a-m",
+          "sceneId": "test-tower-empty-flat-2bhk-a-m",
           "type": "2bhk-a",
           "mirrored": true,
           "placement": {
@@ -712,7 +712,7 @@
           "id": "f3-304",
           "kind": "flat",
           "name": "Flat 304 · 2 BHK (B)",
-          "sceneId": "se-flat-2bhk-b-m",
+          "sceneId": "test-tower-empty-flat-2bhk-b-m",
           "type": "2bhk-b",
           "mirrored": true,
           "placement": {
@@ -739,6 +739,6 @@
       ]
     }
   ],
-  "startSpace": "se-lobby",
+  "startSpace": "lobby",
   "bare": true
 }

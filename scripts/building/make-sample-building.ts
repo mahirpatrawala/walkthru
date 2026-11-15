@@ -1,5 +1,5 @@
 // Sample Tower (made-up): a whole building a buyer can walk through, and its empty twin. Run: npm run make:building
-//   tsx scripts/building/make-sample-building.ts --write     rebuild public/buildings/sample-tower*, public/scenes/st-* and se-*
+//   tsx scripts/building/make-sample-building.ts --write     rebuild public/buildings/sample-tower*, public/scenes/test-tower-*
 //   tsx scripts/building/make-sample-building.ts --check     build in memory and print the building-level validation
 // Flats come from synthetic drawings run through the real reader (scripts/building/flats.ts); everything else is authored here
 // (scripts/building/spaces.ts). The output is committed, like the sample homes, and is the same on every run.
@@ -46,11 +46,11 @@ export async function buildSample(scratch: string): Promise<Built> {
 
 function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>, plate: Plate, scenes: Map<string, SceneBundle>): BuildingFile {
   const empty = variant === 'empty';
-  const pre = empty ? 'se' : 'st';
   /** the empty twin has its own flats and lobby (unfurnished); the rest is bare in both, so the twin uses the same scenes */
   const flatScene = (typeId: string, mirror: boolean): string => {
-    const base = FLATS.find((f) => f.typeId === typeId)!.sceneId.replace(/^st-/, `${pre}-`);
-    return mirror ? mirrorId(base) : base;
+    const base = FLATS.find((f) => f.typeId === typeId)!.sceneId;
+    const own = empty ? base.replace(/^test-tower-/, 'test-tower-empty-') : base;
+    return mirror ? mirrorId(own) : own;
   };
   const add = (id: string, b: SceneBundle): void => { if (!scenes.has(id)) scenes.set(id, b); };
 
@@ -68,14 +68,15 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     }
   }
   // the typical floor's corridor (bare, shared by both variants)
-  const corridor = corridorScene(plate, 'st-corridor');
-  add('st-corridor', { property: corridor.property });
+  const corridorScene_ = 'test-tower-corridor';
+  const corridor = corridorScene(plate, corridorScene_);
+  add(corridorScene_, { property: corridor.property });
   // the ground lobby
-  const lobbyId = `${pre}-lobby`;
-  const lobby = groundLobbyScene(lobbyId, !empty);
-  add(lobbyId, { property: lobby.property });
+  const lobbyScene = empty ? 'test-tower-empty-lobby' : 'test-tower-lobby';
+  const lobby = groundLobbyScene(lobbyScene, !empty);
+  add(lobbyScene, { property: lobby.property });
   // the clubhouse level (bare in both)
-  const ids = { foyer: 'st-1-foyer', hall: 'st-1-hall', gym: 'st-1-gym', pool: 'st-1-pool', garden: 'st-1-garden' };
+  const ids = { foyer: 'test-tower-club-foyer', hall: 'test-tower-club-hall', gym: 'test-tower-club-gym', pool: 'test-tower-club-pool', garden: 'test-tower-club-garden' };
   const club = clubhouseScenes(ids);
   for (const [k, v] of Object.entries(club)) if (k !== 'doors') add(ids[k as keyof typeof ids], { property: v as PropertyFile });
 
@@ -85,12 +86,12 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
   const ground: Level = {
     id: 'g', label: 'Ground', short: 'G', summary: 'Entrance lobby, lifts', floorToFloorM: 4.2,
     spaces: [{
-      id: lobbyId, kind: 'lobby', name: 'Entrance lobby', sceneId: lobbyId, placement: { x: 0, z: 0, rotDeg: 0 },
+      id: 'lobby', kind: 'lobby', name: 'Entrance lobby', sceneId: lobbyScene, placement: { x: 0, z: 0, rotDeg: 0 },
       notes: empty ? ['Unfurnished'] : ['Reception desk, seating and security desk. The letterbox wall is not drawn yet.'],
       portals: [
         { id: 'street', kind: 'outside', opening: lobby.street, label: 'The street', prompt: 'To the street', look: 'glass' },
         lift('lift-a', lobby.liftA), lift('lift-b', lobby.liftB), stairs(lobby.stairs),
-        { id: 'clubhouse', kind: 'door', opening: lobby.clubhouse, to: { space: 'st-1-foyer', portal: 'walkway' }, label: 'The clubhouse (level 1)', prompt: 'To the clubhouse', look: 'glass' },
+        { id: 'clubhouse', kind: 'door', opening: lobby.clubhouse, to: { space: 'clubhouse', portal: 'walkway' }, label: 'The clubhouse (level 1)', prompt: 'To the clubhouse', look: 'glass' },
       ],
     }],
   };
@@ -98,20 +99,20 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     id: 'l1', label: 'Level 1', short: '1', summary: 'Clubhouse: hall, gym, pool, garden', floorToFloorM: 4.2,
     spaces: [
       {
-        id: ids.foyer, kind: 'corridor', name: 'Clubhouse foyer', sceneId: ids.foyer, placement: { x: 0, z: 0, rotDeg: 0 },
+        id: 'clubhouse', kind: 'corridor', name: 'Clubhouse foyer', sceneId: ids.foyer, placement: { x: 0, z: 0, rotDeg: 0 },
         portals: [
           lift('lift-a', 'lift-a'), lift('lift-b', 'lift-b'), stairs('door-stairs'),
-          { id: 'walkway', kind: 'door', opening: club.doors.walkway, to: { space: lobbyId, portal: 'clubhouse' }, label: 'The ground floor', prompt: 'To the ground floor', look: 'glass' },
-          { id: 'hall', kind: 'door', opening: club.doors.hall, to: { space: ids.hall, portal: 'foyer' }, label: 'Community hall', prompt: 'Enter the community hall', look: 'plain' },
-          { id: 'gym', kind: 'door', opening: club.doors.gym, to: { space: ids.gym, portal: 'foyer' }, label: 'Gym', prompt: 'Enter the gym', look: 'plain' },
-          { id: 'pool', kind: 'door', opening: club.doors.pool, to: { space: ids.pool, portal: 'foyer' }, label: 'Pool area', prompt: 'Enter the pool area', look: 'plain' },
-          { id: 'garden', kind: 'door', opening: club.doors.garden, to: { space: ids.garden, portal: 'foyer' }, label: 'Garden', prompt: 'Enter the garden', look: 'plain' },
+          { id: 'walkway', kind: 'door', opening: club.doors.walkway, to: { space: 'lobby', portal: 'clubhouse' }, label: 'The ground floor', prompt: 'To the ground floor', look: 'glass' },
+          { id: 'hall', kind: 'door', opening: club.doors.hall, to: { space: 'hall', portal: 'foyer' }, label: 'Community hall', prompt: 'Enter the community hall', look: 'plain' },
+          { id: 'gym', kind: 'door', opening: club.doors.gym, to: { space: 'gym', portal: 'foyer' }, label: 'Gym', prompt: 'Enter the gym', look: 'plain' },
+          { id: 'pool', kind: 'door', opening: club.doors.pool, to: { space: 'pool', portal: 'foyer' }, label: 'Pool area', prompt: 'Enter the pool area', look: 'plain' },
+          { id: 'garden', kind: 'door', opening: club.doors.garden, to: { space: 'garden', portal: 'foyer' }, label: 'Garden', prompt: 'Enter the garden', look: 'plain' },
         ],
       },
-      amenity(ids.hall, 'hall', 'Community hall', ids.foyer, 'hall', ['Empty hall, about 12 × 8.4 m.']),
-      amenity(ids.gym, 'gym', 'Gym', ids.foyer, 'gym', ['Empty room, about 8 × 12 m. A mirror wall on the long west side comes in the next stage.']),
-      { ...amenity(ids.pool, 'pool', 'Pool area', ids.foyer, 'pool', ['A plain room the size of the pool deck, about 16 × 9 m. No water yet.']), comingNext: true },
-      { ...amenity(ids.garden, 'garden', 'Garden', ids.foyer, 'garden', ['A plain room the size of the garden, about 14 × 10 m. No planting yet.']), comingNext: true },
+      amenity('hall', ids.hall, 'hall', 'Community hall', 'clubhouse', 'hall', ['Empty hall, about 12 × 8.4 m.']),
+      amenity('gym', ids.gym, 'gym', 'Gym', 'clubhouse', 'gym', ['Empty room, about 8 × 12 m. A mirror wall on the long west side comes in the next stage.']),
+      { ...amenity('pool', ids.pool, 'pool', 'Pool area', 'clubhouse', 'pool', ['A plain room the size of the pool deck, about 16 × 9 m. No water yet.']), comingNext: true },
+      { ...amenity('garden', ids.garden, 'garden', 'Garden', 'clubhouse', 'garden', ['A plain room the size of the garden, about 14 × 10 m. No planting yet.']), comingNext: true },
     ],
   };
   const typical = (n: number): Level => {
@@ -131,7 +132,7 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
         portals: [{ id: 'main', kind: 'door', opening: d.mainOpening, to: { space: cid, portal: `flat-${num}` }, label: 'The corridor', prompt: 'To the corridor', look: 'main', plate: num }],
       });
     }
-    spaces.push({ id: cid, kind: 'corridor', name: 'Corridor and lift lobby', sceneId: 'st-corridor', placement: { x: 0, z: 0, rotDeg: 0 }, portals: cportals }, ...flatSpaces);
+    spaces.push({ id: cid, kind: 'corridor', name: 'Corridor and lift lobby', sceneId: corridorScene_, placement: { x: 0, z: 0, rotDeg: 0 }, portals: cportals }, ...flatSpaces);
     return { id: `l${n}`, label: `Level ${n}`, short: String(n), summary: `Flats ${n}01 to ${n}04`, spaces };
   };
   const levels: Level[] = [ground, clubhouse, ...TYPICAL_FLOORS.map(typical)];
@@ -148,14 +149,14 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     flatTypes,
     lifts: ['lift-a', 'lift-b'].map((id, i) => ({ id, name: `Lift ${i === 0 ? 'A' : 'B'}`, car: { ...LIFT_CAR }, serves: levels.map((l) => l.id) })),
     levels,
-    startSpace: lobbyId,
+    startSpace: 'lobby',
     ...(empty ? { bare: true } : {}),
   };
 }
 
-function amenity(id: string, kind: Space['kind'], name: string, foyer: string, portalToFoyer: string, notes: string[]): Space {
+function amenity(id: string, sceneId: string, kind: Space['kind'], name: string, foyer: string, portalToFoyer: string, notes: string[]): Space {
   return {
-    id, kind, name, sceneId: id, placement: { x: 0, z: 0, rotDeg: 0 }, notes,
+    id, kind, name, sceneId, placement: { x: 0, z: 0, rotDeg: 0 }, notes,
     portals: [{ id: 'foyer', kind: 'door', opening: 'door-foyer', to: { space: foyer, portal: portalToFoyer }, label: 'The clubhouse foyer', prompt: 'To the clubhouse foyer', look: 'plain' }],
   };
 }

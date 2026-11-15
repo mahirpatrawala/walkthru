@@ -25,10 +25,10 @@ export const MAIN_DOOR_ID = 'door-main';
 
 /** Seeds picked in the scan: the reader found every room and every door, and every room can be walked into. */
 export const FLATS: FlatSpec[] = [
-  { typeId: '1bhk', name: '1 BHK', seed: 32, sceneId: 'st-flat-1bhk', entry: { roomId: 'lobby', facing: 'S' } },
-  { typeId: '2bhk-a', name: '2 BHK (A)', seed: 93, sceneId: 'st-flat-2bhk-a', entry: { roomId: 'passage', facing: 'W' } },
-  { typeId: '2bhk-b', name: '2 BHK (B)', seed: 45, sceneId: 'st-flat-2bhk-b', entry: { roomId: 'passage', facing: 'E' } },
-  { typeId: '3bhk', name: '3 BHK', seed: 130, sceneId: 'st-flat-3bhk', entry: { roomId: 'lobby', facing: 'W' }, labels: { 'room-9': 'Bath 1', 'room-10': 'Bath 2', 'room-11': 'Puja room' } },
+  { typeId: '1bhk', name: '1 BHK', seed: 32, sceneId: 'test-tower-flat-1bhk', entry: { roomId: 'lobby', facing: 'S' } },
+  { typeId: '2bhk-a', name: '2 BHK (A)', seed: 93, sceneId: 'test-tower-flat-2bhk-a', entry: { roomId: 'passage', facing: 'W' } },
+  { typeId: '2bhk-b', name: '2 BHK (B)', seed: 45, sceneId: 'test-tower-flat-2bhk-b', entry: { roomId: 'passage', facing: 'E' } },
+  { typeId: '3bhk', name: '3 BHK', seed: 130, sceneId: 'test-tower-flat-3bhk', entry: { roomId: 'lobby', facing: 'W' }, labels: { 'room-9': 'Bath 1', 'room-10': 'Bath 2', 'room-11': 'Puja room' } },
 ];
 
 const DIR: Record<'N' | 'E' | 'S' | 'W', Vec2> = { N: { x: 0, z: -1 }, E: { x: 1, z: 0 }, S: { x: 0, z: 1 }, W: { x: -1, z: 0 } };

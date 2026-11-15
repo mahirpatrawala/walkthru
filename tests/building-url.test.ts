@@ -3,7 +3,7 @@ import { buildingUrl, parseBuildingUrl } from '../src/building/url';
 
 describe('the address of a place in a building', () => {
   it('round-trips a space', () => {
-    for (const u of [{ building: 'sample-tower', space: 'f2-201' }, { building: 'sample-tower-empty', space: 'st-1-gym' }, { building: 'a', space: null }]) {
+    for (const u of [{ building: 'sample-tower', space: 'f2-201' }, { building: 'sample-tower-empty', space: 'gym' }, { building: 'a', space: null }]) {
       expect(parseBuildingUrl(buildingUrl(u).slice(1))).toEqual(u);
     }
     expect(buildingUrl({ building: 'sample-tower', space: 'f3-302' })).toBe('/?building=sample-tower&space=f3-302');
@@ -23,6 +23,6 @@ describe('the address of a place in a building', () => {
     expect(parseBuildingUrl('?building=sample-tower&space=../x')).toEqual({ building: 'sample-tower', space: null });
   });
   it('a ?scene= link is not a building link', () => {
-    expect(parseBuildingUrl('?scene=st-lobby')).toBeNull();
+    expect(parseBuildingUrl('?scene=test-tower-lobby')).toBeNull();
   });
 });

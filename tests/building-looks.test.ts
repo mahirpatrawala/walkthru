@@ -18,14 +18,14 @@ describe('portal doors', () => {
     const cor = doorLooksFor(space('f2-corridor'));
     expect(cor.get('lift-a')).toEqual({ kind: 'lift' });
     expect(cor.get('door-stairs')).toEqual({ kind: 'stairs', text: 'STAIRS', plateSide: 1 });
-    expect(doorLooksFor(space('st-lobby')).get('door-street')).toEqual({ kind: 'glass' });
+    expect(doorLooksFor(space('lobby')).get('door-street')).toEqual({ kind: 'glass' });
     expect(lookOf({ id: 'x', kind: 'door', opening: 'o', to: { space: 's', portal: 'p' }, label: 'L' })).toBe('plain');
   });
   it('the prompts say where each goes', () => {
     const prompts = (id: string) => space(id).portals.map((p) => portalPrompt(p));
     expect(prompts('f2-corridor')).toEqual(['Call lift', 'Call lift', 'Stairs (not walkable yet)', 'Enter Flat 201', 'Enter Flat 202', 'Enter Flat 203', 'Enter Flat 204']);
     expect(prompts('f3-302')).toEqual(['To the corridor']);
-    expect(prompts('st-lobby')).toContain('To the clubhouse');
+    expect(prompts('lobby')).toContain('To the clubhouse');
   });
   it('every flat opens onto the corridor of its own level, and the plates carry the level', () => {
     for (const lv of ['2', '3']) for (const n of ['01', '02', '03', '04']) {
@@ -37,7 +37,7 @@ describe('portal doors', () => {
 });
 
 describe('the building map', () => {
-  const scenes = (ids: string[]): Map<string, SceneInfo> => new Map(ids.map((id) => [id, { property: readScene(id)!, unverified: (id === 'st-flat-2bhk-a-m' ? { passage: 'drawing and label disagree' } : {}) as Record<string, string> }]));
+  const scenes = (ids: string[]): Map<string, SceneInfo> => new Map(ids.map((id) => [id, { property: readScene(id)!, unverified: (id === 'test-tower-flat-2bhk-a-m' ? { passage: 'drawing and label disagree' } : {}) as Record<string, string> }]));
 
   it('draws every space of a level, outlined and named, with no per-room labels', () => {
     const lv = b.levels.find((l) => l.id === 'l1')!;
@@ -49,19 +49,19 @@ describe('the building map', () => {
     expect(plan.svg).toMatch(/Coming in the next stage/);
   });
   it('a flat states its carpet area from its own rooms, and not when a room was not measured', () => {
-    const measured = spaceArea(space('f2-202'), { property: readScene('st-flat-1bhk')!, unverified: {} });
+    const measured = spaceArea(space('f2-202'), { property: readScene('test-tower-flat-1bhk')!, unverified: {} });
     expect(measured.measured).toBe(true);
     expect(measured.text).toMatch(/^[\d,]+ sq ft carpet$/);
-    const not = spaceArea(space('f2-203'), scenes(['st-flat-2bhk-a-m']).get('st-flat-2bhk-a-m')!);
+    const not = spaceArea(space('f2-203'), scenes(['test-tower-flat-2bhk-a-m']).get('test-tower-flat-2bhk-a-m')!);
     expect(not.measured).toBe(false);
     expect(not.text).toBe('area not confirmed');
-    const soon = spaceArea(space('st-1-pool'), { property: readScene('st-1-pool')!, unverified: {} });
+    const soon = spaceArea(space('pool'), { property: readScene('test-tower-club-pool')!, unverified: {} });
     expect(soon.measured).toBe(false);
     expect(soon.text).toMatch(/placeholder/);
   });
   it('puts the walker on the plan where they stand', () => {
     const lv = b.levels.find((l) => l.id === 'l1')!;
-    const plan = levelPlan(b, lv, scenes([...new Set(lv.spaces.map((s) => s.sceneId))]), { idPrefix: 't', here: { spaceId: 'st-1-gym', point: { x: 6, z: -2 } } });
+    const plan = levelPlan(b, lv, scenes([...new Set(lv.spaces.map((s) => s.sceneId))]), { idPrefix: 't', here: { spaceId: 'gym', point: { x: 6, z: -2 } } });
     expect(plan.svg).toContain('bm-you-dot');
     expect(plan.svg).toMatch(/class="bm-space is-here/);
   });

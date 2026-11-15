@@ -9,7 +9,7 @@ import { boot } from '../buyer/main';
 import { createLoadingScreen } from '../buyer/loading';
 import type { LoadingScreen } from '../buyer/loading';
 import { ARRIVAL_FROM_M, arrivalAtDoor } from './arrival';
-import { createCurtain } from './curtain';
+import { createCurtain, createLoadingCurtain } from './curtain';
 import { contextOf, setSpaceContext } from './extension';
 import { openLiftPanel } from './lift-panel';
 import type { LiftPanel } from './lift-panel';
@@ -42,7 +42,7 @@ export interface BuildingWalkApi {
   portal(id: string): Promise<boolean>;
   openMap(): void;
   /** debug: what the page holds right now, for the leak check */
-  metrics(): { geometries: number; textures: number; programs: number; calls: number; nodes: number; spaces: number };
+  metrics(): { geometries: number; textures: number; programs: number; calls: number; nodes: number; spaces: number; lastBootMs: number };
 }
 
 class BuildingWalk implements BuildingWalkApi {
@@ -56,6 +56,8 @@ class BuildingWalk implements BuildingWalkApi {
   /** Back or Forward was pressed while a transition was running: follow the address once it is done */
   private popAgain = false;
   private count = 0;
+  /** debug: how long the last space took to build, down to "ready" (ms) */
+  private lastBootMs = 0;
 
   constructor(readonly building: BuildingFile) {}
 
@@ -86,8 +88,10 @@ class BuildingWalk implements BuildingWalkApi {
       onMounted: (m) => this.onMounted(m, loc),
     };
     let session: SpaceSession | null = null;
+    const t0 = performance.now();
     try {
       session = await boot(loc.space.sceneId, null, host);
+      this.lastBootMs = Math.round(performance.now() - t0);
     } catch (err) {
       console.error('[walkthru] could not open the space', err);
       o.screen.showError('Could not open this space.', err instanceof Error ? err.message : String(err));
@@ -168,7 +172,7 @@ class BuildingWalk implements BuildingWalkApi {
     if (this.busy) return;
     this.busy = true;
     try {
-      const curtain = createCurtain({ kind: t.kind, title: t.title, sub: t.sub, floors: t.floors });
+      const curtain = t.kind === 'lift' ? createCurtain({ kind: 'lift', title: t.title, sub: t.sub, floors: t.floors }) : createLoadingCurtain(t.title, t.sub);
       await curtain.covered;
       await this.enter(spaceId, { opening: t.opening, fromM: t.fromM, screen: curtain.screen, first: false, history: 'push' });
     } finally { this.busy = false; this.followAddress(); }
@@ -196,7 +200,7 @@ class BuildingWalk implements BuildingWalkApi {
     if (this.busy) { this.popAgain = true; return; }
     this.busy = true;
     try {
-      const curtain = createCurtain({ kind: 'door', title: loc.space.name, sub: loc.level.label });
+      const curtain = createLoadingCurtain(loc.space.name, loc.level.label);
       await curtain.covered;
       await this.enter(loc.space.id, { opening: loc.space.portals[0]?.opening ?? null, screen: curtain.screen, first: false, history: 'none' });
     } finally { this.busy = false; this.followAddress(); }
@@ -243,10 +247,10 @@ class BuildingWalk implements BuildingWalkApi {
     this.map.off(); this.map.view.destroy(); this.map.root.remove(); this.map = null;
   }
 
-  metrics(): { geometries: number; textures: number; programs: number; calls: number; nodes: number; spaces: number } {
+  metrics(): { geometries: number; textures: number; programs: number; calls: number; nodes: number; spaces: number; lastBootMs: number } {
     const w = window as unknown as { __walkthru?: { ctx?: { viewer?: { renderer?: { info?: { memory: { geometries: number; textures: number }; programs?: unknown[]; render: { calls: number } } } } } } };
     const info = w.__walkthru?.ctx?.viewer?.renderer?.info;
-    return { geometries: info?.memory.geometries ?? 0, textures: info?.memory.textures ?? 0, programs: info?.programs?.length ?? 0, calls: info?.render.calls ?? 0, nodes: document.getElementsByTagName('*').length, spaces: this.count };
+    return { geometries: info?.memory.geometries ?? 0, textures: info?.memory.textures ?? 0, programs: info?.programs?.length ?? 0, calls: info?.render.calls ?? 0, nodes: document.getElementsByTagName('*').length, spaces: this.count, lastBootMs: this.lastBootMs };
   }
 }
 

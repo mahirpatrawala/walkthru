@@ -51,7 +51,7 @@ describe('building.json', () => {
   });
 
   it('rejects links that do not hold together', () => {
-    expect(bad((r) => { r.levels[1].spaces[0].id = r.levels[0].spaces[0].id; })).toMatch(/the id "st-lobby" is used twice/);
+    expect(bad((r) => { r.levels[1].spaces[0].id = r.levels[0].spaces[0].id; })).toMatch(/the id "lobby" is used twice/);
     // a door whose far side is gone
     expect(bad((r) => { r.levels[2].spaces[0].portals.find((p) => p.kind === 'door')!.to!.space = 'f9-nowhere'; })).toMatch(/leads to space "f9-nowhere", which does not exist/);
     // a door that does not lead back
@@ -59,7 +59,7 @@ describe('building.json', () => {
     // a flat of a type nobody defined
     expect(bad((r) => { const f = r.levels[2].spaces.find((s) => s.kind === 'flat')!; f.type = 'penthouse'; })).toMatch(/type "penthouse", which is not in flatTypes/);
     // a flat in a scene that is not its type's
-    expect(bad((r) => { const f = r.levels[2].spaces.find((s) => s.kind === 'flat')!; f.sceneId = 'st-lobby'; })).toMatch(/uses scene "st-lobby" but its/);
+    expect(bad((r) => { const f = r.levels[2].spaces.find((s) => s.kind === 'flat')!; f.sceneId = 'test-tower-lobby'; })).toMatch(/uses scene "test-tower-lobby" but its/);
     // a lift that skips a level it claims to serve
     expect(bad((r) => { r.lifts[0].serves.push('l9'); })).toMatch(/serves level "l9", which does not exist/);
     expect(bad((r) => { r.levels[3].spaces[0].portals = r.levels[3].spaces[0].portals.filter((p) => p.id !== 'lift-a'); })).toMatch(/lift "lift-a" must have exactly one lift door there \(found 0\)/);

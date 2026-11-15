@@ -48,7 +48,7 @@ describe('extension points', () => {
     const b = readBuilding('sample-tower');
     const gym = b.levels.flatMap((l) => l.spaces).find((s) => s.kind === 'gym')!;
     setSpaceContext(contextOf(b.id, gym));
-    expect(getSpaceContext()).toEqual({ buildingId: 'sample-tower', spaceId: 'st-1-gym', kind: 'gym', outdoor: false, pack: null });
+    expect(getSpaceContext()).toEqual({ buildingId: 'sample-tower', spaceId: 'gym', kind: 'gym', outdoor: false, pack: null });
     setCatalogueFilter((kind, item) => !(kind === 'gym' && item.kind === 'bed'));
     expect(catalogueAllowedIn({ id: 'bed-king', kind: 'bed' })).toBe(false);
     expect(catalogueAllowedIn({ id: 'sofa-3', kind: 'sofa' })).toBe(true);

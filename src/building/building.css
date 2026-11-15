@@ -104,11 +104,8 @@
 .wb-floor-sum { font-size: 12.5px; color: var(--wt-muted); }
 .wb-floor-here { margin-left: auto; padding: 1px 8px; border-radius: 999px; background: var(--wt-teal); color: #fff; font-size: 11px; font-weight: 700; flex: none; }
 
-/* the curtain between two spaces: a door, or the lift's doors closing, travelling and opening */
+/* the lift between two levels: the steel doors close, the display counts the floors, they open on the new level (a door uses the walk's own loading screen) */
 .wb-curtain { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; pointer-events: auto; overflow: hidden; background: transparent; color: #FFFDF8; font-family: var(--wt-display); }
-.wb-curtain.is-door { background: rgba(31, 22, 17, 0); transition: background 180ms ease; }
-.wb-curtain.is-door.is-in { background: rgb(31, 22, 17); }
-.wb-curtain.is-door.is-out { background: rgba(31, 22, 17, 0); transition-duration: 260ms; }
 .wb-cap { text-align: center; display: flex; flex-direction: column; gap: 6px; align-items: center; opacity: 0; transition: opacity 160ms ease; z-index: 2; padding: 0 24px; }
 .is-in .wb-cap { opacity: 1; }
 .is-out .wb-cap { opacity: 0; }
