@@ -1503,12 +1503,9 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     const cam = ctx.camera as { focusOn?(c: Vec3, d: number, p: number, y?: number): void };
     if (!rec || !cam.focusOn) return;
     const big = Math.max(rec.half.x, rec.half.z) * 2;
-    // the walker looks toward it, so the camera stands on this side of it, inside the room
-    const from = ctx.character.position;
-    const toward = (x: number, z: number): number => (Math.atan2(x - from.x, z - from.z) * 180) / Math.PI;
+    // a wall fitting: the camera stands in front of its wall, inside the room
     if (rec.mount === 'wall') cam.focusOn({ x: rec.centre.x, y: Math.min(rec.centre.y, 1.6), z: rec.centre.z }, Math.min(3.4, Math.max(2.2, big * 1.4 + 1.6)), 14, rec.yawDeg + 180);
-    else if (rec.mount === 'ceiling') cam.focusOn({ x: rec.centre.x, y: Math.max(1.2, rec.centre.y - 0.6), z: rec.centre.z }, Math.min(3.6, Math.max(2.4, big + 2)), -12, toward(rec.centre.x, rec.centre.z));
-    // a fitting on the floor (rug, plant, chair): the viewer tapped it, so it is already in view, and under a bed or a desk a swing of the camera would end inside the furniture
+    // a fitting on the ceiling or the floor (fan, downlight, rug, plant, chair): the viewer tapped it, so it is already in view, and a swing of the camera could end outside the room or inside the furniture
   };
   let lastFitId: string | null = null;
   let lastFitAt = '';
