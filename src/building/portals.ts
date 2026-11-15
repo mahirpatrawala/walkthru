@@ -100,6 +100,18 @@ export function mountPortals(m: MountedSpace, portals: Portal[], go: (p: Portal)
   // a tap on the door itself
   const ray = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
+  const plane = new THREE.Plane();
+  const at = new THREE.Vector3();
+  /** Distance along the tap's ray to the doorway's own rectangle (mid-wall, jamb to jamb, floor to head), or null. */
+  function doorwayHit(l: Live): number | null {
+    const f = l.frame;
+    plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(f.out.x, 0, f.out.z), new THREE.Vector3(f.centre.x + f.out.x * f.thicknessM / 2, 0, f.centre.z + f.out.z * f.thicknessM / 2));
+    if (!ray.ray.intersectPlane(plane, at)) return null;
+    const along = (at.x - f.centre.x) * f.dir.x + (at.z - f.centre.z) * f.dir.z;
+    if (Math.abs(along) > f.widthM / 2 || at.y < 0 || at.y > f.headM) return null;
+    return ray.ray.origin.distanceTo(at);
+  }
+
   function tap(e: PointerEvt): boolean {
     if (m.blocked() || m.ctx.mode() !== 'walk') return false;
     m.ctx.viewer.camera.updateMatrixWorld(true);
@@ -108,9 +120,11 @@ export function mountPortals(m: MountedSpace, portals: Portal[], go: (p: Portal)
     let best: { l: Live; d: number } | null = null;
     for (const l of live) {
       const g = m.viewer.scene.getObjectByName(`door:${l.portal.opening}`);
-      if (!g) continue;
-      const hit = ray.intersectObject(g, true)[0];
+      const hit = g ? ray.intersectObject(g, true)[0] : undefined;
       if (hit && (!best || hit.distance < best.d)) best = { l, d: hit.distance };
+      // an open leaf is not the doorway: the opening itself counts too (a flat's main door stands open behind the walker)
+      const d = doorwayHit(l);
+      if (d !== null && (!best || d < best.d)) best = { l, d };
     }
     if (!best) return false;
     // a wall between the camera and the door, or a piece or fitting nearer than the door, takes the tap instead
