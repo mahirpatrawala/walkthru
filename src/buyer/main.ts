@@ -31,7 +31,7 @@ import type { Look } from '../look/look';
 import { mountLookPanel } from '../look/look-panel';
 import { createInput } from '../engine/controls';
 import { FollowCamera } from '../engine/camera';
-import { stepLocomotion } from '../engine/locomotion';
+import { resetLocomotion, stepLocomotion } from '../engine/locomotion';
 import { CHARACTER_RADIUS_M } from '../types';
 import { BODY_DEFAULT_CM, bodyFrom, clampPersonHeight, loadPerson, loadView, savePerson, saveView, tintForPerson } from './person-store';
 import type { ViewMode } from './person-store';
@@ -581,9 +581,10 @@ async function boot(): Promise<void> {
     const blocked = blocking();
     if (blocked) {
       if (character.state === 'walk' || character.state === 'jog') character.setLocomotion(0, false);
+      resetLocomotion(character); // a sheet that opens mid-stride stops the walker; it does not glide on when the sheet closes
     } else if (modes.id !== 'pose') {
       stepLocomotion(character, input, camera.viewYawDeg, store.grid(), dt);
-    }
+    } else resetLocomotion(character);
     modes.update(dt);
     interactions.update(dt);
     wardrobes.update(dt);
