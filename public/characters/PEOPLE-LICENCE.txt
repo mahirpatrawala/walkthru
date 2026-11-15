@@ -15,7 +15,7 @@ What they were made from
   Their textures are not used: every part is a flat colour set at run time.
 - Garments (kurta, pyjama, kameez, salwar, blouse, saree, dupatta, pallu, trim), hair, bun, braid, pigtails and pupils were modelled
   for walkthru by tools/make_family.py from the shape of the skin itself (revised 15 Nov 2026: the kurta, kameez and saree skirt hang as one panel per leg
-  so a stride never tears them, and the dupatta and pallu are draped bands with thickness and soft folds). They contain no third-party asset and are CC0 with the rest.
+  so a stride never tears them, and the dupatta and pallu are draped bands with thickness and soft folds; revised 16 Nov 2026: cut close to the body with side slits instead of a flare, sleeves and trouser legs measured off the skin's surface with rays, and the hair a dome that closes over the whole skull). They contain no third-party asset and are CC0 with the rest.
 - The animation clips in clips.glb (rebuilt 15 Nov 2026 by tools/make-clips.mjs) come from two Quaternius libraries, both CC0 1.0, both the free
   "Standard" download from the author's itch.io pages (no purchase, no login, fetched 15 Nov 2026), the Unreal-Godot glb files with root motion off:
     Universal Animation Library [Standard], https://quaternius.itch.io/universal-animation-library (also https://quaternius.com/packs/universalanimationlibrary.html)
