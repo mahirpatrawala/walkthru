@@ -527,6 +527,20 @@ async function boot(): Promise<void> {
   input.on('interact', () => { if (!blocking()) void interactions.interact(); });
   input.on('measure', () => toggleMode('measure'));
   input.on('furnish', () => toggleMode('furnish'));
+  // a tap on any piece while walking opens it in Furnish with that piece selected: its size, and change look, replace or remove
+  input.onTap((e) => {
+    if (blocking() || modes.id !== 'walk') return;
+    let o: THREE.Object3D | null = ctx.raycast(e)?.object ?? null;
+    let id: string | null = null;
+    while (o && !id) {
+      const v = o.userData?.itemId ?? o.userData?.openableFor;
+      if (typeof v === 'string') id = v;
+      o = o.parent;
+    }
+    if (!id || !store.all().some((i) => i.id === id)) return;
+    if (!modes.set('furnish')) return;
+    (modes.active() as { session?: { select(id: string | null): void } } | undefined)?.session?.select(id);
+  });
   input.on('cancel', () => {
     if (blocking()) return;
     const m = modes.id;

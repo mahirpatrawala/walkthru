@@ -372,7 +372,8 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
 
   const isHome = (id: string): boolean => (store.isOriginal ? store.isOriginal(id) : false);
   const builtIn = (item: FurnitureItem): boolean => !!options.builtIn?.(item);
-  const sizeText = (i: FurnitureItem): string => `${Math.round(i.box.w * 100)} × ${Math.round(i.box.d * 100)} cm`;
+  // width × depth, and the height when the piece has one
+  const sizeText = (i: FurnitureItem): string => `${Math.round(i.box.w * 100)} × ${Math.round(i.box.d * 100)} cm${i.heightM > 0 ? ` · ${Math.round(i.heightM * 100)} cm high` : ''}`;
   const selectionOf = (item: FurnitureItem): FurnishSelection => {
     const family = finishFamily(item);
     return {
