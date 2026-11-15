@@ -21,6 +21,9 @@ import {
   passVerdict, passageWidth, placeStanding, shoulderWidthM, shownCount, spotLateral, standBox,
 } from '../src/buyer/people/model';
 import { peopleNote } from '../src/buyer/people/ui';
+import { freeAngleRad } from '../src/buyer/wardrobe-swing';
+import type { Shutter } from '../src/buyer/wardrobe-swing';
+import { setExtraObstacles, withExtraObstacles } from '../src/buyer/wardrobe-hooks';
 import { SIT_HIP_BACK_RATIO } from '../src/types';
 
 const furnished = buildTruthProperty('furnished');
@@ -403,5 +406,22 @@ describe('the store carries people in My layout without keeping any', () => {
     expect(s.data.has(peopleKey('t'))).toBe(false);
     expect(parsePeople('{not json')).toEqual([]);
     expect(parsePeople(JSON.stringify({ version: 1, people: [{ body: 'man', pose: 'stand', x: 0, z: 0 }, 5] }))).toHaveLength(1);
+  });
+});
+
+describe('a person in the way of a wardrobe', () => {
+  // a wardrobe 1.8 m wide, front toward +z, with a 60 cm shutter hinged at its left end
+  const box: Box = { cx: 2, cz: 1.0, w: 1.8, d: 0.6, yawDeg: 0 };
+  const shutter: Shutter = { id: 's', bay: 0, side: 'left', hingeU: -0.9, dir: 1, widthM: 0.6 };
+  it('the shutter opens square to the front on an empty floor, and stops short of a person standing in its swing', () => {
+    expect(freeAngleRad(baseGrid, box, shutter, Math.PI / 2)).toBeCloseTo(Math.PI / 2, 5);
+    // hinge at x = 1.1, z = 1.3: the free edge sweeps through (1.1, 1.9) at 90 degrees
+    const stander = rec({ body: 'man', heightCm: 175, x: 1.1, z: 1.75 });
+    setExtraObstacles(() => obstaclesOf([stander]));
+    try {
+      const withPerson = freeAngleRad(withExtraObstacles(baseGrid), box, shutter, Math.PI / 2);
+      expect(withPerson).toBeLessThan(Math.PI / 2 - 0.2);
+    } finally { setExtraObstacles(null); }
+    expect(withExtraObstacles(baseGrid)).toBe(baseGrid); // nobody registered: the same grid, untouched
   });
 });

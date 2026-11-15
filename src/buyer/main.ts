@@ -577,6 +577,7 @@ async function boot(): Promise<void> {
   });
   input.on('cancel', () => {
     if (blocking()) return;
+    if (people!.ui.placing() || people!.ui.selected()) { people!.ui.cancel(); return; } // Esc puts a person down, or closes their card
     const m = modes.id;
     if (m === 'pose') void interactions.getUp();
     else if (m === 'measure' || m === 'furnish') modes.set('walk');

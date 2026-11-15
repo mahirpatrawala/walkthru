@@ -553,6 +553,9 @@ export function createPeople(deps: PeopleDeps): People {
 
   const frustum = new THREE.Frustum();
   const proj = new THREE.Matrix4();
+  const view = new THREE.Matrix4();
+  const fwd = new THREE.Vector3();
+  const lastCam = { x: Infinity, z: Infinity, dir: new THREE.Vector3(0, 0, 1) };
   const sphere = new THREE.Sphere();
   const FOLLOW_INPUT = { moveX: 0, moveY: 1, jog: false } as unknown as Input;
   const NO_INPUT = { moveX: 0, moveY: 0, jog: false } as unknown as Input;
@@ -588,9 +591,16 @@ export function createPeople(deps: PeopleDeps): People {
     if (tierClock > 1) { tierClock = 0; checkTier(); }
     if (lives.length === 0) return;
     const cam = deps.camera;
-    proj.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+    // the camera has moved since it was last drawn: its own inverse is not up to date yet
+    cam.updateMatrixWorld();
+    view.copy(cam.matrixWorld).invert();
+    proj.multiplyMatrices(cam.projectionMatrix, view);
     frustum.setFromProjectionMatrix(proj);
     const camAt = { x: cam.position.x, z: cam.position.z };
+    // what hides behind a wall is worked out every 0.3 s, and at once when the camera has moved or turned since (a corner, a door, a free camera)
+    cam.getWorldDirection(fwd);
+    const moved = Math.hypot(camAt.x - lastCam.x, camAt.z - lastCam.z) > 0.2 || fwd.dot(lastCam.dir) < 0.995;
+    if (moved) { lastCam.x = camAt.x; lastCam.z = camAt.z; lastCam.dir.copy(fwd); }
     const w = walker.position();
     const walkerOnFoot = walker.state() === 'idle' || walker.state() === 'walk' || walker.state() === 'jog';
     for (const l of lives) {
@@ -600,7 +610,7 @@ export function createPeople(deps: PeopleDeps): People {
       const H = l.rec.heightCm / 100;
       sphere.set(new THREE.Vector3(p.x, H * 0.5, p.z), H * 0.9);
       l.inView = frustum.intersectsSphere(sphere);
-      l.occludedFor += dt;
+      l.occludedFor = moved ? OCCLUSION_EVERY_S : l.occludedFor + dt;
       if (l.occludedFor >= OCCLUSION_EVERY_S) { l.occludedFor = 0; l.occluded = l.inView && occludedFrom(camAt, p); }
       const drawn = l.inView && !l.occluded && !suppressed;
       ch.setVisible(drawn);

@@ -142,8 +142,7 @@ export function createPeopleUi(deps: PeopleUiDeps): PeopleUi {
     placing = { spec, moveId };
     closeCard();
     hud.setVisible(true);
-    hud.setModeBar(moveId ? 'Tap where they go' : 'Tap the floor, sofa or bed', cancelPlacing);
-    hud.hint('Floor to stand · sofa or chair to sit · bed to lie', 6000);
+    hud.setModeBar(moveId ? 'Tap where they go: floor, sofa, chair or bed' : 'Floor to stand · sofa to sit · bed to lie', cancelPlacing);
   }
 
   function cancelPlacing(): void {
