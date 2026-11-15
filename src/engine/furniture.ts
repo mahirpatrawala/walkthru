@@ -35,6 +35,8 @@ function addBox(
 
 function buildBed(g: THREE.Group, item: FurnitureItem): void {
   const { w, d } = item.box;
+  // a mat on the floor (a yoga mat is a "bed" you can lie on) is one flat slab, not a frame, a mattress and pillows
+  if (item.heightM < 0.1) { addBox(g, 'mat', C_MATTRESS, 0, 0, w, d, 0, item.heightM); return; }
   const inner = item.inner ?? { w, d };
   addBox(g, 'frame', C_BED_FRAME, 0, 0, w, d, 0, Math.min(0.3, item.surfaceHeightM));
   addBox(g, 'mattress', C_MATTRESS, 0, 0, inner.w, inner.d, 0.3, Math.max(0.31, item.surfaceHeightM));

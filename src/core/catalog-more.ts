@@ -240,8 +240,8 @@ export const MORE_PIECES: MorePiece[] = [
     label: '80 cm across, 45 cm high', look: 'tablex', params: { variant: 'coffee-round' }, family: 'table', pose: 'dims', kw: 'round centre table coffee table circular living room', probe: [0, 0],
   }),
   piece({
-    id: 'dining-4', name: '4-seat dining table', cat: 'tables', kind: 'dining', w: 1.2, d: 1.55, h: 0.95, s: 0.75,
-    label: '120 × 75 cm table, chairs included', look: 'dining', params: { chairs: 4 }, family: 'table', pose: 'dims', kw: 'dining table four seater 4 seat chairs',
+    id: 'dining-4', name: '4-seat dining table', cat: 'tables', kind: 'dining', w: 1.2, d: 1.48, h: 0.95, s: 0.75,
+    label: '120 × 68 cm table, chairs included', look: 'dining', params: { chairs: 4 }, family: 'table', pose: 'dims', kw: 'dining table four seater 4 seat chairs',
     access: [{ sides: ['front', 'back'], minM: 0.6, mode: 'all' }], words: 'dining',
   }),
   piece({

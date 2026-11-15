@@ -180,3 +180,18 @@ describe('generators are registered for every kind and resolve', () => {
     }
   });
 });
+
+describe('dining sets keep the table the label says (not turned a quarter)', () => {
+  for (const [id, tw, td] of [['dining-4', 1.2, 0.68], ['dining-8', 2.4, 1.0]] as const) {
+    it(`${id}: a ${tw * 100} x ${Math.round(td * 100)} cm top with the chairs round it`, () => {
+      setStyle({ packId: 'light-scandinavian' });
+      const row = CATALOG.find((c) => c.id === id)!;
+      const g = new THREE.Group();
+      buildRealFurniture(g, itemFromCatalog(id, { cx: 0, cz: 0, w: row.footprint.w, d: row.footprint.d, yawDeg: 0 }, 'virtual'), 'medium', createFurnitureKit());
+      const top = g.getObjectByName('table-top') as THREE.Mesh;
+      const bb = new THREE.Box3().setFromObject(top);
+      expect(bb.max.x - bb.min.x).toBeCloseTo(tw, 2);
+      expect(bb.max.z - bb.min.z).toBeCloseTo(td, 2);
+    });
+  }
+});
