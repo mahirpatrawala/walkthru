@@ -12,8 +12,8 @@ import { CHARACTER_RADIUS_M, GRID_FREE } from '../src/types';
 import type { Box, FurnitureItem } from '../src/types';
 import { createFurnitureStore } from '../src/buyer/store';
 import type { StorageLike } from '../src/buyer/store';
-import { decodeLayout, emptyLayout, encodeLayout, isEmptyLayout } from '../src/buyer/my-layout';
-import { loadPeople, parsePeople, peopleKey, savePeople } from '../src/buyer/people/persist';
+import { decodeLayout, emptyLayout, encodeLayout, isEmptyLayout, mineKey, parseMine, serializeMine } from '../src/buyer/my-layout';
+import { emptyFittings } from '../src/look/fittings';
 import { PEOPLE_MAX, peopleFromWire, peopleToWire, sanitizeRec, sanitizeRecs } from '../src/buyer/people/rec';
 import type { PersonRec } from '../src/buyer/people/rec';
 import {
@@ -340,9 +340,39 @@ describe('people travel in My layout', () => {
     expect(l.removed).toEqual(['bed-1']);
     expect(l.people).toBeUndefined();
   });
+  it('version 2 carries everything together: removed, moved, fittings, added pieces, looks and people; Reset clears all', () => {
+    const added: FurnitureItem[] = [{ ...sofa, id: 'mine-1', source: 'virtual', catalogId: 'sofa-3' }];
+    const whole = {
+      ...emptyLayout(), removed: [], finishes: { 'sofa-1': { fabric: 'fab-grey' } }, added,
+      moved: { 'bed-1': { cx: 1.1, cz: 2.3, yawDeg: 90, w: 1.5, d: 2.0, heightM: 0.55, surfaceHeightM: 0.55 } },
+      fittings: { removed: ['fan-1'], moved: { 'chair:c1': { m: 'f' as const, x: 2, z: 3, yawDeg: 10 } }, sized: {} },
+      people: [rec({ pose: 'sit', host: 'mine-1', x: 3.5, z: 3.5 }), rec({ id: 'pe-2', body: 'man', heightCm: 180 })],
+    };
+    const code = encodeLayout(whole)!;
+    expect(code.startsWith('2.')).toBe(true);
+    const back = decodeLayout(code, originals)!;
+    expect(back.finishes).toEqual({ 'sofa-1': { fabric: 'fab-grey' } });
+    expect(Object.keys(back.moved)).toEqual(['bed-1']);
+    expect(back.fittings.removed).toEqual(['fan-1']);
+    expect(Object.keys(back.fittings.moved)).toEqual(['chair:c1']);
+    expect(back.added).toHaveLength(1);
+    expect(back.people).toHaveLength(2);
+    expect(back.people![0].host).toBe(back.added[0].id);
+    // each part is its own field: the people are `h`, the moved originals still `p`
+    const wire = JSON.parse(atob(code.slice(2).replace(/-/g, '+').replace(/_/g, '/') + '=='.slice(0, (4 - (code.slice(2).length % 4)) % 4)));
+    expect(Object.keys(wire).sort()).toEqual(['a', 'f', 'h', 'p', 'x']);
+    expect(wire.p[0][0]).toBe('bed-1');
+    expect(wire.h).toHaveLength(2);
+  });
+  it('a version 2 link without people, and a version 1 link, still open', () => {
+    const v2 = encodeLayout({ ...emptyLayout(), fittings: { removed: ['fan-1'], moved: {}, sized: {} } })!;
+    expect(v2.startsWith('2.')).toBe(true);
+    expect(decodeLayout(v2, originals)!.people).toBeUndefined();
+    expect(decodeLayout(encodeLayout({ ...emptyLayout(), removed: ['bed-1'] })!, originals)!.removed).toEqual(['bed-1']);
+  });
   it('junk in a link is dropped, not trusted', () => {
-    const wire = { p: [[9, 2, 170, 100, 100, 0, 0], [0, 2, 170, 'x', 100, 0, 0], [0, 2, 170, 100, 100, 0, 1, 'no-such-piece'], [1, 99, 9999, 120, 130, 0, 0], 'junk', null] };
-    const code = `1.${btoa(JSON.stringify(wire)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
+    const wire = { h: [[9, 2, 170, 100, 100, 0, 0], [0, 2, 170, 'x', 100, 0, 0], [0, 2, 170, 100, 100, 0, 1, 'no-such-piece'], [1, 99, 9999, 120, 130, 0, 0], 'junk', null] };
+    const code = `2.${btoa(JSON.stringify(wire)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
     const back = decodeLayout(code, originals)!.people!;
     expect(back).toHaveLength(2);
     expect(back[0].pose).toBe('stand'); // the one that sat on a piece this home does not have
@@ -395,17 +425,32 @@ describe('the store carries people in My layout without keeping any', () => {
     store.attachPeople(null);
     expect(store.isEdited()).toBe(false);
   });
-  it('the people of this browser are stored apart from the furniture, and an empty list leaves nothing behind', () => {
-    const s = fakeStorage();
-    savePeople(s, 't', [rec(), rec({ id: 'pe-2', body: 'child', heightCm: 110 })]);
-    expect(s.data.has(peopleKey('t'))).toBe(true);
-    const back = loadPeople(s, 't');
-    expect(back.map((p) => p.body)).toEqual(['woman', 'child']);
-    expect(loadPeople(s, 'other')).toEqual([]);
-    savePeople(s, 't', []);
-    expect(s.data.has(peopleKey('t'))).toBe(false);
-    expect(parsePeople('{not json')).toEqual([]);
-    expect(parsePeople(JSON.stringify({ version: 1, people: [{ body: 'man', pose: 'stand', x: 0, z: 0 }, 5] }))).toHaveLength(1);
+  it('the people of this browser are stored in the same value as moves and fittings, and none leaves nothing behind', () => {
+    const originals = new Map(furnished.furniture.map((i) => [i.id, i]));
+    const two = [rec(), rec({ id: 'pe-2', body: 'child', heightCm: 110 })];
+    const raw = serializeMine([], {}, {}, emptyFittings(), two)!;
+    expect(JSON.parse(raw).version).toBe(2);
+    expect(parseMine(raw, originals).people!.map((p) => p.body)).toEqual(['woman', 'child']);
+    expect(serializeMine([], {}, {}, emptyFittings(), [])).toBeNull();
+    expect(parseMine('{not json', originals).people).toBeUndefined();
+    expect(parseMine(JSON.stringify({ version: 2, people: [{ body: 'man', pose: 'stand', x: 0, z: 0 }, 5] }), originals).people).toHaveLength(1);
+    // a stored layout from before people existed has none
+    expect(parseMine(JSON.stringify({ version: 1, removed: ['bed-1'], finishes: {} }), originals).people).toBeUndefined();
+  });
+  it('the store saves the people with the rest and reads them back on the next visit', () => {
+    const st = fakeStorage();
+    const a = mk(st);
+    let cur = list;
+    const notify = a.attachPeople({ list: () => cur, clear: () => { cur = []; } });
+    notify();
+    a.flush();
+    expect(JSON.parse(st.data.get(mineKey('t'))!).people).toHaveLength(1);
+    const b = mk(st);
+    expect(b.initialPeople()).toHaveLength(1);
+    expect(b.initialPeople()[0]).toMatchObject({ pose: 'sit', host: 'sofa-1' });
+    a.reset();
+    expect(st.data.has(mineKey('t'))).toBe(false);
+    expect(mk(st).initialPeople()).toEqual([]);
   });
 });
 

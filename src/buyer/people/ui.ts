@@ -34,7 +34,7 @@ export interface PeopleUi {
   addOption(): { label(): string; enabled(): boolean; onClick(): void };
   openAdd(): void;
   /** a tap from the canvas: true when the people took it (placing, or a person was tapped) */
-  handleTap(e: Parameters<BuyerContext['raycast']>[0]): boolean;
+  handleTap(e: Parameters<BuyerContext['raycast']>[0], hit?: { kind: string; id: string } | null): boolean;
   /** a sheet of the people is open, or a person is being placed: the walker stands still, as for any sheet */
   blocking(): boolean;
   placing(): boolean;
@@ -290,12 +290,11 @@ export function createPeopleUi(deps: PeopleUiDeps): PeopleUi {
       onClick: () => openAdd(),
     }),
     openAdd,
-    handleTap(e) {
+    handleTap(e, hit) {
       if (ctx.mode() !== 'walk' || deps.otherBlocking?.()) return false;
       if (placing) { void placeAt(e); return true; }
-      const hit = ctx.raycast(e);
-      const id = hit ? people.personIdOf(hit.object) : null;
-      if (id) { select(id); return true; }
+      // `hit` is the page's one hit-test (ctx.pickAt): the nearest of piece, fitting and person. A person is taken here, nothing else is.
+      if (hit?.kind === 'person' && people.get(hit.id)) { select(hit.id); return true; }
       if (selected) select(null);
       return false;
     },

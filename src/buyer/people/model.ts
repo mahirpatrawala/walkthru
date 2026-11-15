@@ -6,6 +6,8 @@ import { boxAxes } from '../../core/geometry';
 import { circleFree, clearance, nearestFree } from '../../core/grid-query';
 import { cellValue } from '../../core/grid-codec';
 import { liePose, seatPose } from '../../core/poses';
+import { pieceRule } from '../../core/pieces';
+import { pieceSeatPose } from '../piece-actions';
 import { CHARACTER_RADIUS_M, GRID_TALL_CM } from '../../types';
 import type { Box, CheckCard, FurnitureItem, Grid, LiePose, SeatPose, Vec2 } from '../../types';
 import { PERSON_LABELS } from '../person-store';
@@ -96,12 +98,39 @@ export const standingFree = (grid: Grid, rec: Pick<PersonRec, 'body' | 'heightCm
 
 export type HostAction = 'sit' | 'lie';
 
-/** What the piece is for: a bed is lain on, a sofa or a chair is sat on, nothing else takes a person. */
-export function hostActionOf(item: Pick<FurnitureItem, 'kind'>): HostAction | null {
+/**
+ * What the piece is for. A catalogue piece with a rule of its own says (src/core/pieces.ts: a swing, a recliner, a bar stool, an office chair
+ * and a diwan are sat on or lain on as the walker does; a bunk, a storage bed and a diwan are lain on; a fridge or a basin takes nobody).
+ * Anything else (the home's own pieces, the original table, the drawing's chairs) goes by its kind: a bed is lain on, a sofa or chair sat on.
+ */
+export function hostActionOf(item: Pick<FurnitureItem, 'kind' | 'catalogId'>): HostAction | null {
+  const rule = pieceRule(item.catalogId);
+  if (rule) return rule.pose === 'lie' ? 'lie' : rule.pose === 'sit' || rule.pose === 'chair' || rule.pose === 'swing' ? 'sit' : null;
   return item.kind === 'bed' ? 'lie' : item.kind === 'sofa' ? 'sit' : null;
 }
 
+/** How a seat takes people: a sofa across its width, a swing across its seat (a basket or a one-seater takes one), a chair one. */
+export type SeatKind = 'sofa' | 'chair' | 'swing';
+export function seatKindOf(item: Pick<FurnitureItem, 'catalogId'>, drawnChair = false): SeatKind {
+  if (drawnChair) return 'chair';
+  const pose = pieceRule(item.catalogId)?.pose;
+  return pose === 'chair' ? 'chair' : pose === 'swing' ? 'swing' : 'sofa';
+}
+/** The seat spots of a swing, across its width: none for a basket or a one-seater, two on a 2-seater, three on a 3-seater. */
+export function swingSpots(w: number): number[] {
+  if (w < 1.1) return [0];
+  const m = w / 2 - 0.3;
+  return w < 1.58 ? [-m, m] : [-m, 0, m];
+}
+/** The room along a seat's width in which a person's spot may be: 0 for a seat that takes one. */
+function sitMargin(item: FurnitureItem, kind: SeatKind): number {
+  if (kind === 'chair') return 0;
+  if (kind === 'swing') return item.box.w < 1.1 ? 0 : Math.max(0, item.box.w / 2 - 0.3);
+  return Math.max(0, item.box.w / 2 - 0.35);
+}
+
 const SIT_APART_M = 0.5;
+const SWING_APART_M = 0.4;
 const LIE_APART_M = 0.45;
 /** What to call a piece in a sentence: its own label, else its kind ("bed", "sofa"; a chair from the drawing carries its own label). */
 export function hostName(item: Pick<FurnitureItem, 'kind' | 'label'>): string {
@@ -113,16 +142,18 @@ export const lateralOf = (item: FurnitureItem, p: Vec2): number => {
   const { b } = boxAxes(item.box);
   return (p.x - item.box.cx) * b.x + (p.z - item.box.cz) * b.z;
 };
-const sitMargin = (item: FurnitureItem): number => item.box.w / 2 - 0.35;
+
+const seatKind = (s: SeatKind | boolean): SeatKind => (s === true ? 'chair' : s === false ? 'sofa' : s);
 
 /** Where along the piece's width a person sits or lies when tapped at `approach`: what core/poses.ts does, as one number. */
-export function spotLateral(item: FurnitureItem, action: HostAction, approach: Vec2, chair = false): number {
+export function spotLateral(item: FurnitureItem, action: HostAction, approach: Vec2, seat: SeatKind | boolean = 'sofa'): number {
   if (action === 'lie') {
     const inner = item.inner ?? { w: item.box.w, d: item.box.d };
     return inner.w < 1.2 ? 0 : Math.sign(lateralOf(item, approach)) * (inner.w / 4);
   }
-  if (chair) return 0;
-  const m = Math.max(0, sitMargin(item));
+  const kind = seatKind(seat);
+  if (kind === 'swing') { const lat = lateralOf(item, approach); return swingSpots(item.box.w).reduce((best, c) => (Math.abs(c - lat) < Math.abs(best - lat) ? c : best)); }
+  const m = sitMargin(item, kind);
   return Math.min(m, Math.max(-m, lateralOf(item, approach)));
 }
 
@@ -131,19 +162,21 @@ export function spotLateral(item: FurnitureItem, action: HostAction, approach: V
  * of a double bed, the next place on a sofa). `taken` are the lateral spots already used (other people, the walker if posed there).
  * Null when the piece is full.
  */
-export function freeApproach(item: FurnitureItem, action: HostAction, approach: Vec2, taken: readonly number[], chair = false): Vec2 | null {
+export function freeApproach(item: FurnitureItem, action: HostAction, approach: Vec2, taken: readonly number[], seat: SeatKind | boolean = 'sofa'): Vec2 | null {
   const { b } = boxAxes(item.box);
-  const apart = action === 'lie' ? LIE_APART_M : SIT_APART_M;
+  const apart = action === 'lie' ? LIE_APART_M : seatKind(seat) === 'swing' ? SWING_APART_M : SIT_APART_M;
   const at = (lat: number): Vec2 => ({ x: item.box.cx + b.x * lat, z: item.box.cz + b.z * lat });
   const free = (lat: number): boolean => taken.every((t) => Math.abs(t - lat) >= apart - 1e-9);
-  const want = spotLateral(item, action, approach, chair);
+  const want = spotLateral(item, action, approach, seat);
   if (free(want)) return action === 'lie' && Math.abs(want) < 1e-9 ? { ...approach } : at(action === 'lie' ? Math.sign(want || 1) * 0.5 : want);
   const cands: number[] = [];
   if (action === 'lie') {
     const inner = item.inner ?? { w: item.box.w, d: item.box.d };
     if (inner.w >= 1.2) cands.push(inner.w / 4, -inner.w / 4);
-  } else if (!chair) {
-    const m = Math.max(0, sitMargin(item));
+  } else if (seatKind(seat) === 'swing') {
+    cands.push(...swingSpots(item.box.w));
+  } else {
+    const m = sitMargin(item, seatKind(seat));
     for (let l = -m; l <= m + 1e-9; l += 0.1) cands.push(l);
   }
   cands.sort((x, y) => Math.abs(x - want) - Math.abs(y - want));
@@ -157,7 +190,7 @@ export type SeatPoseOf = (item: FurnitureItem, heightM: number) => SeatPose | nu
 export function hostPose(item: FurnitureItem, action: HostAction, heightCm: number, approach: Vec2, chairPose?: SeatPoseOf): { lie?: LiePose; sit?: SeatPose } {
   const H = heightCm / 100;
   if (action === 'lie') return { lie: liePose(item, H, approach) };
-  return { sit: chairPose?.(item, H) ?? seatPose(item, H, approach) };
+  return { sit: chairPose?.(item, H) ?? pieceSeatPose(item, H, approach) ?? seatPose(item, H, approach) };
 }
 
 /** Moves a tapped spot with its piece when the piece is moved or turned: the same place on it, in the new frame. */

@@ -3,7 +3,6 @@
 // the taps of the canvas, the walk grid with followers on it, and an update per frame.
 import type { BuyerContext, ModeManager } from '../context';
 import type { HudImpl } from '../hud';
-import { decodeLayout } from '../my-layout';
 import type { Seats } from '../seats';
 import type { FurnitureStoreImpl, StorageLike } from '../store';
 import { swingNoteFor } from '../wardrobe-hooks';
@@ -38,11 +37,9 @@ export interface MountedPeople {
 }
 
 export function mountPeople(d: MountPeopleDeps): MountedPeople {
-  // a shared layout carries its people with it; they replace this browser's own, as the shared furniture does
-  const linked = d.store.fromLink() ? decodeLayout(d.shareCode, new Map(d.store.pristine().map((i) => [i.id, i])))?.people ?? null : null;
   const people = createPeople({
     scene: d.ctx.viewer.scene, camera: d.ctx.viewer.camera, store: d.store, seats: d.seats, walker: d.walker,
-    sceneId: d.sceneId, storage: d.storage, linked, tier: d.tier, toast: (t) => d.hud.toast(t),
+    sceneId: d.sceneId, storage: d.storage, tier: d.tier, toast: (t) => d.hud.toast(t),
     swingNote: (box) => swingNoteFor(box),
     passCard: (c) => { if (c) d.ctx.hud.showCard(c); else d.ctx.hud.hideCard(); },
     onBodies: d.onBodies, surfaceProbe: d.surfaceProbe,

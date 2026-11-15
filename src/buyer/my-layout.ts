@@ -7,26 +7,38 @@
 import { CATALOG, itemFromCatalog } from '../core/catalog';
 import { finishFamily, sanitizeFinish } from '../look/finishes';
 import type { Finish } from '../look/finishes';
+import { emptyFittings, fittingsFromWire, fittingsToWire, isEmptyFittings, sanitizeFittings } from '../look/fittings';
+import type { FittingsOverlay, FittingsWire } from '../look/fittings';
+import type { OriginalEdit } from './resize';
 import type { Box, FurnitureItem } from '../types';
-import { peopleFromWire, peopleToWire } from './people/rec';
+import { cloneRec, peopleFromWire, peopleToWire, sanitizeRecs } from './people/rec';
 import type { PersonRec, WirePerson } from './people/rec';
 
 export interface MyLayout {
   removed: string[];
   added: FurnitureItem[];
   finishes: Record<string, Finish>;
+  /** originals moved or resized in this layout, by id: the whole new place and size (the drawing's own box is never touched) */
+  moved: Record<string, OriginalEdit>;
+  /** the fittings (AC, fan, curtains, plants, the drawing's chairs ...) removed, moved or resized, by stable fitting id */
+  fittings: FittingsOverlay;
   /** people the viewer added (src/buyer/people): never part of the home, absent when there are none */
   people?: PersonRec[];
 }
 
-export const emptyLayout = (): MyLayout => ({ removed: [], added: [], finishes: {} });
-export const isEmptyLayout = (l: MyLayout): boolean => l.removed.length === 0 && l.added.length === 0 && Object.keys(l.finishes).length === 0 && !(l.people && l.people.length > 0);
+export const emptyLayout = (): MyLayout => ({ removed: [], added: [], finishes: {}, moved: {}, fittings: emptyFittings() });
+export const isEmptyLayout = (l: MyLayout): boolean =>
+  l.removed.length === 0 && l.added.length === 0 && Object.keys(l.finishes).length === 0 && Object.keys(l.moved).length === 0 && isEmptyFittings(l.fittings)
+  && !(l.people && l.people.length > 0);
+export const cloneMoved = (m: Record<string, OriginalEdit>): Record<string, OriginalEdit> => Object.fromEntries(Object.entries(m).map(([k, v]) => [k, { ...v }]));
 
 // ---------------------------------------------------------------- the words (SPEC 16.2: say what is and is not from the drawing)
 
 export const EDITED_CHIP = 'Your layout · edited';
 export const RESET_LABEL = 'Reset to the home as drawn';
 export const BUILT_IN_NOTE = 'Built-in on the drawing: hidden in your layout only';
+/** the same note when the piece is moved or resized instead: the drawing's own size and place stay the record */
+export const BUILT_IN_EDIT_NOTE = 'Built-in on the drawing: moved or resized in your layout only';
 export const OVERLAY_NOTE = 'Your layout is a private try-out on this device. The home as drawn does not change.';
 
 // ---------------------------------------------------------------- the built-in rule
@@ -50,14 +62,39 @@ export function isBuiltIn(
 
 export const mineKey = (sceneId: string): string => `walkthru:${sceneId}:mine`;
 
-/** The stored `{ version: 1, removed, finishes }`, or empty for anything malformed. Finishes are sanitised against `originals`. */
-export function parseMine(raw: string | null, originals: ReadonlyMap<string, FurnitureItem>): { removed: string[]; finishes: Record<string, Finish> } {
-  const out = { removed: [] as string[], finishes: {} as Record<string, Finish> };
+const isNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** One stored edit of an original, or null when it is malformed. Its size is put through the family limits when the store applies it. */
+export function sanitizeEdit(v: unknown): OriginalEdit | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  if (![o.cx, o.cz, o.yawDeg, o.w, o.d, o.heightM, o.surfaceHeightM].every(isNumber)) return null;
+  const e = o as unknown as OriginalEdit;
+  if (Math.abs(e.cx) > 100000 || Math.abs(e.cz) > 100000) return null;
+  if (!(e.w > 0.05 && e.w < 8) || !(e.d > 0.05 && e.d < 8) || !(e.heightM > 0.05 && e.heightM < 5) || !(e.surfaceHeightM > 0.01 && e.surfaceHeightM < 5)) return null;
+  return { cx: e.cx, cz: e.cz, yawDeg: (((e.yawDeg % 360) + 360) % 360), w: e.w, d: e.d, heightM: e.heightM, surfaceHeightM: e.surfaceHeightM };
+}
+const sanitizeMoved = (raw: unknown, originals: ReadonlyMap<string, FurnitureItem>): Record<string, OriginalEdit> => {
+  const out: Record<string, OriginalEdit> = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [id, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (!originals.has(id)) continue;
+    const e = sanitizeEdit(v);
+    if (e) out[id] = e;
+  }
+  return out;
+};
+
+export interface Mine { removed: string[]; finishes: Record<string, Finish>; moved: Record<string, OriginalEdit>; fittings: FittingsOverlay; /** the people the viewer added; absent when there are none */ people?: PersonRec[] }
+
+/** The stored `{ version: 1 | 2, removed, finishes, moved?, fittings? }` (version 1 has no moved or fittings), or empty for anything malformed. Finishes are sanitised against `originals`. */
+export function parseMine(raw: string | null, originals: ReadonlyMap<string, FurnitureItem>): Mine {
+  const out: Mine = { removed: [], finishes: {}, moved: {}, fittings: emptyFittings() };
   if (!raw) return out;
   let json: unknown;
   try { json = JSON.parse(raw); } catch { return out; }
   if (!json || typeof json !== 'object') return out;
-  const o = json as { removed?: unknown; finishes?: unknown };
+  const o = json as { removed?: unknown; finishes?: unknown; moved?: unknown; fittings?: unknown; people?: unknown };
   if (Array.isArray(o.removed)) {
     for (const id of o.removed) if (typeof id === 'string' && originals.has(id) && !out.removed.includes(id)) out.removed.push(id);
   }
@@ -68,27 +105,38 @@ export function parseMine(raw: string | null, originals: ReadonlyMap<string, Fur
       if (clean) out.finishes[id] = clean;
     }
   }
+  out.moved = sanitizeMoved(o.moved, originals);
+  out.fittings = sanitizeFittings(o.fittings);
+  const people = sanitizeRecs(o.people);
+  if (people.length) out.people = people;
   return out;
 }
 
-export function serializeMine(removed: string[], finishes: Record<string, Finish>): string | null {
-  if (removed.length === 0 && Object.keys(finishes).length === 0) return null;
-  return JSON.stringify({ version: 1, removed, finishes });
+export function serializeMine(removed: string[], finishes: Record<string, Finish>, moved: Record<string, OriginalEdit> = {}, fittings: FittingsOverlay = emptyFittings(), people: readonly PersonRec[] = []): string | null {
+  if (removed.length === 0 && Object.keys(finishes).length === 0 && Object.keys(moved).length === 0 && isEmptyFittings(fittings) && people.length === 0) return null;
+  const plain = Object.keys(moved).length === 0 && isEmptyFittings(fittings) && people.length === 0;
+  return JSON.stringify(plain ? { version: 1, removed, finishes } : { version: 2, removed, finishes, moved, fittings, ...(people.length ? { people: people.map(cloneRec) } : {}) });
 }
 
 // ---------------------------------------------------------------- the link: compact, versioned
 
 /** The query parameter a shared layout travels in: `?scene=...&my=1.<code>`. */
 export const SHARE_PARAM = 'my';
-const VERSION = 1;
+/** Version 1 carries removed pieces, added pieces and looks. Version 2 adds moved/resized originals and fittings; a layout with neither is still written as 1, so old readers keep working. */
+const VERSION = 2;
+/** fittings a person may sit on: the drawing's chairs (`seat:`) and fixed fittings (`fx-`) */
+const SEAT_HOST_RE = /^(seat:|fx-)/;
 const MAX_ADDED = 60;
+const MAX_MOVED = 60;
 const MAX_CODE_CHARS = 8000;
 
 interface Wire {
   /** removed original ids */ r?: string[];
   /** added pieces: [catalogId, cx cm, cz cm, yaw deg x10, finish?] */ a?: Array<[string, number, number, number, WireFinish?]>;
   /** finishes of originals, by id */ f?: Record<string, WireFinish>;
-  /** people the viewer added (people/rec.ts); a link without this field is a link made before people existed */ p?: WirePerson[];
+  /** version 2: moved or resized originals: [id, cx cm, cz cm, yaw deg x10, w cm, d cm, height cm, surface height cm] */ p?: Array<[string, number, number, number, number, number, number, number]>;
+  /** version 2: fittings (AC, fan, curtains, plants ...) removed, moved or resized */ x?: FittingsWire;
+  /** version 2: people the viewer added (people/rec.ts), "h" for humans: a link without it has none */ h?: WirePerson[];
 }
 type WireFinish = { p?: string; s?: string; f?: string; t?: string };
 
@@ -144,12 +192,16 @@ export function encodeLayout(l: MyLayout): string | null {
   const fin: Record<string, WireFinish> = {};
   for (const [id, f] of Object.entries(l.finishes)) { const w = toWire(f); if (w) fin[id] = w; }
   if (Object.keys(fin).length) wire.f = fin;
+  const moved = Object.entries(l.moved).map(([id, e]): [string, number, number, number, number, number, number, number] => [id, Math.round(e.cx * 100), Math.round(e.cz * 100), Math.round(e.yawDeg * 10), Math.round(e.w * 100), Math.round(e.d * 100), Math.round(e.heightM * 100), Math.round(e.surfaceHeightM * 100)]);
+  if (moved.length) wire.p = moved;
+  const fx = fittingsToWire(l.fittings);
+  if (fx) wire.x = fx;
   if (l.people && l.people.length) {
     const slot = new Map(added.map((i, n) => [i.id, n + 1]));
     const allAdded = new Set(l.added.map((i) => i.id));
-    wire.p = peopleToWire(l.people, (id) => (slot.has(id) ? `#${slot.get(id)}` : allAdded.has(id) ? null : id));
+    wire.h = peopleToWire(l.people, (id) => (slot.has(id) ? `#${slot.get(id)}` : allAdded.has(id) ? null : id));
   }
-  return `${VERSION}.${b64urlEncode(JSON.stringify(wire))}`;
+  return `${wire.p || wire.x || wire.h ? VERSION : 1}.${b64urlEncode(JSON.stringify(wire))}`;
 }
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -162,7 +214,8 @@ const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFin
 export function decodeLayout(code: string | null | undefined, originals: ReadonlyMap<string, FurnitureItem>): MyLayout | null {
   if (!code || code.length > MAX_CODE_CHARS) return null;
   const dot = code.indexOf('.');
-  if (dot < 1 || Number(code.slice(0, dot)) !== VERSION) return null;
+  const version = Number(code.slice(0, dot));
+  if (dot < 1 || (version !== 1 && version !== 2)) return null;
   const text = b64urlDecode(code.slice(dot + 1));
   if (!text) return null;
   let wire: Wire;
@@ -193,13 +246,24 @@ export function decodeLayout(code: string | null | undefined, originals: Readonl
       if (clean) out.finishes[id] = clean;
     }
   }
-  if (Array.isArray(wire.p)) {
-    const people = peopleFromWire(wire.p, (ref) => {
-      if (ref.startsWith('#')) return out.added[Number(ref.slice(1)) - 1]?.id ?? null;
-      // a piece of this home, or one of the drawing's chairs (their ids are checked when the person is made)
-      return (originals.has(ref) && !out.removed.includes(ref)) || ref.startsWith('seat:') ? ref : null;
-    });
-    if (people.length) out.people = people;
+  if (version === 2) {
+    if (Array.isArray(wire.p)) {
+      const rows: Record<string, unknown> = {};
+      for (const row of wire.p.slice(0, MAX_MOVED)) {
+        if (!Array.isArray(row) || typeof row[0] !== 'string' || row.length < 8) continue;
+        rows[row[0]] = { cx: Number(row[1]) / 100, cz: Number(row[2]) / 100, yawDeg: Number(row[3]) / 10, w: Number(row[4]) / 100, d: Number(row[5]) / 100, heightM: Number(row[6]) / 100, surfaceHeightM: Number(row[7]) / 100 };
+      }
+      out.moved = sanitizeMoved(rows, originals);
+    }
+    if (wire.x) out.fittings = fittingsFromWire(wire.x);
+    if (Array.isArray(wire.h)) {
+      const people = peopleFromWire(wire.h, (ref) => {
+        if (ref.startsWith('#')) return out.added[Number(ref.slice(1)) - 1]?.id ?? null;
+        // a piece of this home that is still there, or a fitting of the drawing (a chair, a swing: checked when the person is made)
+        return (originals.has(ref) && !out.removed.includes(ref)) || !!SEAT_HOST_RE.test(ref) ? ref : null;
+      });
+      if (people.length) out.people = people;
+    }
   }
   return isEmptyLayout(out) ? null : out;
 }

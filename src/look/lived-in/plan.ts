@@ -16,6 +16,7 @@ import { computeEdgeFrames } from '../../core/layout-geom';
 import { boxAxes, boxCorners, distanceToPolygon, distanceToSegment, mulberry32, pointInBox, pointInPolygon } from '../../core/geometry';
 import { cellIndex } from '../../core/grid-codec';
 import { furnitureLook } from '../furniture-real';
+import { pieceRule } from '../../core/pieces';
 import { tubeSites, TUBE_LEN_M } from '../kit/rules';
 
 export type DecorKind =
@@ -485,7 +486,7 @@ class Planner {
     const used: { f: EdgeFrame; u0: number; u1: number }[] = [];
     const walls = this.wallsOf(room);
     // a picture over the bed's head or the sofa's back, when that stands against a wall
-    const hosts = this.items.filter((i) => (i.kind === 'bed' || i.kind === 'sofa') && this.itemRoom(i)?.id === room.id && i.box.w >= 0.9 && i.box.d <= 2.2);
+    const hosts = this.items.filter((i) => (i.kind === 'bed' || i.kind === 'sofa') && !pieceRule(i.catalogId) && this.itemRoom(i)?.id === room.id && i.box.w >= 0.9 && i.box.d <= 2.2);
     for (const h of hosts) {
       const back = world(h.box, 0, -h.box.d / 2);
       const f = walls.find((w) => {
@@ -542,6 +543,8 @@ class Planner {
   // ---- surface pieces
 
   private dress(it: FurnitureItem): void {
+    // swings, appliances, fixtures and the rest of the second catalogue table have their own shapes: no throws or lamps are put on them
+    if (pieceRule(it.catalogId)) return;
     const room = this.itemRoom(it);
     if (!room) return;
     const { w, d } = it.box;

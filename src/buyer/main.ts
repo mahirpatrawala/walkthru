@@ -11,6 +11,9 @@ import { createViewer } from '../engine/viewer';
 import type { Viewer, SplatHandle } from '../engine/viewer';
 import { Character } from '../engine/character';
 import { rebuildFurnitureTier, setFurnitureDefaults } from '../engine/furniture';
+import { fixturesToItems } from '../core/fixtures';
+import { setGenCeiling } from '../look/gen/ceiling';
+import { fetchFixtures } from './fixtures-load';
 import { applyDesigns, buildDecor, fetchDesigns } from '../look/designs';
 import type { Decor } from '../look/designs';
 import { furnitureKit } from '../look/furniture-materials';
@@ -44,6 +47,9 @@ import { ModeManager, createBuyerContext } from './context';
 import type { BuyerContext, BuyerModeId } from './context';
 import { createFurnishMode } from './furnish';
 import { mountLayoutChip, syncHosted } from './layout-chip';
+import { createFittingRegistry } from '../look/fittings';
+import { createFittingsApi } from './fittings-api';
+import { editNote } from './resize';
 import { SHARE_PARAM } from './my-layout';
 import { chooseSpawn } from '../core/spawn';
 import { resolveStartRoom } from '../core/start-rooms';
@@ -183,6 +189,7 @@ async function boot(): Promise<void> {
   // the small optional JSON files go out together with property.json instead of one after another
   const lookFileP = fetchLookFile(sceneId);
   const extrasP = fetchExtras(sceneId);
+  const fixturesP = fetchFixtures(sceneId);
   loading.setProgress(0.05, 'Loading the layout…');
   const result = await fetchProperty(sceneId);
   if (result.kind === 'missing') {
@@ -234,6 +241,7 @@ async function boot(): Promise<void> {
   const designs = await designsP;
   const startTier = look?.tier ?? 'medium';
   setFurnitureDefaults({ style: 'real', tier: startTier });
+  setGenCeiling(layout.wallHeightM); // a hung swing's chains and hooks go up to this home's ceiling
   void furnitureKit.setTier(startTier).catch((err) => console.warn('[walkthru] furniture textures not loaded', err));
   // the style (SPEC 16.13): the designer's sheet when the home has one, else the default pack; the viewer's last pick wins (?style= for checks)
   const styleKey = `walkthru:style:${sceneId}`;
@@ -243,14 +251,20 @@ async function boot(): Promise<void> {
     const packId: string | undefined = picked && picked !== 'designer' && PACKS.some((p) => p.id === picked) ? picked : undefined;
     setStyle({ packId, sheet });
   }
-  const initialItems = applyDesigns(property.furniture, designs);
-  const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage, shareCode: params.get(SHARE_PARAM) });
+  // the sanitary and kitchen fixtures the drawing reader recognised, at their drawn place (src/core/fixtures.ts)
+  const ownIds = new Set(property.furniture.map((f) => f.id));
+  const fixtureItems = fixturesToItems(await fixturesP, layout, property.furniture).filter((f) => !ownIds.has(f.id));
+  const initialItems = applyDesigns([...property.furniture, ...fixtureItems], designs);
+  const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage, shareCode: params.get(SHARE_PARAM), ceilingM: layout.wallHeightM });
+  // fittings (AC, fan, curtains, plants, the drawing's chairs ...): each planner reports what it built here, and a tap or the furnish card edits the overlay the store keeps
+  const fittingRegistry = createFittingRegistry();
+  const fittings = createFittingsApi({ registry: fittingRegistry, store, layout });
   const decor: Decor[] = buildDecor(designs, store.all(), startTier);
   for (const d of decor) furnitureRoot.add(d.group);
   // the drawing's chairs are sittable and block the walk grid (src/buyer/seats.ts)
   const seats = buildSeats(designs, store.all());
   store.setTemporary('seats', seats.obstacles());
-  syncHosted(store, decor, seats); // decor and chairs at a piece that My layout hides go with it
+  syncHosted(store, decor, seats, (records) => fittingRegistry.set('seats', records)); // decor and chairs at a piece that My layout hides go with it (and follow one that it moves)
   if (look) {
     const lk = look;
     lk.attach({ shell, furnitureRoot });
@@ -389,13 +403,13 @@ async function boot(): Promise<void> {
     withoutCharacter: (fn) => { const was = character.object.visible; character.setVisible(false); livedIn?.setSuppressed(true); people?.people.setSuppressed(true); try { return fn(); } finally { character.setVisible(was); livedIn?.setSuppressed(!!scanHandle && scanVisible); people?.people.setSuppressed(false); } },
   });
 
-  const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms, extraTargets: () => people?.people.objects() ?? [] });
+  const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms, fittings, extraTargets: () => people?.people.objects() ?? [] });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
   const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
   const doors = mountDoors({ ctx, store, layout });
   doors.setPanelColour(doorPanelColour());
   onStyleChange(() => { doors.setPanelColour(doorPanelColour()); }); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
-  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name) + modelNote(item.id)) });
+  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, editNote: (item) => { const d = store.drawnItem(item.id); return d && store.isOriginal(item.id) ? editNote(d, item) : null; }, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name) + modelNote(item.id)) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));
@@ -512,9 +526,9 @@ async function boot(): Promise<void> {
   // floors read them), and the kit is taken off and put back whenever the style changes them.
   let kit: KitHandle | null = null;
   design = mountDesign({
-    scene: viewer.scene, layout, shell, look, store, tier: startTier,
+    scene: viewer.scene, layout, shell, look, store, tier: startTier, registry: fittingRegistry,
     beforeRestyle: () => { kit?.dispose(); kit = null; },
-    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store }); },
+    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store, registry: fittingRegistry }); },
   });
   // a new style rebuilds the furniture and the openable wardrobes' shutters (the decor and rooms are rebuilt by mountDesign itself)
   onStyleChange(() => {
@@ -524,7 +538,7 @@ async function boot(): Promise<void> {
     look?.refresh(store.grid());
   });
   // optional "Lived-in" decor (SPEC 16.6.7): a switch in the look sheet, a label in the rooms sheet; on by default only for made-up sample homes
-  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), models: () => (getStyle().pack.classic ? null : getStyle().pack.models ?? null), defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
+  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, registry: fittingRegistry, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), models: () => (getStyle().pack.classic ? null : getStyle().pack.models ?? null), defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
 
   // SPEC 16.14: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.
   let baked: BakedHandle | null = null;
@@ -560,20 +574,17 @@ async function boot(): Promise<void> {
   input.on('interact', () => { if (!blocking()) void interactions.interact(); });
   input.on('measure', () => toggleMode('measure'));
   input.on('furnish', () => toggleMode('furnish'));
-  // a tap on any piece while walking opens it in Furnish with that piece selected: its size, and change look, replace or remove
+  // a tap on any piece or fitting while walking opens it in Furnish with that thing selected: its size, and move, resize, replace, change look or remove
   input.onTap((e) => {
     if (blocking() || modes.id !== 'walk') return;
-    if (people!.ui.handleTap(e)) return; // placing a person, or a person was tapped
-    let o: THREE.Object3D | null = ctx.raycast(e)?.object ?? null;
-    let id: string | null = null;
-    while (o && !id) {
-      const v = o.userData?.itemId ?? o.userData?.openableFor;
-      if (typeof v === 'string') id = v;
-      o = o.parent;
-    }
-    if (!id || !store.all().some((i) => i.id === id)) return;
+    // the same hit-test as in Furnish: the nearest thing under the tap, furniture, fitting or an added person
+    const hit = ctx.pickAt?.(e) ?? null;
+    if (people!.ui.handleTap(e, hit)) return; // placing a person, or a person was tapped
+    if (!hit || hit.kind === 'person') return;
+    if (hit.kind === 'item' && !store.all().some((i) => i.id === hit.id)) return;
     if (!modes.set('furnish')) return;
-    (modes.active() as { session?: { select(id: string | null): void } } | undefined)?.session?.select(id);
+    const session = (modes.active() as { session?: { select(id: string | null): void; selectFitting(id: string | null): void } } | undefined)?.session;
+    if (hit.kind === 'fitting') session?.selectFitting(hit.id); else session?.select(hit.id);
   });
   input.on('cancel', () => {
     if (blocking()) return;
@@ -794,6 +805,7 @@ async function boot(): Promise<void> {
       return { clientX: r.left + ((v.x + 1) / 2) * r.width, clientY: r.top + ((1 - v.y) / 2) * r.height, behind: v.z > 1 };
     },
     store,
+    fittings,
     grid: () => store.grid(),
     /** SPEC 16.6.6 hooks: who is walking. `set` resolves when the new body is in. */
     person: {

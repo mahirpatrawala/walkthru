@@ -1,5 +1,6 @@
 // C8 drawing import. SPEC 13.4. Imports from ../types, exports nothing back into it.
 import type { Vec2, Px, LayoutProposal, FurnitureItem, RoomType } from '../types';
+import type { SceneFixture } from '../core/fixtures';
 
 /** Page units: PDF points after normalisation. x right, y DOWN, text reads left to right. */
 export interface VFill { color: string; /** closed rings, first is the outer */ rings: Px[][]; area: number; bbox: [number, number, number, number] }
@@ -40,6 +41,8 @@ export interface ProposalExtras {
   ceiling: CeilingFinding;
   /** designed furniture found on the plan, world metres */
   furniture: FurnitureItem[];
+  /** sanitary and kitchen fixtures the symbol reader named (WC, basin, shower, sink), drawn in the walk-through at the drawn place (src/core/fixtures.ts) */
+  fixtures?: SceneFixture[];
   /** labels we recognised but could not turn into a box */
   unmapped: { label: string; sizeM?: { w: number; l: number }; at: Vec2; reason: string }[];
   windowHeights?: { openingId: string; sillM: number; headM: number }[];

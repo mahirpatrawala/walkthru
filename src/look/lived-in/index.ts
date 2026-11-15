@@ -11,6 +11,9 @@ import type { BuiltDecor } from './build';
 import { boxesOverlap, pieceBox, planLivedIn } from './plan';
 import type { DecorKind, DecorPiece } from './plan';
 import type { ModelPolicy } from '../models/library';
+import { fittingIdOf, followHost, livedInFittings } from './fittings';
+import type { LivedFit } from './fittings';
+import type { FittingRegistry, FittingsOverlay } from '../fittings';
 
 export { planLivedIn, pieceBox } from './plan';
 export type { DecorPiece, DecorKind } from './plan';
@@ -44,6 +47,8 @@ export interface LivedInStore {
   pristine?(): FurnitureItem[];
   drawnGrid?(): Grid;
   onChange(cb: () => void): () => void;
+  /** the viewer's removed, moved and resized fittings (My layout) */
+  fittings?(): FittingsOverlay;
 }
 
 export interface LivedInOpts {
@@ -59,6 +64,8 @@ export interface LivedInOpts {
   omit?: () => DecorKind[];
   /** the active style pack's model policy (SPEC 16.15), read each time the decor is built; null = generated pieces only */
   models?: () => ModelPolicy | null;
+  /** where every piece reports itself as a tappable, movable fitting */
+  registry?: FittingRegistry;
 }
 
 export interface LivedIn {
@@ -102,31 +109,68 @@ export function createLivedIn(opts: LivedInOpts): LivedIn {
     return planned;
   };
 
+  // the plan with the viewer's moves and sizes on it (decor on a piece of furniture follows that piece)
+  let fit: LivedFit | null = null;
+  let builtKey = '';
+  const drawnItems = (): FurnitureItem[] => (opts.store.pristine ? opts.store.pristine() : opts.store.all());
+  const computeFit = (): LivedFit => livedInFittings(opts.layout, plan(), opts.store.fittings?.() ?? null, opts.store.all(), drawnItems());
+  /** what decides whether the group must be built again: which pieces exist and where the ones that do not ride on furniture stand */
+  const keyOf = (f: LivedFit): string => JSON.stringify(f.pieces.filter((p) => p.place !== 'surface').map((p) => [p.id, p.x, p.y, p.z, p.yawDeg, p.w, p.d, p.height]).concat(f.pieces.filter((p) => p.place === 'surface').map((p) => [p.id])));
+  const publish = (): void => { if (fit) opts.registry?.set('lived-in', enabled && !suppressed ? fit.records : []); };
+
   const apply = (): void => {
-    if (enabled && !built && plan().length > 0) {
-      built = buildDecorGroup(plan(), opts.tier ?? 'medium', opts.models?.() ?? null);
-      opts.parent.add(built.group);
+    if (enabled && plan().length > 0) {
+      const f = computeFit();
+      const key = keyOf(f);
+      if (built && key !== builtKey) { built.dispose(); built = null; }
+      fit = f;
+      if (!built) {
+        builtKey = key;
+        built = buildDecorGroup(f.pieces, opts.tier ?? 'medium', opts.models?.() ?? null);
+        opts.parent.add(built.group);
+      }
       reconcile();
     }
     if (built) { built.group.visible = enabled && !suppressed; if (enabled) reconcile(); }
+    publish();
   };
 
   /** a piece the buyer has since put furniture over is hidden, not moved (nothing about the home changes) */
   const reconcile = (): void => {
-    if (!built) return;
+    if (!built || !fit) return;
     const all = opts.store.all();
-    const virtual = all.filter((i) => i.source !== 'real');
-    const present = new Set(all.map((i) => i.id));
-    for (const p of plan()) {
-      const g = built.byId.get(p.id);
+    const drawn = new Map(drawnItems().map((i) => [i.id, i]));
+    const present = new Map(all.map((i) => [i.id, i]));
+    // furniture the viewer put there or moved: decor goes where the home was free, so a piece under it is hidden
+    const blockers = all.filter((i) => i.source !== 'real' || (drawn.get(i.id) && JSON.stringify(drawn.get(i.id)!.box) !== JSON.stringify(i.box)));
+    const eff = new Map(fit.pieces.map((p) => [p.id, p]));
+    const rec = new Map(fit.records.map((r) => [r.id, r]));
+    for (const p0 of plan()) {
+      const g = built.byId.get(p0.id);
       if (!g) continue;
-      // decor that sits on a piece (cushions on a bed, a throw on a sofa) goes with it when My layout removes or replaces that piece
-      if (p.place === 'surface') { g.visible = !p.hostId || present.has(p.hostId); continue; }
+      const p = eff.get(p0.id) ?? p0;
+      // decor that sits on a piece (cushions on a bed, a throw on a sofa) goes with it when My layout removes or replaces that piece, and moves with it
+      if (p.place === 'surface') {
+        const host = p.hostId ? present.get(p.hostId) : undefined;
+        const dh = p.hostId ? drawn.get(p.hostId) : undefined;
+        const removed = rec.get(fittingIdOf(p0))?.removed ?? false;
+        g.visible = (!p.hostId || !!host) && !removed;
+        const sr = rec.get(fittingIdOf(p0));
+        if (sr) sr.hidden = !g.visible;
+        if (host && dh) {
+          const f = followHost(p0, dh, host);
+          g.position.set(f.x, f.y, f.z);
+          g.rotation.y = (f.yawDeg * Math.PI) / 180;
+        }
+        continue;
+      }
       const box = pieceBox(p);
-      g.visible = !virtual.some((v) => (p.place !== 'wall' || v.heightM > p.y - 0.05) && boxesOverlap(box, v.box, 0.05));
+      g.visible = !blockers.some((v) => (p.place !== 'wall' || v.heightM > p.y - 0.05) && boxesOverlap(box, v.box, 0.05));
+      const fr = rec.get(fittingIdOf(p0));
+      if (fr) fr.hidden = !g.visible;
     }
   };
-  const offStore = opts.store.onChange(() => { if (built && enabled) reconcile(); });
+  const offStore = opts.store.onChange(() => { if (enabled && plan().length > 0) apply(); });
 
   apply();
   return {
@@ -144,6 +188,7 @@ export function createLivedIn(opts: LivedInOpts): LivedIn {
       planned = null;
       built?.dispose();
       built = null;
+      fit = null;
       apply();
       for (const cb of [...listeners]) cb(enabled);
     },
@@ -152,7 +197,7 @@ export function createLivedIn(opts: LivedInOpts): LivedIn {
       opts.tier = t;
       if (built) { built.dispose(); built = null; apply(); }
     },
-    setSuppressed(on) { suppressed = on; apply(); },
+    setSuppressed(on) { suppressed = on; apply(); publish(); },
     onChange(cb) { listeners.add(cb); return () => { listeners.delete(cb); }; },
     group: () => built?.group ?? null,
     dispose() { offStore(); built?.dispose(); built = null; listeners.clear(); },

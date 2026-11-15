@@ -138,6 +138,7 @@ export function buildOutputs(b: BuildIn): { result: ImportResult; designs: Desig
   // ---- furniture and fixtures
   const items: FurnitureItem[] = []; const unmapped: ProposalExtras['unmapped'] = [];
   const itemOut: RasterUnderstanding['items'] = []; const symOut: RasterUnderstanding['symbols'] = [];
+  const fixtures: NonNullable<ProposalExtras['fixtures']> = [];
   read.symbols.forEach((s, i) => {
     const bi = b.rectToImg(s.box);
     const cm = toM([(bi[0] + bi[2]) / 2, (bi[1] + bi[3]) / 2]);
@@ -151,6 +152,8 @@ export function buildOutputs(b: BuildIn): { result: ImportResult; designs: Desig
       else unmapped.push({ label: s.label || s.cls, sizeM: { w, l: d }, at: { x: cm[0], z: cm[1] }, reason: 'the catalogue has no slot for this yet' });
     } else if (FIXTURE_CLASSES.has(s.cls)) {
       symOut.push({ id: `sym-${symOut.length + 1}`, view: plane.pageId, class: clsEx, bbox: [bi[0], bi[1], bi[2], bi[3]], centreM: cm });
+      // a WC, basin, shower or sink is drawn in the walk-through at its place (src/core/fixtures.ts); a hob or a chair is not a fixture the catalogue draws
+      if (s.cls === 'wc' || s.cls === 'basin' || s.cls === 'shower' || s.cls === 'sink') fixtures.push({ id: `${s.cls}-${fixtures.length + 1}`, cls: s.cls, at: { x: cm[0], z: cm[1] }, sizeM: { w, d } });
     }
   });
   u.items = itemOut; u.symbols = symOut;
@@ -184,7 +187,7 @@ export function buildOutputs(b: BuildIn): { result: ImportResult; designs: Desig
   const extras: ProposalExtras = {
     version: 1, sourceFile: 'image', planPage: pageNo,
     scale: { ptPerM: (sx + sy) / 2, votes: [{ source: b.fallback ? 'doors' : 'printed sizes', ptPerM: (sx + sy) / 2 }], agreeing: b.fit?.inliers ?? 0, disagreementPct: Math.round((b.fit?.spread ?? 1) * 1000) / 10 },
-    rooms: findings, ceiling: { heightM: wallHeight, method: 'default', page: null, candidatesM: [], confidence: 0.2 }, furniture: items, unmapped,
+    rooms: findings, ceiling: { heightM: wallHeight, method: 'default', page: null, candidatesM: [], confidence: 0.2 }, furniture: items, unmapped, ...(fixtures.length > 0 ? { fixtures } : {}),
     spawn, warnings,
   };
   const designs: DesignsFile = { version: 1, source: `Imported drawing set, ${u.input.pages} page${u.input.pages === 1 ? '' : 's'}`, items: {} };

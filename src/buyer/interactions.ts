@@ -10,8 +10,14 @@ import { CHAIR_PROMPT } from './seats';
 import type { Seats } from './seats';
 import { activateNearestDoor, doorNoteForBox, nearestDoorPrompt } from './door-hooks';
 import { toneColor } from './overlays';
-import { actionFor, nearestInteractable } from './store';
+import { actionFor as kindAction, nearestInteractable } from './store';
+import { pieceAction, pieceSeatPose } from './piece-actions';
+import { createSwingMotion } from './swing-motion';
+import { pieceRule } from '../core/pieces';
 import type { PoseAction } from './store';
+
+/** The action of an item: its piece's own (a swing, a basin) or its kind's. */
+const actionFor = (item: Pick<FurnitureItem, 'kind' | 'catalogId'>): ReturnType<typeof kindAction> => pieceAction(item) ?? kindAction(item.kind);
 
 const POSE_TAG = 'pose';
 const DIMS_SHOW_MS = 6000;
@@ -51,6 +57,8 @@ export interface InteractionExtras {
   wardrobe?: { promptFor(item: FurnitureItem): string | null; activate(item: FurnitureItem): boolean };
   /** a footnote for an item's card when part of what it shows is an assumption (e.g. a standard height), or null */
   cardNote?: (item: FurnitureItem) => string | null;
+  /** for a piece that came with the home and that the viewer moved or resized: "Moved in your layout. Your size: ... On the drawing: ..." (replaces the drawing's own footer), else null */
+  editNote?: (item: FurnitureItem) => string | null;
 }
 
 export function createInteractions(ctx: BuyerContext, extras: InteractionExtras = {}): Interactions {
@@ -66,8 +74,13 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   let promptClock = 0;
 
   const seats = extras.seats;
+  // a swing rocks under a seated walker (src/buyer/swing-motion.ts)
+  const swing = createSwingMotion({ ridePose: (o) => ctx.character.ride(o), meshOf: (id) => ctx.furniture.mesh(id) });
   const cardOf = (item: FurnitureItem, H: number) => {
-    let card = seats?.card(item, H) ?? checkFor(item, H);
+    let card = seats?.card(item, H) ?? checkFor(item, H, ctx.property.layout.wallHeightM);
+    const edited = extras.editNote?.(item) ?? null;
+    // "Measured from the floor plan" says nothing true of a piece the viewer has moved or resized: its card says what was changed
+    if (edited) card = { ...card, footer: edited };
     const note = card.footer ? null : extras.cardNote?.(item) ?? null;
     if (note) card = { ...card, footer: note };
     // a piece (real or placed) that sits in a door's swing says so on its card
@@ -144,7 +157,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     const item = a.item;
     const c = ctx.character;
     if (a.action === 'lie') await c.lie(liePose(item, H, a.approach));
-    else if (a.action === 'sit') await c.sit(seats?.pose(item, H) ?? seatPose(item, H, a.approach));
+    else if (a.action === 'sit') await c.sit(seats?.pose(item, H) ?? pieceSeatPose(item, H, a.approach) ?? seatPose(item, H, a.approach));
     else await c.standAt(standPose(item, H, a.approach));
   }
 
@@ -178,6 +191,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   async function releaseNow(switchMode: boolean): Promise<void> {
     const a = active;
     if (!a) return;
+    swing.stop();
     active = null;
     gen++;
     ctx.camera.releaseFocus();
@@ -216,7 +230,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     if (doorPreferred(n) && activateNearestDoor(ctx.character.position)) { ctx.character.reach(); return 'door'; }
     if (!n) return 'none';
     if (extras.wardrobe?.activate(n.item)) { ctx.character.reach(); return 'wardrobe'; }
-    const { action } = actionFor(n.item.kind);
+    const { action } = actionFor(n.item);
     if (action === 'dims') {
       showDims(n.item);
       return 'dims';
@@ -241,12 +255,13 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   return {
     mode,
     update(dt) {
+      swing.update(dt, active && active.ready && pieceRule(active.item.catalogId)?.pose === 'swing' ? active.item : null);
       promptClock += dt;
       if (promptClock < 0.08) return;
       promptClock = 0;
       const h = ctx.hud;
       if (active) {
-        if (active.ready) h.setPrompt(actionFor(active.item.kind).upPrompt, () => { void getUp(); });
+        if (active.ready) h.setPrompt(actionFor(active.item).upPrompt, () => { void getUp(); });
         else h.setPrompt(null);
         return;
       }
@@ -257,13 +272,14 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
       const door = doorPreferred(n);
       if (door) { h.setPrompt(door.prompt, () => { void interact(); }); return; }
       if (!n) { h.setPrompt(null); return; }
-      h.setPrompt(extras.wardrobe?.promptFor(n.item) ?? (seats?.isSeat(n.item) ? CHAIR_PROMPT : actionFor(n.item.kind).prompt), () => { void interact(); });
+      h.setPrompt(extras.wardrobe?.promptFor(n.item) ?? (seats?.isSeat(n.item) ? CHAIR_PROMPT : actionFor(n.item).prompt), () => { void interact(); });
     },
     interact,
     getUp,
     cancelTo(to) {
       const a = active;
       hideDims();
+      swing.stop();
       if (a) {
         active = null;
         gen++;

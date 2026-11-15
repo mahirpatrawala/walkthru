@@ -7,6 +7,7 @@ import type { Input, PointerEvt } from '../engine/controls';
 import type { FollowCamera } from '../engine/camera';
 import { unmeasuredRoomsNear } from './store';
 import type { UnverifiedRooms } from './store';
+import type { FittingsApi } from './fittings-api';
 
 export type BuyerModeId = 'walk' | 'measure' | 'furnish' | 'pose';
 export interface BuyerMode { id: BuyerModeId; enter(): void; exit(): void; update(dt: number): void }
@@ -47,6 +48,19 @@ export interface BuyerContext {
   raycast(e: PointerEvt): { point: Vec3; object: THREE.Object3D } | null;
   /** ray against the floor plane y = 0 */
   raycastFloor(e: PointerEvt): Vec2 | null;
+  /** the fittings (AC, fan, curtains, plants, the drawing's chairs ...): tappable, movable, removable. Absent in a bare context (tests). */
+  fittings?: FittingsApi;
+  /**
+   * The one hit-test of a tap, for furniture and fittings alike: the nearest thing under the pointer. A fitting is hit by an oriented box (small things get a
+   * generous reach, more on a phone), furniture by its mesh; a wall or floor in front of either hides it. Nothing under the pointer: null.
+   */
+  pickAt?(e: PointerEvt): { kind: 'item' | 'fitting' | 'person'; id: string; dist: number } | null;
+  /** ray against the walls and floor only (no furniture): where a wall fitting would go */
+  raycastWalls?(e: PointerEvt): { x: number; y: number; z: number } | null;
+  /** ray against the ceiling plane of the home */
+  raycastCeiling?(e: PointerEvt): Vec2 | null;
+  /** the unit direction of the pointer's ray in the floor plan, and the ray itself */
+  rayOf?(e: PointerEvt): { origin: Vec3; dir: Vec3 };
   /** labels of the rooms near these floor points whose size is not measured on the drawing (empty for most homes) */
   notMeasuredNear?(pts: Vec2[]): string[];
 }
@@ -127,8 +141,9 @@ export interface ContextDeps {
   modes: ModeManager;
   /** rooms whose size was not measured (drawing import), id -> reason; omitted when every room is measured */
   unverifiedRooms?: UnverifiedRooms;
-  /** more things a ray may hit besides the shell and the furniture: the people a buyer added, so the measure tool can measure against them */
+  /** more things a ray may hit besides the shell and the furniture: the people a buyer added, so the measure tool can measure against them and a tap can pick them */
   extraTargets?: () => THREE.Object3D[];
+  fittings?: FittingsApi;
 }
 
 /** Builds the BuyerContext handed to every mode (SPEC 7.1). */
@@ -137,6 +152,24 @@ export function createBuyerContext(d: ContextDeps): BuyerContext {
   const ndc = new THREE.Vector2();
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const hit = new THREE.Vector3();
+  const touch = ((): boolean => { try { return window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0; } catch { return false; } })();
+  const itemIdOf = (o: THREE.Object3D | null): string | null => {
+    while (o) {
+      const id = o.userData?.itemId ?? o.userData?.openableFor;
+      if (typeof id === 'string') return id;
+      o = o.parent;
+    }
+    return null;
+  };
+
+  const personIdOf = (o: THREE.Object3D | null): string | null => {
+    while (o) {
+      const id = o.userData?.personId;
+      if (typeof id === 'string') return id;
+      o = o.parent;
+    }
+    return null;
+  };
 
   const setRay = (e: PointerEvt): void => {
     d.viewer.camera.updateMatrixWorld(true);
@@ -164,6 +197,40 @@ export function createBuyerContext(d: ContextDeps): BuyerContext {
       setRay(e);
       const p = raycaster.ray.intersectPlane(floor, hit);
       return p ? { x: p.x, z: p.z } : null;
+    },
+    fittings: d.fittings,
+    pickAt(e) {
+      setRay(e);
+      const hits = raycaster.intersectObjects([d.shell, d.furnitureRoot], true);
+      const first = hits[0];
+      const itemId = first ? itemIdOf(first.object) : null;
+      const blocker = first ? first.distance : Infinity;
+      const fit = d.fittings?.pick({ origin: { x: raycaster.ray.origin.x, y: raycaster.ray.origin.y, z: raycaster.ray.origin.z }, dir: { x: raycaster.ray.direction.x, y: raycaster.ray.direction.y, z: raycaster.ray.direction.z } }, touch) ?? null;
+      // a fitting stands on its wall, floor or piece: it is hit just before the surface it is on
+      // an added person is a body in the room: the nearest of piece, fitting and person wins
+      const extra = d.extraTargets?.() ?? [];
+      const ph = extra.length && d.modes.id === 'walk' ? raycaster.intersectObjects(extra, true)[0] : undefined; // not while furnishing: pieces are edited, people are not
+      const personId = ph ? personIdOf(ph.object) : null;
+      if (personId && ph && ph.distance < blocker && (!fit || ph.distance <= fit.dist)) return { kind: 'person', id: personId, dist: ph.distance };
+      if (fit && fit.dist <= blocker + 0.03) return { kind: 'fitting', id: fit.id, dist: fit.dist };
+      if (itemId) return { kind: 'item', id: itemId, dist: blocker };
+      return null;
+    },
+    raycastWalls(e) {
+      setRay(e);
+      const h = raycaster.intersectObject(d.shell, true)[0];
+      return h ? { x: h.point.x, y: h.point.y, z: h.point.z } : null;
+    },
+    raycastCeiling(e) {
+      setRay(e);
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -d.property.layout.wallHeightM);
+      const p = raycaster.ray.intersectPlane(plane, hit);
+      return p ? { x: p.x, z: p.z } : null;
+    },
+    rayOf(e) {
+      setRay(e);
+      const o = raycaster.ray.origin, v = raycaster.ray.direction;
+      return { origin: { x: o.x, y: o.y, z: o.z }, dir: { x: v.x, y: v.y, z: v.z } };
     },
   };
 }

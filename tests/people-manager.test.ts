@@ -8,7 +8,9 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { buildTruthProperty } from '../scripts/make-test-room';
-import { itemFromCatalog } from '../src/core/catalog';
+import { catalogItem, itemFromCatalog } from '../src/core/catalog';
+import { swingSeatPose } from '../src/core/poses';
+import { hostActionOf, hostPose } from '../src/buyer/people/model';
 import { cellValue } from '../src/core/grid-codec';
 import { rasterizeLayout } from '../src/core/layout-raster';
 import { Character } from '../src/engine/character';
@@ -19,7 +21,8 @@ import { createFurnitureStore } from '../src/buyer/store';
 import type { StorageLike } from '../src/buyer/store';
 import { createPeople } from '../src/buyer/people/manager';
 import type { People, WalkerPort } from '../src/buyer/people/manager';
-import { loadPeople } from '../src/buyer/people/persist';
+import { emptyLayout, encodeLayout, mineKey, parseMine, serializeMine } from '../src/buyer/my-layout';
+import { emptyFittings } from '../src/look/fittings';
 import type { PersonRec } from '../src/buyer/people/rec';
 import { shoulderWidthM } from '../src/buyer/people/model';
 import { hostSignature } from '../src/buyer/people/model';
@@ -66,7 +69,8 @@ function rig(opts: { tier?: PersonTier; linked?: PersonRec[]; seed?: Record<stri
   const storage = fakeStorage(opts.seed);
   const scene = new THREE.Group();
   const parent = new THREE.Group();
-  const store = createFurnitureStore({ sceneId: 't', baseGrid, initial: furnished.furniture, parent, storage, saveDelayMs: 0 });
+  const shareCode = opts.linked ? encodeLayout({ ...emptyLayout(), people: opts.linked }) : null;
+  const store = createFurnitureStore({ sceneId: 't', baseGrid, initial: furnished.furniture, parent, storage, saveDelayMs: 0, shareCode });
   const seats = buildSeats(null, store.all());
   const toasts: string[] = [];
   const camera = new THREE.PerspectiveCamera(60, 1.6, 0.1, 50);
@@ -79,13 +83,15 @@ function rig(opts: { tier?: PersonTier; linked?: PersonRec[]; seed?: Record<stri
     body: () => ({ body: walker.body, tone: 2 }), poseOn: () => walker.posedOn, state: () => 'idle', getUp: async () => {},
     swapTo: async (p) => { walker.swaps.push(p); walker.at = p.at; walker.yaw = p.yawDeg; walker.body = p.body; },
   };
-  const people = createPeople({ scene, camera, store, seats, walker: port, sceneId: 't', storage, linked: opts.linked ?? null, tier: () => tier.v, toast: (t) => toasts.push(t), load, random: opts.random ?? (() => 0.5) });
+  const people = createPeople({ scene, camera, store, seats, walker: port, sceneId: 't', storage, tier: () => tier.v, toast: (t) => toasts.push(t), load, random: opts.random ?? (() => 0.5) });
   const r: Rig = { people, store, scene, camera, storage, walker, toasts, tier };
   rigs.push(r);
   return r;
 }
 afterEach(() => { while (rigs.length) rigs.pop()!.people.dispose(); loads.length = 0; });
 
+/** the people kept in this browser: in the same "mine" value as moves and fittings */
+const stored = (st: StorageLike) => parseMine(st.getItem(mineKey('t')), new Map(furnished.furniture.map((i) => [i.id, i]))).people ?? [];
 const woman = { body: 'woman' as const, tone: 1, heightCm: 160 };
 const run = (p: People, seconds: number, dt = 1 / 30): void => { for (let t = 0; t < seconds; t += dt) p.update(dt); };
 
@@ -319,6 +325,106 @@ describe.skipIf(!have)('people and the furniture around them', () => {
   });
 });
 
+describe.skipIf(!have)('on the second catalogue\'s pieces', () => {
+  const settle = (ms: number): Promise<void> => new Promise((res) => setTimeout(res, ms));
+  function put(r: Rig, catalogId: string, cx: number, cz: number, yawDeg = 0) {
+    const spec = catalogItem(catalogId);
+    r.store.add(itemFromCatalog(catalogId, { cx, cz, w: spec.footprint.w, d: spec.footprint.d, yawDeg }, 'virtual'));
+    return r.store.all().find((i) => i.catalogId === catalogId)!;
+  }
+
+  it('sit on a recliner, a bar stool, an office chair and a swing; lie on a diwan, a bunk and the storage beds; a fridge takes nobody', async () => {
+    const r = rig();
+    const pieces: [string, 'sit' | 'lie'][] = [['recliner', 'sit'], ['bar-stool', 'sit'], ['office-chair', 'sit'], ['swing-2', 'sit'], ['diwan', 'lie'], ['bunk-bed', 'lie'], ['bed-single-storage', 'lie'], ['bed-queen-storage', 'lie']];
+    expect(hostActionOf(put(r, 'fridge-1', 3.6, 0.5))).toBeNull();
+    for (const [id, action] of pieces) {
+      const item = put(r, id, 1.0, 4.5);
+      expect(hostActionOf(item)).toBe(action);
+      r.store.remove(item.id);
+    }
+  });
+
+  it('a person on a swing is posed with the swing\'s seat pose, at their own size', async () => {
+    const r = rig();
+    const sw = put(r, 'swing-2', 1.5, 4.2);
+    const first = await r.people.place({ body: 'elder', tone: 2, heightCm: 150 }, { kind: 'host', item: sw, action: 'sit', approach: { x: 1.5, z: 4.2 } });
+    expect(first).toMatchObject({ ok: true });
+    await r.people.ready();
+    run(r.people, 1.2);
+    const ch = r.people.bodyOf('pe-1')!;
+    expect(ch.state).toBe('sitting');
+    const want = hostPose(sw, 'sit', 150, { x: 1.5, z: 4.2 }).sit!;
+    expect(want).toEqual(swingSeatPose(sw, 1.5, { x: 1.5, z: 4.2 }));
+    // two on a 2-seater, one at each end, and a third finds it full
+    expect((await r.people.place({ body: 'child', tone: 2, heightCm: 115 }, { kind: 'host', item: sw, action: 'sit', approach: { x: 1.5, z: 4.2 } })).ok).toBe(true);
+    expect(await r.people.place({ body: 'woman', tone: 2, heightCm: 160 }, { kind: 'host', item: sw, action: 'sit', approach: { x: 1.5, z: 4.2 } })).toMatchObject({ ok: false });
+  });
+
+  it('they ride a swing as the walker does: the seat rocks and the body goes with it, and the swing rests when they get up', async () => {
+    const r = rig();
+    const sw = put(r, 'swing-2', 1.5, 4.2);
+    const mesh = r.store.mesh(sw.id)!;
+    mesh.userData.swingRig = { mode: 'parallel', hookY: 2.7, pivotZ: 0, chainZ: [0.27, -0.25], lengthM: 2.08 };
+    for (const n of ['swing-seat', 'swing-chains-front', 'swing-chains-back']) { const o = new THREE.Group(); o.name = n; mesh.add(o); }
+    await r.people.place({ body: 'woman', tone: 2, heightCm: 160 }, { kind: 'host', item: sw, action: 'sit', approach: { x: 1.5, z: 4.2 } });
+    await r.people.ready();
+    run(r.people, 1);
+    const ch = r.people.bodyOf('pe-1')!;
+    const rest = ch.object.position.clone();
+    const seat0 = mesh.getObjectByName('swing-seat')!.position.z;
+    run(r.people, 4.2); // about a quarter of the period, with the ease-in
+    const seat = mesh.getObjectByName('swing-seat')!;
+    expect(Math.abs(seat.position.z - seat0)).toBeGreaterThan(0.02);
+    const moved = ch.object.position.clone().sub(rest);
+    expect(moved.length()).toBeGreaterThan(0.02);
+    // the body keeps up with the seat: it has moved as the seat has, along the swing's front (yaw 0: +z)
+    expect(moved.z).toBeCloseTo(seat.position.z - seat0, 2);
+    // getting up: the swing is back at rest
+    await r.people.setPose('pe-1', 'stand');
+    run(r.people, 1.5);
+    expect(seat.position.length()).toBeLessThan(1e-9);
+    expect(ch.object.position.y).toBeLessThan(0.05);
+  });
+
+  it('a person on a piece the viewer moves goes with it; resized, they stay on it; hidden or removed, they get up', async () => {
+    const r = rig();
+    const bunk = put(r, 'bed-single-storage', 1.0, 4.4, 90);
+    await r.people.place(woman, { kind: 'host', item: bunk, action: 'lie', approach: { x: 1.0, z: 4.4 } });
+    await r.people.ready();
+    run(r.people, 1.5);
+    const before = r.people.bodyOf('pe-1')!.object.position.clone();
+    r.store.update(bunk.id, { ...bunk.box, cx: 2.6, cz: 4.0 });
+    await settle(450);
+    run(r.people, 1.5);
+    const after = r.people.bodyOf('pe-1')!.object.position;
+    expect(after.x - before.x).toBeCloseTo(1.6, 1);
+    expect(r.people.get('pe-1')!.pose).toBe('lie');
+    // an original of the home, moved and resized in My layout (edit-all's overlay): the person follows
+    const sofa = r.store.all().find((i) => i.id === 'sofa-1')!;
+    await r.people.place({ body: 'elder', tone: 2, heightCm: 150 }, { kind: 'host', item: sofa, action: 'sit', approach: { x: 3.55, z: 3.5 } });
+    await r.people.ready();
+    run(r.people, 1.2);
+    const at = r.people.bodyOf('pe-2')!.object.position.clone();
+    r.store.editOriginal('sofa-1', { cz: sofa.box.cz - 0.6 });
+    await settle(450);
+    run(r.people, 1.2);
+    expect(Math.abs(r.people.bodyOf('pe-2')!.object.position.z - at.z)).toBeGreaterThan(0.4);
+    expect(r.people.get('pe-2')!.pose).toBe('sit');
+    // hidden in the layout: she gets up
+    r.store.hideOriginal('sofa-1');
+    await settle(450);
+    expect(r.people.get('pe-2')!.pose).toBe('stand');
+  });
+
+  it('people are not zones: clearance readings are made in Furnish, where added people are not counted', async () => {
+    const r = rig();
+    await r.people.place(woman, { kind: 'stand', at: { x: 2.6, z: 1.6 } });
+    expect(cellValue(r.store.grid(), 2.6, 1.6)).toBeGreaterThan(0);
+    r.people.setFurnishing(true); // what Furnish does on entering
+    expect(cellValue(r.store.grid(), 2.6, 1.6)).toBe(0);
+  });
+});
+
 describe.skipIf(!have)('in My layout', () => {
   it('people are kept per home, listed in the layout, counted as an edit, and cleared by Reset', async () => {
     const r = rig();
@@ -329,7 +435,7 @@ describe.skipIf(!have)('in My layout', () => {
     expect(r.store.layout().people).toHaveLength(2);
     r.people.dispose(); // flushes the save
     rigs.pop();
-    expect(loadPeople(r.storage, 't')).toHaveLength(2);
+    expect(stored(r.storage)).toHaveLength(2);
     // a new visit with the same storage: both are back, standing where they were
     const again = rig({ seed: Object.fromEntries(r.storage.data) });
     await again.people.ready();
@@ -340,12 +446,13 @@ describe.skipIf(!have)('in My layout', () => {
     expect(again.people.count()).toBe(0);
     expect(again.scene.children.filter((c) => c.name.startsWith('person-'))).toHaveLength(0);
     expect(again.store.isEdited()).toBe(false);
-    expect(loadPeople(again.storage, 't')).toHaveLength(0);
+    expect(stored(again.storage)).toHaveLength(0);
+    expect(again.storage.data.has(mineKey('t'))).toBe(false); // nothing left behind
   });
 
   it('a shared link brings its people, replacing the ones in this browser', async () => {
     const linked: PersonRec[] = [{ id: 'x', body: 'man', tone: 2, heightCm: 180, x: 1.5, z: 1.0, yawDeg: 0, pose: 'stand' }];
-    const r = rig({ linked, seed: { 'walkthru:t:people': JSON.stringify({ version: 1, people: [{ body: 'child', pose: 'stand', x: 3, z: 3 }, { body: 'child', pose: 'stand', x: 3, z: 2 }] }) } });
+    const r = rig({ linked, seed: { [mineKey('t')]: serializeMine([], {}, {}, emptyFittings(), [{ id: 'a', body: 'child', tone: 2, heightCm: 110, x: 3, z: 3, yawDeg: 0, pose: 'stand' }, { id: 'b', body: 'child', tone: 2, heightCm: 110, x: 3, z: 2, yawDeg: 0, pose: 'stand' }])! } });
     await r.people.ready();
     expect(r.people.list().map((p) => p.body)).toEqual(['man']);
   });

@@ -1,7 +1,7 @@
 // The people a buyer adds to a home (SPEC 2.1, 16.6.9). Each is a Character of its own (its own body file, the clips parsed once and shared),
 // posed with the same poses the walker uses (core/poses.ts), blocking the walk grid like a body, and kept in "My layout" (never in the home).
 //
-// What lives where: model.ts has the rules (pure), persist.ts and rec.ts the storage and the link, ui.ts the sheets and the person card.
+// What lives where: model.ts has the rules (pure), rec.ts the record and the link (storage is the store's `mine` value), ui.ts the sheets and the person card.
 // This file owns the bodies: loading them, posing them, idling, following, thinning out what is far or out of sight, and tidying up when
 // a piece of furniture is moved from under them.
 import * as THREE from 'three';
@@ -18,12 +18,14 @@ import type { StorageLike } from '../store';
 import type { FurnitureStoreImpl } from '../store';
 import type { Seats } from '../seats';
 import { setExtraObstacles } from '../wardrobe-hooks';
+import { pieceRule } from '../../core/pieces';
+import { poseSwingMesh, prefersReducedMotion, restSwingMesh, swingAngle, swingOffsets } from '../swing-motion';
+import type { SwingRig } from '../../look/gen/swing';
 import {
   carryApproach, fitLine, freeApproach, hostActionOf, hostAt, hostPose, hostSignature, labelOf, nearestHost, nudgeAside, obstaclesOf, passCard,
-  hostName, lateralOf, passageWidth, placeStanding, shoulderWidthM, shownCount, standBox, standingFree, capForTier, spotLateral,
+  hostName, lateralOf, seatKindOf, passageWidth, placeStanding, shoulderWidthM, shownCount, standBox, standingFree, capForTier, spotLateral,
 } from './model';
 import type { DeviceTier, HostAction, PlaceResult } from './model';
-import { loadPeople, savePeople } from './persist';
 import { PEOPLE_MAX, cloneRec, sanitizeRecs } from './rec';
 import type { PersonBodyId, PersonPose, PersonRec } from './rec';
 
@@ -66,8 +68,6 @@ export interface PeopleDeps {
   walker: WalkerPort;
   sceneId: string;
   storage: StorageLike | null;
-  /** the people a shared link carried; they replace the stored ones, as the link's furniture replaces the stored layout */
-  linked?: PersonRec[] | null;
   tier: () => DeviceTier;
   /** the swing sentence for a box that sits in a door's or a wardrobe's swing (buyer/wardrobe-hooks.ts swingNoteFor) */
   swingNote?: (box: Box) => string | null;
@@ -161,7 +161,6 @@ export function createPeople(deps: PeopleDeps): People {
   let suppressed = false;
   let furnishing = false;
   let idCounter = 0;
-  let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let tierSeen = deps.tier();
   let tierClock = 0;
   const stats = { drawn: 0, updated: 0, frames: 0 };
@@ -225,17 +224,13 @@ export function createPeople(deps: PeopleDeps): People {
   const hostById = (id: string | undefined): FurnitureItem | undefined => (id ? hostItems().find((i) => i.id === id) : undefined);
 
   function changed(discrete = true): void {
-    if (discrete) {
-      if (saveTimer) clearTimeout(saveTimer);
-      saveTimer = setTimeout(save, 200);
-      selfChange++;
-      try { notifyStore(); } finally { selfChange--; }
-    }
+    if (discrete) persist();
     for (const cb of [...listeners]) { try { cb(); } catch (err) { console.error('[walkthru] people listener threw', err); } }
   }
-  function save(): void {
-    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
-    savePeople(deps.storage, deps.sceneId, recs());
+  /** the store keeps the people in its "mine" value with the moves and fittings: tell it to save, and its listeners (the chip) to look again */
+  function persist(): void {
+    selfChange++;
+    try { notifyStore(); } finally { selfChange--; }
   }
 
   const faceWalker = (at: Vec2): number => {
@@ -245,11 +240,11 @@ export function createPeople(deps: PeopleDeps): People {
 
   /** the lateral spots on `item` already used: other people on it, and the walker if they are posed there */
   function takenOn(item: FurnitureItem, selfId: string | null): number[] {
-    const chair = seats.isSeat(item);
+    const seat = seatKindOf(item, seats.isSeat(item));
     const out: number[] = [];
     for (const l of lives) {
       if (l.rec.id === selfId || l.rec.host !== item.id || l.rec.pose === 'stand') continue;
-      out.push(spotLateral(item, l.rec.pose as HostAction, { x: l.rec.x, z: l.rec.z }, chair));
+      out.push(spotLateral(item, l.rec.pose as HostAction, { x: l.rec.x, z: l.rec.z }, seat));
     }
     if (walker.poseOn() === item.id) {
       const p = walker.position();
@@ -272,7 +267,7 @@ export function createPeople(deps: PeopleDeps): People {
     const item = at.item;
     const act = hostActionOf(item);
     if (!act || act !== at.action) return { ok: false, message: act === 'lie' ? 'A bed is for lying on.' : act === 'sit' ? 'That is for sitting on.' : 'Nobody can sit or lie there.' };
-    const ap = freeApproach(item, at.action, at.approach, takenOn(item, selfId), seats.isSeat(item));
+    const ap = freeApproach(item, at.action, at.approach, takenOn(item, selfId), seatKindOf(item, seats.isSeat(item)));
     if (!ap) return { ok: false, message: `There is no room left on the ${hostName(item).toLowerCase()}.` };
     return { ok: true, fields: { x: ap.x, z: ap.z, yawDeg: item.box.yawDeg, pose: at.action, host: item.id } };
   }
@@ -451,8 +446,7 @@ export function createPeople(deps: PeopleDeps): People {
     if (lives.length === 0) return;
     for (const l of lives.splice(0)) dropBody(l);
     syncObstacles();
-    save();
-    changed(false);
+    changed(false); // the store saves its own reset
     deps.onBodies?.();
   }
 
@@ -494,7 +488,7 @@ export function createPeople(deps: PeopleDeps): People {
       // they stop where they are: that is where they stand now
       const p = l.ch.position;
       l.rec.x = p.x; l.rec.z = p.z; l.rec.yawDeg = l.ch.yawDeg;
-      save();
+      persist();
     }
     syncObstacles();
     noPeople = null;
@@ -602,6 +596,7 @@ export function createPeople(deps: PeopleDeps): People {
     const moved = Math.hypot(camAt.x - lastCam.x, camAt.z - lastCam.z) > 0.2 || fwd.dot(lastCam.dir) < 0.995;
     if (moved) { lastCam.x = camAt.x; lastCam.z = camAt.z; lastCam.dir.copy(fwd); }
     const w = walker.position();
+    updateSwings(dt);
     const walkerOnFoot = walker.state() === 'idle' || walker.state() === 'walk' || walker.state() === 'jog';
     for (const l of lives) {
       const ch = l.ch;
@@ -628,6 +623,53 @@ export function createPeople(deps: PeopleDeps): People {
       if (step === 0 || l.acc >= step) { ch.update(l.acc); l.acc = 0; stats.updated++; }
     }
     updatePassing(w, walkerOnFoot);
+  }
+
+  // ---- people on a swing rock with it (the walker's own swing, src/buyer/swing-motion.ts, is driven by the interactions; this is for the others)
+  const swings = new Map<string, { t: number }>();
+  /** how far a swing mesh is swung now (radians), read off its moving groups, whoever is driving it */
+  function angleOfMesh(mesh: THREE.Object3D, rig: SwingRig): number {
+    const g = mesh.getObjectByName(rig.mode === 'parallel' ? 'swing-chains-front' : 'swing-rig');
+    return g ? -g.rotation.x : 0;
+  }
+  function updateSwings(dt: number): void {
+    const riders = new Map<string, Live[]>();
+    for (const l of lives) {
+      if (!l.ch || l.rec.pose !== 'sit' || l.ch.state !== 'sitting') continue;
+      const host = hostById(l.rec.host);
+      if (!host || pieceRule(host.catalogId)?.pose !== 'swing') continue;
+      const list = riders.get(host.id) ?? [];
+      list.push(l);
+      riders.set(host.id, list);
+    }
+    for (const [id, st] of swings) {
+      if (riders.has(id)) continue;
+      const mesh = store.mesh(id);
+      if (mesh && !(walker.poseOn() === id)) restSwingMesh(mesh);
+      swings.delete(id);
+      void st;
+    }
+    if (riders.size === 0 || prefersReducedMotion()) return;
+    for (const [id, list] of riders) {
+      const mesh = store.mesh(id);
+      const rig = mesh?.userData?.swingRig as SwingRig | undefined;
+      if (!mesh || !rig) continue;
+      let a: number;
+      if (walker.poseOn() === id) {
+        // the walker is on it too: their swing drives it, these people ride along
+        a = angleOfMesh(mesh, rig);
+        swings.delete(id);
+      } else {
+        const st = swings.get(id) ?? { t: 0 };
+        swings.set(id, st);
+        st.t += dt;
+        a = swingAngle(st.t, rig.lengthM);
+        poseSwingMesh(mesh, a);
+      }
+      const { forward, up } = swingOffsets(rig.lengthM, a);
+      const yaw = (list[0].hostBox?.yawDeg ?? 0) * DEG;
+      for (const l of list) l.ch!.ride({ dx: Math.sin(yaw) * forward, dy: up, dz: Math.cos(yaw) * forward, pitchRad: rig.mode === 'rigid' ? -a : 0 });
+    }
   }
 
   function shiftStep(l: Live, dt: number): void {
@@ -744,7 +786,7 @@ export function createPeople(deps: PeopleDeps): People {
   // ---------------------------------------------------------------- boot
 
   {
-    const initial = deps.linked && deps.linked.length ? deps.linked : loadPeople(deps.storage, deps.sceneId);
+    const initial = deps.store.initialPeople();
     for (const rec of sanitizeRecs(initial.map(cloneRec))) {
       rec.id = nextId();
       rec.heightCm = clampPersonHeight(rec.body, rec.heightCm);
@@ -754,7 +796,7 @@ export function createPeople(deps: PeopleDeps): People {
     // the people that are drawn first; the rest wait for a roomier tier
     lives.forEach((l, i) => { if (i < shownCount(lives.length, deps.tier())) void track(ensureBody(l, true)); });
     syncObstacles();
-    if (deps.linked && deps.linked.length) save();
+    if (lives.length && deps.store.fromLink()) persist(); // a shared layout is kept as this viewer's own
   }
 
   return {
@@ -792,7 +834,7 @@ export function createPeople(deps: PeopleDeps): People {
       setExtraObstacles(null);
       hidePass();
       if (reconcileTimer) clearTimeout(reconcileTimer);
-      save();
+      store.flush();
       for (const l of lives.splice(0)) dropBody(l);
       store.attachPeople(null);
       selfChange++;

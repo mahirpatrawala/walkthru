@@ -89,7 +89,7 @@ export function setItemDesigns(map: Map<string, ItemDesign> | null): void {
 /** What the drawing gave for an item's structure (bays, base height...), for the style resolver. */
 export function itemDrawing(id: string): ItemDesign | undefined { return designs.get(id); }
 /** The look an item gets under the current style, or null in the Classic style (the builders below). */
-export function resolveItemLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 'finish'>): ResolvedLook | null {
+export function resolveItemLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 'finish' | 'catalogId'>): ResolvedLook | null {
   return resolveLook(item, designs.get(item.id));
 }
 
@@ -483,6 +483,8 @@ export function buildRealFurniture(group: THREE.Group, item: FurnitureItem, tier
   if (look) {
     const built = GENERATORS[look.kind].build({ kit, q: GEN_QUALITY[tier] }, sizeOf(item), look.params, look.roles);
     moveChildren(built, group);
+    // a swing's moving parts are driven by the buyer page (src/buyer/swing-motion.ts), which reads this from the item's mesh
+    if (built.userData.swingRig) group.userData.swingRig = built.userData.swingRig; else delete group.userData.swingRig;
     group.userData.look = look;
     // the generator consumed item.finish itself (src/look/style.ts finishLayer): the old colour-swap pass stands down
     group.userData.finishApplied = true;

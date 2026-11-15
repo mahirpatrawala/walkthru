@@ -51,10 +51,10 @@ def asset(kind, name):
 
 # age macro: 0 = 1 year, 0.1875 = 11, 0.5 = 25, 1 = 90
 PEOPLE = {
-    'man':   dict(gender=1.0, age=0.60, weight=0.58, muscle=0.5, file='person-man',   outfit='kurta', hair='crop',     stoop=0.0, head=1.10),
-    'woman': dict(gender=0.0, age=0.57, weight=0.50, muscle=0.5, file='person-woman', outfit='salwar', hair='braid',    stoop=0.0, head=1.10),
-    'elder': dict(gender=0.0, age=0.90, weight=0.50, muscle=0.4, file='person-elder', outfit='saree',  hair='bun',      stoop=1.0, head=1.10),
-    'child': dict(gender=0.2, age=0.125, weight=0.42, muscle=0.5, file='person-child', outfit='kids',   hair='pigtails', stoop=0.0, head=1.22),
+    'man':   dict(gender=1.0, age=0.60, weight=0.58, muscle=0.5, file='person-man',   outfit='kurta', hair='crop',     stoop=0.0, head=1.06),
+    'woman': dict(gender=0.0, age=0.57, weight=0.50, muscle=0.5, file='person-woman', outfit='salwar', hair='braid',    stoop=0.0, head=1.06),
+    'elder': dict(gender=0.0, age=0.90, weight=0.50, muscle=0.4, file='person-elder', outfit='saree',  hair='bun',      stoop=1.0, head=1.06),
+    'child': dict(gender=0.2, age=0.125, weight=0.42, muscle=0.5, file='person-child', outfit='kids',   hair='pigtails', stoop=0.0, head=1.14),
 }
 
 # ---------------------------------------------------------------- body
@@ -235,6 +235,8 @@ class Body:
         self.H = self.zmax - self.zmin
         # which side of x is "l": the bone's own side
         self.sx = 1.0 if self.bone['thigh_l'][0][0] > 0 else -1.0
+        from mathutils.bvhtree import BVHTree
+        self.bvh = BVHTree.FromPolygons([tuple(p) for p in self.V], [tuple(pl.vertices) for pl in me.polygons])   # the skin as it rests, for rays
         self.tree = kdtree.KDTree(len(self.V))
         for i, p in enumerate(self.V):
             self.tree.insert(Vector(p), i)
@@ -321,6 +323,7 @@ class Mesh:
         self.tag = []   # per vertex: free-form tag used by the weight rules
         self.shells = []  # (first face, end face) of closed shells whose winding is left to Blender
         self.rc = {}    # vertex -> (fit key, ring row, ring column), for the vertices the clearance fit may move outward
+        self.anchor = {}  # vertex -> a point on the skin whose weights the vertex takes (a sleeve's tucked rings: the arm's, not the torso's)
 
     def ring_loft(self, rings, tag=None, cols=None, close=False, key=None, row0=0):
         """rings: list of (n x 3) arrays, each a closed ring, top to bottom; outward normals when the ring is counter-clockwise from above.
@@ -393,11 +396,14 @@ def smooth_levels(centres, radii, passes=2):
     R0 = np.array(radii, dtype=float)
     return smooth_vertical(centres, passes), np.maximum(smooth_vertical(R0, passes), R0 * 0.985)
 
-def stack_rings(levels, centre_of, points_of, n, off_fn, extra=None):
+def stack_rings(levels, centre_of, points_of, n, off_fn, extra=None, surface_fn=None):
     """levels: z values top to bottom. centre_of(z) -> raw 2D centre, points_of(z) -> Nx2 outline points at that z.
     Centres are smoothed first, then each ring is measured around its smoothed centre."""
     C = smooth_vertical([centre_of(z) for z in levels], 3)
     R = [polar_ring(points_of(z), C[i], n) for i, z in enumerate(levels)]
+    if surface_fn is not None:                    # exact skin radii where the caller can measure them (rays), the outline elsewhere
+        for i, z in enumerate(levels):
+            R[i], C[i] = surface_fn(z, C[i], R[i])
     R = np.maximum(smooth_vertical(R, 2), np.array(R) * 0.985)
     return [circle_ring(C[i], R[i] + off_fn(levels[i]) + (extra[i] if extra is not None else 0.0), z=levels[i]) for i in range(len(levels))]
 
@@ -429,7 +435,7 @@ def outline_profile(body, levels, n):
     C = smooth_vertical([centre(z) for z in levels], 3)
     R = [polar_ring(pts(z), C[i], n) for i, z in enumerate(levels)]
     R = np.maximum(smooth_vertical(R, 2), np.array(R) * 0.985)
-    return C, R
+    return C, R, pts
 
 def arc_cols(body, n, side, overlap=0.15):
     """Column indices (in ring order) of the open arc that covers one side of the body and reaches `overlap` past the front and back centre."""
@@ -438,14 +444,22 @@ def arc_cols(body, n, side, overlap=0.15):
     start = next(j for j in range(n) if inc[j] and not inc[j - 1])
     return [(start + k) % n for k in range(int(inc.sum()))]
 
-def skirted_rings(body, z_top, hem, step, off_fn, flare, taper=1.0, n=32, z_split=None, extra=None, key='top'):
+def skirted_rings(body, z_top, hem, step, off_fn, flare, taper=1.0, n=32, z_split=None, extra=None, key='top', slit=0.0):
     """Rings for a garment that is a tube down to the hips and hangs below them as a skirt: below `z_split` the outline never
     narrows to the legs' (it keeps the hip outline, tapering to `taper` of it at the hem) and flares by `flare` more at the hem.
-    Returns (rings, index of the last ring of the tube)."""
+    `slit` raises the hem at the two sides by that many metres (a side slit: the cloth is cut up at the hip bone, so the
+    legs have room where the cloth bunches), falling off over the front and back. Returns (rings, index of the last ring of the tube, levels)."""
     levels = list(np.arange(z_top, hem - 1e-6, -step))
-    C, R = outline_profile(body, levels, n)
+    C, R, pts = outline_profile(body, levels, n)
     zs = body.z_hip + 0.03 if z_split is None else z_split
     isp = next(i for i, z in enumerate(levels) if z <= zs)
+    # below the split the rings hang on the hip's centre, so the outline there has to be measured around that same centre:
+    # measured around each level's own centre (the shins are not under the hips) it left skin outside the cloth
+    for i, z in enumerate(levels):
+        if i > isp:
+            R[i] = polar_ring(pts(z), C[isp], n)
+    if len(levels) > isp + 1:
+        R[isp + 1:] = np.maximum(smooth_vertical(R[isp:], 2)[1:], R[isp + 1:] * 0.985)
     Rf = np.max([R[i] for i, z in enumerate(levels) if zs - 0.16 <= z <= zs + 0.03], axis=0)
     rad, cen = [], []
     for i, z in enumerate(levels):
@@ -462,7 +476,14 @@ def skirted_rings(body, z_top, hem, step, off_fn, flare, taper=1.0, n=32, z_spli
         rad = rad + fit_cells(extra, key, len(levels), n)
     sm = smooth_vertical(rad, 2)
     rad = np.maximum(sm, rad * 0.985)
-    return [circle_ring(cen[i], rad[i], z=levels[i]) for i in range(len(levels))], isp, levels
+    rings = [circle_ring(cen[i], rad[i], z=levels[i]) for i in range(len(levels))]
+    slit = min(slit, 0.6 * (zs - hem))
+    if slit > 0:
+        lift = slit * np.abs(np.cos(angles(n))) ** 3          # per column: 1 at the sides, 0 at the front and back
+        for i, z in enumerate(levels):
+            if z < zs:     # below the split the rows are squeezed toward the raised hem, so the hem edge stays a smooth curve
+                rings[i][:, 2] = zs - (zs - z) * (1 - lift / (zs - hem))
+    return rings, isp, levels
 
 def loft_skirted(body, mesh, rings, isp, n=32, key=None):
     """The tube down to `isp`, then one open panel per leg (each reaching a little past the front and back centre, so the
@@ -514,23 +535,61 @@ def leg_levels(body, side, z_top, z_bot, step, off_fn, n=24, extra=None):
         if z >= body.z_crotch:
             p = body.pick(z, 0.02, hipmask)
         else:
-            p = body.pick(z, 0.045, leg)     # the skin is sparse on the shin (about 15 vertices per 4 cm), so a narrow window gives dips and holes
+            p = body.pick(z, 0.03, leg)     # the skin is sparse on the shin (about 15 vertices per 4 cm), so a narrow window gives dips and holes
         if len(p) < 3:
             p = last.get('p', p)
         last['p'] = p
         return p[:, :2]
     levels = list(np.arange(z_top, z_bot - 1e-6, -step))
-    return stack_rings(levels, lambda z: pts(z).mean(axis=0), pts, n, off_fn, None if extra is None else fit_cells(extra, 'leg_' + side, len(levels), n))
+    def surface(z, c, rp):
+        if z >= body.z_crotch - 0.03:       # up in the hips the two legs are one body: rays would leave through the other half
+            return rp, c
+        rr, o3 = surface_radii(body, (c[0], c[1], z), [(math.cos(t), math.sin(t), 0.0) for t in angles(n)], rp, order=4, bump=0.004)
+        return rr, np.array(o3[:2])
+    return stack_rings(levels, lambda z: pts(z).mean(axis=0), pts, n, off_fn, None if extra is None else fit_cells(extra, 'leg_' + side, len(levels), n), surface_fn=surface)
 
-def sleeve_rings(body, side, x_end_frac, off0, off1, n=18, step=0.03):
+def surface_radii(body, origin, axis_dirs, rp, order=3, bump=0.006):
+    """Radius of the skin around one section, per column, measured with rays from `origin` (a 3D point inside the section)
+    along `axis_dirs` (n unit vectors), then reduced to its smooth part: a low-order Fourier fit plus whatever bump that misses
+    (at most `bump` metres). `rp` is the points-only outline (polar_ring), used to reject rays that leave through another part
+    and as the answer when most rays miss. The skin is sparse (a vertex every 1.5 cm on an arm or shin), so the outline of its
+    points alone is ragged and cuts into the surface in places."""
+    n = len(axis_dirs)
+    a = angles(n)
+    def cast(o):
+        out = np.full(n, np.nan)
+        for j in range(n):
+            hit = body.bvh.ray_cast(Vector(o), Vector(axis_dirs[j]), 0.3)
+            if hit[0] is not None and 0.5 * rp[j] < hit[3] < 1.6 * rp[j]:
+                out[j] = hit[3]
+        return out
+    o0 = np.array(origin, dtype=float)
+    o = o0
+    rr = cast(o)
+    for _ in range(2):          # move the origin to the middle of what the rays found
+        ok = ~np.isnan(rr)
+        if ok.sum() < n // 2:
+            return rp, o0
+        hp = np.array([o + rr[j] * np.array(axis_dirs[j]) for j in range(n) if ok[j]])
+        o = hp.mean(axis=0)
+        rr = cast(o)
+    ok = ~np.isnan(rr)
+    if ok.sum() < n // 2:
+        return rp, o0
+    M = np.stack([np.ones(n)] + [f(k_ * a) for k_ in range(1, order + 1) for f in (np.cos, np.sin)], axis=1)
+    coef, *_ = np.linalg.lstsq(M[ok], rr[ok], rcond=None)
+    fit = M @ coef
+    return fit + float(np.clip(np.max(np.where(ok, rr - fit, 0.0)), 0.0, bump)), o
+
+def sleeve_rings(body, side, x_end_frac, off0, off1, n=18, step=0.02):
     """Rings along the arm (in T-pose it runs along x) from the shoulder joint to a fraction of the way to the wrist."""
     sgn = body.side[side]
     arm = np.array([d.endswith('_' + side) and d.startswith(('upperarm', 'lowerarm', 'hand')) for d in body.dom])
-    x0 = abs(body.bone['upperarm_' + side][0][0]) - 0.025
+    x0 = abs(body.bone['upperarm_' + side][0][0]) - 0.05
     x_w = abs(body.bone['hand_' + side][0][0]) - 0.01
     x_elbow = abs(body.bone['lowerarm_' + side][0][0])
     x1 = x0 + (x_w - x0) * x_end_frac
-    rings = []
+    rings, surf = [], []
     x = x0
     count = max(2, int((x1 - x0) / step) + 1)
     for i in range(count):
@@ -543,13 +602,17 @@ def sleeve_rings(body, side, x_end_frac, off0, off1, n=18, step=0.03):
             pts = body.V[m][:, 1:3]
         c = pts.mean(axis=0)
         k = i / (count - 1)
-        taper = min(1.0, 0.80 + 0.10 * i)          # the first rings sit tucked into the shoulder instead of standing proud of it
-        bump = 0.006 * math.exp(-(((x - x_elbow) / 0.07) ** 2))      # a little more room at the elbow, where the arm bends into the cloth
-        r = polar_ring(pts, c, n) * taper + (0.012 if i == 0 else off0 + (off1 - off0) * k + bump)
+        taper = 0.62 + 0.38 * float(smoothstep((x - x0) / 0.05))     # the sleeve grows out of the torso over its first 7 cm instead of standing proud of the shoulder
+        bump = 0.003 * math.exp(-(((x - x_elbow) / 0.05) ** 2)) + 0.005 * math.exp(-(((x - x0 - 0.04) / 0.045) ** 2))   # and 5 mm over the deltoid, which the arm's own outline lags in a swing      # 3 mm where the elbow's point presses on the cloth (was 6 mm and a 7 cm lump)
         a = angles(n)
+        rp = polar_ring(pts, c, n)
+        rr, o3 = surface_radii(body, (sgn * x, c[0], c[1]), [(0.0, math.cos(t), math.sin(t)) for t in a], rp, bump=0.004)
+        c = np.array(o3[1:3])
+        r = rr * taper + (0.006 if i == 0 else off0 + (off1 - off0) * k + bump)
         ring = np.stack([np.full(n, sgn * x), c[0] + r * np.cos(a), c[1] + r * np.sin(a)], axis=1)
         rings.append(ring)
-    return rings
+        surf.append(np.stack([np.full(n, sgn * x), c[0] + rr * np.cos(a), c[1] + rr * np.sin(a)], axis=1))
+    return rings, surf
 
 def lerp_off(points):
     """points: [(z, offset), ...] sorted from high z to low z -> function z -> offset."""
@@ -718,53 +781,63 @@ def build_garments(key, spec, body, extra=None):
     top = Mesh('top')
     zw = zh + 0.05 * H                  # waist: where trousers and skirts start
     skirted = outfit in ('kurta', 'salwar', 'kids')
-    if outfit == 'kurta':          # a man's kurta: knee length, full sleeves, loose
-        hem = zk + 0.05
-        off = lerp_off([(z_collar, 0.014), (body.z_shoulder, 0.024), (body.z_shoulder - 0.15 * H, 0.034), (zw, 0.044), (zh, 0.054), (zh - 0.1, 0.060), (hem, 0.068)])
-        sleeve = (1.0, 0.028, 0.022)
-        flare, taper = 0.040, 1.0
-    elif outfit == 'salwar':       # a woman's kameez: below the hip, three-quarter sleeves, slightly fitted at the waist
+    # Offsets are metres outside the skin's outline (SPEC 16.6.9): about 1 to 1.5 cm at the shoulders and chest, a little more
+    # at the hip, so a garment is 8 to 12 % longer around than the body at the chest. Nothing flares: the hem hangs straight
+    # down from the hip, with a side slit (`slit`) where the cloth would otherwise bunch.
+    slit = 0.0
+    if outfit == 'kurta':          # a man's kurta: to the knee (a hand above it, so a seated knee does not push through the hem), full sleeves, side slits
+        hem = zk + 0.09
+        off = lerp_off([(z_collar, 0.009), (body.z_shoulder, 0.011), (body.z_shoulder - 0.15 * H, 0.014), (zw, 0.017), (zh, 0.021), (zh - 0.1, 0.023), (hem, 0.026)])
+        sleeve = (1.0, 0.010, 0.008)
+        flare, taper, slit = 0.0, 1.0, 0.13
+    elif outfit == 'salwar':       # a woman's kameez: below the hip, three-quarter sleeves, fitted at the waist, long side slits
         hem = zk + 0.10
-        off = lerp_off([(z_collar, 0.012), (body.z_shoulder, 0.020), (body.z_shoulder - 0.10 * H, 0.030), (zh + 0.14 * H, 0.040), (zh + 0.10 * H, 0.050), (zw, 0.056), (zh, 0.062), (zh - 0.08, 0.064), (hem, 0.072)])
-        sleeve = (0.78, 0.022, 0.016)
-        flare, taper = 0.045, 1.0
+        off = lerp_off([(z_collar, 0.008), (body.z_shoulder, 0.010), (body.z_shoulder - 0.10 * H, 0.012), (zh + 0.14 * H, 0.013), (zh + 0.10 * H, 0.014), (zw, 0.015), (zh, 0.019), (zh - 0.08, 0.022), (hem, 0.024)])
+        sleeve = (0.78, 0.009, 0.007)
+        flare, taper, slit = 0.0, 1.0, 0.15
     elif outfit == 'saree':        # a blouse with elbow sleeves (the saree itself is the skirt and the pallu)
         hem = zh + 0.055 * H
-        off = lerp_off([(z_collar, 0.012), (body.z_shoulder, 0.020), (body.z_shoulder - 0.10 * H, 0.032), (hem, 0.034)])
-        sleeve = (0.52, 0.018, 0.014)
+        off = lerp_off([(z_collar, 0.008), (body.z_shoulder, 0.010), (body.z_shoulder - 0.10 * H, 0.013), (hem, 0.014)])
+        sleeve = (0.52, 0.009, 0.007)
         flare = taper = 0
     else:                          # kids: a kurta to the thigh, short-ish sleeves
         hem = zh - 0.02 * H
-        off = lerp_off([(z_collar, 0.014), (body.z_shoulder, 0.020), (zw, 0.030), (hem, 0.040)])
-        sleeve = (0.75, 0.022, 0.016)
-        flare, taper = 0.030, 1.0
+        off = lerp_off([(z_collar, 0.007), (body.z_shoulder, 0.008), (zw, 0.011), (zh, 0.018), (hem, 0.022)])
+        sleeve = (0.75, 0.008, 0.006)
+        flare, taper, slit = 0.0, 1.0, 0.04
     if skirted:
-        rings, isp, _ = skirted_rings(body, z_collar, hem, 0.013, off, flare, taper, extra=extra, key='top')
+        rings, isp, levels_top = skirted_rings(body, z_collar, hem, 0.013, off, flare, taper, extra=extra, key='top', slit=slit)
         loft_skirted(body, top, rings, isp, key='top')
         top_rings = rings
     else:
         top_rings = torso_levels(body, z_collar, hem, 0.013, off)
+        levels_top = [r[0][2] for r in top_rings]
         top.ring_loft(top_rings, 'torso')
     for side in ('l', 'r'):
-        top.ring_loft(sleeve_rings(body, side, sleeve[0], sleeve[1], sleeve[2]), 'sleeve_' + side)
+        srings, ssurf = sleeve_rings(body, side, sleeve[0], sleeve[1], sleeve[2])
+        b0 = top.ring_loft(srings, 'sleeve_' + side)
+        for i, ring in enumerate(ssurf):
+            for j in range(len(ring)):
+                top.anchor[b0 + i * len(ring) + j] = tuple(ring[j])
     out.append(top)
 
     # ---- trousers / salwar / skirt
     bottom = Mesh('bottom')
-    if outfit in ('kurta', 'kids'):
-        boff = lerp_off([(zw, 0.010), (zh, 0.030), (zk + 0.05, 0.036), (zk - 0.05, 0.034), (za + 0.05, 0.018), (za + 0.01, 0.014)])
+    if outfit in ('kurta', 'kids'):       # straight pyjama: loose at the thigh, tapering to a close ankle
+        ks = 0.85 if outfit == 'kids' else 1.0       # a child's pyjama is cut a little closer in absolute terms
+        boff = lerp_off([(zw, -0.004), (zw - 0.04, 0.008 * ks), (zh, 0.021 * ks), (zh - 0.12, 0.020 * ks), (zk + 0.16, 0.018 * ks), (zk + 0.06, 0.020 * ks), (zk - 0.02, 0.020 * ks), (zk - 0.09, 0.014 * ks), (za + 0.12, 0.010 * ks), (za + 0.01, 0.007 * ks)])
         for side in ('l', 'r'):
             lv = leg_levels(body, side, zw, za + 0.012, 0.015, boff, extra=extra)
             bottom.ring_loft(lv, 'leg_' + side, key='leg_' + side)
-    elif outfit == 'salwar':
-        boff = lerp_off([(zw, 0.012), (zh + 0.01, 0.050), (zh - 0.08, 0.058), (zk, 0.046), (za + 0.14, 0.022), (za + 0.04, 0.012), (za + 0.01, 0.012)])
+    elif outfit == 'salwar':             # salwar: easy at the thigh, drawn in over the shin to a close ankle
+        boff = lerp_off([(zw, -0.004), (zw - 0.04, 0.010), (zh + 0.01, 0.024), (zh - 0.08, 0.025), (zk + 0.03, 0.020), (zk - 0.05, 0.016), (za + 0.14, 0.011), (za + 0.04, 0.007), (za + 0.01, 0.006)])
         for side in ('l', 'r'):
             lv = leg_levels(body, side, zw, za + 0.012, 0.015, boff, extra=extra)
             bottom.ring_loft(lv, 'leg_' + side, key='leg_' + side)
     elif outfit == 'saree':
         sk_top = zh + 0.11 * H
-        boff = lerp_off([(sk_top, 0.022), (zh + 0.02, 0.038), (zk, 0.050), (za + 0.02, 0.055), (za, 0.056)])
-        sk_rings, sk_isp, sk_levels = skirted_rings(body, sk_top, za + 0.012, 0.015, boff, 0.03, 0.70, extra=extra, key='skirt')
+        boff = lerp_off([(sk_top, 0.010), (zh + 0.02, 0.014), (zk, 0.016), (za + 0.02, 0.018), (za, 0.018)])
+        sk_rings, sk_isp, sk_levels = skirted_rings(body, sk_top, za + 0.012, 0.015, boff, 0.0, 0.45, extra=extra, key='skirt')
         loft_skirted(body, bottom, sk_rings, sk_isp, key='skirt')
     out.append(bottom)
 
@@ -774,11 +847,12 @@ def build_garments(key, spec, body, extra=None):
     def hem_band(rings, levels, z_lo, z_hi, grow):
         band = [inflate(r, grow) for r, z in zip(rings, levels) if z_lo - 1e-6 <= z <= z_hi + 1e-6]
         for side in ('l', 'r'):
-            trim.ring_loft([inflate(r, 0.003) for r in band] if side == 'r' else band, 'pan_' + side, cols=arc_cols(body, len(band[0]), side), close=True)
+            rs = [inflate(r, 0.003) for r in band] if side == 'r' else band
+            trim.ring_loft(rs, 'pan_' + side, cols=arc_cols(body, len(band[0]), side), close=True)
     if outfit == 'saree':
         hem_band(sk_rings, sk_levels, za + 0.012, za + 0.05, 0.004)
     if outfit == 'salwar':
-        hem_band(top_rings, [r[0][2] for r in top_rings], hem, hem + 0.04, 0.004)
+        hem_band(top_rings, levels_top, hem, hem + 0.04, 0.004)
     # ---- wrap: the dupatta (woman) and the pallu (elder), draped bands with thickness and soft folds
     if outfit in ('salwar', 'saree'):
         assert body.sx > 0, 'the wrap path assumes +x is the character\'s left'
@@ -816,10 +890,128 @@ def build_garments(key, spec, body, extra=None):
     return out
 
 
+# ---------------------------------------------------------------- fit report (garment against body, rest pose)
+
+def _perimeter(pts2, centre, n=48):
+    """Length of the smoothed outline of 2D points around `centre` (polar_ring's outline), metres."""
+    r = polar_ring(pts2, centre, n)
+    a = angles(n)
+    P = np.stack([centre[0] + r * np.cos(a), centre[1] + r * np.sin(a)], axis=1)
+    return float(np.linalg.norm(P - np.roll(P, 1, axis=0), axis=1).sum())
+
+def _slice_perimeter(body, origin, dirs):
+    """Length of the skin's true section (rays from `origin` along the unit vectors `dirs`), metres; None if a ray misses."""
+    pts = []
+    for d in dirs:
+        hit = body.bvh.ray_cast(Vector(origin), Vector(d), 0.4)
+        if hit[0] is None:
+            return None
+        pts.append(np.array(hit[0]))
+    P = np.array(pts)
+    return float(np.linalg.norm(P - np.roll(P, 1, axis=0), axis=1).sum())
+
+def fit_report(key, body, meshes, say=print):
+    """Circumference of each garment against the skin under it at chest, waist, hip, hem and upper arm and forearm, in the
+    T-pose (cm and ratio). A ratio of 1.10 means the garment is 10 % longer around than the body, about 1.6 cm of offset all
+    round at the chest. Prints one FITM line per measure and returns {name: (body_cm, garment_cm)}."""
+    H = body.H
+    res = {}
+    def band(V, z, dz=0.012):
+        return V[np.abs(V[:, 2] - z) < dz]
+    def torso_pair(role, tags, z, dz=0.012, skin_mask=None):
+        m = meshes.get(role)
+        if m is None:
+            return
+        V = np.array(m.v)
+        sel = np.array([t in tags for t in m.tag])
+        g = band(V[sel], z, dz)
+        sk = band(body.V[skin_mask if skin_mask is not None else body.trunk], z, dz)
+        if len(g) < 3 or len(sk) < 3:
+            return
+        c = np.array([0.0, (sk[:, 1].min() + sk[:, 1].max()) / 2])
+        return 100 * _perimeter(sk[:, :2], c), 100 * _perimeter(g[:, :2], c)
+    zw = body.z_hip + 0.05 * H
+    top_tags = ('torso', 'pan_l', 'pan_r')
+    zhip = max(np.arange(body.z_hip - 0.14, body.z_hip + 0.02, 0.01), key=lambda z: _perimeter(band(body.V[body.trunk], z)[:, :2], np.array([0.0, (band(body.V[body.trunk], z)[:, 1].min() + band(body.V[body.trunk], z)[:, 1].max()) / 2]))) if True else 0
+    for name, z, role, tags in (('chest', body.z_shoulder - 0.10 * H, 'top', top_tags), ('waist', zw, 'top', top_tags), ('hip', zhip, 'top', top_tags)):
+        r = torso_pair(role, tags, z)
+        if r:
+            res[name] = r
+    # the hem: the top's lowest ring against the widest part of the skin (hips and thighs together)
+    m = meshes.get('top')
+    if m is not None:
+        V = np.array(m.v)
+        sel = np.array([t in top_tags for t in m.tag])
+        zlow = V[sel][:, 2].min()
+        g = band(V[sel], zlow + 0.17, 0.01)         # above the longest side slit, where the ring is whole
+        sk = band(body.V[body.trunk], zhip, 0.012)
+        if len(g) > 3 and len(sk) > 3:
+            c = np.array([0.0, (sk[:, 1].min() + sk[:, 1].max()) / 2])
+            res['hem +17cm'] = (100 * _perimeter(sk[:, :2], c), 100 * _perimeter(g[:, :2], c))
+    # sleeves: x runs along the arm in the T-pose
+    for side in ('l',):
+        sgn = body.side[side]
+        arm = np.array([d.endswith('_' + side) and d.startswith(('upperarm', 'lowerarm', 'hand')) for d in body.dom]) & (body.V[:, 0] * sgn > 0)
+        x0 = abs(body.bone['upperarm_' + side][0][0])
+        xe = abs(body.bone['lowerarm_' + side][0][0])
+        xw = abs(body.bone['hand_' + side][0][0])
+        sm = meshes.get('top')
+        if sm is None:
+            continue
+        V = np.array(sm.v)
+        sel = np.array([t == 'sleeve_' + side for t in sm.tag])
+        xmax = np.abs(V[sel][:, 0]).max()
+        xs = np.unique(np.round(np.abs(V[sel][:, 0]), 4))          # the sleeve's rings run along x
+        for name, x in (('upperarm', x0 + 0.40 * (xe - x0)), ('elbow', xe), ('forearm', xe + 0.55 * (xw - xe))):
+            if x > xmax - 0.005:
+                continue
+            xr = xs[np.argmin(np.abs(xs - x))]
+            g = V[sel & (np.abs(np.abs(V[:, 0]) - xr) < 0.001)][:, 1:3]
+            sk = body.V[arm & (np.abs(np.abs(body.V[:, 0]) - xr) < 0.012)][:, 1:3]
+            if len(g) < 3 or len(sk) < 3:
+                continue
+            c = sk.mean(axis=0)
+            dirs = [(0.0, math.cos(t), math.sin(t)) for t in angles(72)]
+            pk = _slice_perimeter(body, (sgn * xr, c[0], c[1]), dirs)
+            res['sleeve ' + name] = (100 * (pk if pk else _perimeter(sk, c, 36)), 100 * _perimeter(g, c, 36))
+    bm = meshes.get('bottom')
+    if bm is not None and any(t == 'torso' for t in bm.tag):       # a skirt (the saree): both legs inside one outline
+        V = np.array(bm.v)
+        sel = np.array([t in top_tags for t in bm.tag])
+        zlow = V[sel][:, 2].min()
+        for name, z in (('skirt hip', zhip), ('skirt knee', body.z_knee), ('skirt hem', zlow + 0.01)):
+            g = band(V[sel], z, 0.01)
+            sk = band(body.V[body.trunk], min(z, body.z_ankle + 0.1) if name == 'skirt hem' else z, 0.012)
+            if len(g) > 3 and len(sk) > 3:
+                c = np.array([0.0, (sk[:, 1].min() + sk[:, 1].max()) / 2])
+                res[name] = (100 * _perimeter(sk[:, :2], c), 100 * _perimeter(g[:, :2], c))
+    elif bm is not None and body.sx:
+        # trousers: one leg, thigh / knee / ankle
+
+        sd = 'l'
+        leg = np.array([d.endswith('_' + sd) and d.startswith(('thigh', 'calf')) for d in body.dom])
+        V = np.array(bm.v)
+        sel = np.array([t in ('leg_' + sd, 'pan_' + sd, 'torso') for t in bm.tag])
+        for name, z in (('thigh', body.z_crotch - 0.05), ('knee', body.z_knee), ('calf', body.z_knee - 0.5 * (body.z_knee - body.z_ankle)), ('ankle', body.z_ankle + 0.06)):
+            g = band(V[sel], z, 0.01)
+            sk = band(body.V[leg], z, 0.012)
+            if len(g) < 3 or len(sk) < 3:
+                continue
+            g = g[g[:, 0] * body.side[sd] > -0.02]
+            c = sk[:, :2].mean(axis=0)
+            dirs = [(math.cos(t), math.sin(t), 0.0) for t in angles(72)]
+            pk = _slice_perimeter(body, (c[0], c[1], z), dirs)
+            res['bottom ' + name] = (100 * (pk if pk else _perimeter(sk[:, :2], c, 36)), 100 * _perimeter(g[:, :2], c, 36))
+    for name, (b, g) in res.items():
+        say('FITM %s %-16s body %6.1f cm  garment %6.1f cm  ratio %.3f  (+%.1f cm radius)' % (key, name, b, g, g / b, (g - b) / (2 * math.pi)))
+    return res
+
 # ---------------------------------------------------------------- weights
 
 CALF_LEAD = float(arg('--calf-lead', '0'))
 PANEL_THIGH_ONLY = '--panel-thigh-only' in argv   # panels of a kurta or kameez hang from the thigh alone (they end above the knee)
+SLEEVE_PASSES = int(arg('--sleeve-passes', '3'))
+LEG_PASSES = int(arg('--leg-passes', '16'))   # smoothing passes of the trousers' weights: fewer follow the skin more closely at the knee
 LEG_SHARE = float(arg('--leg-share', '1.0'))   # how much of its leg's motion a panel takes below the hip (the rest stays with the pelvis, as hanging cloth lags)
 
 def skin_copy(p, body, tree=None, k=4):
@@ -859,6 +1051,8 @@ def weight_garment(obj, body, mesh, spec, passes=16):
     MW = BASE.matrix_world.copy()
     for i, v in enumerate(me.vertices):
         p = MW @ Vector(v.co)
+        if i in mesh.anchor:
+            p = Vector(mesh.anchor[i])
         tag = mesh.tag[i] if i < len(mesh.tag) else None
         if tag and tag.startswith(('leg_', 'pan_')):
             ws = leg_weights(p, body, tag[-1], LEG_SHARE if tag.startswith('pan_') else 1.0, tag.startswith('pan_') and mesh.role != 'bottom' and PANEL_THIGH_ONLY)
@@ -874,7 +1068,7 @@ def weight_garment(obj, body, mesh, spec, passes=16):
                     nbr[a].add(b)
     # sleeves take the skin's own weights almost as they are (3 passes): the more they are smoothed the further their hand-over
     # at the elbow lags the skin's, and the skin shows through the inside of the bend
-    frozen_after = {i: 3 for i in range(n) if i < len(mesh.tag) and mesh.tag[i] and mesh.tag[i].startswith('sleeve_')}
+    frozen_after = {i: SLEEVE_PASSES for i in range(n) if i < len(mesh.tag) and mesh.tag[i] and mesh.tag[i].startswith('sleeve_')}
     for it in range(passes):
         W2 = []
         for i in range(n):
@@ -971,8 +1165,31 @@ def hair_cap(body, ze, sc, thick, back_drop=0.0, front=0.065, side=0.02, back=-0
             lift = thick * (1.0 if k < K - 2 else (0.5 if k == K - 2 else 0.05))
             ring.append((centre[0] + (r + lift) * math.cos(a[j]), centre[1] + (r + lift) * math.sin(a[j]), z))
         rows.append(np.array(ring))
+    # The crown. The loft above ends in a flat disc at z_top - 4 mm, which is BELOW the skull's summit: the scalp came through it
+    # as a bald spot (SPEC 16.6.9). Close the top with a dome over the whole skull instead, at least 0.9 of the hair's thickness
+    # clear of the skin everywhere, then fan it to one apex vertex.
+    z0 = z_top - 0.004
+    Rd = rows[0][:, :2] - np.array([centre[0], centre[1]])
+    Rd = np.hypot(Rd[:, 0], Rd[:, 1])                       # the loft's first ring, per column (already skin outline + hair thickness)
+    for _ in range(3):                                       # the skin's outline is a little ragged: a smooth crown, never inside it
+        Rd = np.maximum(0.25 * np.roll(Rd, 1) + 0.5 * Rd + 0.25 * np.roll(Rd, -1), Rd * 0.99)
+    need = 0.012
+    px = pts[:, 0] - centre[0]
+    py = pts[:, 1] - centre[1]
+    pr = np.hypot(px, py)
+    pa = np.arctan2(py, px)
+    cols = ((pa + math.pi) / (2 * math.pi) * n).astype(int) % n
+    for v in range(len(pts)):
+        if pts[v, 2] < z0 - 0.03:
+            continue
+        rr = min(pr[v] / Rd[cols[v]], 0.985)
+        need = max(need, (pts[v, 2] + 0.9 * thick - z0) / math.sqrt(1 - rr * rr))
+    dome = []
+    for ph in (80, 66, 52, 38, 24, 11):
+        c, sn = math.cos(math.radians(ph)), math.sin(math.radians(ph))
+        dome.append(np.array([(centre[0] + Rd[j] * c * math.cos(a[j]), centre[1] + Rd[j] * c * math.sin(a[j]), z0 + need * sn) for j in range(n)]))
     m = Mesh('hair')
-    base_i = m.ring_loft(rows, 'cap')
+    base_i = m.ring_loft(dome + rows, 'cap')
     m.cap(base_i, n, top=True)
     return m
 
@@ -999,9 +1216,9 @@ def build_hair_parts(key, spec, body, ze):
     sc = hl / 0.22
     out = []
     if style == 'crop':
-        out.append((hair_cap(body, ze, sc, 0.012, front=0.06, side=0.012, back=-0.05), 'head'))
+        out.append((hair_cap(body, ze, sc, 0.010, front=0.06, side=0.012, back=-0.05), 'head'))
     elif style == 'braid':
-        out.append((hair_cap(body, ze, sc, 0.012, front=0.063, side=0.0, back=-0.075), 'head'))
+        out.append((hair_cap(body, ze, sc, 0.010, front=0.063, side=0.0, back=-0.075), 'head'))
         pts = body.V[body.is_head]
         yb = float(pts[:, 1].max())
         z0 = ze - 0.06 * sc
@@ -1014,11 +1231,11 @@ def build_hair_parts(key, spec, body, ze):
             path.append((0.0, yy, z))
         out.append((tube_mesh(path, 0.026 * sc, 'braid', 10, lambda t: 1.0 - 0.55 * t * t), ('spine', zs[0], zs[-1])))
     elif style == 'bun':
-        out.append((hair_cap(body, ze, sc, 0.012, front=0.06, side=0.012, back=-0.06), 'head'))
+        out.append((hair_cap(body, ze, sc, 0.010, front=0.06, side=0.012, back=-0.06), 'head'))
         pts = body.V[body.is_head]
         out.append((sphere_mesh((0.0, float(pts[:, 1].max()) + 0.015 * sc, ze + 0.045 * sc), (0.062 * sc, 0.055 * sc, 0.05 * sc), 'bun'), 'head'))
     elif style == 'pigtails':
-        out.append((hair_cap(body, ze, sc, 0.012, front=0.06, side=0.02, back=-0.04), 'head'))
+        out.append((hair_cap(body, ze, sc, 0.010, front=0.06, side=0.02, back=-0.04), 'head'))
         pts = body.V[body.is_head]
         for sgn in (-1, 1):
             path = [(sgn * 0.10 * sc, float(pts[:, 1].min() * 0.25 + pts[:, 1].max() * 0.75) + 0.02 * i * 0.3, ze + 0.045 * sc - 0.034 * sc * i) for i in range(6)]
@@ -1359,6 +1576,9 @@ def render_sheets(key, rig, body, objs, final):
         for o in final.values():
             for m in o.data.materials:
                 m.diffuse_color = m.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value
+    for role in (arg('--hide') or '').split(','):
+        if role in final:
+            final[role].hide_render = True
     H = body.H
     hips_scale = float(rig.data.bones['pelvis'].head_local[2]) / samples['restPos']['DEF-hips'][1]
     os.makedirs(SHEETS, exist_ok=True)
@@ -1391,6 +1611,13 @@ def render_sheets(key, rig, body, objs, final):
             zoom = [float(x) for x in argv[argv.index('--zoom') + 1:argv.index('--zoom') + 4]] if '--zoom' in argv else None
             point_cam(cam, (zoom[2] if zoom else 0.0, 0.0, zoom[0] if zoom else lower[0]), yaw, el, 6.0, zoom[1] if zoom else lower[1])
             scn.render.filepath = os.path.join(SHEETS, '%s%s__rest__%s__%02d.png' % (SHEET_TAG, key, view, 0))
+            bpy.ops.render.render(write_still=True)
+    if 'head' in which:      # the head from every side, above included: where a bald spot would show
+        reset_pose(rig)
+        zt = body.zmax - 0.11 * H / 1.7
+        for i, (view, yaw, el) in enumerate([('top', 180, 87), ('backhigh', 180, 40), ('back', 180, 5), ('side', 270, 5), ('front34', 330, 10), ('sidehigh', 250, 45)]):
+            point_cam(cam, (0.0, 0.0, zt), yaw, el, 6.0, 0.62 * H / 1.7)
+            scn.render.filepath = os.path.join(SHEETS, '%s%s__head__v__%02d.png' % (SHEET_TAG, key, i))
             bpy.ops.render.render(write_still=True)
     if 'walk' in which:
         run('walk', 'Walk_Loop', list(range(12)), [SIDE, BACK], lower)
@@ -1450,6 +1677,9 @@ def skin_distance(bvh, P):
 LAYERS = {'bottom': [], 'top': ['bottom'], 'wrap': ['bottom', 'top']}
 RESTPOS = {}
 ARM_MASK = None
+IS_HEAD = None
+SLEEVE_IDX = []
+SLEEVE_X = []
 LEG_MASK = None
 HIDDEN_ABOVE = {}   # role -> height above which the layer is covered by the garment over it, so is not checked
 
@@ -1540,18 +1770,45 @@ def report_clearance(key, res, labels, body, margin=0.004, final=None):
                 i = idx[q]
                 print('   WORST', r, i, '%.0f mm' % (worst[q] * 1000), labels[1:][int(adj[q].argmin())], 'rest', tuple(round(float(x), 3) for x in RESTPOS[r][i]))
 
+def measure_sleeves(rig, final, samples, hips_scale, body, say=print):
+    """Signed distance of every sleeve vertex to the skin of the arms (outside positive) in every clip pose, worst per distance
+    along the arm: where the skin comes through the sleeve."""
+    poses = [p for p in all_poses(samples) if p[0].startswith(('walk', 'idle', 'sit'))]
+    top = final['top']
+    tags = None
+    worst = {}
+    for label, clip, fi, straight, lie in poses:
+        reset_pose(rig)
+        pose_sample(rig, samples[clip]['frames'][fi], hips_scale, legs_straight=straight)
+        Ps, polys = eval_world(final['skin'])
+        polys = [pl for pl in polys if sum(1 for v in pl if ARM_MASK[v] and not IS_HEAD[v]) >= 3]
+        bvh = BVHTree.FromPolygons([tuple(p) for p in Ps], polys)
+        Pt, _ = eval_world(top)
+        for i in SLEEVE_IDX:
+            loc, nrm, idx, dist = bvh.find_nearest(Vector(Pt[i]))
+            d = dist if (Vector(Pt[i]) - loc).dot(nrm) >= 0 else -dist
+            xb = int(round(abs(SLEEVE_X[i]) / 0.04))
+            if d < worst.get(xb, (9, ''))[0]:
+                worst[xb] = (d, label)
+            if d < -0.02 and '--debug-sleeve' in argv:
+                g = {top.vertex_groups[ge.group].name: round(ge.weight, 2) for ge in top.data.vertices[i].groups}
+                say('  SLV %s v%d x %.3f d %.0f mm weights %s' % (label, i, SLEEVE_X[i], d * 1000, g))
+    reset_pose(rig)
+    say('SLEEVE bones x: shoulder %.2f elbow %.2f wrist %.2f' % tuple(abs(body.bone[b + '_l'][0][0]) for b in ('upperarm', 'lowerarm', 'hand')))
+    say('SLEEVE worst clearance by distance along the arm (4 cm bins, mm): ' + ' '.join('%d:%.0f(%s)' % (k, v[0] * 1000, v[1]) for k, v in sorted(worst.items())))
+
 # ---------------------------------------------------------------- fitting: grow the cloth only where a pose would push the body through it
 
 FIT_ITERS = int(arg('--fit-iters', '3'))
-FIT_POSES = ('walk', 'idle', 'lie')   # the poses the hems are fitted to; jog and sit are measured and looked at, not fitted
-FIT_CAP = {'top': 0.04, 'skirt': 0.04}   # the trouser legs are not fitted: growing them only puts a pad behind the knee
+FIT_POSES = ('walk', 'idle', 'lie', 'sit')   # the poses the cloth is fitted to; jog is measured and looked at, not fitted ('sitin' is the same legs in transit)
+FIT_CAP = {'top': 0.035, 'skirt': 0.02, 'leg_l': 0.006, 'leg_r': 0.006}   # most the fit may add: the trouser legs get 6 mm at most (more is a pad behind the knee)
 
 def make_garment_objs(key, spec, body, extra):
     """The garment parts as weighted Blender objects, [(role, object)], and their Mesh data by role."""
     made, meshes = [], {}
     for mesh in build_garments(key, spec, body, extra):
         o = make_object(mesh, mesh.role, recalc=False)
-        weight_garment(o, body, mesh, spec)
+        weight_garment(o, body, mesh, spec, passes=LEG_PASSES if mesh.role == 'bottom' else 16)
         made.append((mesh.role, o))
         meshes[mesh.role] = mesh
     return made, meshes
@@ -1644,11 +1901,13 @@ for key, spec in PEOPLE.items():
     skin = base
 
     ARM_MASK = body.is_arm | body.is_head
+    IS_HEAD = body.is_head
     LEG_MASK = np.array([d.startswith(('thigh', 'calf', 'foot', 'ball')) for d in body.dom])
     smp = json.load(open(CLIP_SAMPLES)) if CLIP_SAMPLES else None
     hs = float(rig.data.bones['pelvis'].head_local[2]) / smp['restPos']['DEF-hips'][1] if smp else 1.0
     extra = fit_garments(key, spec, body, rig, skin, smp, hs) if (smp and '--no-fit' not in argv) else {}
-    made, _ = make_garment_objs(key, spec, body, extra)   # (role, object)
+    made, gmeshes = make_garment_objs(key, spec, body, extra)   # (role, object)
+    fit_report(key, body, gmeshes)
     ze = float(np.array([tuple(eyes.matrix_world @ v.co) for v in eyes.data.vertices])[:, 2].mean())
     for mesh in pupils_for(eyes, 1.0):
         o = make_object(mesh, 'pupil')
@@ -1683,6 +1942,11 @@ for key, spec in PEOPLE.items():
     HIDDEN_ABOVE.clear()
     if spec['outfit'] != 'saree':
         HIDDEN_ABOVE['bottom'] = body.z_knee + 0.12
+    if '--measure-sleeves' in argv and smp:
+        tm = gmeshes['top']
+        SLEEVE_IDX = [i for i, t in enumerate(tm.tag) if t and t.startswith('sleeve')]
+        SLEEVE_X = [v[0] for v in tm.v]
+        measure_sleeves(rig, final, smp, hs, body)
     if MEASURE:
         res, labels = measure_clearance(rig, final, smp, hs)
         report_clearance(key, res, labels, body, final=final)

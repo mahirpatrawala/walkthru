@@ -14,16 +14,18 @@ describe('catalogue matches SPEC 4.4 exactly', () => {
   ] as const;
   it('starts with the seven items of the original table, in order (more follow, for Replace)', () => {
     expect(CATALOG.slice(0, 7).map((c) => c.id)).toEqual(['bed-single', 'bed-double', 'bed-queen', 'bed-king', 'sofa-3', 'dining-6', 'wardrobe-2']);
-    expect(CATALOG.slice(7).map((c) => c.id)).toEqual(['sofa-2', 'sofa-l', 'armchair', 'wardrobe-3', 'wardrobe-4', 'study-table', 'side-table']);
+    expect(CATALOG.slice(7, 14).map((c) => c.id)).toEqual(['sofa-2', 'sofa-l', 'armchair', 'wardrobe-3', 'wardrobe-4', 'study-table', 'side-table']);
   });
   it('every catalogue id is unique and every footprint, height and surface is positive with the surface under the top', () => {
     expect(new Set(CATALOG.map((c) => c.id)).size).toBe(CATALOG.length);
-    for (const c of CATALOG) {
+    // the original fourteen; the rows after them (a yoga mat, a floor drain, a shower rail) have their own checks in catalog-more.test.ts
+    for (const c of CATALOG.slice(0, 14)) {
       expect(c.footprint.w).toBeGreaterThan(0.3);
       expect(c.footprint.d).toBeGreaterThan(0.3);
       expect(c.heightM).toBeGreaterThan(0.4);
       expect(c.surfaceHeightM).toBeLessThanOrEqual(c.heightM);
     }
+    for (const c of CATALOG) expect(c.surfaceHeightM).toBeLessThanOrEqual(c.heightM);
   });
   for (const [id, name, label, fw, fd, iw, idp] of beds) {
     it(id, () => {
