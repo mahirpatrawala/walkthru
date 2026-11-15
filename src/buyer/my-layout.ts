@@ -34,9 +34,10 @@ export const OVERLAY_NOTE = 'Your layout is a private try-out on this device. Th
  */
 export function isBuiltIn(
   item: Pick<FurnitureItem, 'id' | 'kind' | 'source'>,
-  scene: { origin: 'real' | 'sample' | 'video'; designed: ReadonlySet<string> },
+  scene: { origin: 'real' | 'sample' | 'video' | 'upload'; designed: ReadonlySet<string> },
 ): boolean {
-  if (scene.origin !== 'real') return false;
+  // a plan the visitor uploaded is a real drawing too: its wardrobes and counters are the drawing's own fixed work
+  if (scene.origin !== 'real' && scene.origin !== 'upload') return false;
   if (item.source !== 'real') return false;
   return scene.designed.has(item.id) || item.kind === 'wardrobe' || item.kind === 'counter';
 }
