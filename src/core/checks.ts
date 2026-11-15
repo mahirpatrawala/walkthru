@@ -1,6 +1,9 @@
 // Body checks (SPEC 4.7). Pure. Copy is exactly as in 2.1.
 import type { BedFit, CheckCard, FurnitureItem } from '../types';
 import { specFor } from './catalog';
+import { fixtureSizeNote } from './fixtures';
+import { chainLengthM, pieceRule, swingReachM, swingZone } from './pieces';
+import { zoneNeedM } from './clearance';
 
 /** Whole centimetres, never -0. */
 function cm(m: number): number {
@@ -96,8 +99,91 @@ export function dimensionsCard(item: FurnitureItem): CheckCard {
   };
 }
 
-/** The card for the item's pose, by kind. */
-export function checkFor(item: FurnitureItem, heightM: number): CheckCard {
+/** The lines of the "see dimensions" card of a piece with zones: what it needs, and the one dimension that was assumed. */
+function zoneLines(item: FurnitureItem, ceilingM: number): string[] {
+  const rule = pieceRule(item.catalogId);
+  if (!rule) return [];
+  const spec = specFor(item);
+  const out: string[] = [];
+  for (const z of rule.zones ?? []) {
+    if (z.swing) continue;
+    out.push(`Needs ${cm(zoneNeedM(z, spec, z.sides[0], ceilingM))} cm clear ${z.where} (${z.assumption}).`);
+  }
+  if (rule.mountY) out.push(`Fixed to the wall, its underside ${cm(rule.mountY)} cm above the floor.`);
+  return out;
+}
+
+function sourceFooter(item: FurnitureItem, rule: ReturnType<typeof pieceRule>): string | undefined {
+  const fx = fixtureSizeNote(item.id);
+  if (fx) return rule?.note ? `${fx} ${rule.note}` : fx;
+  if (rule?.note) return rule.note;
+  return item.source === 'real' ? undefined : `Standard ${specFor(item).name} size.`;
+}
+
+/** A seat on chains: seat height against the walker, how many it seats, how far it travels each way. */
+export function swingCheck(item: FurnitureItem, heightM: number, ceilingM: number): CheckCard {
+  const rule = pieceRule(item.catalogId);
+  const z = swingZone(item.catalogId);
+  const v = seatHeightVerdict(item.surfaceHeightM, heightM);
+  const variant = String(rule?.look.params?.variant ?? '');
+  const seats = variant.startsWith('chair') ? 1 : variant.endsWith('3') ? 3 : 2;
+  const lines = [v.line];
+  if (z?.swing) {
+    const L = chainLengthM(z, ceilingM);
+    const reach = swingReachM(L, z.swing.angleDeg);
+    lines.push(`Swings about ${cm(reach)} cm each way (${z.swing.angleDeg}° on ${cm(L)} cm of chain).`);
+  }
+  return {
+    title: `${item.label} · ${cm(item.box.w)} × ${cm(item.box.d)} cm`, tone: v.tone, headline: seats === 1 ? 'Seats one.' : `Seats ${seats}.`,
+    lines, footer: sourceFooter(item, rule),
+  };
+}
+
+/** The card for a catalogue piece that has a rule of its own (src/core/pieces.ts), or null. */
+function pieceCard(item: FurnitureItem, heightM: number, ceilingM: number): CheckCard | null {
+  const rule = pieceRule(item.catalogId);
+  if (!rule) return null;
+  const footer = sourceFooter(item, rule);
+  const zl = zoneLines(item, ceilingM);
+  switch (rule.pose) {
+    case 'lie': {
+      const sleep = item.inner ?? { w: item.box.w, d: item.box.d };
+      if (item.catalogId === 'yoga-mat') {
+        const spare = cm(sleep.d - heightM);
+        const tone = spare >= 15 ? 'good' : spare >= 0 ? 'warn' : 'bad';
+        return {
+          title: `${item.label} · ${cm(sleep.w)} × ${cm(sleep.d)} cm`, tone,
+          headline: spare >= 15 ? 'You fit.' : spare >= 0 ? 'Tight fit.' : 'Too short for you.',
+          lines: [spare >= 0 ? `${spare} cm to spare at ${cm(heightM)} cm tall.` : `Your feet go ${-spare} cm off the end.`, `${cm(sleep.w)} cm wide, room for one.`], footer,
+        };
+      }
+      const c = bedFit(sleep.d, sleep.w, heightM, item.label, footer ?? '').card;
+      return { ...c, lines: [...c.lines, ...zl], footer };
+    }
+    case 'sit': {
+      const c = sofaCheck(item.box.w, item.surfaceHeightM, heightM, item.label);
+      return { ...c, lines: [...c.lines, ...zl], footer };
+    }
+    case 'chair': {
+      const c = chairCheck(item.box.w, item.box.d, item.surfaceHeightM, heightM, item.label, footer ?? `Standard ${specFor(item).name} size.`);
+      return { ...c, lines: zl };
+    }
+    case 'swing': return swingCheck(item, heightM, ceilingM);
+    case 'stand': {
+      const c = counterCheck(item.surfaceHeightM, heightM, item.label);
+      return { ...c, lines: [...c.lines, ...zl], footer };
+    }
+    default: {
+      const c = dimensionsCard(item);
+      return { ...c, lines: [...zl], footer };
+    }
+  }
+}
+
+/** The card for the item's pose, by kind (a catalogue piece with a rule of its own picks its own). `ceilingM` is for a swing's chains. */
+export function checkFor(item: FurnitureItem, heightM: number, ceilingM = 2.7): CheckCard {
+  const own = pieceCard(item, heightM, ceilingM);
+  if (own) return own;
   switch (item.kind) {
     case 'bed': {
       const sleep = item.inner ?? { w: item.box.w, d: item.box.d };

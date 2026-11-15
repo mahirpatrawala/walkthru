@@ -4,6 +4,7 @@
 // Honesty (SPEC 16.2): a finish is the viewer's own choice of look. It never changes a box, a height or a fit verdict, and on a
 // piece that came with the home it is stored in "My layout" (the per-viewer overlay), never in the property.
 import type { FurnitureItem } from '../types';
+import { pieceRule } from '../core/pieces';
 
 export type SwatchGroup = 'wood' | 'laminate' | 'fabric' | 'metal' | 'bedding';
 
@@ -81,7 +82,9 @@ export const BED_STYLES: readonly StyleOption[] = [
 
 // ---------------------------------------------------------------- families and their choices
 
-export type FinishFamily = 'bed' | 'sofa' | 'wardrobe' | 'table' | 'chair';
+export type FinishFamily = 'bed' | 'sofa' | 'wardrobe' | 'table' | 'chair'
+  // the second catalogue table (src/core/catalog-more.ts): a swing, storage, appliances, a bean bag, bunk beds and cots, a plain single colour, sanitary ware
+  | 'swing' | 'storage' | 'appliance' | 'pouf' | 'bunk' | 'plain' | 'sanitary';
 export type FinishSlotKey = 'primary' | 'secondary' | 'fabric' | 'style';
 export type Finish = NonNullable<FurnitureItem['finish']>;
 
@@ -118,15 +121,46 @@ export const FAMILY_SLOTS: Record<FinishFamily, FinishSlot[]> = {
     { key: 'fabric', label: 'Seat', options: ids(swatchesIn('fabric')) },
     { key: 'primary', label: 'Legs', options: [...ids(swatchesIn('wood')), ...ids(swatchesIn('metal'))] },
   ],
+  swing: [
+    { key: 'primary', label: 'Wood', options: ids(swatchesIn('wood')) },
+    { key: 'fabric', label: 'Cushion', options: ids(swatchesIn('fabric')) },
+    { key: 'secondary', label: 'Chains', options: ids(swatchesIn('metal')) },
+  ],
+  storage: [
+    { key: 'primary', label: 'Body', options: WOODS_LAMS },
+    { key: 'secondary', label: 'Handles', options: ids(swatchesIn('metal')) },
+  ],
+  appliance: [
+    { key: 'primary', label: 'Colour', options: ['wood-white', 'lam-ivory', 'metal-steel', 'lam-charcoal', 'metal-black', 'lam-navy', 'lam-terracotta'] },
+  ],
+  pouf: [
+    { key: 'fabric', label: 'Cover', options: ids(swatchesIn('fabric')) },
+  ],
+  bunk: [
+    { key: 'primary', label: 'Frame', options: WOODS_LAMS },
+    { key: 'secondary', label: 'Bedding', options: ids(swatchesIn('bedding')) },
+  ],
+  plain: [
+    { key: 'primary', label: 'Colour', options: [...WOODS_LAMS, ...ids(swatchesIn('fabric'))] },
+  ],
+  sanitary: [
+    { key: 'secondary', label: 'Fittings', options: ids(swatchesIn('metal')) },
+  ],
 };
 
-export const FAMILY_NAMES: Record<FinishFamily, string> = { bed: 'bed', sofa: 'sofa', wardrobe: 'wardrobe', table: 'table', chair: 'chair' };
+export const FAMILY_NAMES: Record<FinishFamily, string> = {
+  bed: 'bed', sofa: 'sofa', wardrobe: 'wardrobe', table: 'table', chair: 'chair', swing: 'swing', storage: 'storage unit', appliance: 'appliance', pouf: 'bean bag',
+  bunk: 'bed', plain: 'piece', sanitary: 'fitting',
+};
 
 /**
  * Which choices a piece has. A kitchen counter has none: it is a fitted platform with a stone top, not a piece of loose
  * furniture, so it gets no "Change look".
  */
 export function finishFamily(item: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }): FinishFamily | null {
+  // a piece of the second catalogue table names its own family (or none)
+  const rule = pieceRule(item.catalogId);
+  if (rule) return rule.family;
   switch (item.kind) {
     case 'bed': return 'bed';
     case 'wardrobe': return 'wardrobe';
@@ -230,6 +264,33 @@ const SCHEMES: Record<FinishFamily, Finish[]> = {
     { fabric: 'fab-maroon', primary: 'metal-brass' },
     { fabric: 'fab-navy', primary: 'wood-teak' },
   ],
+  swing: [
+    { primary: 'wood-teak', fabric: 'fab-mustard', secondary: 'metal-brass' },
+    { primary: 'wood-walnut', fabric: 'fab-maroon', secondary: 'metal-brass' },
+    { primary: 'wood-oak', fabric: 'fab-teal', secondary: 'metal-steel' },
+    { primary: 'wood-wenge', fabric: 'fab-beige', secondary: 'metal-black' },
+    { primary: 'wood-white', fabric: 'fab-navy', secondary: 'metal-rose' },
+  ],
+  storage: [
+    { primary: 'wood-walnut', secondary: 'metal-brass' },
+    { primary: 'wood-oak', secondary: 'metal-black' },
+    { primary: 'lam-ivory', secondary: 'metal-steel' },
+    { primary: 'wood-teak', secondary: 'metal-brass' },
+    { primary: 'lam-charcoal', secondary: 'metal-rose' },
+    { primary: 'lam-sage', secondary: 'metal-brass' },
+  ],
+  appliance: [
+    { primary: 'wood-white' }, { primary: 'metal-steel' }, { primary: 'lam-charcoal' }, { primary: 'lam-ivory' }, { primary: 'lam-navy' },
+  ],
+  pouf: [{ fabric: 'fab-teal' }, { fabric: 'fab-mustard' }, { fabric: 'fab-grey' }, { fabric: 'fab-maroon' }, { fabric: 'fab-navy' }],
+  bunk: [
+    { primary: 'wood-oak', secondary: 'bed-sage' }, { primary: 'wood-white', secondary: 'bed-blush' }, { primary: 'lam-navy', secondary: 'bed-grey' },
+    { primary: 'wood-teak', secondary: 'bed-cream' }, { primary: 'lam-sage', secondary: 'bed-teal' },
+  ],
+  plain: [
+    { primary: 'lam-terracotta' }, { primary: 'lam-sage' }, { primary: 'lam-charcoal' }, { primary: 'wood-teak' }, { primary: 'fab-teal' },
+  ],
+  sanitary: [{ secondary: 'metal-steel' }, { secondary: 'metal-black' }, { secondary: 'metal-brass' }, { secondary: 'metal-rose' }],
 };
 
 /** A coherent combination for the family, never the one in `current`. `rand` is Math.random unless a test injects one. */

@@ -4,6 +4,7 @@ import type { EdgeFrame, FurnitureItem, Grid, Layout, Vec2 } from '../types';
 import { createGrid, cloneGrid, cellCentre } from './grid-codec';
 import { boxCorners, pointInBox, pointInPolygon } from './geometry';
 import { computeEdgeFrames, computeTunnels, computeWallPieces } from './layout-geom';
+import { pieceRule } from './pieces';
 
 /** Visit every cell whose centre lies in the plan bounding box of `pts`. */
 function forCellsIn(grid: Grid, pts: Vec2[], fn: (k: number, c: Vec2) => void): void {
@@ -94,10 +95,18 @@ export function rasterizeLayout(layout: Layout): Grid {
   return grid;
 }
 
+/** A mat, a floor drain or a squat pan is flat on the floor, and a shower head or a geyser hangs above head height: nobody bumps into them. */
+function walkOver(it: FurnitureItem): boolean {
+  if (it.heightM < 0.06) return true;
+  const rule = pieceRule(it.catalogId);
+  return !!rule?.mountY && rule.mountY >= 1.7;
+}
+
 /** A copy of the grid with every item's box stamped at its height in cm (20..250). */
 export function stampFurniture(grid: Grid, items: FurnitureItem[]): Grid {
   const out = cloneGrid(grid);
   for (const it of items) {
+    if (walkOver(it)) continue;
     const v = Math.max(20, Math.min(250, Math.round(it.heightM * 100)));
     forCellsIn(out, boxCorners(it.box), (k, c) => {
       if (pointInBox(c, it.box)) out.cells[k] = v;

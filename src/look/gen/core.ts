@@ -131,3 +131,9 @@ export function shade(m: MatSpec, k: number): MatSpec {
   const c = new THREE.Color(m.tint).multiplyScalar(k);
   return { key: m.key, tint: `#${c.getHexString()}` };
 }
+
+/** a role's spec, else `fallback` (a plain material: glass, chrome, ceramic) when no pack, sheet or viewer named one */
+export function roleOr(roles: Roles, fallback: MatSpec, ...names: string[]): MatSpec {
+  for (const n of names) if (roles[n]) return roles[n];
+  return fallback;
+}

@@ -1,4 +1,6 @@
 import type { AccessRule, Box, CatalogItem, FurnitureItem, FurnitureKind, Side } from '../types';
+import { MORE_ROWS } from './catalog-more';
+import { pieceRule } from './pieces';
 
 const BED_ACCESS: AccessRule[] = [{ sides: ['left', 'right'], minM: 0.6, mode: 'any' }];
 const BED_WORDS: Record<Side, string> = {
@@ -81,6 +83,8 @@ export const CATALOG: CatalogItem[] = [
     footprint: { w: 0.45, d: 0.45 }, heightM: 0.55, surfaceHeightM: 0.55,
     access: [], sideWords: { ...SOFA_WORDS },
   },
+  // ---- the rows added after that table (src/core/catalog-more.ts): swings, more seating, beds, storage, tables, kitchen, bathroom, kids, balcony, fitness
+  ...MORE_ROWS,
 ];
 
 /** Defaults for broker-tagged real items (SPEC 4.4). */
@@ -136,6 +140,12 @@ export function specFor(item: FurnitureItem): CatalogItem {
 
 let seq = 0;
 
+/** The ceiling a "ceiling-height" piece (a loft unit) is made to fit; the furnish session sets it from the home it is in. */
+let catalogCeilingM = 2.7;
+export function setCatalogCeiling(m: number): void { if (Number.isFinite(m) && m > 1.5) catalogCeilingM = m; }
+/** A ceiling-height piece stops 4 cm short of the ceiling. */
+export function fullHeightM(ceilingM: number = catalogCeilingM): number { return Math.round((ceilingM - 0.04) * 100) / 100; }
+
 /** A new furniture item from a catalogue entry. The id is unique within the session. */
 export function itemFromCatalog(id: string, box: Box, source: 'real' | 'virtual'): FurnitureItem {
   const spec = catalogItem(id);
@@ -150,6 +160,7 @@ export function itemFromCatalog(id: string, box: Box, source: 'real' | 'virtual'
     heightM: spec.heightM,
     surfaceHeightM: spec.surfaceHeightM,
   };
+  if (pieceRule(spec.id)?.fullHeight) { item.heightM = fullHeightM(); item.surfaceHeightM = item.heightM; }
   if (spec.inner) item.inner = { ...spec.inner };
   return item;
 }

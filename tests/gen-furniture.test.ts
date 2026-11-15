@@ -20,7 +20,7 @@ const imported = (kind: FurnitureItem['kind'], label: string, w: number, d: numb
   ({ id: `imp-${label}`, source: 'real', kind, label, box: box(w, d), heightM: h, surfaceHeightM: s });
 
 const ITEMS: { name: string; item: FurnitureItem }[] = [
-  ...CATALOG.map((c) => ({ name: c.id, item: itemFromCatalog(c.id, box(c.footprint.w, c.footprint.d), 'virtual') })),
+  ...CATALOG.slice(0, 14).map((c) => ({ name: c.id, item: itemFromCatalog(c.id, box(c.footprint.w, c.footprint.d), 'virtual') })),
   { name: 'imported bed 1.52 x 1.83', item: imported('bed', 'Bed', 1.52, 1.83, 0.9, 0.5) },
   { name: 'narrow bed 0.9 x 1.9', item: imported('bed', 'Bed', 0.9, 1.9, 0.8, 0.45) },
   { name: 'study 0.61 x 1.22', item: imported('counter', 'STUDY 2\'0"X4\'0"', 0.61, 1.22, 0.75, 0.75) },

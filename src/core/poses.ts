@@ -78,3 +78,18 @@ export function standPose(item: FurnitureItem, heightM: number, approach: Vec2):
     yawDeg: (box.yawDeg + 180) % 360,
   };
 }
+
+/** Sitting on a swing seat: hips a little behind the middle of the plank (the back rest is behind), at the seat spot nearest `approach` along its width. */
+export function swingSeatPose(item: FurnitureItem, heightM: number, approach: Vec2): SeatPose {
+  const box = item.box;
+  const { a, b } = boxAxes(box);
+  const m = Math.max(0, box.w / 2 - 0.3);
+  const lat = box.w < 1.1 ? 0 : clamp(lateral(item, approach), -m, m);
+  const hip = { x: box.cx - a.x * CHAIR_HIP_BACK_M + b.x * lat, z: box.cz - a.z * CHAIR_HIP_BACK_M + b.z * lat };
+  const back = SIT_HIP_BACK_RATIO * heightM;
+  return {
+    root: { x: hip.x + a.x * back, z: hip.z + a.z * back },
+    rootY: Math.max(-0.02, item.surfaceHeightM - SIT_SEAT_RATIO * heightM),
+    yawDeg: box.yawDeg,
+  };
+}

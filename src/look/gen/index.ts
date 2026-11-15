@@ -3,6 +3,7 @@
 // Every builder is a pure function (env, size, params, roles) -> THREE.Group, in metres, in the item's frame.
 import type * as THREE from 'three';
 import type { FurnitureItem } from '../../types';
+import { pieceRule } from '../../core/pieces';
 import type { GenEnv, GenSize, Roles } from './core';
 import { BED_BASES, BED_DEFAULTS, BED_HEADBOARDS, buildBed } from './bed';
 import type { BedParams } from './bed';
@@ -12,12 +13,27 @@ import { COUNTER_DEFAULTS, DRESSER_DEFAULTS, SIDE_DEFAULTS, STUDY_DEFAULTS, buil
 import type { CounterParams, DresserParams, SideParams, StudyParams } from './casegoods';
 import { HANDLE_STYLES, SHUTTER_STYLES, WARDROBE_DEFAULTS, buildWardrobe } from './wardrobe';
 import type { WardrobeParams } from './wardrobe';
+import { SWING_DEFAULTS, SWING_VARIANTS, buildSwing } from './swing';
+import type { SwingParams } from './swing';
+import { CABINET_DEFAULTS, CABINET_VARIANTS, TABLEX_DEFAULTS, TABLE_VARIANTS, TVUNIT_DEFAULTS, buildCabinet, buildTableX, buildTvUnit } from './home';
+import type { CabinetParams, TableXParams, TvUnitParams } from './home';
+import { BEDX_DEFAULTS, BEDX_VARIANTS, SEATX_DEFAULTS, SEATX_VARIANTS, buildBedX, buildSeatX } from './seatx';
+import type { BedXParams, SeatXParams } from './seatx';
+import { APPLIANCE_DEFAULTS, APPLIANCE_VARIANTS, FIT_DEFAULTS, FIT_VARIANTS, OUTDOOR_DEFAULTS, OUTDOOR_VARIANTS, buildAppliance, buildFit, buildOutdoor } from './appliance';
+import type { ApplianceParams, FitParams, OutdoorParams } from './appliance';
+import { BATH_DEFAULTS, BATH_VARIANTS, buildBath } from './bath';
+import type { BathParams } from './bath';
 
-export type LookKind = 'bed' | 'sofa' | 'bench' | 'wardrobe' | 'study' | 'side' | 'dresser' | 'counter' | 'dining';
-export const LOOK_KINDS: LookKind[] = ['bed', 'sofa', 'bench', 'wardrobe', 'study', 'side', 'dresser', 'counter', 'dining'];
+export type LookKind = 'bed' | 'sofa' | 'bench' | 'wardrobe' | 'study' | 'side' | 'dresser' | 'counter' | 'dining'
+  // the families added with the catalogue's second table (src/core/catalog-more.ts): each takes a `variant` param that names the piece
+  | 'swing' | 'tvunit' | 'cabinet' | 'tablex' | 'seatx' | 'bedx' | 'appliance' | 'fit' | 'outdoor' | 'bath';
+export const LOOK_KINDS: LookKind[] = ['bed', 'sofa', 'bench', 'wardrobe', 'study', 'side', 'dresser', 'counter', 'dining', 'swing', 'tvunit', 'cabinet', 'tablex', 'seatx', 'bedx', 'appliance', 'fit', 'outdoor', 'bath'];
 
 /** which kind of piece an item is: by `kind`, and for a counter by its label */
-export function lookKindOf(item: Pick<FurnitureItem, 'kind' | 'label'>): LookKind {
+export function lookKindOf(item: Pick<FurnitureItem, 'kind' | 'label'> & { catalogId?: string }): LookKind {
+  // a catalogue piece of the second table names its generator itself
+  const rule = pieceRule(item.catalogId);
+  if (rule) return rule.look.kind as LookKind;
   switch (item.kind) {
     case 'bed': return 'bed';
     case 'sofa': return /bench|window seat|settee/i.test(item.label ?? '') ? 'bench' : 'sofa';
@@ -89,6 +105,46 @@ export const GENERATORS: Record<LookKind, GenSpec> = {
     defaults: DINING_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildDining(e, s, p as unknown as DiningParams, r),
     enums: enumsOf(['chair', ['padded', 'slat']], ['legs', ['tapered', 'square']]),
     ranges: { chairs: [2, 8] },
+  },
+  swing: {
+    defaults: SWING_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildSwing(e, s, p as unknown as SwingParams, r),
+    enums: enumsOf(['variant', SWING_VARIANTS]), ranges: {},
+  },
+  tvunit: {
+    defaults: TVUNIT_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildTvUnit(e, s, p as unknown as TvUnitParams, r),
+    enums: enumsOf(['base', ['legs', 'plinth']], ['handle', COUNTER_HANDLES]), ranges: { tvW: [0.3, 1.8], tvH: [0.2, 1.0] },
+  },
+  cabinet: {
+    defaults: CABINET_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildCabinet(e, s, p as unknown as CabinetParams, r),
+    enums: enumsOf(['variant', CABINET_VARIANTS], ['handle', COUNTER_HANDLES]), ranges: { liftM: [0, 2.6] },
+  },
+  tablex: {
+    defaults: TABLEX_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildTableX(e, s, p as unknown as TableXParams, r),
+    enums: enumsOf(['variant', TABLE_VARIANTS], ['legs', ['square', 'tapered', 'metal']], ['handle', COUNTER_HANDLES]), ranges: {},
+  },
+  seatx: {
+    defaults: SEATX_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildSeatX(e, s, p as unknown as SeatXParams, r),
+    enums: enumsOf(['variant', SEATX_VARIANTS], ['legs', ['wood', 'metal']]), ranges: {},
+  },
+  bedx: {
+    defaults: BEDX_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildBedX(e, s, p as unknown as BedXParams, r),
+    enums: enumsOf(['variant', BEDX_VARIANTS]), ranges: {},
+  },
+  appliance: {
+    defaults: APPLIANCE_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildAppliance(e, s, p as unknown as ApplianceParams, r),
+    enums: enumsOf(['variant', APPLIANCE_VARIANTS]), ranges: { liftM: [0, 2.6] },
+  },
+  fit: {
+    defaults: FIT_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildFit(e, s, p as unknown as FitParams, r),
+    enums: enumsOf(['variant', FIT_VARIANTS]), ranges: {},
+  },
+  outdoor: {
+    defaults: OUTDOOR_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildOutdoor(e, s, p as unknown as OutdoorParams, r),
+    enums: enumsOf(['variant', OUTDOOR_VARIANTS]), ranges: {},
+  },
+  bath: {
+    defaults: BATH_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildBath(e, s, p as unknown as BathParams, r),
+    enums: enumsOf(['variant', BATH_VARIANTS]), ranges: { liftM: [0, 2.6] },
   },
 };
 

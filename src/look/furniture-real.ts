@@ -89,7 +89,7 @@ export function setItemDesigns(map: Map<string, ItemDesign> | null): void {
 /** What the drawing gave for an item's structure (bays, base height...), for the style resolver. */
 export function itemDrawing(id: string): ItemDesign | undefined { return designs.get(id); }
 /** The look an item gets under the current style, or null in the Classic style (the builders below). */
-export function resolveItemLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 'finish'>): ResolvedLook | null {
+export function resolveItemLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 'finish' | 'catalogId'>): ResolvedLook | null {
   return resolveLook(item, designs.get(item.id));
 }
 

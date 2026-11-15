@@ -10,8 +10,12 @@ import { CHAIR_PROMPT } from './seats';
 import type { Seats } from './seats';
 import { activateNearestDoor, doorNoteForBox, nearestDoorPrompt } from './door-hooks';
 import { toneColor } from './overlays';
-import { actionFor, nearestInteractable } from './store';
+import { actionFor as kindAction, nearestInteractable } from './store';
+import { pieceAction, pieceSeatPose } from './piece-actions';
 import type { PoseAction } from './store';
+
+/** The action of an item: its piece's own (a swing, a basin) or its kind's. */
+const actionFor = (item: Pick<FurnitureItem, 'kind' | 'catalogId'>): ReturnType<typeof kindAction> => pieceAction(item) ?? kindAction(item.kind);
 
 const POSE_TAG = 'pose';
 const DIMS_SHOW_MS = 6000;
@@ -67,7 +71,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
 
   const seats = extras.seats;
   const cardOf = (item: FurnitureItem, H: number) => {
-    let card = seats?.card(item, H) ?? checkFor(item, H);
+    let card = seats?.card(item, H) ?? checkFor(item, H, ctx.property.layout.wallHeightM);
     const note = card.footer ? null : extras.cardNote?.(item) ?? null;
     if (note) card = { ...card, footer: note };
     // a piece (real or placed) that sits in a door's swing says so on its card
@@ -144,7 +148,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     const item = a.item;
     const c = ctx.character;
     if (a.action === 'lie') await c.lie(liePose(item, H, a.approach));
-    else if (a.action === 'sit') await c.sit(seats?.pose(item, H) ?? seatPose(item, H, a.approach));
+    else if (a.action === 'sit') await c.sit(seats?.pose(item, H) ?? pieceSeatPose(item, H, a.approach) ?? seatPose(item, H, a.approach));
     else await c.standAt(standPose(item, H, a.approach));
   }
 
@@ -216,7 +220,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     if (doorPreferred(n) && activateNearestDoor(ctx.character.position)) { ctx.character.reach(); return 'door'; }
     if (!n) return 'none';
     if (extras.wardrobe?.activate(n.item)) { ctx.character.reach(); return 'wardrobe'; }
-    const { action } = actionFor(n.item.kind);
+    const { action } = actionFor(n.item);
     if (action === 'dims') {
       showDims(n.item);
       return 'dims';
@@ -246,7 +250,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
       promptClock = 0;
       const h = ctx.hud;
       if (active) {
-        if (active.ready) h.setPrompt(actionFor(active.item.kind).upPrompt, () => { void getUp(); });
+        if (active.ready) h.setPrompt(actionFor(active.item).upPrompt, () => { void getUp(); });
         else h.setPrompt(null);
         return;
       }
@@ -257,7 +261,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
       const door = doorPreferred(n);
       if (door) { h.setPrompt(door.prompt, () => { void interact(); }); return; }
       if (!n) { h.setPrompt(null); return; }
-      h.setPrompt(extras.wardrobe?.promptFor(n.item) ?? (seats?.isSeat(n.item) ? CHAIR_PROMPT : actionFor(n.item.kind).prompt), () => { void interact(); });
+      h.setPrompt(extras.wardrobe?.promptFor(n.item) ?? (seats?.isSeat(n.item) ? CHAIR_PROMPT : actionFor(n.item).prompt), () => { void interact(); });
     },
     interact,
     getUp,

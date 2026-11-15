@@ -212,11 +212,25 @@ export interface CheckCard { title: string; tone: Tone; headline: string; lines:
 export interface BedFit { verdict: 'fits' | 'tight' | 'too-short'; spareCm: number; sleeps: 0 | 1 | 2; card: CheckCard }
 export interface PlacementResult {
   verdict: 'fits' | 'tight' | 'blocked';
-  reason: 'ok' | 'access' | 'collides' | 'outside' | 'too-tall';
+  reason: 'ok' | 'access' | 'collides' | 'outside' | 'too-tall' | 'swing' | 'room';
   /** metres to the first non-free cell on each side, capped at 3.0 */
   clearanceM: Record<Side, number>;
   tone: Tone;
   message: string;
+  /** a piece's own clearance zones (a swing's arc, a fridge door, a recliner's footrest...), see src/core/pieces.ts; absent for pieces with none */
+  zones?: ZoneReading[];
+}
+/** One clearance zone of a piece, read against the flat: how much room it needs beyond one side and how much there is. */
+export interface ZoneReading {
+  zoneId: string;
+  side: Side;
+  needM: number;
+  haveM: number;
+  status: 'ok' | 'tight' | 'blocked';
+  /** what ends the clear run: a wall, other furniture, or nothing within the need */
+  obstacle: 'wall' | 'furniture' | null;
+  /** the swept rectangle, world metres (its depth axis points away from the piece) */
+  box: Box;
 }
 
 // ---------- poses ----------
