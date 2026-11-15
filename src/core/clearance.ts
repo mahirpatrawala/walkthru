@@ -16,6 +16,8 @@ const HOOK_NOTE = 'Hanging needs a structural hook: check with your builder.';
 const CEILING_UNKNOWN_NOTE = 'The ceiling height is not confirmed, so the chain length is an estimate.';
 
 const cm = (m: number): number => Math.round(m * 100);
+/** the assumed dimension of a zone, spoken, for a piece of this footprint */
+export const zoneAssumption = (z: Zone, fp: { w: number; d: number }): string => (typeof z.assumption === 'function' ? z.assumption(fp) : z.assumption);
 const RAD = 180 / Math.PI;
 
 export interface PieceVerdict {
@@ -31,6 +33,8 @@ export interface PieceVerdict {
 
 /** How far a zone reaches beyond the side of a piece of this size, metres. A swing's reach follows its chains and the ceiling. */
 export function zoneNeedM(z: Zone, spec: Pick<CatalogItem, 'footprint'>, side: Side, ceilingM: number): number {
+  if (z.doorOfWidth) return Math.round((z.doorOfWidth.frac * spec.footprint.w + z.needM) * 100) / 100;
+  if (z.opensToSquare) return Math.round((spec.footprint.w - spec.footprint.d + z.needM) * 100) / 100;
   if (!z.swing) return z.needM;
   const L = chainLengthM(z, ceilingM);
   const half = side === 'front' || side === 'back' ? spec.footprint.d / 2 : spec.footprint.w / 2;
@@ -123,7 +127,7 @@ export function evaluatePiece(
     const worst = readings.reduce<ZoneReading | null>((m, r) => (!m || rank[r.status] > rank[m.status] ? r : m), null);
     verdict = !worst || worst.status === 'ok' ? 'fits' : worst.status === 'tight' ? 'tight' : 'blocked';
     reason = verdict === 'fits' ? 'ok' : swingZ ? 'swing' : 'access';
-    const assume = [...new Set(zones.map((z) => z.assumption))];
+    const assume = [...new Set(zones.map((z) => zoneAssumption(z, spec.footprint)))];
     const head = `${swingZ ? 'Swing' : spec.name} needs ${listOf(zones, readings)} (${assume.join('; ')})`;
     if (verdict === 'fits') sentence = `${head}. It has that space.`;
     else {

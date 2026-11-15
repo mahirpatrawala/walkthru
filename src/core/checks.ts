@@ -3,7 +3,7 @@ import type { BedFit, CheckCard, FurnitureItem } from '../types';
 import { specFor } from './catalog';
 import { fixtureSizeNote } from './fixtures';
 import { chainLengthM, pieceRule, swingReachM, swingZone } from './pieces';
-import { zoneNeedM } from './clearance';
+import { zoneAssumption, zoneNeedM } from './clearance';
 
 /** Whole centimetres, never -0. */
 function cm(m: number): number {
@@ -103,11 +103,12 @@ export function dimensionsCard(item: FurnitureItem): CheckCard {
 function zoneLines(item: FurnitureItem, ceilingM: number): string[] {
   const rule = pieceRule(item.catalogId);
   if (!rule) return [];
-  const spec = specFor(item);
+  // the item's own footprint: a piece the viewer resized needs the space of its new size
+  const spec = { ...specFor(item), footprint: { w: item.box.w, d: item.box.d } };
   const out: string[] = [];
   for (const z of rule.zones ?? []) {
     if (z.swing) continue;
-    out.push(`Needs ${cm(zoneNeedM(z, spec, z.sides[0], ceilingM))} cm clear ${z.where} (${z.assumption}).`);
+    out.push(`Needs ${cm(zoneNeedM(z, spec, z.sides[0], ceilingM))} cm clear ${z.where} (${zoneAssumption(z, spec.footprint)}).`);
   }
   if (rule.mountY) out.push(`Fixed to the wall, its underside ${cm(rule.mountY)} cm above the floor.`);
   return out;

@@ -22,18 +22,23 @@ await MeshoptEncoder.ready; await MeshoptSimplifier.ready;
 
 const KEYS = ['man', 'woman', 'elder', 'child'];
 // meshopt simplify ratios per part: [medium, low]. The trim is never simplified (its gold borders are thin closed shells, which
-// simplification turns into teeth) and the wrap (dupatta, pallu) only a little in the low tier.
-const RATIO = { skin: [0.42, 0.16], eyes: [0.5, 0.2], pupil: [1, 0.6], brows: [1, 0.6], top: [0.5, 0.2], bottom: [0.5, 0.2], trim: [1, 1], wrap: [1, 0.7], hair: [0.8, 0.4], shoes: [0.45, 0.2] };
+// simplification turns into teeth) and the wrap (dupatta, pallu) only a little in the low tier. The hair is the crown's only cover
+// (a dome over the skull, SPEC 16.6.9), so it keeps all of its triangles in the first tier and 60 % in the low one.
+const RATIO = { skin: [0.42, 0.16], eyes: [0.5, 0.2], pupil: [1, 0.6], brows: [1, 0.6], top: [0.5, 0.2], bottom: [0.5, 0.2], trim: [1, 1], wrap: [1, 0.7], hair: [1, 0.6], shoes: [0.45, 0.2] };
 const ROUGH = { skin: 0.6, eyes: 0.2, pupil: 0.15, brows: 0.8, top: 0.9, bottom: 0.9, trim: 0.7, wrap: 0.9, hair: 0.6, shoes: 0.7 };
 const DOUBLE = new Set(['top', 'bottom', 'trim', 'wrap', 'hair']);
 
-function simplifyMesh(mesh, ratio) {
+// The error cap is a fraction of the part's own extent. It used to be 0.02 for everything, which is 3 cm on the whole-body skin and
+// let simplification push the skin out through garments cut only 6 to 12 mm off it (a hole in a sleeve, SPEC 16.6.9): the skin now
+// stops at 2 mm of its extent and the cloth at 4 mm, and a part keeps more triangles than its ratio asks if that is what it takes.
+const ERROR = { skin: 0.002 };
+function simplifyMesh(mesh, ratio, error) {
   for (const prim of mesh.listPrimitives()) {
     const pos = prim.getAttribute('POSITION');
     const idx = prim.getIndices();
     const target = Math.max(3 * 30, Math.floor((idx.getCount() * ratio) / 3) * 3);
     const src = idx.getArray() instanceof Uint32Array ? idx.getArray() : new Uint32Array(idx.getArray());
-    const [newIdx] = MeshoptSimplifier.simplify(src, pos.getArray(), 3, target, 0.02, ['LockBorder']);
+    const [newIdx] = MeshoptSimplifier.simplify(src, pos.getArray(), 3, target, error, ['LockBorder']);
     idx.setArray(newIdx.length < 65536 ? new Uint16Array(newIdx) : newIdx);
   }
 }
@@ -60,7 +65,7 @@ for (const key of KEYS) {
     await doc.transform(weld({ tolerance: 0.00001 }), dedup());
     for (const mesh of root.listMeshes()) {
       const ratio = RATIO[mesh.getName()][tier];
-      if (ratio < 1) simplifyMesh(mesh, ratio);
+      if (ratio < 1) simplifyMesh(mesh, ratio, ERROR[mesh.getName()] ?? 0.004);
     }
     await doc.transform(prune());
     await doc.transform(meshopt({ encoder: MeshoptEncoder, level: 'high' }));

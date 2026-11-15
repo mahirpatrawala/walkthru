@@ -99,7 +99,8 @@ export function checkPlacement(grid: Grid, spec: CatalogItem, box: Box, ceilingM
   const partial: Omit<PlacementResult, 'message'> = { verdict, reason, clearanceM, tone: toneFor(verdict) };
   let message = placementMessage(spec, partial, ceilingM, ceilingKnown);
   if (rule && reason !== 'too-tall' && reason !== 'outside' && reason !== 'collides') {
-    const pv = evaluatePiece(grid, spec, rule, box, ceilingM, ceilingKnown, roomType, clearanceM.back);
+    // the zones follow the box being checked (a piece the viewer resized has its own width and depth)
+    const pv = evaluatePiece(grid, { ...spec, footprint: { w: box.w, d: box.d } }, rule, box, ceilingM, ceilingKnown, roomType, clearanceM.back);
     if (pv.verdict) {
       const rank = { fits: 0, tight: 1, blocked: 2 } as const;
       const worse = rank[pv.verdict] > rank[verdict];

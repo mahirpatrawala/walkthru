@@ -38,8 +38,8 @@ export interface Zone {
   tightFrac?: number;
   /** the zone is "in front", "behind", "in front and behind", "on each side": how the need is worded */
   where: string;
-  /** the assumed dimension behind the need, spoken after it */
-  assumption: string;
+  /** the assumed dimension behind the need, spoken after it (a function of the footprint when a resized piece changes it) */
+  assumption: string | ((fp: { w: number; d: number }) => string);
   /** what happens when it is blocked and when it is tight, `{obs}` is "the wall" or "the furniture" */
   blockedText: string;
   tightText: string;
@@ -47,6 +47,10 @@ export interface Zone {
   swing?: { angleDeg: number; hang: 'ceiling' | number; seatHalfM: number; seatTopM: number; minCeilingM?: number };
   /** never less than this, whatever the arc maths gives */
   minNeedM?: number;
+  /** a door as wide as the piece (or a share of it): the need is `widthFrac * footprint width + needM` instead of a fixed number */
+  doorOfWidth?: { frac: number };
+  /** a bed that folds out to a square: the need is the footprint's width minus its depth, plus `needM` */
+  opensToSquare?: boolean;
 }
 
 export interface PieceRule {
@@ -75,6 +79,22 @@ export interface PieceRule {
   hung?: boolean;
   /** a surface the tests probe from above (x, z in the piece's frame) */
   probe?: [number, number];
+}
+
+/**
+ * Which sizes of a piece the viewer may try (the steppers of edit-all, src/buyer/resize.ts): `none` for a seat on chains, round pieces and
+ * pieces whose parts have a fixed size (a stool, a bunk bed with its ladder, a shower rail); `wd` width and depth about the catalogue size;
+ * `wdh` also the height, for storage whose shelves and doors simply stretch. A wall piece, an appliance, a fitting and a ceiling-height unit keep
+ * their standard height (a basin's rim, a geyser's base), so they never offer it.
+ */
+export type SizeMode = 'none' | 'wd' | 'wdh';
+const FIXED_SIZE = new Set(['coffee-round', 'dining-round-4', 'planter-pot', 'bar-stool', 'office-chair', 'bunk-bed', 'diwan', 'shower-over', 'shower-hand', 'balcony-chair', 'hang-chair', 'hang-chair-stand', 'bean-bag', 'floor-drain', 'yoga-mat']);
+const STRETCH_HEIGHT = new Set(['shoe-rack', 'bookshelf-narrow', 'bookshelf-wide', 'chest-drawers', 'crockery-unit', 'sideboard', 'steel-almirah']);
+export function sizeModeOf(id: string | undefined | null): SizeMode | null {
+  const r = pieceRule(id);
+  if (!r) return null;
+  if (r.look.kind === 'swing' || FIXED_SIZE.has(r.id)) return 'none';
+  return STRETCH_HEIGHT.has(r.id) ? 'wdh' : 'wd';
 }
 
 export const PIECE_RULES: Record<string, PieceRule> = Object.fromEntries(MORE_PIECES.map((p) => [p.rule.id, p.rule]));

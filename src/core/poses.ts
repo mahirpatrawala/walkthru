@@ -79,13 +79,16 @@ export function standPose(item: FurnitureItem, heightM: number, approach: Vec2):
   };
 }
 
-/** Sitting on a swing seat: hips a little behind the middle of the plank (the back rest is behind), at the seat spot nearest `approach` along its width. */
+/** How far behind the middle of a swing's seat the hips sit: a person's back rests on the swing's back rest, about 13 cm behind the hips. */
+export const SWING_HIP_BACK_M = 0.12;
+
+/** Sitting on a swing seat: hips well back on the plank (against the back rest), at the seat spot nearest `approach` along its width. */
 export function swingSeatPose(item: FurnitureItem, heightM: number, approach: Vec2): SeatPose {
   const box = item.box;
   const { a, b } = boxAxes(box);
   const m = Math.max(0, box.w / 2 - 0.3);
   const lat = box.w < 1.1 ? 0 : clamp(lateral(item, approach), -m, m);
-  const hip = { x: box.cx - a.x * CHAIR_HIP_BACK_M + b.x * lat, z: box.cz - a.z * CHAIR_HIP_BACK_M + b.z * lat };
+  const hip = { x: box.cx - a.x * SWING_HIP_BACK_M + b.x * lat, z: box.cz - a.z * SWING_HIP_BACK_M + b.z * lat };
   const back = SIT_HIP_BACK_RATIO * heightM;
   return {
     root: { x: hip.x + a.x * back, z: hip.z + a.z * back },

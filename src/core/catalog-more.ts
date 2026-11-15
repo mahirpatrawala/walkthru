@@ -58,7 +58,7 @@ const FRONT = (m: number): AccessRule => ({ sides: ['front'], minM: m, mode: 'al
 const BED_SIDES: AccessRule = { sides: ['left', 'right'], minM: 0.6, mode: 'any' };
 
 /** space in front to operate something: a door, a footrest, a drawer */
-function operate(id: string, needM: number, assumption: string, blocked: string, tight: string, opts: Partial<Zone> = {}): Zone {
+function operate(id: string, needM: number, assumption: Zone['assumption'], blocked: string, tight: string, opts: Partial<Zone> = {}): Zone {
   return { id, sides: ['front'], needM, where: 'in front', assumption, blockedText: blocked, tightText: tight, tightFrac: 0.75, ...opts };
 }
 
@@ -139,7 +139,7 @@ export const MORE_PIECES: MorePiece[] = [
     id: 'sofa-bed', name: 'Sofa-cum-bed, 3-seat', cat: 'seating', kind: 'sofa', w: 1.9, d: 0.9, h: 0.85, s: 0.43,
     label: '190 × 90 cm sofa, opens to 190 × 190 cm bed', look: 'seatx', params: { variant: 'sofabed' }, family: 'sofa', pose: 'sit', kw: 'sofa cum bed sofabed sofa bed pull out convertible guest',
     prompt: 'Sit on the sofa-bed', up: 'Get up', access: [FRONT(0.75)],
-    zones: [operate('opened', 1.0, 'opened bed 190 × 190 cm, 100 cm longer than the sofa', 'it cannot open', 'it opens most of the way', { tightFrac: 0.85, blockedText: 'it cannot fold out, {obs} is in the way' })],
+    zones: [operate('opened', 0, (fp) => `opened bed ${Math.round(fp.w * 100)} × ${Math.round(fp.w * 100)} cm, ${Math.round((fp.w - fp.d) * 100)} cm longer than the sofa`, 'it cannot open', 'it opens most of the way', { tightFrac: 0.85, blockedText: 'it cannot fold out, {obs} is in the way', opensToSquare: true })],
     note: 'Shown closed. The dotted outline is the bed opened.', probe: [0, 0.1],
   }),
   piece({
@@ -269,19 +269,19 @@ export const MORE_PIECES: MorePiece[] = [
   piece({
     id: 'fridge-1', name: 'Fridge, single door', cat: 'kitchen', kind: 'counter', w: 0.58, d: 0.67, h: 1.45, s: 1.45,
     label: '58 × 62 × 145 cm, plus 5 cm behind for air', look: 'appliance', params: { variant: 'fridge-1' }, family: 'appliance', pose: 'dims', kw: 'fridge refrigerator single door 230 litre kitchen',
-    zones: [operate('door', 0.6, 'the door is 58 cm wide, opened to 90°', 'the door will not open', 'the door opens only partway')],
+    zones: [operate('door', 0.02, (fp) => `the door is ${Math.round(fp.w * 100)} cm wide, opened to 90°`, 'the door will not open', 'the door opens only partway', { doorOfWidth: { frac: 1 } })],
     rooms: ['kitchen', 'living', 'other'], roomNote: 'is usually in the kitchen or dining area. A fridge also needs a power socket close by, which the drawing does not show.',
   }),
   piece({
     id: 'fridge-2', name: 'Fridge, double door', cat: 'kitchen', kind: 'counter', w: 0.62, d: 0.74, h: 1.65, s: 1.65,
     label: '62 × 69 × 165 cm, plus 5 cm behind for air', look: 'appliance', params: { variant: 'fridge-2' }, family: 'appliance', pose: 'dims', kw: 'fridge refrigerator double door top freezer frost free 260 litre kitchen',
-    zones: [operate('door', 0.64, 'the door is 62 cm wide, opened to 90°', 'the doors will not open', 'the doors open only partway')],
+    zones: [operate('door', 0.02, (fp) => `the door is ${Math.round(fp.w * 100)} cm wide, opened to 90°`, 'the doors will not open', 'the doors open only partway', { doorOfWidth: { frac: 1 } })],
     rooms: ['kitchen', 'living', 'other'], roomNote: 'is usually in the kitchen or dining area. A fridge also needs a power socket close by, which the drawing does not show.',
   }),
   piece({
     id: 'fridge-sbs', name: 'Fridge, side by side', cat: 'kitchen', kind: 'counter', w: 0.91, d: 0.78, h: 1.78, s: 1.78,
     label: '91 × 73 × 178 cm, plus 5 cm behind for air', look: 'appliance', params: { variant: 'fridge-sbs' }, family: 'appliance', pose: 'dims', kw: 'fridge refrigerator side by side french door large 600 litre kitchen',
-    zones: [operate('door', 0.48, 'two doors, each 45 cm wide, opened to 90°', 'the doors will not open', 'the doors open only partway')],
+    zones: [operate('door', 0.025, (fp) => `two doors, each ${Math.round(fp.w * 50)} cm wide, opened to 90°`, 'the doors will not open', 'the doors open only partway', { doorOfWidth: { frac: 0.5 } })],
     rooms: ['kitchen', 'living', 'other'], roomNote: 'is usually in the kitchen or dining area. A fridge also needs a power socket close by, which the drawing does not show.',
   }),
   piece({

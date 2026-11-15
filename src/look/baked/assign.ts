@@ -15,6 +15,12 @@ export function parseGeometryBuffer(buf: ArrayBuffer, uvElements: number): Baked
   return { u16: new Uint16Array(buf, 0, uvElements), u32: new Uint32Array(buf.slice(u32Start, u32Start + rest - (rest % 4))) };
 }
 
+/**
+ * A mesh whose triangles a viewer's edit collapsed in place (the kit's fixtures when a fan or a tube is moved, SPEC furnish) carries the
+ * checksum of its DRAWN positions under this key in `geometry.userData`: the bake was made for those, and still lights it.
+ */
+export const PRISTINE_CHECKSUM_KEY = 'wtBakeChecksum';
+
 /** local-position checksum of a geometry, the function the page used when it dumped the scene */
 export function geometryChecksum(geo: THREE.BufferGeometry): { count: number; checksum: number } {
   const p = geo.getAttribute('position');
@@ -31,7 +37,7 @@ export function geometryChecksum(geo: THREE.BufferGeometry): { count: number; ch
 export function applyUv(mesh: THREE.Mesh, e: MeshEntry, g: BakedGeometry): boolean {
   const geo = mesh.geometry;
   if (!geo.getAttribute('position')) return false;
-  const cs = geometryChecksum(geo);
+  const cs = (geo.userData?.[PRISTINE_CHECKSUM_KEY] as { count: number; checksum: number } | undefined) ?? geometryChecksum(geo);
   if (cs.count !== e.verts || cs.checksum !== e.checksum) return false;
   if (e.uvOffset + e.uvCount * 2 > g.u16.length) return false;
   const uv = g.u16.slice(e.uvOffset, e.uvOffset + e.uvCount * 2);
@@ -53,6 +59,8 @@ export function applyUv(mesh: THREE.Mesh, e: MeshEntry, g: BakedGeometry): boole
   }
   next.setAttribute('uv1', new THREE.BufferAttribute(uv, 2, true));
   next.setIndex(new THREE.BufferAttribute(index, 1));
+  // the vertices appended after the source ones copy a source vertex: a later in-place edit of the mesh (see PRISTINE_CHECKSUM_KEY) needs to know which
+  next.userData.wtRemapSrc = src.slice();
   next.computeBoundingBox();
   next.computeBoundingSphere();
   mesh.geometry = next;
@@ -87,7 +95,7 @@ export function assignByName(scene: THREE.Object3D, mf: BakedManifest, g: BakedG
           rejected.push(key);
           if (e.atlas === 'dyn') assigned.push({ mesh, key, kind: 'probe' });
         }
-      } else if (movableRoot || here.some((o) => o.name.startsWith('kit:bedhead'))) {
+      } else if (movableRoot || here.some((o) => o.name.startsWith('kit:bedhead') || o.name.startsWith('kit:edited'))) {
         assigned.push({ mesh, key, kind: 'probe' });
       }
     }

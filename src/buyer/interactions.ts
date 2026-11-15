@@ -57,6 +57,8 @@ export interface InteractionExtras {
   wardrobe?: { promptFor(item: FurnitureItem): string | null; activate(item: FurnitureItem): boolean };
   /** a footnote for an item's card when part of what it shows is an assumption (e.g. a standard height), or null */
   cardNote?: (item: FurnitureItem) => string | null;
+  /** for a piece that came with the home and that the viewer moved or resized: "Moved in your layout. Your size: ... On the drawing: ..." (replaces the drawing's own footer), else null */
+  editNote?: (item: FurnitureItem) => string | null;
 }
 
 export function createInteractions(ctx: BuyerContext, extras: InteractionExtras = {}): Interactions {
@@ -76,6 +78,9 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   const swing = createSwingMotion({ ridePose: (o) => ctx.character.ride(o), meshOf: (id) => ctx.furniture.mesh(id) });
   const cardOf = (item: FurnitureItem, H: number) => {
     let card = seats?.card(item, H) ?? checkFor(item, H, ctx.property.layout.wallHeightM);
+    const edited = extras.editNote?.(item) ?? null;
+    // "Measured from the floor plan" says nothing true of a piece the viewer has moved or resized: its card says what was changed
+    if (edited) card = { ...card, footer: edited };
     const note = card.footer ? null : extras.cardNote?.(item) ?? null;
     if (note) card = { ...card, footer: note };
     // a piece (real or placed) that sits in a door's swing says so on its card
