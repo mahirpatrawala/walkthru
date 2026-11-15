@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { DEFAULT_PERSON, PERSON_KEY, loadPerson, normalisePerson, savePerson } from '../src/buyer/person-store';
+import { DEFAULT_PERSON, PERSON_KEY, VIEW_KEY, loadPerson, loadView, normalisePerson, savePerson, saveView } from '../src/buyer/person-store';
 import { HEIGHT_KEY } from '../src/buyer/store';
 import { buildNameMap, retargetClips, ueNameFor } from '../src/look/retarget';
 
@@ -71,5 +71,28 @@ describe('retargetClips on the starter man skeleton (check 5)', () => {
     expect(ueNameFor('DEF-spine001')).toBe('spine_01');
     expect(ueNameFor('DEF-toeR')).toBe('ball_r');
     expect(ueNameFor('root')).toBeNull();
+  });
+});
+
+describe('view: see yourself or first person (SPEC 16.6.8)', () => {
+  it('is third person (see yourself) until the viewer chooses, and remembers the choice per viewer', () => {
+    const s = mem();
+    expect(loadView(s)).toBe('third');
+    saveView(s, 'first');
+    expect(s.m.get(VIEW_KEY)).toBe('first');
+    expect(loadView(s)).toBe('first');
+    saveView(s, 'third');
+    expect(loadView(s)).toBe('third');
+  });
+  it('reads junk, missing or blocked storage as the default, and does not touch the person key', () => {
+    expect(loadView(mem({ [VIEW_KEY]: 'sideways' }))).toBe('third');
+    expect(loadView(null)).toBe('third');
+    expect(() => saveView(null, 'first')).not.toThrow();
+    const throwing = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); }, removeItem: () => {} };
+    expect(loadView(throwing)).toBe('third');
+    expect(() => saveView(throwing, 'first')).not.toThrow();
+    const s = mem();
+    saveView(s, 'first');
+    expect(s.m.has(PERSON_KEY)).toBe(false);
   });
 });

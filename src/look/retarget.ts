@@ -16,7 +16,8 @@ import * as THREE from 'three';
  * (`DEF-upper_armL`), so both spellings are accepted.
  */
 export function ueNameFor(def: string): string | null {
-  if (!def.startsWith('DEF-')) return null;
+  // the Quaternius Universal Animation Library clips (clips.glb since 15 Nov 2026) already use Unreal-style names: the same name maps to itself
+  if (!def.startsWith('DEF-')) return def.toLowerCase() === 'root' ? null : def.toLowerCase();
   const n = def.slice(4).replace(/\./g, '');
   const fixed: Record<string, string> = { hips: 'pelvis', spine001: 'spine_01', spine002: 'spine_02', spine003: 'spine_03', neck: 'neck_01', head: 'head' };
   if (fixed[n]) return fixed[n];
@@ -42,6 +43,12 @@ export function buildNameMap(sourceBones: string[], targetBones: string[]): Map<
   return out;
 }
 
+/** The source bone that drives the target's pelvis (`DEF-hips` on the mannequin, `pelvis` on the Universal Animation Library rig). */
+function hipsKeyOf(nameMap: Map<string, string>): string | undefined {
+  for (const [s, t] of nameMap) if (t.toLowerCase() === 'pelvis') return s;
+  return undefined;
+}
+
 /** Track name `DEF-hips.position` -> ['DEF-hips', 'position']. */
 function splitTrack(name: string): [string, string] {
   const i = name.lastIndexOf('.');
@@ -58,7 +65,7 @@ export function retargetClips(clips: THREE.AnimationClip[], nameMap: Map<string,
       if (!to) continue;
       const copy = tr.clone();
       copy.name = `${to}.${prop}`;
-      if (prop === 'position' && bone === 'DEF-hips') {
+      if (prop === 'position' && bone === hipsKeyOf(nameMap)) {
         const v = copy.values;
         for (let i = 0; i < v.length; i++) v[i] *= hipsScale;
       }
@@ -123,7 +130,8 @@ export function retargetClipsAuto(
   clips: THREE.AnimationClip[], source: RestRig, target: RestRig, nameMap: Map<string, string>,
 ): { clips: THREE.AnimationClip[]; method: 'rename' | 'world'; maxRestDiffDeg: number } {
   const diff = maxRestDiffDeg(source, target, nameMap);
-  const hips = source.get('DEF-hips'), pelvis = target.get(nameMap.get('DEF-hips') ?? 'pelvis');
+  const hipsKey = hipsKeyOf(nameMap) ?? 'DEF-hips';
+  const hips = source.get(hipsKey), pelvis = target.get(nameMap.get(hipsKey) ?? 'pelvis');
   const scale = hips && pelvis ? pelvis.wp.y / hips.wp.y : 1;
   if (diff <= RENAME_GATE_DEG) return { clips: retargetClips(clips, nameMap, scale), method: 'rename', maxRestDiffDeg: diff };
   return { clips: retargetClipsWorld(clips, source, target, nameMap), method: 'world', maxRestDiffDeg: diff };
@@ -167,7 +175,7 @@ export function retargetClipsWorld(
     toSource.set(t, s);
     corr.set(t, a.wq.clone().invert().multiply(b.wq));
   }
-  const hipsSrcName = [...nameMap.keys()].find((k) => k === 'DEF-hips');
+  const hipsSrcName = hipsKeyOf(nameMap);
   const hipsTgtName = hipsSrcName ? nameMap.get(hipsSrcName)! : null;
   const hipsSrc = hipsSrcName ? source.get(hipsSrcName) : undefined;
   const hipsTgt = hipsTgtName ? target.get(hipsTgtName) : undefined;
@@ -244,29 +252,31 @@ export const LIE_CLIP = 'Lie_Pose';
 
 /**
  * A body lying on its back needs straight legs, but Idle_Loop starts with one foot stepped back (the mannequin's lying test
- * lets that leg sink 20 cm into the mattress). `Lie_Pose` is the first frame of the retargeted Idle_Loop with both legs
- * set back to the rig's rest pose (straight, feet together). Empty when there is no Idle_Loop.
+ * lets that leg sink 20 cm into the mattress). `Lie_Pose` is the retargeted Idle_Loop with both legs and the pelvis held at the rig's
+ * rest pose (legs straight, feet together), so frame 0 is the still lying pose the size checks measure, and the rest of the loop is the
+ * idle's own breathing and settling in the chest, shoulders, arms and head: a person lying down breathes. Empty when there is no Idle_Loop.
  */
 export function liePoseClip(clips: THREE.AnimationClip[], target: RestRig, nameMap: Map<string, string>): THREE.AnimationClip[] {
   const idle = clips.find((c) => c.name === 'Idle_Loop');
   if (!idle) return [];
-  const legs = new Set<string>();
-  for (const t of nameMap.values()) if (/^(thigh|calf|foot|ball)_[lr]$/i.test(t)) legs.add(t);
+  const held = new Set<string>(['pelvis']);
+  for (const t of nameMap.values()) if (/^(thigh|calf|foot|ball)_[lr]$/i.test(t)) held.add(t);
   const tracks: THREE.KeyframeTrack[] = [];
   for (const tr of idle.tracks) {
     const i = tr.name.lastIndexOf('.');
     const bone = tr.name.slice(0, i);
     const prop = tr.name.slice(i + 1);
+    const Track = prop === 'quaternion' ? THREE.QuaternionKeyframeTrack : THREE.VectorKeyframeTrack;
+    if (!held.has(bone)) { tracks.push(tr.clone()); continue; }
     const size = tr.getValueSize();
     let first = Array.from(tr.values.slice(0, size));
-    if (prop === 'quaternion' && legs.has(bone)) {
+    if (prop === 'quaternion' && bone !== 'pelvis') {
       const rest = target.get(bone)?.q;
       if (rest) first = [rest.x, rest.y, rest.z, rest.w];
     }
-    const Track = prop === 'quaternion' ? THREE.QuaternionKeyframeTrack : THREE.VectorKeyframeTrack;
-    tracks.push(new Track(tr.name, [0, 1], [...first, ...first]));
+    tracks.push(new Track(tr.name, [0, idle.duration], [...first, ...first]));
   }
-  return [new THREE.AnimationClip(LIE_CLIP, 1, tracks)];
+  return [new THREE.AnimationClip(LIE_CLIP, idle.duration, tracks)];
 }
 
 // ---------------------------------------------------------------- idles
@@ -371,4 +381,40 @@ export function idleVariants(clips: THREE.AnimationClip[], target: RestRig, name
     { bone: 'spine_02', axis: X, deg: (t) => 4 * up(t) },
   ]);
   return [lookClip, reachClip];
+}
+
+// ---------------------------------------------------------------- turning on the spot
+
+/** Name of the clip a person marches in while turning on the spot with no step to take (look at `Character.setLocomotion`). */
+export const TURN_CLIP = 'Turn_Step';
+
+/**
+ * `Turn_Step`: the idle with the feet lifted one after the other, left, right, left, right, 0.625 s each (the idle's 2.5 s,
+ * so it loops with no seam). The body is turned by the locomotion step, not by this clip: the legs only have to step, and
+ * the lifted foot comes down where it went up, so a turn on the spot never looks like a statue rotating on a plinth.
+ * Empty when the rig lacks the leg bones.
+ */
+export function turnStepClip(clips: THREE.AnimationClip[], target: RestRig): THREE.AnimationClip[] {
+  const idle = clips.find((c) => c.name === 'Idle_Loop');
+  if (!idle) return [];
+  const need = ['thigh_l', 'calf_l', 'thigh_r', 'calf_r'];
+  if (!need.every((n) => target.has(n))) return [];
+  const X = new THREE.Vector3(1, 0, 0);
+  const L = idle.duration;
+  const STEP = L / 4;
+  /** 0 to 1 to 0 while leg `side` (0 left, 1 right) is the one stepping */
+  const lift = (side: 0 | 1) => (t: number): number => {
+    const i = Math.floor(t / STEP);
+    if (i % 2 !== side || i >= 4) return 0;
+    const u = (t - i * STEP) / STEP;
+    const s = Math.sin(Math.PI * u);
+    return s * s;
+  };
+  const edits: Edit[] = [];
+  for (const [side, suffix] of [[0, 'l'], [1, 'r']] as const) {
+    const p = lift(side);
+    edits.push({ bone: `thigh_${suffix}`, axis: X, deg: (t) => -26 * p(t) });
+    edits.push({ bone: `calf_${suffix}`, axis: X, deg: (t) => 40 * p(t) });
+  }
+  return [idleVariant(TURN_CLIP, idle, target, L, edits)];
 }

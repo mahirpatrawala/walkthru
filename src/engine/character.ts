@@ -27,7 +27,7 @@ export interface PersonMeasure {
 
 const DEG = Math.PI / 180;
 
-/** The six Universal Animation Library clips the character uses. */
+/** The six Universal Animation Library clips every body needs. */
 const CLIPS = {
   idle: 'Idle_Loop',
   walk: 'Walk_Loop',
@@ -36,7 +36,17 @@ const CLIPS = {
   sitIdle: 'Sitting_Idle_Loop',
   sitExit: 'Sitting_Exit',
 } as const;
-type ClipKey = keyof typeof CLIPS | 'lie' | 'look' | 'reach';
+/** Clips a person body adds (clips.glb, 15 Nov 2026). A body without one of them plays the base clip instead. */
+const OPTIONAL_CLIPS = {
+  /** the elder's slower, more upright walk (UAL Walk_Formal_Loop) */
+  walkSlow: 'Walk_Formal_Loop',
+  /** a standing variant: arms folded (UAL 2 Idle_FoldArms_Loop) */
+  fold: 'Idle_FoldArms_Loop',
+  /** the feet stepping while the body turns on the spot (made from Idle_Loop in look/retarget.ts) */
+  turn: 'Turn_Step',
+} as const;
+type ClipKey = keyof typeof CLIPS | keyof typeof OPTIONAL_CLIPS | 'lie' | 'look' | 'reach';
+type GaitKey = 'walk' | 'walkSlow' | 'jog';
 
 const FADE_S = 0.2;
 const LIE_IN_S = 0.6;
@@ -45,9 +55,12 @@ const SIT_MOVE_S = 0.3;
 const STAND_MOVE_S = 0.3;
 /** Sitting_Exit plays this much faster than authored so getting up does not feel laggy. */
 const SIT_EXIT_SPEED = 1.5;
-const WALK_MPS = 1.4;
-const JOG_MPS = 2.8;
 const REF_HEIGHT_M = 1.75;
+/** Turning on the spot: above this rate (rad/s) the feet step, and they step faster the faster the body turns. */
+const TURN_MIN_RAD_S = 0.6;
+const TURN_REF_RAD_S = 3.5;
+/** A glance, a glance, then arms folded for this long. */
+const FOLD_FOR_S = 6;
 /** How fast each person walks next to the man (the elder takes it slowly). The mannequin and the others move at the base pace. */
 export const WALK_FACTOR: Record<BodyKind, number> = { mannequin: 1, man: 1, woman: 0.97, elder: 0.62, child: 0.9 };
 /** A person who stands still for this long glances round the room. */
@@ -100,8 +113,21 @@ export class Character {
   private tint = '#E8823A';
   private hasLiePose = false;
   private hasIdles = false;
+  private hasTurn = false;
+  /** Natural speed of each gait clip on this body, in metres per second at model scale 1: how fast its planted foot goes back. */
+  private gait: Partial<Record<GaitKey, number>> = {};
   /** seconds spent standing still in Idle_Loop */
   private stillFor = 0;
+  /** which idle comes next: glance, glance, arms folded, ... */
+  private idleTurn = 0;
+  private foldFor = 0;
+  /** eyes: a point in the head bone's frame, and where they stand in the idle (first person, SPEC 16.6.8) */
+  private headBone: THREE.Bone | null = null;
+  private eyeLocal: THREE.Vector3 | null = null;
+  private eyeRatio = 0.93;
+  private eyeFwdRatio = 0.04;
+  private eyePoseBlend = 0;
+  private eyeBob = 0;
   /** lying with straight legs is a little longer than the idle stance: scale the body so head-to-heel stays the chosen height */
   private lieScale = 1;
   private lastPoseSpec: { lie?: LiePose; sit?: SeatPose } = {};
@@ -223,6 +249,7 @@ export class Character {
     const lieClip = gltf.animations.find((a) => a.name === 'Lie_Pose');
     this.actions = {
       look: null as unknown as THREE.AnimationAction, reach: null as unknown as THREE.AnimationAction,
+      walkSlow: null as unknown as THREE.AnimationAction, fold: null as unknown as THREE.AnimationAction, turn: null as unknown as THREE.AnimationAction,
       idle: action('idle'), walk: action('walk'), jog: action('jog'),
       sitEnter: action('sitEnter'), sitIdle: action('sitIdle'), sitExit: action('sitExit'),
       // person bodies lie with straight legs (SPEC 16.6.3 / look/retarget.ts); the mannequin lies in its frozen idle
@@ -239,6 +266,15 @@ export class Character {
       this.actions[k].setLoop(THREE.LoopOnce, 1);
       this.actions[k].clampWhenFinished = true;
     }
+    // the elder's walk, the folded-arms idle and the stepping turn: person bodies only, the base clip stands in without them
+    const optional = (key: keyof typeof OPTIONAL_CLIPS, fallback: THREE.AnimationAction): THREE.AnimationAction => {
+      const clip = gltf.animations.find((a) => a.name === OPTIONAL_CLIPS[key]);
+      return clip ? this.mixer.clipAction(clip) : fallback;
+    };
+    this.actions.walkSlow = optional('walkSlow', this.actions.walk);
+    this.actions.fold = optional('fold', this.actions.idle);
+    this.actions.turn = optional('turn', this.actions.idle);
+    this.hasTurn = this.actions.turn !== this.actions.idle;
     this.actions.sitEnter.setLoop(THREE.LoopOnce, 1);
     this.actions.sitEnter.clampWhenFinished = true;
     this.actions.sitExit.setLoop(THREE.LoopOnce, 1);
@@ -264,6 +300,8 @@ export class Character {
     if (!(this.h0 > 0.5 && this.h0 < 5)) {
       throw new Error(`Character: measured an implausible standing height of ${this.h0} m from the GLB.`);
     }
+    this.measureGait();
+    this.findEyes();
     this.kneeBones = null;
     this.kneeState = new Map();
     if (kind !== 'mannequin') {
@@ -273,6 +311,112 @@ export class Character {
       if (thigh.length === 2 && calf.length === 2) this.kneeBones = { thigh, calf };
     }
     this.poseK = kind === 'mannequin' ? { seat: SIT_SEAT_RATIO, hipBack: SIT_HIP_BACK_RATIO, back: LIE_BACK_RATIO, floor: -Infinity } : this.measurePoseK();
+  }
+
+  /**
+   * How fast each gait clip carries its planted foot backwards, per metre of model scale. Playing the clip at
+   * (the speed the body really moves) / (this number) is what keeps the feet from sliding. Measured here, on the body's own
+   * skeleton and legs, because it depends on both the clip and the body's stride.
+   */
+  private measureGait(): void {
+    this.gait = {};
+    const bones = this.skinned[0].skeleton.bones;
+    // the ball of the foot (the mannequin's toe bone): the point that stays down all through the stance, heel strike to toe-off
+    const feet = [/(^|[-_])(ball|toe)[._]?l$/, /(^|[-_])(ball|toe)[._]?r$/].map((re) => bones.find((b) => re.test(b.name.toLowerCase())));
+    if (!feet[0] || !feet[1]) return;
+    const model = this.model;
+    const inv = new THREE.Matrix4();
+    const v = new THREE.Vector3();
+    const N = 48;
+    for (const key of ['walk', 'walkSlow', 'jog'] as const) {
+      const act = this.actions[key];
+      if (key === 'walkSlow' && act === this.actions.walk) { this.gait.walkSlow = this.gait.walk; continue; }
+      const dur = act.getClip().duration;
+      this.mixer.stopAllAction();
+      act.reset().play();
+      const ys: number[][] = [[], []];
+      const zs: number[][] = [[], []];
+      for (let i = 0; i < N; i++) {
+        act.time = (dur * i) / N;
+        this.mixer.update(0);
+        model.updateMatrixWorld(true);
+        inv.copy(model.matrixWorld).invert();
+        feet.forEach((f, k) => { f!.getWorldPosition(v).applyMatrix4(inv); ys[k].push(v.y); zs[k].push(v.z); });
+      }
+      const lo = Math.min(...ys[0], ...ys[1]);
+      const planted = 0.0115 * this.h0;
+      let back = 0, time = 0;
+      for (let k = 0; k < 2; k++) {
+        for (let i = 0; i < N; i++) {
+          const j = (i + 1) % N;
+          if (ys[k][i] < lo + planted && ys[k][j] < lo + planted) { back -= zs[k][j] - zs[k][i]; time += dur / N; }
+        }
+      }
+      if (time > 0 && back > 0) this.gait[key] = back / time;
+    }
+    this.mixer.stopAllAction();
+    this.actions.idle.reset().play();
+    this.mixer.update(0);
+  }
+
+  /** The speed, in metres per second at model scale 1, at which `clip` plays with no foot slide (0 when it could not be measured). */
+  gaitSpeed(clip: GaitKey): number {
+    return this.gait[clip] ?? 0;
+  }
+
+  /** Eyes in the head bone's frame, for the first-person view. A body with an eyes mesh uses its centre; the mannequin a guess. */
+  private findEyes(): void {
+    this.headBone = this.skinned[0].skeleton.bones.find((b) => /^(head|def-head)$/i.test(b.name)) ?? null;
+    this.eyeLocal = null;
+    this.eyePoseBlend = 0;
+    this.eyeBob = 0;
+    const head = this.headBone;
+    if (!head) return;
+    this.model.updateMatrixWorld(true);
+    const eyes = this.skinned.find((s) => s.name === 'eyes');
+    const centre = new THREE.Vector3();
+    if (eyes) {
+      eyes.skeleton.update();
+      eyes.computeBoundingBox();
+      eyes.boundingBox!.clone().applyMatrix4(eyes.matrixWorld).getCenter(centre);
+    } else {
+      head.getWorldPosition(centre);
+      centre.y += 0.08 * this.h0 * 0.57;
+      centre.z += 0.07 * this.h0 * 0.57;
+    }
+    this.eyeRatio = centre.y / this.h0;
+    this.eyeFwdRatio = centre.z / this.h0;
+    this.eyeLocal = head.worldToLocal(centre.clone());
+  }
+
+  /** Height of the eyes when standing, metres (the first-person camera's eye height). */
+  get eyeHeightM(): number {
+    return this.eyeRatio * this._heightM;
+  }
+
+  /**
+   * World position of the eyes for the first-person camera. Walking and standing it is the body's own place with only a
+   * third of the head's bob (so the view floats instead of juddering); sitting, lying and in between it follows the head.
+   */
+  eyePosition(out: THREE.Vector3, dt = 0): THREE.Vector3 {
+    this.object.updateMatrixWorld(true);
+    const head = this.headBone;
+    if (!head || !this.eyeLocal) return out.set(this.object.position.x, this._heightM * 0.93, this.object.position.z);
+    const posed = this.posed !== null || this._state === 'sitting' || this._state === 'lying' || this._state === 'standing-at' || this._state === 'transition';
+    const k = 1 - Math.exp(-Math.max(0, dt) * 8);
+    this.eyePoseBlend += ((posed ? 1 : 0) - this.eyePoseBlend) * (dt > 0 ? k : 1);
+    const live = this.eyeLocal.clone().applyMatrix4(head.matrixWorld);
+    // standing: horizontal from the root, vertical = standing eye height plus a third of the head's own movement
+    const stand = this.eyeHeightM;
+    const yaw = this._yawDeg * DEG;
+    const fwd = this.eyeFwdRatio * this._heightM;
+    const hx = this.object.position.x + Math.sin(yaw) * fwd;
+    const hz = this.object.position.z + Math.cos(yaw) * fwd;
+    const bob = (live.y - this.object.position.y) - stand;
+    this.eyeBob += (bob - this.eyeBob) * (dt > 0 ? 1 - Math.exp(-dt * 14) : 1);
+    const wy = this.object.position.y + stand + this.eyeBob * 0.35;
+    const b = this.eyePoseBlend;
+    return out.set(hx + (live.x - hx) * b, wy + (live.y - wy) * b, hz + (live.z - hz) * b);
   }
 
   /**
@@ -410,7 +554,7 @@ export class Character {
     const H = this._heightM;
     if (this._state === 'lying' && this.lastPoseSpec.lie) {
       const a = this.play(this.hasLiePose ? 'lie' : 'idle', 0, true);
-      a.timeScale = 0;
+      a.timeScale = this.hasLiePose ? 1 : 0;
       a.time = 0;
       this.object.position.y = this.lastPoseSpec.lie.surfaceY + this.poseK.back * H;
       return;
@@ -422,7 +566,7 @@ export class Character {
       this.object.position.set(t.x, t.y, t.z);
       return;
     }
-    if (this._state === 'walk') { this.play('walk', 0, true); return; }
+    if (this._state === 'walk') { this.play(this.walkKey(), 0, true); return; }
     if (this._state === 'jog') { this.play('jog', 0, true); return; }
     this.play('idle', 0, true);
   }
@@ -575,23 +719,35 @@ export class Character {
 
   // ---------------------------------------------------------------- locomotion
 
-  /** speed in m/s; 0 = idle. Ignored while posed. */
-  setLocomotion(speed: number, jog: boolean): void {
+  /** The walking clip for this body: the elder's is the slower, more upright one. */
+  private walkKey(): 'walk' | 'walkSlow' {
+    return this.appearanceNow.body === 'elder' && this.actions.walkSlow !== this.actions.walk ? 'walkSlow' : 'walk';
+  }
+
+  /**
+   * Speed in m/s; 0 = idle. Ignored while posed. A gait clip plays at (speed) / (the clip's own natural speed on this body at
+   * this height), so the planted foot stays where it landed whatever the pace. `turnRadS` is how fast the body is turning:
+   * standing still while turning, the feet step (`Turn_Step`) instead of the body spinning like a statue.
+   */
+  setLocomotion(speed: number, jog: boolean, turnRadS = 0): void {
     if (this._state !== 'idle' && this._state !== 'walk' && this._state !== 'jog') return;
     if (!(speed > 0.02)) {
       this.setState('idle');
-      if (this.currentClip === 'look' || this.currentClip === 'reach') return; // let the glance or the reach finish
-      this.play('idle', FADE_S);
+      if (this.hasTurn && Math.abs(turnRadS) > TURN_MIN_RAD_S && this.posed === null) {
+        this.play('turn', 0.2).timeScale = Math.min(1.6, Math.max(0.7, Math.abs(turnRadS) / TURN_REF_RAD_S));
+        this.stillFor = 0;
+        return;
+      }
+      const c = this.currentClip;
+      if (c === 'look' || c === 'reach' || c === 'fold') return; // let the glance, the reach or the folded arms finish
+      this.play('idle', c === 'turn' ? 0.3 : FADE_S);
       return;
     }
-    const scale = this._heightM / REF_HEIGHT_M;
-    if (jog) {
-      this.setState('jog');
-      this.play('jog', FADE_S).timeScale = clampTs(speed / (JOG_MPS * scale));
-    } else {
-      this.setState('walk');
-      this.play('walk', FADE_S).timeScale = clampTs(speed / (WALK_MPS * scale));
-    }
+    const scale = this._heightM / this.h0;
+    const key: GaitKey = jog ? 'jog' : this.walkKey();
+    const nat = this.gait[key] ?? (jog ? 5 : 0.95) * this.h0 / REF_HEIGHT_M;
+    this.setState(jog ? 'jog' : 'walk');
+    this.play(jog ? 'jog' : key, FADE_S).timeScale = clampTs(speed / (nat * scale));
   }
 
   // ---------------------------------------------------------------- poses
@@ -614,7 +770,8 @@ export class Character {
       y: pose.surfaceY + this.poseK.back * this._heightM,
       tilt: -Math.PI / 2,
     };
-    return this.moveTo(target, pose.yawDeg, LIE_IN_S, () => this.setState('lying'));
+    // the body is held exactly in the measured lying pose while it goes down; once there it breathes (the clip's own chest and shoulder movement)
+    return this.moveTo(target, pose.yawDeg, LIE_IN_S, () => { this.setState('lying'); if (this.hasLiePose && this.posed === 'lie') a.timeScale = 1; });
   }
 
   /** Sits (4.6): over 0.3 s the root moves to the seat spot, Sitting_Enter plays once, then Sitting_Idle_Loop. */
@@ -801,10 +958,19 @@ export class Character {
       }
     }
     if (this.hasIdles) {
-      if (this._state === 'idle' && this.currentClip === 'idle' && this.posed === null) {
+      const standing = this._state === 'idle' && this.posed === null;
+      if (standing && this.currentClip === 'idle') {
         this.stillFor += dt;
-        if (this.stillFor > LOOK_AFTER_S) { this.stillFor = 0; this.play('look', 0.4, true); }
-      } else if (this._state !== 'idle' || (this.currentClip !== 'look' && this.currentClip !== 'reach' && this.currentClip !== 'idle')) {
+        if (this.stillFor > LOOK_AFTER_S) {
+          this.stillFor = 0;
+          this.idleTurn = (this.idleTurn + 1) % 3;
+          if (this.idleTurn === 2 && this.actions.fold !== this.actions.idle) { this.play('fold', 0.7, true); this.foldFor = 0; }
+          else this.play('look', 0.4, true);
+        }
+      } else if (standing && this.currentClip === 'fold') {
+        this.foldFor += dt;
+        if (this.foldFor > FOLD_FOR_S) { this.play('idle', 0.8, true); this.stillFor = 0; }
+      } else if (this._state !== 'idle' || (this.currentClip !== 'look' && this.currentClip !== 'reach' && this.currentClip !== 'idle' && this.currentClip !== 'fold')) {
         this.stillFor = 0;
       }
     }
@@ -858,5 +1024,5 @@ export class Character {
 }
 
 function clampTs(v: number): number {
-  return Math.min(3, Math.max(0.25, v));
+  return Math.min(3, Math.max(0.08, v));
 }

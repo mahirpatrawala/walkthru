@@ -212,9 +212,10 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     }
     if (ctx.mode() !== 'walk' || !freeToStand()) return 'none';
     const n = nearest();
-    if (doorPreferred(n) && activateNearestDoor(ctx.character.position)) return 'door';
+    // opening a door or a wardrobe is done with a hand: the walker reaches out as it swings (a body without the clip just stands)
+    if (doorPreferred(n) && activateNearestDoor(ctx.character.position)) { ctx.character.reach(); return 'door'; }
     if (!n) return 'none';
-    if (extras.wardrobe?.activate(n.item)) return 'wardrobe';
+    if (extras.wardrobe?.activate(n.item)) { ctx.character.reach(); return 'wardrobe'; }
     const { action } = actionFor(n.item.kind);
     if (action === 'dims') {
       showDims(n.item);

@@ -1,7 +1,7 @@
 {
-  "version": 2,
+  "version": 3,
   "built": "2026-11-15",
-  "route": "family: MakeHuman base meshes shaped in MPFB2, stylised, clothes and hair modelled by tools/make_family.py (SPEC 16.6.7); 15 Nov 2026: per-leg skirt panels, draped dupatta and pallu, shoulder caps",
+  "route": "family: MakeHuman base meshes shaped in MPFB2, stylised, clothes and hair modelled by tools/make_family.py (SPEC 16.6.7); 15 Nov 2026: per-leg skirt panels, draped dupatta and pallu, shoulder caps; motion pass 15 Nov 2026: animation clips rebuilt from the free Quaternius Universal Animation Libraries 1 and 2 (CC0, SPEC 16.6.8)",
   "sources": {
     "mpfb": {
       "file": "mpfb-2.0.18.zip",
@@ -35,23 +35,77 @@
       "checked": "2026-11-13",
       "says": "base mesh, targets and proxies are graphical assets covered by CC0"
     },
-    "inspected_not_used": {
-      "name": "Quaternius Ultimate Animated Character Pack",
-      "url": "https://opengameart.org/content/animated-characters-pack",
-      "licence": "CC0",
-      "sha256": "0295062cbc72da52ee804f39ac38694901a40458011f9b2638fc7ef13ed509da",
-      "fetched": "2026-11-13",
-      "why": "chibi proportions"
+    "inspected_not_used": [
+      {
+        "name": "Quaternius Ultimate Animated Character Pack",
+        "url": "https://opengameart.org/content/animated-characters-pack",
+        "licence": "CC0",
+        "sha256": "0295062cbc72da52ee804f39ac38694901a40458011f9b2638fc7ef13ed509da",
+        "fetched": "2026-11-13",
+        "why": "chibi proportions"
+      },
+      {
+        "name": "Quaternius Universal Base Characters [Standard]",
+        "url": "https://quaternius.itch.io/universal-base-characters",
+        "licence": "CC0",
+        "sha256": "fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40",
+        "fetched": "2026-11-15",
+        "why": "two adult Superhero bodies in underwear, no child, no elder, no clothes"
+      }
+    ],
+    "animation": {
+      "ual1": {
+        "name": "Universal Animation Library [Standard]",
+        "pageUrl": "https://quaternius.itch.io/universal-animation-library",
+        "siteUrl": "https://quaternius.com/packs/universalanimationlibrary.html",
+        "zip": "UAL1-Standard.zip",
+        "zipSha256": "cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724",
+        "zipBytes": 15904933,
+        "file": "Unreal-Godot/UAL1_Standard.glb",
+        "fileSha256": "69591853d817488edaa8fd9bf8fc1d821eaeaf789f8627b3cd23b41c4ed67997",
+        "licenceFile": "License.txt",
+        "licenceSha256": "6d01f55c6e4c49a2c9963e147e561945ae2c83958c8ca667d90a6bffdbfac061",
+        "licence": "CC0 1.0",
+        "fetched": "2026-11-15",
+        "clips": [
+          "Idle_Loop",
+          "Walk_Loop",
+          "Walk_Formal_Loop",
+          "Jog_Fwd_Loop",
+          "Sitting_Enter",
+          "Sitting_Idle_Loop",
+          "Sitting_Exit",
+          "Interact"
+        ]
+      },
+      "ual2": {
+        "name": "Universal Animation Library 2 [Standard]",
+        "pageUrl": "https://quaternius.itch.io/universal-animation-library-2",
+        "siteUrl": "https://quaternius.com/packs/universalanimationlibrary2.html",
+        "zip": "UAL2-Standard.zip",
+        "zipSha256": "4008ea208a604773a2b2177d965f0f5d3195498b5bf838c3f5785d68e95f2a68",
+        "zipBytes": 18735003,
+        "file": "Unreal-Godot/UAL2_Standard.glb",
+        "fileSha256": "8cee20ab1bc55130092447e810e26df22dd2803eccc54f52137a7d54d7ab88a8",
+        "licenceFile": "License.txt",
+        "licenceSha256": "6d01f55c6e4c49a2c9963e147e561945ae2c83958c8ca667d90a6bffdbfac061",
+        "licence": "CC0 1.0",
+        "fetched": "2026-11-15",
+        "clips": [
+          "Idle_FoldArms_Loop"
+        ]
+      },
+      "note": "free Standard downloads only (itch.io name-your-own-price, minimum 0, no login); the paid Pro and Source files are not used; tools/make-clips.mjs builds clips.glb from the two glb files"
     }
   },
   "files": {
     "PEOPLE-LICENCE.txt": {
-      "bytes": 2517,
-      "sha256": "6357780a6f90d3ff50566972f9a89a2b23b5fe0860e11c57ae7db249e5559e42"
+      "bytes": 4500,
+      "sha256": "d93731428ad2f2e180199c8eb70bd093fffc1c5ab8db8ed2c40ebf14fb473429"
     },
     "clips.glb": {
-      "bytes": 127672,
-      "sha256": "5feaf885758fe90d4c37cf5f2e899496199e29f0c962e724fe6a30dfbcc027e0"
+      "bytes": 197568,
+      "sha256": "998c73bd5a3c72caaa3bbf1248b9bf9a260021664e635c01a911bc2247fea1a0"
     },
     "person-child-low.glb": {
       "bytes": 98936,
