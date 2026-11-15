@@ -18,8 +18,14 @@ import type { Box, CatalogItem, FurnitureItem, FurnitureKind, Grid, PlacementRes
 import { FAMILY_SLOTS, BED_STYLES, describeFinish, finishFamily, sanitizeFinish, surpriseFinish, swatch, withPick } from '../look/finishes';
 import type { Finish, FinishFamily, FinishSlotKey } from '../look/finishes';
 import { boxAxes } from '../core/geometry';
-import { BUILT_IN_NOTE, EDITED_CHIP, OVERLAY_NOTE, RESET_LABEL, isBuiltIn, shareUrl } from './my-layout';
+import { BUILT_IN_EDIT_NOTE, BUILT_IN_NOTE, EDITED_CHIP, OVERLAY_NOTE, RESET_LABEL, emptyLayout, isBuiltIn, shareUrl } from './my-layout';
+import { BACK_TO_DRAWN_PLACE, BACK_TO_DRAWN_SIZE, editNote, placeChanged, resizePatch, sizeLimits, sizeValues } from './resize';
+import type { SizeKey } from './resize';
+import { labelOf, mountText, sizeText as fittingSizeText } from '../look/fittings';
+import type { FittingRecord, ResizeSpec } from '../look/fittings';
+import type { Target } from './fittings-api';
 import { sceneOrigin } from './scene-tag';
+import { pieceName } from './furnish-names';
 import type { BuyerContext, BuyerMode, FurnitureStore, OverlayHandle } from './context';
 import { toneColor } from './overlays';
 
@@ -105,18 +111,14 @@ export function cardLabel(spec: CatalogItem): string {
 
 /** The card line for a piece that came with the home (its name and size are on the line above it). */
 export function realItemNote(): string {
-  return 'Marked on the floor plan, it cannot be moved. Replace it or hide it in your layout.';
+  return 'Marked on the floor plan. Move it, resize it, replace it or hide it in your layout only: the home as drawn does not change.';
 }
 
-const KIND_NAMES: Record<FurnitureKind, string> = { bed: 'Bed', sofa: 'Sofa', wardrobe: 'Wardrobe', dining: 'Dining table', counter: 'Counter' };
-/** What to call a piece: its own label, else its kind (the drawing does not always name a piece). */
-export function pieceName(item: Pick<FurnitureItem, 'label' | 'kind'>): string {
-  return item.label && item.label.trim() ? item.label.trim() : KIND_NAMES[item.kind];
-}
+export { pieceName };
 
 /** Copy for a selected piece that came with the home: its size is the record and cannot change, but it can be replaced or hidden in My layout. */
 export function realItemText(item: FurnitureItem): string {
-  return `${pieceName(item)} · ${Math.round(item.box.w * 100)} × ${Math.round(item.box.d * 100)} cm. Marked on the floor plan, it cannot be moved. Replace it or hide it in your layout.`;
+  return `${pieceName(item)} · ${Math.round(item.box.w * 100)} × ${Math.round(item.box.d * 100)} cm. ${realItemNote()}`;
 }
 
 /**
@@ -162,9 +164,44 @@ export interface FurnishSelection {
   finish: Finish | null;
   /** the finish in words, '' when it is as built */
   finishText: string;
+  /** a piece of the home that was moved or resized in this layout: "Moved in your layout. Your size: ... On the drawing: ...", else null */
+  edit: string | null;
+  /** the steppers of a piece of the home: width, depth and the height its family edits, with the live number and the family's limits (metres) */
+  sizes: Array<{ key: SizeKey; label: string; value: number; min: number; max: number; step: number }> | null;
+  /** the drawn place or size is not what the viewer has */
+  canBackSize: boolean;
+  canBackPlace: boolean;
+}
+
+/** A selected fitting (AC, fan, curtains, plant, the drawing's chair ...): what its card shows and does. */
+export interface FittingSelection {
+  id: string;
+  name: string;
+  /** '90 × 20 × 29 cm' or '60 cm across' */
+  sizeText: string;
+  /** 'On the wall, bottom edge 2.06 m above the floor' */
+  mountText: string;
+  /** 'Typical fitting, not from your drawing' / "From the designer's renders" */
+  label: string;
+  /** what the viewer changed, in words, or null */
+  edit: string | null;
+  canMove: boolean;
+  canTurn: boolean;
+  resize: null
+    | { kind: 'classes'; label: string; options: Array<{ value: number; label: string; on: boolean }> }
+    | { kind: 'dims'; dims: Array<{ index: number; key: string; label: string; value: number; min: number; max: number; step: number; text: string }> };
+  canBackSize: boolean;
+  canBackPlace: boolean;
+  /** Move is on: drag or tap where it should go, then Place */
+  moving: boolean;
+  /** where it stands (rounded), so the camera follows a fitting that has been moved */
+  at: string;
+  /** while moving: can it go where the pointer is, and if not why */
+  targetOk: boolean;
+  targetReason: string | null;
 }
 export interface FurnishView {
-  phase: 'browse' | 'edit' | 'selected';
+  phase: 'browse' | 'edit' | 'selected' | 'fitting';
   message: string;
   tone: Tone | null;
   canPlace: boolean;
@@ -176,10 +213,12 @@ export interface FurnishView {
   /** what the piece being placed is for: 'new' (Place), 'move' (Place), 'replace' (Replace) */
   workKind: 'new' | 'move' | 'replace' | null;
   selection: FurnishSelection | null;
+  /** the fitting being looked at (phase 'fitting') */
+  fitting: FittingSelection | null;
   /** every piece in the home right now, for the tray list */
   pieces: Array<{ id: string; label: string; home: boolean }>;
-  /** originals hidden in this layout, with an Undo each */
-  removed: Array<{ id: string; label: string; builtIn: boolean }>;
+  /** originals and fittings removed in this layout, with an Undo each */
+  removed: Array<{ id: string; label: string; builtIn: boolean; fitting?: boolean }>;
   /** true when this layout differs from the home as drawn (the chip shows) */
   edited: boolean;
 }
@@ -206,6 +245,8 @@ type StoreX = FurnitureStore & {
   isOriginal?(id: string): boolean; hideOriginal?(id: string): boolean; restoreOriginal?(id: string): boolean; hiddenOriginals?(): FurnitureItem[];
   setFinish?(id: string, finish: Finish | null | undefined): boolean; replace?(id: string, next: FurnitureItem): boolean;
   layout?(): import('./my-layout').MyLayout; isEdited?(): boolean; reset?(): void;
+  drawnItem?(id: string): FurnitureItem | undefined; editOriginal?(id: string, patch: Partial<import('./resize').OriginalEdit>): boolean; restoreDrawn?(id: string, what?: 'place' | 'size' | 'both'): boolean;
+  isOriginalEdited?(id: string): boolean;
 };
 
 export interface FurnishOptions {
@@ -252,6 +293,35 @@ export interface FurnishSession {
   clearLook(): boolean;
   /** undo a removal */
   restore(id: string): boolean;
+  // ---- sizing a piece of the home (My layout only): the back edge stays where it is, the width grows about the middle
+  /** set one of the selected piece's sizes (metres): 'w', 'd', or 'h' (the height its family edits). Limits per family apply. */
+  resizeSelected(key: SizeKey, value: number): boolean;
+  /** one step of the stepper (+1 or -1) */
+  stepSelected(key: SizeKey, dir: 1 | -1): boolean;
+  /** the selected piece of the home back to its drawn size, its drawn place, or both */
+  backToDrawn(what: 'size' | 'place' | 'both'): boolean;
+  // ---- fittings (AC, fan, curtains, plants, the drawing's chairs ...)
+  selectFitting(id: string | null): void;
+  selectedFitting(): string | null;
+  /** Move: the fitting follows the pointer as a ghost until Place */
+  beginFittingMove(): boolean;
+  /** the pointer is at these places (wall point, floor point, ceiling point): the ghost goes where the fitting can go */
+  aimFitting(at: { wallPoint: { x: number; y: number; z: number } | null; floor: Vec2 | null; ceiling: Vec2 | null; rayDirXZ: Vec2 | null }): Target | null;
+  /** Place: puts the fitting at the ghost (when legal) */
+  placeFitting(): boolean;
+  cancelFittingMove(): void;
+  fittingMoving(): boolean;
+  /** put the fitting at an exact place (checks, debug) */
+  moveFitting(id: string, spec: import('../look/fittings').MoveSpec): boolean;
+  /** a size of the selected fitting: for a class (AC width, fan sweep ...) its value; for a stepper (rug width ...) the dimension's index and value (metres) */
+  sizeFitting(values: number[]): boolean;
+  stepFitting(index: number, dir: 1 | -1): boolean;
+  /** quarter turn of a floor fitting that can be turned */
+  turnFitting(deltaDeg?: number): boolean;
+  backFittingSize(): boolean;
+  backFittingPlace(): boolean;
+  removeFitting(id?: string): boolean;
+  restoreFitting(id: string): boolean;
   /** back to the home as drawn */
   resetLayout(): void;
   /** the layout as a link a buyer can send */
@@ -307,6 +377,13 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
 
   let work: Work | null = null;
   let selectedId: string | null = null;
+  /** the fitting being looked at, and the state of its Move (a ghost that follows the pointer until Place) */
+  let selectedFit: string | null = null;
+  let fitMove: { target: Target | null } | null = null;
+  const fx = ctx.fittings;
+  const TAG_FIT = 'furnish-fit';
+  let fitGhost: THREE.Group | null = null;
+  let fitSel: THREE.Group | null = null;
   let drag: { dx: number; dz: number } | null = null;
   let dirty = true;
   let gridCache: { key: string; grid: Grid } | null = null;
@@ -332,6 +409,8 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     if (selectedId && !work && !hasItem(selectedId)) selectedId = null;
     dirty = true;
   });
+  // the planners report a fitting a moment after the overlay changes: look again when they do
+  const offFit = fx?.onChange(() => { dirty = true; }) ?? (() => {});
 
   const subject = (): { id: string; spec: CatalogItem; box: Box; item: FurnitureItem } | null => {
     if (work) return { id: work.item.id, spec: work.spec, box: work.box, item: work.item };
@@ -374,13 +453,65 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
   const builtIn = (item: FurnitureItem): boolean => !!options.builtIn?.(item);
   // width × depth, and the height when the piece has one
   const sizeText = (i: FurnitureItem): string => `${Math.round(i.box.w * 100)} × ${Math.round(i.box.d * 100)} cm${i.heightM > 0 ? ` · ${Math.round(i.heightM * 100)} cm high` : ''}`;
+  const drawnOf = (id: string): FurnitureItem | undefined => store.drawnItem?.(id);
+  const sizesOf = (item: FurnitureItem): FurnishSelection['sizes'] => {
+    if (!isHome(item.id)) return null;
+    const v = sizeValues(item);
+    return sizeLimits(item, ceilingM()).map((l) => {
+      const d = drawnOf(item.id);
+      // a size the drawing already has outside the family's range is allowed to stay
+      const dv = d ? sizeValues(d)[l.key] : v[l.key];
+      return { key: l.key, label: l.label, value: v[l.key], min: Math.min(l.min, dv), max: Math.max(l.max, dv), step: l.step };
+    });
+  };
   const selectionOf = (item: FurnitureItem): FurnishSelection => {
     const family = finishFamily(item);
+    const d = isHome(item.id) ? drawnOf(item.id) : undefined;
+    const edit = d ? editNote(d, item) : null;
+    const dd = d ? sizeValues(d) : null, cc = sizeValues(item);
     return {
       id: item.id, name: pieceName(item), sizeText: sizeText(item), home: isHome(item.id), builtIn: builtIn(item), family,
       finish: item.finish ? { ...item.finish } : null, finishText: family ? describeFinish(family, item.finish) : '',
+      edit, sizes: sizesOf(item),
+      canBackSize: !!dd && (Math.abs(dd.w - cc.w) > 0.0005 || Math.abs(dd.d - cc.d) > 0.0005 || Math.abs(dd.h - cc.h) > 0.0005),
+      canBackPlace: !!d && placeChanged(d.box, item.box),
     };
   };
+
+  // ---- fittings
+  const fitRec = (): FittingRecord | undefined => (selectedFit && fx ? fx.get(selectedFit) : undefined);
+  const nearlyEq = (a: number, b: number): boolean => Math.abs(a - b) < 0.0075;
+  const resizeView = (rec: FittingRecord): FittingSelection['resize'] => {
+    const r: ResizeSpec | null = rec.resize;
+    if (!r || !rec.currentSize) return null;
+    if (r.kind === 'classes') return { kind: 'classes', label: r.label, options: r.options.map((o) => ({ value: o.value, label: o.label, on: nearlyEq(o.value, rec.currentSize![0]) })) };
+    return {
+      kind: 'dims',
+      dims: r.dims.map((d, index) => ({ index, key: d.key, label: d.label, value: rec.currentSize![index] ?? 0, min: d.min, max: d.max, step: d.step, text: `${Math.round((rec.currentSize![index] ?? 0) * 100)} cm` })),
+    };
+  };
+  const fittingEdit = (rec: FittingRecord): string | null => {
+    if (!rec.moved && !rec.sized) return null;
+    const parts: string[] = [];
+    if (rec.moved) parts.push('Moved in your layout');
+    if (rec.sized && rec.defaultSize) parts.push(`Your size: ${fittingSizeText(rec.size)}. Typical ${rec.resize?.kind === 'classes' ? rec.resize.label.toLowerCase() : 'size'}: ${defaultSizeText(rec)}`);
+    else if (rec.sized) parts.push(`Your size: ${fittingSizeText(rec.size)}`);
+    return `${parts.join('. ')}.`;
+  };
+  const defaultSizeText = (rec: FittingRecord): string => {
+    const d = rec.defaultSize ?? [];
+    const c = (v: number): string => String(Math.round(v * 100));
+    if (rec.resize?.kind === 'classes') return rec.kind === 'fan' ? `${Math.round(d[0] * 1000)} mm` : `${c(d[0])} cm`;
+    if (rec.resize?.kind === 'dims') return d.map((v) => c(v)).join(' × ') + ' cm';
+    return `${c(d[0] ?? 0)} cm`;
+  };
+  const fittingView = (rec: FittingRecord): FittingSelection => ({
+    id: rec.id, name: rec.name, sizeText: fittingSizeText(rec.size), mountText: mountText(rec), label: labelOf(rec), edit: fittingEdit(rec),
+    canMove: rec.movable && !!rec.moveRule, canTurn: !!rec.moveRule && rec.moveRule.mount === 'floor' && !!rec.moveRule.turn,
+    resize: resizeView(rec), canBackSize: rec.sized, canBackPlace: rec.moved, moving: fitMove !== null, at: `${rec.centre.x.toFixed(2)},${rec.centre.z.toFixed(2)}`,
+    targetOk: fitMove?.target ? fitMove.target.ok : true, targetReason: fitMove?.target && !fitMove.target.ok ? fitMove.target.reason ?? null : null,
+  });
+  const removedFittings = (): FurnishView['removed'] => (fx ? fx.removed().map((r) => ({ id: r.id, label: `${r.name} (${labelOf(r).toLowerCase()})`, builtIn: false, fitting: true })) : []);
   /** the tray's list: every piece, labels numbered when two share a name ("Bed 1", "Bed 2") */
   const piecesList = (): FurnishView['pieces'] => {
     const all = store.all();
@@ -394,14 +525,23 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
       return { id: i.id, label: (count.get(name) ?? 0) > 1 ? `${name} ${n}` : name, home: isHome(i.id) };
     });
   };
-  const removedList = (): FurnishView['removed'] => (store.hiddenOriginals ? store.hiddenOriginals().map((i) => ({ id: i.id, label: pieceName(i), builtIn: builtIn(i) })) : []);
+  const removedList = (): FurnishView['removed'] => [...(store.hiddenOriginals ? store.hiddenOriginals().map((i) => ({ id: i.id, label: pieceName(i), builtIn: builtIn(i) })) : []), ...removedFittings()];
   const extras = (): Pick<FurnishView, 'pieces' | 'removed' | 'edited'> => ({ pieces: piecesList(), removed: removedList(), edited: store.isEdited ? store.isEdited() : false });
 
   const computeView = (): FurnishView => {
     const bc = buyerCount();
-    const s = subject();
     const ex = extras();
-    if (!s) return { phase: 'browse', message: BROWSE_TEXT, tone: null, canPlace: false, canRotate: false, canMove: false, canRemove: false, buyerCount: bc, workKind: null, selection: null, ...ex };
+    const rec = fitRec();
+    if (selectedFit && rec && !work) {
+      const fit = fittingView(rec);
+      const tone: Tone | null = fit.moving ? (fit.targetOk ? 'good' : 'bad') : null;
+      const message = fit.moving
+        ? (fit.targetOk ? 'Drag or tap where it should go, then Place.' : fit.targetReason ?? 'It cannot go there.')
+        : `${fit.mountText}. ${fit.label.replace(/\.$/, '')}.`;
+      return { phase: 'fitting', message, tone, canPlace: fit.moving && fit.targetOk, canRotate: false, canMove: fit.canMove, canRemove: true, buyerCount: bc, workKind: null, selection: null, fitting: fit, ...ex };
+    }
+    const s = subject();
+    if (!s) return { phase: 'browse', message: BROWSE_TEXT, tone: null, canPlace: false, canRotate: false, canMove: false, canRemove: false, buyerCount: bc, workKind: null, selection: null, fitting: null, ...ex };
     if (work) {
       const r = check(s);
       let msg = withSwingNote(r.message, s.box, s.id);
@@ -409,15 +549,20 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
         const orig = getItem(work.replaces);
         if (orig && builtIn(orig)) msg = `${msg} ${BUILT_IN_NOTE}.`;
       }
-      return { phase: 'edit', message: msg, tone: r.tone, canPlace: r.verdict !== 'blocked', canRotate: true, canMove: false, canRemove: false, buyerCount: bc, workKind: work.kind, selection: null, ...ex };
+      if (work.kind === 'move' && isHome(work.item.id) && builtIn(work.item)) msg = `${msg} ${BUILT_IN_EDIT_NOTE}.`;
+      return { phase: 'edit', message: msg, tone: r.tone, canPlace: r.verdict !== 'blocked', canRotate: true, canMove: false, canRemove: false, buyerCount: bc, workKind: work.kind, selection: null, fitting: null, ...ex };
     }
     const sel = selectionOf(s.item);
     if (sel.home) {
       const note = sel.builtIn ? ` ${BUILT_IN_NOTE}.` : '';
-      return { phase: 'selected', message: realItemNote() + note, tone: null, canPlace: false, canRotate: false, canMove: false, canRemove: true, buyerCount: bc, workKind: null, selection: sel, ...ex };
+      // a piece as drawn is not checked (it is the record); one the viewer moved or resized gets the same live verdict as any placed piece
+      if (!sel.edit) return { phase: 'selected', message: realItemNote() + note, tone: null, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, fitting: null, ...ex };
+      const r = check(s);
+      const editNoteText = sel.builtIn ? ` ${BUILT_IN_EDIT_NOTE}.` : '';
+      return { phase: 'selected', message: withSwingNote(r.message, s.box, s.id) + editNoteText, tone: r.tone, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, fitting: null, ...ex };
     }
     const r = check(s);
-    return { phase: 'selected', message: withSwingNote(r.message, s.box, s.id), tone: r.tone, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, ...ex };
+    return { phase: 'selected', message: withSwingNote(r.message, s.box, s.id), tone: r.tone, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, fitting: null, ...ex };
   };
 
   /** Redraws the outline, the clearance lines and the tint, then pushes the view to the UI when it changed. */
@@ -429,7 +574,8 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     if (s) {
       const r = check(s);
       const tag = work ? TAG_EDIT : TAG_SEL;
-      const real = !work && s.item.source === 'real';
+      // a piece of the home as drawn keeps the teal outline and no clearance lines; once the viewer has moved or resized it, it is checked like any piece
+      const real = !work && s.item.source === 'real' && !(store.isOriginalEdited?.(s.item.id) ?? false);
       const color = real ? LINE_COLOR : toneColor(r.tone);
       // the ribbon sits just outside the footprint, so a bed's frame does not hide it
       handles.push(ctx.overlays.outlineBox({ ...s.box, w: s.box.w + 2 * OUTLINE_RIBBON_M, d: s.box.d + 2 * OUTLINE_RIBBON_M }, OUTLINE_Y, color, tag));
@@ -438,9 +584,45 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
       }
       if (work) setFurnitureTint(work.mesh, r.tone);
     }
+    drawFittingBoxes();
     const v = computeView();
     const key = JSON.stringify(v);
     if (key !== lastView) { lastView = key; ui.render(v); }
+  };
+
+  /** a ghost or selection box in the scene: edges always, and a faint fill for a ghost. Never hit by a ray. */
+  const boxGroup = (o: { cx: number; cy: number; cz: number; hx: number; hy: number; hz: number; yawDeg: number }, color: string, fill: boolean): THREE.Group => {
+    const g = new THREE.Group();
+    g.name = fill ? 'furnish-fitting-ghost' : 'furnish-fitting-selection';
+    g.userData.decor = true;
+    // a tiny fitting still gets a box a fingertip can see
+    const sx = Math.max(0.1, o.hx * 2 + 0.03), sy = Math.max(0.1, o.hy * 2 + 0.03), sz = Math.max(0.1, o.hz * 2 + 0.03);
+    const geo = new THREE.BoxGeometry(1, 1, 1);
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true, opacity: 0.95 }));
+    edges.renderOrder = 999;
+    edges.raycast = () => {};
+    g.add(edges);
+    if (fill) {
+      const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.28, depthTest: false, depthWrite: false }));
+      m.renderOrder = 998;
+      m.raycast = () => {};
+      g.add(m);
+    } else geo.dispose();
+    g.scale.set(sx, sy, sz);
+    g.position.set(o.cx, o.cy, o.cz);
+    g.rotation.y = o.yawDeg * DEG;
+    g.updateMatrixWorld(true);
+    ctx.viewer.scene.add(g);
+    return g;
+  };
+  const drawFittingBoxes = (): void => {
+    if (fitSel) { disposeGroup(fitSel); fitSel = null; }
+    if (fitGhost) { disposeGroup(fitGhost); fitGhost = null; }
+    const rec = fitRec();
+    if (!rec || work || rec.removed) return;
+    fitSel = boxGroup({ cx: rec.centre.x, cy: rec.centre.y, cz: rec.centre.z, hx: rec.half.x, hy: rec.half.y, hz: rec.half.z, yawDeg: rec.yawDeg }, LINE_COLOR, false);
+    const t = fitMove?.target;
+    if (t) fitGhost = boxGroup(t.ghost, t.ok ? '#1E9E5A' : '#D64545', true);
   };
 
   const touch = (): void => { dirty = true; };
@@ -455,6 +637,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     if (w.kind === 'move') {
       const m = store.mesh(w.item.id);
       if (m) m.visible = true;
+      if (hasItem(w.item.id)) selectedId = w.item.id; // Cancel puts the piece back and leaves it selected
     }
     if (w.kind === 'replace' && w.replaces) {
       const m = store.mesh(w.replaces);
@@ -478,6 +661,8 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     const w: Work = { kind, item, spec, box: copyBox(box), origBox: copyBox(item.box), mesh, ...(replaces ? { replaces } : {}) };
     work = w;
     selectedId = null;
+    selectedFit = null;
+    fitMove = null;
     drag = null;
     syncMesh(w);
     touch();
@@ -568,6 +753,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
         const m = store.mesh(id);
         if (m) m.visible = true;
         store.update(id, copyBox(w.box));
+        if (isHome(id) && builtIn(w.item)) ctx.hud.toast(`${BUILT_IN_EDIT_NOTE}.`);
       }
       flushStore();
       nudgeCharacter();
@@ -583,16 +769,150 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     select(id) {
       if (work) return;
       const next = id && hasItem(id) ? id : null;
-      if (next === selectedId) return;
+      const hadFit = selectedFit !== null;
+      if (next === selectedId && !hadFit) return;
       selectedId = next;
+      selectedFit = null;
+      fitMove = null;
       touch();
       flush();
     },
     selected: () => selectedId,
+    // ---- fittings
+    selectFitting(id) {
+      if (work) return;
+      const next = id && fx?.get(id) && !fx.get(id)!.removed ? id : null;
+      if (next === selectedFit && selectedId === null) return;
+      selectedFit = next;
+      fitMove = null;
+      if (next) selectedId = null;
+      touch();
+      flush();
+    },
+    selectedFitting: () => selectedFit,
+    beginFittingMove() {
+      const rec = fitRec();
+      if (!rec || !rec.moveRule || !rec.movable) return false;
+      fitMove = { target: { spec: rec.moveRule.mount === 'floor' ? { m: 'f', x: rec.centre.x, z: rec.centre.z, yawDeg: rec.yawDeg } : rec.moveRule.mount === 'ceiling' ? { m: 'c', x: rec.centre.x, z: rec.centre.z } : { m: 'w', edge: rec.wall?.edge ?? 0, u: rec.wall?.u ?? 0, y: rec.wall?.y ?? rec.centre.y }, ok: true, ghost: { cx: rec.centre.x, cy: rec.centre.y, cz: rec.centre.z, hx: rec.half.x, hy: rec.half.y, hz: rec.half.z, yawDeg: rec.yawDeg } } };
+      touch();
+      flush();
+      return true;
+    },
+    aimFitting(at) {
+      const rec = fitRec();
+      if (!rec || !fitMove || !fx) return null;
+      const t = fx.target(rec, at);
+      // the pointer is on nothing this fitting can stand on: the ghost stays where it was
+      if (!t) return fitMove.target;
+      fitMove = { target: t };
+      touch();
+      flush();
+      return t;
+    },
+    placeFitting() {
+      const rec = fitRec();
+      if (!rec || !fitMove?.target || !fitMove.target.ok || !fx) return false;
+      const spec = fitMove.target.spec;
+      fitMove = null;
+      fx.move(rec.id, spec);
+      flushStore();
+      nudgeCharacter();
+      touch();
+      flush();
+      return true;
+    },
+    cancelFittingMove() {
+      if (!fitMove) return;
+      fitMove = null;
+      touch();
+      flush();
+    },
+    fittingMoving: () => fitMove !== null,
+    moveFitting(id, spec) {
+      const rec = fx?.get(id);
+      if (!rec || !fx || !rec.moveRule) return false;
+      fx.move(id, spec);
+      flushStore();
+      touch();
+      flush();
+      return true;
+    },
+    sizeFitting(values) {
+      const rec = fitRec();
+      if (!rec || !fx || !rec.resize) return false;
+      fx.size(rec.id, values);
+      flushStore();
+      touch();
+      flush();
+      return true;
+    },
+    stepFitting(index, dir) {
+      const rec = fitRec();
+      if (!rec || !fx || rec.resize?.kind !== 'dims' || !rec.currentSize) return false;
+      const d = rec.resize.dims[index];
+      if (!d) return false;
+      const cur = rec.currentSize[index];
+      const next = Math.round(Math.min(d.max, Math.max(d.min, cur + dir * d.step)) * 100) / 100;
+      if (Math.abs(next - cur) < 1e-9) return false;
+      const values = [...rec.currentSize];
+      values[index] = next;
+      return session.sizeFitting(values);
+    },
+    turnFitting(deltaDeg = -ROTATE_BIG_DEG) {
+      const rec = fitRec();
+      if (!rec || !fx || rec.moveRule?.mount !== 'floor' || !rec.moveRule.turn) return false;
+      const yaw = rotateYaw(rec.yawDeg, deltaDeg);
+      const t = fx.target({ ...rec, yawDeg: yaw }, { wallPoint: null, floor: { x: rec.centre.x, z: rec.centre.z }, ceiling: null, rayDirXZ: null });
+      if (!t?.ok) { ctx.hud.toast(t?.reason ?? 'It cannot turn there.'); return false; }
+      fx.move(rec.id, { m: 'f', x: rec.centre.x, z: rec.centre.z, yawDeg: yaw });
+      flushStore();
+      touch();
+      flush();
+      return true;
+    },
+    backFittingSize() {
+      const rec = fitRec();
+      if (!rec || !fx) return false;
+      fx.clearSize(rec.id);
+      flushStore();
+      touch();
+      flush();
+      return true;
+    },
+    backFittingPlace() {
+      const rec = fitRec();
+      if (!rec || !fx) return false;
+      fx.clearMove(rec.id);
+      flushStore();
+      touch();
+      flush();
+      return true;
+    },
+    removeFitting(id) {
+      const rid = id ?? selectedFit;
+      if (!rid || !fx?.get(rid)) return false;
+      fx.remove(rid);
+      flushStore();
+      if (selectedFit === rid) { selectedFit = null; fitMove = null; }
+      touch();
+      flush();
+      return true;
+    },
+    restoreFitting(id) {
+      if (!fx?.get(id)) return false;
+      fx.restore(id);
+      flushStore();
+      selectedFit = id;
+      selectedId = null;
+      touch();
+      flush();
+      return true;
+    },
     beginMove() {
       if (work || !selectedId) return false;
       const item = getItem(selectedId);
-      if (!item || item.source === 'real') return false;
+      // a placed piece, or a piece of the home (moved in this viewer's layout only)
+      if (!item || (item.source === 'real' && !isHome(item.id))) return false;
       const m = store.mesh(item.id);
       if (m) m.visible = false;
       startWork('move', item, specFor(item), item.box);
@@ -672,6 +992,33 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
       flush();
       return ok;
     },
+    resizeSelected(key, value) {
+      if (work || !selectedId || !store.editOriginal) return false;
+      const item = getItem(selectedId);
+      if (!item || !isHome(item.id)) return false;
+      const ok = store.editOriginal(item.id, resizePatch(item, drawnOf(item.id), key, value, ceilingM()));
+      flushStore();
+      touch();
+      flush();
+      return ok;
+    },
+    stepSelected(key, dir) {
+      if (work || !selectedId) return false;
+      const item = getItem(selectedId);
+      if (!item) return false;
+      const lim = sizeLimits(item, ceilingM()).find((l) => l.key === key);
+      if (!lim) return false;
+      const cur = sizeValues(item)[key];
+      return session.resizeSelected(key, Math.round((cur + dir * lim.step) * 100) / 100);
+    },
+    backToDrawn(what) {
+      if (work || !selectedId || !store.restoreDrawn) return false;
+      const ok = store.restoreDrawn(selectedId, what);
+      flushStore();
+      touch();
+      flush();
+      return ok;
+    },
     restore(id) {
       const ok = store.restoreOriginal?.(id) ?? false;
       if (ok) { flushStore(); selectedId = id; touch(); flush(); }
@@ -680,6 +1027,8 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     resetLayout() {
       discardWork();
       selectedId = null;
+      selectedFit = null;
+      fitMove = null;
       store.reset?.();
       flushStore();
       nudgeCharacter();
@@ -687,7 +1036,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
       flush();
     },
     shareLink(href) {
-      return shareUrl(href, store.layout ? store.layout() : { removed: [], added: [], finishes: {} });
+      return shareUrl(href, store.layout ? store.layout() : emptyLayout());
     },
     clearAll() {
       const ids = store.buyerIds ? store.buyerIds() : store.all().filter((i) => i.source === 'virtual').map((i) => i.id);
@@ -708,8 +1057,13 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     dispose() {
       discardWork();
       selectedId = null;
+      selectedFit = null;
+      fitMove = null;
+      if (fitSel) { disposeGroup(fitSel); fitSel = null; }
+      if (fitGhost) { disposeGroup(fitGhost); fitGhost = null; }
       clearOverlays();
       offStore();
+      offFit();
       disposed = true;
     },
   };
@@ -750,6 +1104,7 @@ const MODE_TEXT = {
   browse: 'Furnish · pick an item below',
   edit: 'Furnish · drag it into place',
   selected: 'Furnish · change, replace or remove it',
+  fitting: 'Furnish · move, resize or remove it',
 } as const;
 
 export interface FurnishModeOptions {
@@ -776,6 +1131,8 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   text.setAttribute('role', 'status');
   text.setAttribute('aria-live', 'polite');
   const barName = h('div', 'wtf-name', text);
+  const barNote = h('div', 'wtf-note', text);
+  barNote.dataset.testid = 'furnish-edit-note';
   const barMsg = h('div', 'wtf-msg', text);
   const barHint = h('div', 'wtf-hint', text);
 
@@ -794,14 +1151,21 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   let lastView: FurnishView | null = null;
   const bRotate = btn('Rotate', 'is-ghost', () => session.rotate(-ROTATE_BIG_DEG), ROTATE_ICON);
   bRotate.dataset.act = 'rotate';
-  const bCancel = btn('Cancel', 'is-ghost', () => session.cancel());
+  const bCancel = btn('Cancel', 'is-ghost', () => { if (session.fittingMoving()) session.cancelFittingMove(); else session.cancel(); });
   bCancel.dataset.act = 'cancel';
-  const bPlace = btn('Place', 'is-primary', () => { session.place(); });
+  const bPlace = btn('Place', 'is-primary', () => {
+    if (session.fittingMoving()) {
+      if (!session.placeFitting()) ctx.hud.toast(lastView?.fitting?.targetReason ?? 'It cannot go there.');
+    } else session.place();
+  });
   bPlace.dataset.act = 'place';
-  const bMove = btn('Move', 'is-ghost', () => { session.beginMove(); });
+  const onFitting = (): boolean => lastView?.phase === 'fitting';
+  const bMove = btn('Move', 'is-ghost', () => { if (onFitting()) session.beginFittingMove(); else session.beginMove(); });
   bMove.dataset.act = 'move';
-  const bTurn = btn('Rotate', 'is-ghost', () => { session.rotateSelected(); }, ROTATE_ICON);
+  const bTurn = btn('Rotate', 'is-ghost', () => { if (onFitting()) session.turnFitting(); else session.rotateSelected(); }, ROTATE_ICON);
   bTurn.dataset.act = 'turn';
+  const bSize = btn('Resize', 'is-ghost', () => setPanel(panelOpen === 'size' ? null : 'size'));
+  bSize.dataset.act = 'size';
   const bReplace = btn('Replace', 'is-ghost', () => setPanel(panelOpen === 'replace' ? null : 'replace'));
   bReplace.dataset.act = 'replace';
   const bLook = btn('Change look', 'is-ghost', () => setPanel(panelOpen === 'look' ? null : 'look'));
@@ -826,6 +1190,11 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       return;
     }
     disarmRemove();
+    if (onFitting()) {
+      const fit = lastView?.fitting;
+      if (fit && session.removeFitting()) ctx.hud.toast(`${fit.name} removed in your layout. Undo is in the list. The home as drawn does not change.`);
+      return;
+    }
     const name = sel?.name ?? 'piece';
     const home = !!sel?.home;
     if (session.removeSelected() && home) ctx.hud.toast(`${name} hidden in your layout. The home as drawn does not change.`);
@@ -833,16 +1202,21 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   bRemove.dataset.act = 'remove';
 
   // ---- the panels under the bar: Replace and Change look
-  let panelOpen: 'replace' | 'look' | null = null;
+  let panelOpen: 'replace' | 'look' | 'size' | null = null;
   const panel = h('div', 'wtf-panel', root);
   panel.dataset.ui = '1';
   panel.dataset.testid = 'furnish-panel';
   panel.hidden = true;
 
-  const setPanel = (p: 'replace' | 'look' | null): void => {
+  const setPanel = (p: 'replace' | 'look' | 'size' | null): void => {
     panelOpen = p;
     disarmRemove();
     renderPanel();
+    // the tray and the long message step aside while a panel is open (the class normally follows the next render: do it now)
+    root.classList.toggle('has-panel', !!p && (lastView?.phase === 'selected' || lastView?.phase === 'fitting'));
+    bReplace.classList.toggle('is-on', p === 'replace');
+    bLook.classList.toggle('is-on', p === 'look');
+    bSize.classList.toggle('is-on', p === 'size');
   };
 
   const specCard = (parent: HTMLElement, spec: CatalogItem, onPick: () => void): void => {
@@ -863,7 +1237,63 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     panel.textContent = '';
     const v = lastView;
     const sel = v?.selection ?? null;
-    const show = !!panelOpen && !!sel && v?.phase === 'selected';
+    const fit = v?.fitting ?? null;
+    // Resize: the steppers of a piece of the home, or the size options of a fitting
+    if (panelOpen === 'size' && ((v?.phase === 'selected' && sel?.sizes) || (v?.phase === 'fitting' && fit?.resize && !fit.moving))) {
+      panel.hidden = false;
+      const topS = h('div', 'wtf-panel-head', panel);
+      h('div', 'wtf-panel-title', topS, `Resize · ${sel?.name ?? fit?.name ?? ''}`);
+      const doneS = h('button', 'wtf-link is-strong', topS, 'Done');
+      doneS.type = 'button'; doneS.dataset.ui = '1'; doneS.dataset.act = 'panel-close';
+      doneS.addEventListener('click', (e) => { e.stopPropagation(); setPanel(null); });
+      const stepper = (parent: HTMLElement, label: string, text: string, key: string, canDown: boolean, canUp: boolean, down: () => void, up: () => void): void => {
+        const rowEl = h('div', 'wtf-step', parent);
+        h('div', 'wtf-step-label', rowEl, label);
+        const minus = h('button', 'wtf-step-btn', rowEl, '−');
+        minus.type = 'button'; minus.dataset.ui = '1'; minus.dataset.step = `${key}-`; minus.setAttribute('aria-label', `${label} smaller`); minus.disabled = !canDown;
+        minus.addEventListener('click', (e) => { e.stopPropagation(); down(); minus.blur(); });
+        const val = h('div', 'wtf-step-val', rowEl, text);
+        val.dataset.stepValue = key;
+        const plus = h('button', 'wtf-step-btn', rowEl, '+');
+        plus.type = 'button'; plus.dataset.ui = '1'; plus.dataset.step = `${key}+`; plus.setAttribute('aria-label', `${label} larger`); plus.disabled = !canUp;
+        plus.addEventListener('click', (e) => { e.stopPropagation(); up(); plus.blur(); });
+      };
+      if (v?.phase === 'selected' && sel?.sizes) {
+        const steps = h('div', 'wtf-steps', panel);
+        for (const z of sel.sizes) {
+          stepper(steps, z.label, `${Math.round(z.value * 100)} cm`, z.key, z.value > z.min + 1e-6, z.value < z.max - 1e-6, () => session.stepSelected(z.key, -1), () => session.stepSelected(z.key, 1));
+        }
+        const tools = h('div', 'wtf-panel-tools', panel);
+        const bs = h('button', 'wtf-chipbtn', tools, BACK_TO_DRAWN_SIZE);
+        bs.type = 'button'; bs.dataset.ui = '1'; bs.dataset.act = 'back-size'; bs.disabled = !sel.canBackSize;
+        bs.addEventListener('click', (e) => { e.stopPropagation(); session.backToDrawn('size'); });
+        const bp = h('button', 'wtf-chipbtn', tools, BACK_TO_DRAWN_PLACE);
+        bp.type = 'button'; bp.dataset.ui = '1'; bp.dataset.act = 'back-place'; bp.disabled = !sel.canBackPlace;
+        bp.addEventListener('click', (e) => { e.stopPropagation(); session.backToDrawn('place'); });
+        h('div', 'wtf-panel-note', panel, 'Your size is a try-out. The drawing keeps its own size and says so on the card.');
+      } else if (fit?.resize) {
+        const r = fit.resize;
+        if (r.kind === 'classes') {
+          h('div', 'wtf-sub', panel, r.label);
+          const row = h('div', 'wtf-slot-opts', panel);
+          for (const o of r.options) {
+            const b = h('button', `wtf-style${o.on ? ' is-on' : ''}`, row, o.label);
+            b.type = 'button'; b.dataset.ui = '1'; b.dataset.size = String(o.value); b.setAttribute('aria-pressed', String(o.on));
+            b.addEventListener('click', (e) => { e.stopPropagation(); session.sizeFitting([o.value]); });
+          }
+        } else {
+          const steps = h('div', 'wtf-steps', panel);
+          for (const d of r.dims) stepper(steps, d.label, d.text, d.key, d.value > d.min + 1e-6, d.value < d.max - 1e-6, () => session.stepFitting(d.index, -1), () => session.stepFitting(d.index, 1));
+        }
+        const tools = h('div', 'wtf-panel-tools', panel);
+        const bs = h('button', 'wtf-chipbtn', tools, 'Back to default size');
+        bs.type = 'button'; bs.dataset.ui = '1'; bs.dataset.act = 'back-size'; bs.disabled = !fit.canBackSize;
+        bs.addEventListener('click', (e) => { e.stopPropagation(); session.backFittingSize(); });
+        h('div', 'wtf-panel-note', panel, 'These sizes are a try-out. The home as drawn does not change.');
+      }
+      return;
+    }
+    const show = !!panelOpen && !!sel && v?.phase === 'selected' && panelOpen !== 'size';
     panel.hidden = !show;
     if (!show || !sel) return;
     const top = h('div', 'wtf-panel-head', panel);
@@ -990,11 +1420,11 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     for (const r of v.removed) {
       const row = h('div', 'wtf-removed-row', removedWrap);
       const t = h('div', 'wtf-removed-text', row);
-      h('span', 'wtf-removed-name', t, `Removed: ${r.label} (as drawn)`);
+      h('span', 'wtf-removed-name', t, r.fitting ? `Removed: ${r.label}` : `Removed: ${r.label} (as drawn)`);
       if (r.builtIn) h('span', 'wtf-removed-note', t, `${BUILT_IN_NOTE}.`);
       const u = h('button', 'wtf-link', row, 'Undo');
       u.type = 'button'; u.dataset.ui = '1'; u.dataset.act = 'undo'; u.dataset.itemId = r.id;
-      u.addEventListener('click', (e) => { e.stopPropagation(); session.restore(r.id); });
+      u.addEventListener('click', (e) => { e.stopPropagation(); if (r.fitting) session.restoreFitting(r.id); else session.restore(r.id); });
     }
   };
 
@@ -1067,50 +1497,82 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     const { a } = boxAxes(item.box);
     cam.focusOn({ x: item.box.cx + a.x * shift, y: Math.min(1.0, item.heightM * 0.45), z: item.box.cz + a.z * shift }, dist, 52, item.box.yawDeg + 180);
   };
+  /** swing the camera to a fitting: wall pieces from the room side, ceiling pieces looking up, floor pieces from above */
+  const focusFitting = (id: string): void => {
+    const rec = ctx.fittings?.get(id);
+    const cam = ctx.camera as { focusOn?(c: Vec3, d: number, p: number, y?: number): void };
+    if (!rec || !cam.focusOn) return;
+    const big = Math.max(rec.half.x, rec.half.z) * 2;
+    // a wall fitting: the camera stands in front of its wall, inside the room
+    if (rec.mount === 'wall') cam.focusOn({ x: rec.centre.x, y: Math.min(rec.centre.y, 1.6), z: rec.centre.z }, Math.min(3.4, Math.max(2.2, big * 1.4 + 1.6)), 14, rec.yawDeg + 180);
+    // a fitting on the ceiling or the floor (fan, downlight, rug, plant, chair): the viewer tapped it, so it is already in view, and a swing of the camera could end outside the room or inside the furniture
+  };
+  let lastFitId: string | null = null;
+  let lastFitAt = '';
   const ui: FurnishUi = {
     render(v) {
       lastView = v;
       // a different piece, or none: the panel and a half-confirmed Remove close, and the camera swings to the piece (or lets go)
-      const selId = v.selection?.id ?? null;
+      const selId = v.selection?.id ?? v.fitting?.id ?? null;
       if (selId !== lastSelId) {
         lastSelId = selId; panelOpen = null; disarmRemove();
-        if (active) { if (selId) focusPiece(selId); else if (v.phase === 'browse') releaseCam(); }
+        if (active) {
+          if (selId && v.selection) focusPiece(selId);
+          else if (selId && v.fitting) focusFitting(selId);
+          else if (v.phase === 'browse') releaseCam();
+        }
       }
-      barName.textContent = v.selection ? `${v.selection.name} · ${v.selection.sizeText}${v.selection.home ? ' · as drawn' : ''}${v.selection.finishText ? ` · ${v.selection.finishText}` : ''}` : '';
-      barName.hidden = !v.selection;
+      const fit = v.phase === 'fitting' ? v.fitting : null;
+      // a fitting that was moved: the camera goes with it (not while its ghost is being aimed)
+      if (fit && selId === lastSelId && fit.id === lastFitId && fit.at !== lastFitAt && !fit.moving && active) focusFitting(fit.id);
+      lastFitId = fit?.id ?? null; lastFitAt = fit?.at ?? '';
+      barName.textContent = v.selection
+        ? `${v.selection.name} · ${v.selection.sizeText}${v.selection.home ? (v.selection.edit ? ' · in your layout' : ' · as drawn') : ''}${v.selection.finishText ? ` · ${v.selection.finishText}` : ''}`
+        : fit ? `${fit.name} · ${fit.sizeText}${fit.edit ? ' · in your layout' : ''}` : '';
+      barName.hidden = !v.selection && !fit;
+      const note = v.selection?.edit ?? fit?.edit ?? null;
+      barNote.textContent = note ?? '';
+      barNote.hidden = !note;
       barMsg.textContent = v.message;
       bar.dataset.tone = v.tone ?? 'none';
       bar.dataset.phase = v.phase;
+      const fitMoving = !!fit?.moving;
       barHint.textContent = v.phase === 'edit'
         ? (v.workKind === 'replace' ? 'Drag to adjust. ' : '') + (touch ? 'Drag it to move. Tap Rotate to turn it.' : 'Drag to move. Q / E turn it, R for a quarter turn.')
-        : '';
-      barHint.hidden = v.phase !== 'edit';
-      const showEdit = v.phase === 'edit';
+        : fitMoving ? (touch ? 'Drag on the wall, ceiling or floor, or tap a spot. Place when the box is green.' : 'Drag or click on the wall, ceiling or floor. Place when the box is green.') : '';
+      barHint.hidden = !(v.phase === 'edit' || fitMoving);
+      const showEdit = v.phase === 'edit' || fitMoving;
       const sel = v.phase === 'selected' && !!v.selection;
-      bRotate.hidden = bCancel.hidden = bPlace.hidden = !showEdit;
+      const fitIdle = !!fit && !fitMoving;
+      bRotate.hidden = !(v.phase === 'edit');
+      bCancel.hidden = bPlace.hidden = !showEdit;
       setLabel(bPlace, v.workKind === 'replace' ? 'Replace' : 'Place');
-      bMove.hidden = !sel || !v.canMove;
-      bTurn.hidden = !sel || !v.canRotate;
+      bMove.hidden = !((sel && v.canMove) || (fitIdle && fit!.canMove));
+      bTurn.hidden = !((sel && v.canRotate) || (fitIdle && fit!.canTurn));
+      bSize.hidden = !((sel && !!v.selection?.sizes) || (fitIdle && !!fit!.resize));
       bReplace.hidden = !sel;
       bLook.hidden = !sel || !v.selection?.family;
-      bRemove.hidden = !sel || !v.canRemove;
+      bRemove.hidden = !((sel && v.canRemove) || fitIdle);
       if (v.selection && !removeArmed) setLabel(bRemove, removeLabel(v.selection));
+      else if (fitIdle && !removeArmed) setLabel(bRemove, 'Remove');
       bReplace.classList.toggle('is-on', panelOpen === 'replace');
       bLook.classList.toggle('is-on', panelOpen === 'look');
-      actions.hidden = !(showEdit || sel);
+      bSize.classList.toggle('is-on', panelOpen === 'size');
+      actions.hidden = !(showEdit || sel || fitIdle);
       bPlace.disabled = !v.canPlace;
       clearBtn.hidden = v.buyerCount === 0;
       if (v.buyerCount === 0) clearArm.disarm();
       mineRow.hidden = !v.edited;
       if (!v.edited) resetArm.disarm();
-      root.classList.toggle('is-selected', sel);
-      root.classList.toggle('has-panel', sel && !!panelOpen);
+      const selected = sel || fitIdle;
+      root.classList.toggle('is-selected', selected);
+      root.classList.toggle('has-panel', selected && !!panelOpen);
       cards.classList.toggle('is-editing', showEdit);
       tray.classList.toggle('is-editing', showEdit);
-      tray.classList.toggle('is-selected', sel);
+      tray.classList.toggle('is-selected', selected);
       titleEl.textContent = 'Add furniture';
-      addLabel.hidden = showEdit || sel;
-      cards.hidden = sel;
+      addLabel.hidden = showEdit || selected;
+      cards.hidden = selected;
       piecesWrap.classList.toggle('is-quiet', showEdit);
       renderPieces(v);
       renderRemoved(v);
@@ -1132,8 +1594,22 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     raycaster.setFromCamera(ndc, ctx.viewer.camera);
     return raycaster.intersectObject(m, true).length > 0;
   };
+  /** where the pointer is pointing, for a fitting that is being moved: on a wall, on the ceiling, on the floor */
+  const aimAt = (e: PointerEvt): void => {
+    const ray = ctx.rayOf?.(e);
+    const l = ray ? Math.hypot(ray.dir.x, ray.dir.z) : 0;
+    session.aimFitting({
+      wallPoint: ctx.raycastWalls?.(e) ?? null, floor: ctx.raycastFloor(e), ceiling: ctx.raycastCeiling?.(e) ?? null,
+      rayDirXZ: ray && l > 1e-6 ? { x: ray.dir.x / l, z: ray.dir.z / l } : null,
+    });
+  };
   const claim = (e: PointerEvt): boolean => {
     if (!active) return false;
+    // a fitting being moved: the ghost follows the pointer (a tap sets it too); Place commits
+    if (session.fittingMoving()) {
+      aimAt(e);
+      return true;
+    }
     if (e.type === 'down') {
       if (!session.working()) return false;
       const floor = ctx.raycastFloor(e);
@@ -1183,8 +1659,11 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
         ctx.input.on('rotate-right', () => { if (active) session.rotate(-ROTATE_STEP_DEG); }),
         ctx.input.on('rotate-90', () => { if (active) session.rotate(-ROTATE_BIG_DEG); }),
         ctx.input.onTap((e) => {
-          if (!active || session.working()) return;
-          session.select(itemIdAt(e));
+          if (!active || session.working() || session.fittingMoving()) return;
+          // one hit-test for furniture and fittings: the nearest thing under the tap; empty wall or floor clears the selection
+          const hit = ctx.pickAt?.(e) ?? null;
+          if (hit?.kind === 'fitting') session.selectFitting(hit.id);
+          else session.select(hit ? hit.id : itemIdAt(e));
         }),
       ];
       session.select(null);
@@ -1193,6 +1672,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     },
     exit() {
       active = false;
+      session.cancelFittingMove();
       session.cancel();
       session.select(null);
       releaseCam();
@@ -1253,6 +1733,25 @@ function installDebug(ctx: BuyerContext, mode: FurnishMode): void {
     reset: () => s.resetLayout(),
     shareLink: () => s.shareLink(location.href),
     clearAll: () => s.clearAll(),
+    /** sizes of a piece of the home: resize('w', 1.5), step('d', 1), backToDrawn('both') */
+    resize: (key: SizeKey, value: number) => s.resizeSelected(key, value),
+    step: (key: SizeKey, dir: 1 | -1) => s.stepSelected(key, dir),
+    backToDrawn: (what: 'size' | 'place' | 'both' = 'both') => s.backToDrawn(what),
+    /** fittings: fittings() lists them, selectFitting(id), moveFitting(id, spec), sizeFitting([m]), stepFitting(i, +1), removeFitting(), restoreFitting(id) */
+    fittings: () => ctx.fittings?.list().map((r) => ({ id: r.id, kind: r.kind, name: r.name, mount: r.mount, room: r.roomId, removed: r.removed, moved: r.moved, sized: r.sized, size: r.size, centre: r.centre, wall: r.wall ?? null, resize: r.resize, current: r.currentSize })) ?? [],
+    selectFitting: (id: string | null) => { s.selectFitting(id); return s.view(); },
+    beginFittingMove: () => s.beginFittingMove(),
+    aimFitting: (at: Parameters<typeof s.aimFitting>[0]) => s.aimFitting(at),
+    placeFitting: () => s.placeFitting(),
+    cancelFittingMove: () => s.cancelFittingMove(),
+    moveFitting: (id: string, spec: import('../look/fittings').MoveSpec) => s.moveFitting(id, spec),
+    sizeFitting: (values: number[]) => s.sizeFitting(values),
+    stepFitting: (i: number, dir: 1 | -1) => s.stepFitting(i, dir),
+    turnFitting: (deg?: number) => s.turnFitting(deg),
+    backFittingSize: () => s.backFittingSize(),
+    backFittingPlace: () => s.backFittingPlace(),
+    removeFitting: (id?: string) => s.removeFitting(id),
+    restoreFitting: (id: string) => s.restoreFitting(id),
     verdict: () => s.verdict(),
     view: () => s.view(),
     working: () => s.working(),

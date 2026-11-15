@@ -23,6 +23,12 @@ import { getStyle, matOf, onStyleChange, roomFinishIds, sheetInForce } from './s
 import type { StyleState } from './style';
 import type { SheetFixture } from './design-sheet';
 import { finishDef } from './finishes';
+import {
+  AC_CLASSES, AC_D_PER_W, AC_DEFAULT_W, AC_H_PER_W, KIND_NAMES, dimLimits, overlayFor, resolveCeilingMove, resolveWallMove, wallObb,
+} from './fittings';
+import type { FittingKind, FittingRecord, FittingRegistry, FittingsOverlay, WallShape } from './fittings';
+import { wallInfosOf } from './kit/fittings';
+import { roomCentre } from './kit/rules';
 
 export const DESIGN_NOTE = 'Curtains, rugs, wall panelling and lights are typical styling, not from your drawing.';
 export const DESIGN_NOTE_RENDERS = "Curtains, rugs, panelling and lights follow the designer's renders, they are not on your drawing.";
@@ -98,7 +104,7 @@ function decorRoles(st: StyleState): Roles {
 
 // ---------------------------------------------------------------- building the group
 
-export interface BuiltDecor { group: THREE.Group; triangles: number; counts: Record<string, number> }
+export interface BuiltDecor { group: THREE.Group; triangles: number; counts: Record<string, number>; /** what was built, as tappable, movable fittings (removed ones too, flagged) */ records: FittingRecord[] }
 
 function tag(root: THREE.Object3D): number {
   let tris = 0;
@@ -112,20 +118,58 @@ function tag(root: THREE.Object3D): number {
   return tris;
 }
 
+/** Nothing but the overlay changes what is built: `overlay` is the viewer's removed, moved and resized fittings (My layout). */
+export interface DecorExtra { overlay?: FittingsOverlay | null }
+
+const nearly = (a: number, b: number): boolean => Math.abs(a - b) < 1e-6;
+const MIN_CURTAIN_W = 0.6;
+
 /** Builds the decor group for a layout, its furniture and a style. No scene needed (the GLB export and the tests call this). */
-export function buildDecorGroup(layout: Layout, items: FurnitureItem[], tier: Tier, st: StyleState = getStyle(), kit: FurnitureKit = furnitureKit): BuiltDecor {
+export function buildDecorGroup(layout: Layout, items: FurnitureItem[], tier: Tier, st: StyleState = getStyle(), kit: FurnitureKit = furnitureKit, extra: DecorExtra = {}): BuiltDecor {
   const group = new THREE.Group();
   group.name = 'design-decor';
   group.userData.decor = true;
   const counts: Record<string, number> = {};
-  if (st.pack.classic) return { group, triangles: 0, counts };
+  const records: FittingRecord[] = [];
+  if (st.pack.classic) return { group, triangles: 0, counts, records };
   const env: GenEnv = { kit, q: GEN_QUALITY[tier] };
   const roles = decorRoles(st);
   const frames = computeEdgeFrames(layout);
+  const infos = wallInfosOf(layout);
   const frameOf = (roomId: string, edge: number): EdgeFrame | undefined => frames.find((f) => f.roomId === roomId && f.edge === edge);
   const rooms = new Map(layout.rooms.map((r) => [r.id, r]));
   const H = layout.wallHeightM;
+  const overlay = extra.overlay ?? null;
+  const provenance: FittingRecord['provenance'] = sheetInForce(st)?.source === 'designer-renders' ? 'renders' : 'typical';
   const add = (kind: string, g: THREE.Group): void => { group.add(g); counts[kind] = (counts[kind] ?? 0) + 1; };
+  // stable ids: `<kind>:<room>:<n>` with n counting that kind in that room in the order the fixtures list them
+  const seen = new Map<string, number>();
+  const idFor = (kind: string, roomId: string, edge?: number): string => {
+    const k = `${kind}:${roomId}${edge === undefined ? '' : `:${edge}`}`;
+    const n = seen.get(k) ?? 0;
+    seen.set(k, n + 1);
+    return `${k}:${n}`;
+  };
+  const base = (id: string, kind: FittingKind, roomId: string, over: Partial<FittingRecord>): FittingRecord => ({
+    id, kind, name: KIND_NAMES[kind], mount: 'wall', roomId, removed: false, moved: false, sized: false,
+    centre: { x: 0, y: 0, z: 0 }, half: { x: 0.1, y: 0.1, z: 0.1 }, yawDeg: 0, size: { w: 0, d: 0, h: 0 }, heightM: 0, provenance,
+    movable: false, resize: null, defaultSize: null, currentSize: null, ...over,
+  });
+  /** which wall a wall fitting stands on, after a viewer's move (it can jump to another wall of its room) */
+  const onWall = (id: string, roomId: string, edge: number, u: number, y: number, shape: WallShape): { frame: EdgeFrame; edge: number; u: number; y: number } | null => {
+    const mv = overlayFor(overlay, id).move;
+    if (mv?.m === 'w') {
+      const t = resolveWallMove(infos, roomId, mv, shape);
+      if (t) return { frame: t.frame, edge: t.edge, u: t.u, y: t.y };
+    }
+    const f = frameOf(roomId, edge);
+    return f ? { frame: f, edge, u, y } : null;
+  };
+  const wallRec = (id: string, kind: FittingKind, roomId: string, t: { frame: EdgeFrame; edge: number; u: number; y: number }, drawn: { edge: number; u: number; y: number }, w: number, y0: number, y1: number, d: number, shape: WallShape, over: Partial<FittingRecord> = {}): FittingRecord =>
+    base(id, kind, roomId, {
+      ...wallObb(t.frame, t.u, y0, y1, w, d), size: { w, d, h: y1 - y0 }, heightM: y0, wall: { edge: t.edge, u: t.u, y: t.y, length: t.frame.length },
+      moved: t.edge !== drawn.edge || !nearly(t.u, drawn.u) || !nearly(t.y, drawn.y), movable: true, moveRule: { mount: 'wall', shape }, ...over,
+    });
 
   for (const fx of activeFixtures(layout, items, st)) {
     const room = rooms.get(fx.roomId);
@@ -134,14 +178,35 @@ export function buildDecorGroup(layout: Layout, items: FurnitureItem[], tier: Ti
       case 'curtain': {
         const f = frameOf(fx.roomId, fx.edge);
         if (!f) break;
+        const id = idFor('curtain', fx.roomId, fx.edge);
+        const ov = overlayFor(overlay, id);
         const u0 = Math.max(0, fx.u0), u1 = Math.min(f.length, fx.u1);
-        const g = buildCurtain(env, { ...CURTAIN_DEFAULTS, widthM: u1 - u0, heightM: H - 0.04, trackYM: H - 0.05, sheer: fx.sheer ?? true, drape: fx.drape ?? 'sides', ...(fx.trackYM ? { trackYM: fx.trackYM } : {}) }, roles);
-        placeOnWall(g, f, u0, 0.012);
+        const drawnW = u1 - u0, drawnU = (u0 + u1) / 2;
+        const trackY = fx.trackYM ?? H - 0.05;
+        const yMid = (0.02 + trackY) / 2;
+        const lim = dimLimits('curtain', { w: drawnW, d: 0, h: 0 })[0];
+        let w = ov.size ? Math.min(lim.max, Math.max(lim.min, ov.size[0])) : drawnW;
+        const shape = (ww: number): WallShape => ({ w: ww, yRange: () => [0.02, trackY + 0.02], yMin: yMid, yMax: yMid, overWindows: true });
+        let t = onWall(id, fx.roomId, fx.edge, drawnU, yMid, shape(w));
+        // a width the wall cannot hold is the widest it can
+        if (t && !resolveWallMove(infos, fx.roomId, { edge: t.edge, u: t.u, y: yMid }, shape(w))) { w = drawnW; t = onWall(id, fx.roomId, fx.edge, drawnU, yMid, shape(w)); }
+        if (!t) break;
+        const at = resolveWallMove(infos, fx.roomId, { edge: t.edge, u: t.u, y: yMid }, shape(w));
+        if (at) t = { frame: at.frame, edge: at.edge, u: at.u, y: at.y };
+        const rec = wallRec(id, 'curtain', fx.roomId, t, { edge: fx.edge, u: drawnU, y: yMid }, w, 0.02, trackY + 0.02, 0.15, shape(w), {
+          removed: ov.removed, sized: !nearly(w, drawnW), resize: { kind: 'dims', dims: [{ ...lim, max: Math.min(lim.max, Math.max(lim.min, t.frame.length - 0.2)) }] }, defaultSize: [drawnW], currentSize: [w],
+        });
+        records.push(rec);
+        if (ov.removed) break;
+        const g = buildCurtain(env, { ...CURTAIN_DEFAULTS, widthM: w, heightM: H - 0.04, trackYM: trackY, sheer: fx.sheer ?? true, drape: fx.drape ?? 'sides' }, roles);
+        placeOnWall(g, t.frame, t.u - w / 2, 0.012);
         nearFade(g);
         add('curtain', g);
         break;
       }
       case 'rug': {
+        const id = idFor('rug', fx.roomId);
+        const ov = overlayFor(overlay, id);
         let cx = fx.x ?? 0, cz = fx.z ?? 0, w = fx.w ?? RUG_DEFAULTS.widthM, d = fx.d ?? RUG_DEFAULTS.depthM, yaw = ((fx.yawDeg ?? 0) * Math.PI) / 180;
         const it = fx.aroundItem ? items.find((i) => i.id === fx.aroundItem) : undefined;
         if (it) {
@@ -151,7 +216,18 @@ export function buildDecorGroup(layout: Layout, items: FurnitureItem[], tier: Ti
           const y = (it.box.yawDeg * Math.PI) / 180;
           const lz = (mf - mh) / 2;
           cx = it.box.cx + Math.sin(y) * lz; cz = it.box.cz + Math.cos(y) * lz; w = ww; d = dd; yaw = y;
-        }
+        } else if (fx.aroundItem) break;
+        const drawn = { w, d, cx, cz, yaw };
+        const [lw, ld] = dimLimits('rug', { w, d, h: 0 });
+        if (ov.size && ov.size.length >= 2) { w = Math.min(Math.max(lw.max, drawn.w), Math.max(Math.min(lw.min, drawn.w), ov.size[0])); d = Math.min(Math.max(ld.max, drawn.d), Math.max(Math.min(ld.min, drawn.d), ov.size[1])); }
+        if (ov.move?.m === 'f') { cx = ov.move.x; cz = ov.move.z; if (ov.move.yawDeg !== undefined) yaw = (ov.move.yawDeg * Math.PI) / 180; }
+        records.push(base(id, 'rug', fx.roomId, {
+          mount: 'floor', removed: ov.removed, moved: ov.move?.m === 'f', sized: !nearly(w, drawn.w) || !nearly(d, drawn.d),
+          centre: { x: cx, y: 0.0125, z: cz }, half: { x: w / 2, y: 0.0125, z: d / 2 }, yawDeg: (yaw * 180) / Math.PI,
+          size: { w, d, h: RUG_DEFAULTS.pileM }, heightM: 0, movable: true, moveRule: { mount: 'floor', w, d, needFree: false, doorKeepM: 0.05, turn: true },
+          resize: { kind: 'dims', dims: [lw, ld] }, defaultSize: [drawn.w, drawn.d], currentSize: [w, d],
+        }));
+        if (ov.removed) break;
         const g = buildRug(env, { ...RUG_DEFAULTS, widthM: w, depthM: d }, roles);
         g.position.set(cx, 0.001, cz);
         g.rotation.y = yaw;
@@ -162,33 +238,79 @@ export function buildDecorGroup(layout: Layout, items: FurnitureItem[], tier: Ti
       case 'ac': {
         const f = frameOf(fx.roomId, fx.edge);
         if (!f) break;
+        const id = idFor('ac', fx.roomId);
+        const ov = overlayFor(overlay, id);
+        const sizeOf = (w: number) => ({ w, h: w * AC_H_PER_W, d: w * AC_D_PER_W });
+        const shapeOf = (w: number): WallShape => { const s = sizeOf(w); return { w, yRange: (y) => [y - s.h / 2, y + s.h / 2], yMin: 1.7 + s.h / 2, yMax: Math.max(1.8, H - s.h / 2 - 0.08) }; };
+        let w = ov.size && ov.size[0] >= 0.6 && ov.size[0] <= 1.5 ? ov.size[0] : AC_DEFAULT_W;
+        let t = onWall(id, fx.roomId, fx.edge, fx.u, fx.y, shapeOf(w));
+        if (!t) break;
+        // a unit that no longer fits where it hangs slides to where it does; if the wall cannot take it at all it stays as drawn
+        const fit = resolveWallMove(infos, fx.roomId, { edge: t.edge, u: t.u, y: t.y }, shapeOf(w));
+        if (fit) t = { frame: fit.frame, edge: fit.edge, u: fit.u, y: fit.y };
+        else { w = AC_DEFAULT_W; t = { frame: f, edge: fx.edge, u: fx.u, y: fx.y }; }
+        const sz = sizeOf(w);
+        const options = AC_CLASSES.filter((o) => !!resolveWallMove(infos, fx.roomId, { edge: t!.edge, u: t!.u, y: t!.y }, shapeOf(o.value)));
+        records.push(wallRec(id, 'ac', fx.roomId, t, { edge: fx.edge, u: fx.u, y: fx.y }, sz.w, t.y - sz.h / 2, t.y + sz.h / 2, sz.d, shapeOf(sz.w), {
+          removed: ov.removed, sized: !nearly(w, AC_DEFAULT_W), resize: options.length ? { kind: 'classes', label: 'Width', options } : null, defaultSize: [AC_DEFAULT_W], currentSize: [w],
+        }));
+        if (ov.removed) break;
         const g = buildAc(env, roles);
-        placeOnWall(g, f, fx.u, 0);
-        g.position.y = fx.y;
+        placeOnWall(g, t.frame, t.u, 0);
+        g.scale.setScalar(w / AC_DEFAULT_W);
+        g.position.y = t.y;
+        g.updateMatrixWorld(true);
         add('ac', g);
         break;
       }
       case 'downlights': {
-        const g = buildDownlights(env, fx.points, H, roles);
-        add('downlights', g);
+        const ids = fx.points.map((_, i) => `downlight:${fx.roomId}:${(seen.get(`downlight:${fx.roomId}`) ?? 0)}:${i}`);
+        seen.set(`downlight:${fx.roomId}`, (seen.get(`downlight:${fx.roomId}`) ?? 0) + 1);
+        const centre = roomCentre(room);
+        const pts: [number, number][] = [];
+        fx.points.forEach((p, i) => {
+          const ov = overlayFor(overlay, ids[i]);
+          let at = { x: p[0], z: p[1] };
+          if (ov.move?.m === 'c') { const t = resolveCeilingMove(room, { x: ov.move.x, z: ov.move.z }, 0.15, centre); if (t) at = t; }
+          records.push(base(ids[i], 'downlight', fx.roomId, {
+            mount: 'ceiling', removed: ov.removed, moved: !nearly(at.x, p[0]) || !nearly(at.z, p[1]), centre: { x: at.x, y: H - 0.01, z: at.z }, half: { x: 0.056, y: 0.03, z: 0.056 },
+            size: { w: 0.112, d: 0.112, h: 0.01, round: true }, heightM: H - 0.01, movable: true, moveRule: { mount: 'ceiling', margin: 0.15 },
+          }));
+          if (!ov.removed) pts.push([at.x, at.z]);
+        });
+        if (pts.length) add('downlights', buildDownlights(env, pts, H, roles));
         break;
       }
       case 'bowl-lights': {
         const f = frameOf(fx.roomId, fx.edge);
         if (!f) break;
+        const n = seen.get(`bowl:${fx.roomId}`) ?? 0;
+        seen.set(`bowl:${fx.roomId}`, n + 1);
+        const shape: WallShape = { w: 0.2, yRange: (y) => [y - 0.1, y + 0.1], yMin: 0.9, yMax: Math.max(1, H - 0.4) };
         // one group per light so each sits at its own u
-        for (const u of fx.us) {
-          const gi = buildBowlLights(env, [0], fx.y, roles);
-          placeOnWall(gi, f, u, 0);
+        fx.us.forEach((u, i) => {
+          const id = `wall-light:${fx.roomId}:${n}:${i}`;
+          const ov = overlayFor(overlay, id);
+          const t = onWall(id, fx.roomId, fx.edge, u, fx.y, shape);
+          if (!t) return;
+          records.push(wallRec(id, 'wall-light', fx.roomId, t, { edge: fx.edge, u, y: fx.y }, 0.2, t.y - 0.1, t.y + 0.1, 0.09, shape, { removed: ov.removed }));
+          if (ov.removed) return;
+          const gi = buildBowlLights(env, [0], t.y, roles);
+          placeOnWall(gi, t.frame, t.u, 0);
           add('bowl-lights', gi);
-        }
+        });
         break;
       }
       case 'panelling': {
         const f = frameOf(fx.roomId, fx.edge);
         if (!f) break;
+        const id = idFor('panelling', fx.roomId, fx.edge);
+        const ov = overlayFor(overlay, id);
         const u0 = Math.max(0, fx.u0), u1 = Math.min(f.length, fx.u1);
-        const g = buildPanelling(env, { ...PANELLING_DEFAULTS, widthM: u1 - u0, y0M: fx.y0M ?? 0.1, y1M: fx.y1M ?? H - 0.15, pitchM: fx.pitchM ?? PANELLING_DEFAULTS.pitchM, tierM: fx.tierM ?? 0 }, roles);
+        const y0 = fx.y0M ?? 0.1, y1 = fx.y1M ?? H - 0.15;
+        records.push(wallRec(id, 'panelling', fx.roomId, { frame: f, edge: fx.edge, u: (u0 + u1) / 2, y: (y0 + y1) / 2 }, { edge: fx.edge, u: (u0 + u1) / 2, y: (y0 + y1) / 2 }, u1 - u0, y0, y1, 0.03, { w: u1 - u0, yRange: () => [y0, y1], yMin: 0, yMax: 0 }, { removed: ov.removed, movable: false, moveRule: undefined }));
+        if (ov.removed) break;
+        const g = buildPanelling(env, { ...PANELLING_DEFAULTS, widthM: u1 - u0, y0M: y0, y1M: y1, pitchM: fx.pitchM ?? PANELLING_DEFAULTS.pitchM, tierM: fx.tierM ?? 0 }, roles);
         placeOnWall(g, f, u0, 0.001);
         add('panelling', g);
         break;
@@ -196,14 +318,27 @@ export function buildDecorGroup(layout: Layout, items: FurnitureItem[], tier: Ti
       case 'slat-wall': {
         const f = frameOf(fx.roomId, fx.edge);
         if (!f) break;
+        const id = idFor('slat-wall', fx.roomId, fx.edge);
+        const ov = overlayFor(overlay, id);
         const u0 = Math.max(0, fx.u0), u1 = Math.min(f.length, fx.u1);
-        const g = buildSlatWall(env, { ...SLAT_WALL_DEFAULTS, widthM: u1 - u0, y0M: fx.y0M ?? 0, y1M: fx.y1M ?? H - 0.02, pitchM: fx.pitchM ?? SLAT_WALL_DEFAULTS.pitchM }, roles);
+        const y0 = fx.y0M ?? 0, y1 = fx.y1M ?? H - 0.02;
+        records.push(wallRec(id, 'slat-wall', fx.roomId, { frame: f, edge: fx.edge, u: (u0 + u1) / 2, y: (y0 + y1) / 2 }, { edge: fx.edge, u: (u0 + u1) / 2, y: (y0 + y1) / 2 }, u1 - u0, y0, y1, 0.04, { w: u1 - u0, yRange: () => [y0, y1], yMin: 0, yMax: 0 }, { removed: ov.removed, movable: false, moveRule: undefined }));
+        if (ov.removed) break;
+        const g = buildSlatWall(env, { ...SLAT_WALL_DEFAULTS, widthM: u1 - u0, y0M: y0, y1M: y1, pitchM: fx.pitchM ?? SLAT_WALL_DEFAULTS.pitchM }, roles);
         placeOnWall(g, f, u0, 0.001);
         add('slat-wall', g);
         break;
       }
       case 'ceiling-band': {
-        const g = buildCeilingBand(env, { widthM: fx.x1 - fx.x0, depthM: fx.z1 - fx.z0, dropM: fx.dropM ?? 0.05 }, roles);
+        const id = idFor('ceiling-band', fx.roomId);
+        const ov = overlayFor(overlay, id);
+        const drop = fx.dropM ?? 0.05;
+        records.push(base(id, 'ceiling-band', fx.roomId, {
+          mount: 'ceiling', removed: ov.removed, centre: { x: (fx.x0 + fx.x1) / 2, y: H - drop / 2, z: (fx.z0 + fx.z1) / 2 }, half: { x: (fx.x1 - fx.x0) / 2, y: Math.max(0.03, drop / 2), z: (fx.z1 - fx.z0) / 2 },
+          size: { w: fx.x1 - fx.x0, d: fx.z1 - fx.z0, h: drop }, heightM: H - drop,
+        }));
+        if (ov.removed) break;
+        const g = buildCeilingBand(env, { widthM: fx.x1 - fx.x0, depthM: fx.z1 - fx.z0, dropM: drop }, roles);
         g.position.set(fx.x0, H, fx.z0);
         g.updateMatrixWorld(true);
         add('ceiling-band', g);
@@ -212,15 +347,30 @@ export function buildDecorGroup(layout: Layout, items: FurnitureItem[], tier: Ti
       case 'window-seat': {
         const f = frameOf(fx.roomId, fx.edge);
         if (!f) break;
+        const id = idFor('window-seat', fx.roomId, fx.edge);
+        const ov = overlayFor(overlay, id);
         const u0 = Math.max(0, fx.u0), u1 = Math.min(f.length, fx.u1);
         const depth = fx.depthM ?? 0.5, height = fx.heightM ?? 0.45;
+        const drawnW = u1 - u0, drawnU = (u0 + u1) / 2;
+        const lim: import('./fittings').DimSpec = { key: 'w', label: 'Length', min: 0.8, max: Math.min(3.2, f.length - 0.2), step: 0.1 };
+        let w = ov.size ? Math.min(lim.max, Math.max(lim.min, ov.size[0])) : drawnW;
+        const shape = (ww: number): WallShape => ({ w: ww, yRange: () => [0, height], yMin: height / 2, yMax: height / 2, overWindows: true });
+        let t = onWall(id, fx.roomId, fx.edge, drawnU, height / 2, shape(w));
+        if (t && !resolveWallMove(infos, fx.roomId, { edge: t.edge, u: t.u, y: height / 2 }, shape(w))) { w = drawnW; t = onWall(id, fx.roomId, fx.edge, drawnU, height / 2, shape(w)); }
+        if (!t) break;
+        const at = resolveWallMove(infos, fx.roomId, { edge: t.edge, u: t.u, y: height / 2 }, shape(w));
+        if (at) t = { frame: at.frame, edge: at.edge, u: at.u, y: at.y };
+        records.push(wallRec(id, 'window-seat', fx.roomId, t, { edge: fx.edge, u: drawnU, y: height / 2 }, w, 0, height, depth, shape(w), {
+          removed: ov.removed, sized: !nearly(w, drawnW), resize: { kind: 'dims', dims: [{ ...lim, max: Math.max(lim.min, Math.min(lim.max, t.frame.length - 0.2)) }] }, defaultSize: [drawnW], currentSize: [w],
+        }));
+        if (ov.removed) break;
         const bp: BenchParams = { ...BENCH_DEFAULTS, shape: fx.shape ?? 'curved-end', curveSide: fx.curveSide ?? 'right' };
         // the bench is built in its own item frame (centre at the origin, front +z); the wall frame has z into the room, so only a shift is needed
-        const g = buildBench(env, { w: u1 - u0, d: depth, h: height, s: height }, bp, roles);
+        const g = buildBench(env, { w, d: depth, h: height, s: height }, bp, roles);
         const holder = new THREE.Group();
-        g.position.set((u1 - u0) / 2, 0, depth / 2);
+        g.position.set(w / 2, 0, depth / 2);
         holder.add(g);
-        placeOnWall(holder, f, u0, 0.002);
+        placeOnWall(holder, t.frame, t.u - w / 2, 0.002);
         add('window-seat', holder);
         break;
       }
@@ -229,7 +379,7 @@ export function buildDecorGroup(layout: Layout, items: FurnitureItem[], tier: Ti
   }
   const triangles = tag(group);
   group.updateMatrixWorld(true);
-  return { group, triangles, counts };
+  return { group, triangles, counts, records };
 }
 
 // ---------------------------------------------------------------- room finishes (walls, floors)
@@ -291,7 +441,9 @@ export interface DesignMountOptions {
   layout: Layout;
   shell: THREE.Object3D;
   look: Look | null;
-  store: { all(): FurnitureItem[]; onChange(cb: () => void): () => void };
+  store: { all(): FurnitureItem[]; onChange(cb: () => void): () => void; /** the viewer's removed, moved and resized fittings */ fittings?(): FittingsOverlay };
+  /** where the decor reports itself as tappable, movable fittings */
+  registry?: FittingRegistry;
   tier: Tier;
   /** called before the room finishes are applied and after (the kit's floors are swapped on the shell: take them off, put them back) */
   beforeRestyle?: () => void;
@@ -328,7 +480,7 @@ function nearFade(g: THREE.Object3D): void {
 
 export function mountDesign(o: DesignMountOptions): DesignMount {
   let tier = o.tier;
-  let current: BuiltDecor = { group: new THREE.Group(), triangles: 0, counts: {} };
+  let current: BuiltDecor = { group: new THREE.Group(), triangles: 0, counts: {}, records: [] };
   const holder = new THREE.Group();
   holder.name = 'design';
   o.scene.add(holder);
@@ -344,7 +496,7 @@ export function mountDesign(o: DesignMountOptions): DesignMount {
   };
   const build = (): void => {
     dispose(current.group);
-    current = buildDecorGroup(o.layout, o.store.all(), tier, getStyle());
+    current = buildDecorGroup(o.layout, o.store.all(), tier, getStyle(), undefined, { overlay: o.store.fittings?.() ?? null });
     holder.add(current.group);
     syncVisible();
   };
@@ -352,7 +504,7 @@ export function mountDesign(o: DesignMountOptions): DesignMount {
     const kitPlain = (globalThis as { __walkthruKit?: { plain: boolean } }).__walkthruKit?.plain ?? false;
     return !kitPlain && !(o.look?.trueColours ?? false) && !((o.look?.materials().shared.plain.value ?? 0) > 0.5);
   };
-  function syncVisible(): void { holder.visible = shown(); }
+  function syncVisible(): void { holder.visible = shown(); o.registry?.set('design', holder.visible ? current.records : []); }
   let lastShown = shown();
   const offLook = o.look?.onChange(() => { syncVisible(); });
   // the kit's Plain switch has no event we can hear: look at it on a slow timer
@@ -366,7 +518,14 @@ export function mountDesign(o: DesignMountOptions): DesignMount {
   const offStyle = onStyleChange(restyle);
   // rugs follow the beds: rebuild a moment after furniture changes
   let timeout: ReturnType<typeof setTimeout> | null = null;
-  const offStore = o.store.onChange(() => { if (timeout) clearTimeout(timeout); timeout = setTimeout(() => { timeout = null; build(); }, 250); });
+  // a viewer's edit of a fitting shows at once; furniture moving under a rug waits a moment (a drag fires many changes)
+  let fitKey = JSON.stringify(o.store.fittings?.() ?? null);
+  const offStore = o.store.onChange(() => {
+    if (timeout) clearTimeout(timeout);
+    const key = JSON.stringify(o.store.fittings?.() ?? null);
+    if (key !== fitKey) { fitKey = key; timeout = null; build(); return; }
+    timeout = setTimeout(() => { timeout = null; build(); }, 250);
+  });
   restyle();
 
   return {

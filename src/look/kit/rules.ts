@@ -173,7 +173,7 @@ export function roomCentre(room: RoomTag): Vec2 {
 
 // ---------------------------------------------------------------- 1. ceiling fans
 
-export interface FanSite { roomId: string; x: number; z: number; /** blade radius, m */ radiusM: number; wallHeightM: number }
+export interface FanSite { /** stable fitting id: `fan:<room>` */ id: string; roomId: string; x: number; z: number; /** blade radius, m */ radiusM: number; wallHeightM: number }
 
 /** A fan at the centre of every bedroom and living room of 7 m2 or more that is fully on the drawing. */
 export function fanSites(layout: Layout): FanSite[] {
@@ -184,14 +184,14 @@ export function fanSites(layout: Layout): FanSite[] {
     const c = roomCentre(r);
     // the blades never reach within 0.5 m of a wall
     const radiusM = Math.min(0.6, Math.max(0.35, clearance(c, r.polygon) - 0.5));
-    out.push({ roomId: r.id, x: c.x, z: c.z, radiusM, wallHeightM: layout.wallHeightM });
+    out.push({ id: `fan:${r.id}`, roomId: r.id, x: c.x, z: c.z, radiusM, wallHeightM: layout.wallHeightM });
   }
   return out;
 }
 
 // ---------------------------------------------------------------- 2. tube lights
 
-export interface WallSite { roomId: string; edge: number; /** centre along the edge, m */ u: number; y: number }
+export interface WallSite { /** stable fitting id (`tube:<room>`, `board:<room>:<edge>:<n>`, `board:bed:<bed id>`) */ id: string; roomId: string; edge: number; /** centre along the edge, m */ u: number; y: number }
 export interface TubeSite extends WallSite { lengthM: number }
 
 /** One batten on the longest wall of each bedroom, living room and kitchen that has room for one (clear of openings and tall furniture). */
@@ -205,7 +205,7 @@ export function tubeSites(layout: Layout, furniture: FurnitureItem[] = []): Tube
       const runs = freeRuns(w.frame, blocked(w, furniture, { y: TUBE_Y_M }), 0.9).sort((a, b) => b[1] - b[0] - (a[1] - a[0]));
       if (runs.length === 0) continue;
       const [a, b] = runs[0];
-      out.push({ roomId: r.id, edge: w.frame.edge, u: (a + b) / 2, y: Math.min(TUBE_Y_M, layout.wallHeightM - 0.45), lengthM: Math.min(TUBE_LEN_M, b - a - 0.1) });
+      out.push({ id: `tube:${r.id}`, roomId: r.id, edge: w.frame.edge, u: (a + b) / 2, y: Math.min(TUBE_Y_M, layout.wallHeightM - 0.45), lengthM: Math.min(TUBE_LEN_M, b - a - 0.1) });
       break;
     }
   }
@@ -229,8 +229,10 @@ export function doorBoards(layout: Layout, furniture: FurnitureItem[] = []): Boa
   for (const w of wallEdges(layout)) {
     if (!BOARD_ROOMS(w.room)) continue;
     const f = w.frame;
+    let doorN = -1;
     for (const door of w.spans) {
       if (door.type !== 'door') continue;
+      doorN++;
       const iv = blocked(w, furniture, { y: SWITCH_Y_M, skip: door });
       let lo = 0, hi = f.length;
       for (const [a, b] of iv) { if (b <= door.u0 + 1e-6) lo = Math.max(lo, b); if (a >= door.u1 - 1e-6) hi = Math.min(hi, a); }
@@ -240,7 +242,7 @@ export function doorBoards(layout: Layout, furniture: FurnitureItem[] = []): Boa
         const run = side === 'low' ? lowRun : highRun;
         if (run < need) continue;
         const u = side === 'low' ? door.u0 - SWITCH_GAP_M - PLATE_W_M / 2 : door.u1 + SWITCH_GAP_M + PLATE_W_M / 2;
-        out.push({ roomId: w.room.id, edge: f.edge, u, y: SWITCH_Y_M, kind: 'door', side });
+        out.push({ id: `board:${w.room.id}:${f.edge}:${doorN}`, roomId: w.room.id, edge: f.edge, u, y: SWITCH_Y_M, kind: 'door', side });
         break;
       }
     }
@@ -281,7 +283,7 @@ export function bedheadBoards(layout: Layout, furniture: FurnitureItem[]): Board
       c.room = iv.some(([a, b]) => a < hi && b > lo) ? -1 : Math.min(c.u, f.length - c.u);
     }
     const pick = cands.filter((c) => c.room >= 0).sort((a, b) => b.room - a.room)[0];
-    if (pick) out.push({ roomId: room.id, edge: f.edge, u: pick.u, y: BEDHEAD_SWITCH_Y_M, kind: 'bedhead', side: pick.side });
+    if (pick) out.push({ id: `board:bed:${bed.id}`, roomId: room.id, edge: f.edge, u: pick.u, y: BEDHEAD_SWITCH_Y_M, kind: 'bedhead', side: pick.side });
   }
   return out;
 }

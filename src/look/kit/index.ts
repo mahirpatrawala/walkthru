@@ -6,17 +6,28 @@ import * as THREE from 'three';
 import type { FurnitureItem, Layout } from '../../types';
 import type { Viewer } from '../../engine/viewer';
 import type { Look } from '../look';
-import { buildBuckets, newBuckets, addBoard } from './build';
-import type { Acc } from './build';
+import { addBoard, addFanStatic, addTube, buildBuckets, fanRotorGeometry, newBuckets } from './build';
+import type { Acc, BucketName } from './build';
 import { createKitMaterials } from './materials';
 import type { KitMaterials, LightKind } from './materials';
-import { KIT_NOTE, bedheadBoards, kitPlan } from './rules';
+import { KIT_NOTE, kitPlan } from './rules';
 import type { KitPlan } from './rules';
+import { kitFittings } from './fittings';
+import type { KitFittings } from './fittings';
+import type { FittingRecord, FittingRegistry, FittingsOverlay } from '../fittings';
+import { PRISTINE_CHECKSUM_KEY, geometryChecksum } from '../baked/assign';
 
 export { KIT_NOTE } from './rules';
 export type { LightKind } from './materials';
 
-export interface KitStore { all(): FurnitureItem[]; onChange(cb: () => void): () => void }
+export interface KitStore {
+  all(): FurnitureItem[];
+  onChange(cb: () => void): () => void;
+  /** the home as drawn: the kit's fixtures are planned on it, so a viewer's edits never move a baked fixture */
+  pristine?(): FurnitureItem[];
+  /** the viewer's removed, moved and resized fittings */
+  fittings?(): FittingsOverlay;
+}
 export interface KitOptions {
   viewer: Pick<Viewer, 'scene' | 'onFrame'>;
   layout: Layout;
@@ -26,6 +37,8 @@ export interface KitOptions {
   store?: KitStore;
   /** starts without the kit (also `?kit=off` in the URL) */
   plain?: boolean;
+  /** where the fans, tubes and switchboards report themselves (tappable, movable) */
+  registry?: FittingRegistry;
 }
 export interface KitHandle {
   readonly group: THREE.Group;
@@ -58,7 +71,7 @@ function whenFound(selector: string, fn: (el: HTMLElement) => void, timeoutMs = 
 
 export function mountKit(o: KitOptions): KitHandle {
   const { layout } = o;
-  const furniture = o.store?.all() ?? [];
+  const furniture = o.store?.pristine?.() ?? o.store?.all() ?? [];
   const plan = kitPlan(layout, furniture);
   const built = buildBuckets(layout, plan);
   const mats: KitMaterials = createKitMaterials(layout.finishes, { wall: o.look ? (c) => o.look!.materials().wall(c) : null });
@@ -89,25 +102,36 @@ export function mountKit(o: KitOptions): KitHandle {
   const veil = add('mesh', b.meshVeil, mats.veil);
   if (veil) veil.renderOrder = 3;
   add('railing', b.railing, mats.railing);
-  add('fixtures', b.fixtures, mats.fixtures);
-  add('tube-lens', b.tubeLens, mats.lens.tube, 'tube');
-  add('fan-light', b.fanLight, mats.lens.fan, 'fan');
+  const fixturesMesh = add('fixtures', b.fixtures, mats.fixtures);
+  const tubeLensMesh = add('tube-lens', b.tubeLens, mats.lens.tube, 'tube');
+  const fanLightMesh = add('fan-light', b.fanLight, mats.lens.fan, 'fan');
   add('cove', b.cove, mats.cove);
   add('cove-led', b.coveLed, mats.lens.cove, 'cove');
 
-  // the blades turn: one instanced mesh per blade radius
-  const rotors: { mesh: THREE.InstancedMesh; sites: { x: number; z: number }[]; phase: number[] }[] = [];
-  for (const r of built.rotors) {
-    const mesh = new THREE.InstancedMesh(r.geometry, mats.fan, r.sites.length);
-    mesh.name = 'kit:fan-blades';
-    mesh.userData.kit = true;
-    mesh.raycast = () => {};
-    mesh.frustumCulled = false;
-    geos.push(r.geometry);
-    triangles += (r.geometry.attributes.position.count / 3) * r.sites.length;
-    group.add(mesh);
-    rotors.push({ mesh, sites: r.sites, phase: r.sites.map((_, i) => i * 1.9) });
-  }
+  // the blades turn: one instanced mesh per blade radius (rebuilt when the viewer moves, resizes or removes a fan)
+  let rotors: { mesh: THREE.InstancedMesh; sites: { x: number; z: number }[]; phase: number[] }[] = [];
+  let rotorTris = 0;
+  const rotorGeos: THREE.BufferGeometry[] = [];
+  const buildRotors = (fans: { x: number; z: number; radiusM: number }[]): void => {
+    for (const r of rotors) { group.remove(r.mesh); r.mesh.dispose(); }
+    for (const g of rotorGeos.splice(0)) g.dispose();
+    rotors = [];
+    rotorTris = 0;
+    const byR = new Map<number, { x: number; z: number }[]>();
+    for (const f of fans) { const r = Math.round(f.radiusM / 0.05) * 0.05; byR.set(r, [...(byR.get(r) ?? []), { x: f.x, z: f.z }]); }
+    for (const [radiusM, sites] of byR) {
+      const geometry = fanRotorGeometry(layout.wallHeightM, radiusM);
+      const mesh = new THREE.InstancedMesh(geometry, mats.fan, sites.length);
+      mesh.name = 'kit:fan-blades';
+      mesh.userData.kit = true;
+      mesh.raycast = () => {};
+      mesh.frustumCulled = false;
+      rotorGeos.push(geometry);
+      rotorTris += (geometry.attributes.position.count / 3) * sites.length;
+      group.add(mesh);
+      rotors.push({ mesh, sites, phase: sites.map((_, i) => i * 1.9) });
+    }
+  };
   const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const m4 = new THREE.Matrix4();
   let angle = 0;
@@ -123,14 +147,84 @@ export function mountKit(o: KitOptions): KitHandle {
   };
   spin();
 
+  // ---- the viewer's edits: a fitting moved, resized or removed leaves the baked static meshes (its triangles collapse in place, so the
+  // bake still matches the drawn geometry) and, unless removed, is built again in the edited group, which the bake lights by probes.
+  const staticMeshes: Partial<Record<BucketName, { mesh: THREE.Mesh; original: Float32Array }>> = {};
+  const nameOf: Record<BucketName, THREE.Mesh | null> = { fixtures: fixturesMesh, tubeLens: tubeLensMesh, fanLight: fanLightMesh };
+  for (const name of ['fixtures', 'tubeLens', 'fanLight'] as BucketName[]) {
+    const mesh = nameOf[name];
+    if (mesh) staticMeshes[name] = { mesh, original: new Float32Array((mesh.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array) };
+  }
+  let editedGroup: THREE.Group | null = null;
+  let editedKey = '';
+  const collapse = (ids: Set<string>): void => {
+    for (const name of ['fixtures', 'tubeLens', 'fanLight'] as BucketName[]) {
+      const rec = staticMeshes[name];
+      if (!rec) continue;
+      const geo = rec.mesh.geometry;
+      const pos = geo.getAttribute('position') as THREE.BufferAttribute;
+      const arr = pos.array as Float32Array;
+      if (ids.size && geo.userData[PRISTINE_CHECKSUM_KEY] === undefined) {
+        // the bake knows this mesh by the checksum of the DRAWN positions: keep it before the first collapse
+        const cs = geometryChecksum(geo);
+        geo.userData[PRISTINE_CHECKSUM_KEY] = cs;
+      }
+      const verts = rec.original.length / 3;
+      // the source vertices go back to the drawn positions, then the collapsed ones to the first vertex of their fitting
+      arr.set(rec.original.subarray(0, Math.min(rec.original.length, arr.length)));
+      const moved = new Map<number, [number, number, number]>();
+      for (const id of ids) {
+        for (const r of built.ranges.get(id) ?? []) {
+          if (r.bucket !== name) continue;
+          const at: [number, number, number] = [rec.original[r.from * 3], rec.original[r.from * 3 + 1], rec.original[r.from * 3 + 2]];
+          for (let v = r.from; v < r.to; v++) { arr[v * 3] = at[0]; arr[v * 3 + 1] = at[1]; arr[v * 3 + 2] = at[2]; moved.set(v, at); }
+        }
+      }
+      // the bake may have split vertices (appended copies of a source vertex): a copy follows its source
+      const src = geo.userData.wtRemapSrc as Uint32Array | undefined;
+      if (src && pos.count > verts) {
+        for (let j = 0; j < src.length && verts + j < pos.count; j++) {
+          const s0 = src[j];
+          const at: [number, number, number] = moved.get(s0) ?? [rec.original[s0 * 3], rec.original[s0 * 3 + 1], rec.original[s0 * 3 + 2]];
+          arr[(verts + j) * 3] = at[0]; arr[(verts + j) * 3 + 1] = at[1]; arr[(verts + j) * 3 + 2] = at[2];
+        }
+      }
+      pos.needsUpdate = true;
+    }
+  };
+  const buildEdited = (fit: KitFittings): void => {
+    if (editedGroup) { group.remove(editedGroup); editedGroup.traverse((c) => { (c as THREE.Mesh).geometry?.dispose(); }); editedGroup = null; }
+    const { fans, tubes, boards } = fit.dynamic;
+    if (!fans.length && !tubes.length && !boards.length) return;
+    editedGroup = new THREE.Group();
+    editedGroup.name = 'kit:edited';
+    const bk = newBuckets();
+    for (const s of tubes) addTube(bk, walls, s);
+    for (const s of boards) addBoard(bk, walls, s);
+    for (const s of fans) addFanStatic(bk, s);
+    const put = (name: string, acc: Acc, mat: THREE.Material, light?: LightKind): void => {
+      if (acc.empty) return;
+      const mesh = new THREE.Mesh(acc.geometry(), mat);
+      mesh.name = `kit:edited-${name}`;
+      mesh.userData.kit = true;
+      if (light) mesh.userData.walkthruLight = light;
+      mesh.raycast = () => {};
+      editedGroup!.add(mesh);
+    };
+    put('fixtures', bk.fixtures, mats.fixtures);
+    put('tube-lens', bk.tubeLens, mats.lens.tube, 'tube');
+    put('fan-light', bk.fanLight, mats.lens.fan, 'fan');
+    group.add(editedGroup);
+  };
+
   // bed-head boards follow the beds (a bed the buyer adds or moves, SPEC furnish)
   let bedGroup: THREE.Group | null = null;
   let bedKey = '';
   const walls = built.walls;
+  let fit: KitFittings = kitFittings(layout, furniture, o.store?.all() ?? furniture, o.store?.fittings?.() ?? null);
   const rebuildBedheads = (): void => {
-    const items = o.store?.all() ?? furniture;
-    const sites = bedheadBoards(layout, items);
-    const key = sites.map((s) => `${s.roomId}:${s.edge}:${s.u.toFixed(2)}`).join('|');
+    const sites = fit.live.bedheads;
+    const key = sites.map((s) => `${s.id}:${s.roomId}:${s.edge}:${s.u.toFixed(2)}:${s.y.toFixed(2)}`).join('|');
     if (key === bedKey) return;
     bedKey = key;
     if (bedGroup) { group.remove(bedGroup); bedGroup.traverse((c) => { (c as THREE.Mesh).geometry?.dispose(); }); }
@@ -147,9 +241,28 @@ export function mountKit(o: KitOptions): KitHandle {
     }
     group.add(bedGroup);
   };
-  rebuildBedheads();
+  let kitRecords: FittingRecord[] = [];
+  // with the kit hidden (Plain, True colours) there is nothing to tap
+  const publishRecords = (): void => { o.registry?.set('kit', group.visible ? kitRecords : []); };
+  const refresh = (): void => {
+    fit = kitFittings(layout, furniture, o.store?.all() ?? furniture, o.store?.fittings?.() ?? null);
+    const key = JSON.stringify([[...fit.editedStatic].sort(), fit.live.fans.map((f) => [f.id, f.x, f.z, f.radiusM]), fit.dynamic.tubes.map((t) => [t.id, t.edge, t.u, t.y, t.lengthM]), fit.dynamic.boards.map((b) => [b.id, b.edge, b.u, b.y])]);
+    if (key !== editedKey) {
+      editedKey = key;
+      collapse(fit.editedStatic);
+      buildEdited(fit);
+      buildRotors(fit.live.fans);
+      spin();
+    }
+    rebuildBedheads();
+    kitRecords = fit.records;
+    publishRecords();
+  };
+  // the first build: the same as a refresh, but nothing is edited yet in the usual case, so the static meshes stay as built
+  editedKey = '';
+  refresh();
   let bedTimer: ReturnType<typeof setTimeout> | null = null;
-  const offStore = o.store?.onChange(() => { if (bedTimer) clearTimeout(bedTimer); bedTimer = setTimeout(() => { bedTimer = null; rebuildBedheads(); }, 120); });
+  const offStore = o.store?.onChange(() => { if (bedTimer) clearTimeout(bedTimer); bedTimer = setTimeout(() => { bedTimer = null; refresh(); }, 120); });
 
   o.viewer.scene.add(group);
 
@@ -191,6 +304,7 @@ export function mountKit(o: KitOptions): KitHandle {
     group.visible = on;
     for (const s of floorSwaps) s.mesh.material = on ? s.kit : (s.original as THREE.Material);
     if (solidRailing && solidGhost) solidRailing.material = on ? solidGhost : (solidOriginal as THREE.Material);
+    publishRecords();
     for (const cb of [...listeners]) cb();
   };
   apply();
@@ -253,7 +367,7 @@ export function mountKit(o: KitOptions): KitHandle {
       apply();
     },
     setLit(kind, on) { mats.setLit(kind, on); },
-    stats: () => ({ meshes: group.children.length, triangles: Math.round(triangles) }),
+    stats: () => ({ meshes: group.children.length, triangles: Math.round(triangles + rotorTris) }),
     dispose() {
       offLook?.();
       offStore?.();
@@ -267,6 +381,8 @@ export function mountKit(o: KitOptions): KitHandle {
       for (const g of geos) g.dispose();
       bedGroup?.traverse((c) => { (c as THREE.Mesh).geometry?.dispose(); });
       for (const r of rotors) r.mesh.dispose();
+      for (const g of rotorGeos) g.dispose();
+      editedGroup?.traverse((c) => { (c as THREE.Mesh).geometry?.dispose(); });
       mats.dispose();
       listeners.clear();
     },
