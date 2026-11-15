@@ -18,7 +18,8 @@ function imported(kind: FurnitureItem['kind'], label: string, w: number, d: numb
 }
 
 const ITEMS: { name: string; item: FurnitureItem }[] = [
-  ...CATALOG.map((c) => ({ name: c.id, item: itemFromCatalog(c.id, box(c.footprint.w, c.footprint.d), 'virtual') })),
+  // the original fourteen: the rows after them are drawn by generators under every pack (tests/catalog-more.test.ts)
+  ...CATALOG.slice(0, 14).map((c) => ({ name: c.id, item: itemFromCatalog(c.id, box(c.footprint.w, c.footprint.d), 'virtual') })),
   { name: 'imported bed 1.52 x 1.83', item: imported('bed', 'Bed', 1.52, 1.83, 0.55, 0.5) },
   { name: 'imported study 0.61 x 1.22', item: imported('counter', 'STUDY 2\'0"X4\'0"', 0.61, 1.22, 0.75, 0.75) },
   { name: 'imported side table 0.46 x 0.53', item: imported('counter', 'Side table', 0.46, 0.53, 0.55, 0.55) },

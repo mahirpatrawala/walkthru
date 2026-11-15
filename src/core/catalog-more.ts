@@ -216,7 +216,7 @@ export const MORE_PIECES: MorePiece[] = [
   }),
   piece({
     id: 'steel-almirah', name: 'Steel almirah', cat: 'storage', kind: 'counter', w: 0.91, d: 0.51, h: 1.98, s: 1.98,
-    label: '91 × 51 × 198 cm (36 × 20 × 78 in)', look: 'cabinet', params: { variant: 'almirah' }, family: 'storage', pose: 'dims', kw: 'steel almirah godrej cupboard locker storwel wardrobe metal',
+    label: '91 × 51 × 198 cm (36 × 20 × 78 in)', look: 'cabinet', params: { variant: 'almirah' }, family: 'storage', pose: 'dims', kw: 'steel almirah cupboard locker wardrobe metal iron',
     zones: [operate('doors', 0.46, 'two doors, each 45 cm wide, opened to 90°', 'the doors cannot open', 'the doors open only partway')],
   }),
   piece({

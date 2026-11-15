@@ -9,6 +9,7 @@ import './furnish.css';
 import { withSwingNote } from './wardrobe-hooks';
 import { CATALOG, catalogItem, itemFromCatalog, setCatalogCeiling, specFor } from '../core/catalog';
 import { roomAt } from '../core/layout-geom';
+import { categoryOf } from '../core/pieces';
 import { mountCatalogPicker, catalogIcon } from './catalog-tray';
 import { pointInBox, sideEdge } from '../core/geometry';
 import { circleFree, nearestFree } from '../core/grid-query';
@@ -148,7 +149,10 @@ export function replacementBox(old: Box, spec: CatalogItem): Box {
 export function replacementChoices(item: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }): { same: CatalogItem[]; other: CatalogItem[] } {
   const fam = (c: CatalogItem): string => familyKey({ kind: c.kind, label: c.name, catalogId: c.id, box: c.footprint });
   const mine = familyKey(item);
-  return { same: CATALOG.filter((c) => fam(c) === mine), other: CATALOG.filter((c) => fam(c) !== mine) };
+  // the rest of the catalogue is long now: pieces of the same tray category come first
+  const cat = item.catalogId ? categoryOf(item.catalogId) : null;
+  const near = (c: CatalogItem): number => (cat && categoryOf(c.id) === cat ? 0 : 1);
+  return { same: CATALOG.filter((c) => fam(c) === mine), other: CATALOG.filter((c) => fam(c) !== mine).sort((a, b) => near(a) - near(b)) };
 }
 function familyKey(i: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }): string {
   return finishFamily(i) ?? `${i.kind}`;

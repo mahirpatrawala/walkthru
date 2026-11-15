@@ -559,10 +559,11 @@ describe('replacement geometry and choices', () => {
 
   it('same-family choices come first: a bed offers the four beds, a sofa the sofas, a table all the tables', () => {
     const ids = (l: { id: string }[]) => l.map((c) => c.id);
-    expect(ids(replacementChoices({ kind: 'bed', label: 'Bed' }).same)).toEqual(['bed-single', 'bed-double', 'bed-queen', 'bed-king']);
-    expect(ids(replacementChoices({ kind: 'sofa', label: 'Sofa' }).same)).toEqual(['sofa-3', 'sofa-2', 'sofa-l']);
+    // the rows added later (storage beds, a sofa-cum-bed) are the same family and follow the original ones
+    expect(ids(replacementChoices({ kind: 'bed', label: 'Bed' }).same).slice(0, 4)).toEqual(['bed-single', 'bed-double', 'bed-queen', 'bed-king']);
+    expect(ids(replacementChoices({ kind: 'sofa', label: 'Sofa' }).same).slice(0, 3)).toEqual(['sofa-3', 'sofa-2', 'sofa-l']);
     expect(ids(replacementChoices({ kind: 'wardrobe', label: 'Wardrobe' }).same)).toEqual(['wardrobe-2', 'wardrobe-3', 'wardrobe-4']);
-    expect(ids(replacementChoices({ kind: 'counter', label: 'Study' }).same).sort()).toEqual(['dining-6', 'side-table', 'study-table']);
+    expect(ids(replacementChoices({ kind: 'counter', label: 'Study' }).same)).toEqual(expect.arrayContaining(['dining-6', 'side-table', 'study-table', 'coffee-rect', 'dining-4']));
     const kitchen = replacementChoices({ kind: 'counter', label: 'Kitchen' });
     expect(kitchen.same).toEqual([]);
     expect(kitchen.other).toHaveLength(CATALOG.length); // anything else from the catalogue

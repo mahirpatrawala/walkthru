@@ -133,7 +133,7 @@ describe('the tray: category selector and search', () => {
     expect(filterCatalog('all', 'fridge').map((c) => c.id)).toEqual(['fridge-1', 'fridge-2', 'fridge-sbs']);
     expect(filterCatalog('all', 'FRIDGE side').map((c) => c.id)).toEqual(['fridge-sbs']);
     expect(filterCatalog('all', 'mandir').map((c) => c.id)).toEqual(['mandir-floor', 'mandir-wall']);
-    expect(filterCatalog('all', 'godrej').map((c) => c.id)).toEqual(['steel-almirah']);
+    expect(filterCatalog('all', 'locker').map((c) => c.id)).toEqual(['steel-almirah']);
     expect(filterCatalog('all', 'bean')[0].id).toBe('bean-bag');
     expect(filterCatalog('all', 'geyser 25').map((c) => c.id)).toEqual(['geyser-25']);
     expect(filterCatalog('all', 'zzzz')).toEqual([]);
