@@ -157,13 +157,14 @@ describe('FollowCamera', () => {
 });
 
 /** A character double with just what stepLocomotion touches. */
-function fakeChar(x: number, z: number, heightM = 1.75, yawDeg = 0): Character & { calls: Array<[number, boolean]> } {
+function fakeChar(x: number, z: number, heightM = 1.75, yawDeg = 0): Character & { calls: Array<[number, boolean]>; turns: number[] } {
   const calls: Array<[number, boolean]> = [];
+  const turns: number[] = [];
   const c = {
-    state: 'idle' as string, heightM, yawDeg, position: { x, z } as Vec2, calls,
-    setLocomotion(speed: number, jog: boolean) { calls.push([speed, jog]); c.state = speed > 0.02 ? (jog ? 'jog' : 'walk') : 'idle'; },
+    state: 'idle' as string, heightM, yawDeg, position: { x, z } as Vec2, calls, turns,
+    setLocomotion(speed: number, jog: boolean, turn = 0) { calls.push([speed, jog]); turns.push(turn); c.state = speed > 0.02 ? (jog ? 'jog' : 'walk') : 'idle'; },
   };
-  return c as unknown as Character & { calls: Array<[number, boolean]> };
+  return c as unknown as Character & { calls: Array<[number, boolean]>; turns: number[] };
 }
 function fakeInput(moveX: number, moveY: number, jog = false): Input {
   return { moveX, moveY, jog } as unknown as Input;
@@ -179,46 +180,51 @@ describe('stepLocomotion', () => {
     const ch = fakeChar(2, 1);
     const v = frames(ch, fakeInput(0, 1), 0, empty, 60);
     expect(v).toBeCloseTo(1.4, 6);
-    expect(ch.position.z).toBeCloseTo(1 + 1.4, 3);
+    // the speed builds up at 4.2 m/s^2 (a third of a second to 1.4), so the first second covers 1.4 - 1.4^2 / (2 * 4.2) metres
+    expect(ch.position.z).toBeCloseTo(1 + 1.4 - (1.4 * 1.4) / (2 * 4.2), 1);
     expect(ch.position.x).toBeCloseTo(2, 6);
     const ch2 = fakeChar(2, 0.6);
-    const v2 = frames(ch2, fakeInput(0, 1, true), 0, empty, 30);
+    const v2 = frames(ch2, fakeInput(0, 1, true), 0, empty, 90);
     expect(v2).toBeCloseTo(2.8, 6);
     expect(ch2.calls.at(-1)).toEqual([expect.closeTo(2.8, 6), true]);
   });
 
   it('scales speed by height / 1.75', () => {
     const ch = fakeChar(2, 1, 1.9);
-    expect(frames(ch, fakeInput(0, 1), 0, empty, 10)).toBeCloseTo(1.4 * 1.9 / 1.75, 6);
+    expect(frames(ch, fakeInput(0, 1), 0, empty, 60)).toBeCloseTo(1.4 * 1.9 / 1.75, 6);
     const ch2 = fakeChar(2, 1, 1.6);
-    expect(frames(ch2, fakeInput(0, 1, true), 0, empty, 10)).toBeCloseTo(2.8 * 1.6 / 1.75, 6);
+    expect(frames(ch2, fakeInput(0, 1, true), 0, empty, 90)).toBeCloseTo(2.8 * 1.6 / 1.75, 6);
   });
 
   it('is relative to the camera heading: yaw 90 looks +x, so forward moves +x and screen-right moves +z', () => {
     const a = fakeChar(1, 2.5);
-    frames(a, fakeInput(0, 1), 90, empty, 30);
+    frames(a, fakeInput(0, 1), 90, empty, 60);
     expect(a.position.x).toBeGreaterThan(1.6);
     expect(a.position.z).toBeCloseTo(2.5, 6);
     const b = fakeChar(1, 2.5);
-    frames(b, fakeInput(1, 0), 90, empty, 30);
+    frames(b, fakeInput(1, 0), 90, empty, 60);
     expect(b.position.z).toBeGreaterThan(3.1);
     expect(b.position.x).toBeCloseTo(1, 6);
     // at yaw 0 screen-right is -x
     const c = fakeChar(2, 2.5);
-    frames(c, fakeInput(1, 0), 0, empty, 30);
+    frames(c, fakeInput(1, 0), 0, empty, 60);
     expect(c.position.x).toBeLessThan(1.4);
   });
 
   it('normalises diagonals', () => {
     const ch = fakeChar(1, 1);
-    const v = frames(ch, fakeInput(1, 1), 0, empty, 20);
+    const v = frames(ch, fakeInput(1, 1), 0, empty, 30);
     expect(v).toBeCloseTo(1.4, 6);
   });
 
-  it('turns toward the movement direction at 10 rad/s', () => {
+  it('turns toward the movement direction at 6 rad/s, and stands still, stepping, until it faces that way', () => {
     const ch = fakeChar(2, 2.5, 1.75, 180);
     stepLocomotion(ch, fakeInput(0, 1), 0, empty, 1 / 60);
-    expect(Math.abs(ch.yawDeg - 180)).toBeCloseTo((10 / 60) * 180 / Math.PI, 3); // 9.55 degrees
+    expect(Math.abs(ch.yawDeg - 180)).toBeCloseTo((6 / 60) * 180 / Math.PI, 3); // 5.73 degrees
+    // a half turn: no ground is covered while it is more than 90 degrees off, and the turn rate is reported for the feet to step to
+    expect(ch.position.z).toBeCloseTo(2.5, 6);
+    expect(ch.calls.at(-1)).toEqual([0, false]);
+    expect(ch.turns.at(-1)).toBeCloseTo(6, 3);
     frames(ch, fakeInput(0, 1), 0, empty, 60);
     const wrapped = ((ch.yawDeg % 360) + 360) % 360;
     expect(Math.min(wrapped, 360 - wrapped)).toBeLessThan(0.01);
@@ -238,7 +244,7 @@ describe('stepLocomotion', () => {
     const corner = fakeChar(3.7, 4.7);
     const v2 = frames(corner, fakeInput(0, 1), 0, empty, 60); // forward = +z into the south wall
     expect(v2).toBeLessThan(0.1);
-    expect(corner.position.z).toBeLessThan(4.8);
+    expect(corner.position.z).toBeLessThan(4.85);
     expect(corner.calls.at(-1)![0]).toBeLessThan(0.1);
   });
 
@@ -269,9 +275,9 @@ describe('stepLocomotion', () => {
 
   it('a half push walks slower, full push beyond 85% reaches full speed', () => {
     const ch = fakeChar(2, 1);
-    const half = frames(ch, fakeInput(0, 0.425), 0, empty, 10);
+    const half = frames(ch, fakeInput(0, 0.425), 0, empty, 60);
     expect(half).toBeCloseTo(0.7, 6);
-    const full = frames(fakeChar(2, 1), fakeInput(0, 0.9), 0, empty, 10);
+    const full = frames(fakeChar(2, 1), fakeInput(0, 0.9), 0, empty, 60);
     expect(full).toBeCloseTo(1.4, 6);
   });
 });

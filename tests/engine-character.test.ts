@@ -95,16 +95,22 @@ describe.skipIf(!haveGlb)('Character (headless, real GLB)', () => {
     expect(colours(a)).toContain(new THREE.Color('#1FA3A3').getHexString());
   });
 
-  it('walk and jog timeScale follow speed / (nominal * H / 1.75); locomotion ignored while posed', async () => {
+  it('walk and jog timeScale follow speed / (the clip\'s own foot speed * model scale); locomotion ignored while posed', async () => {
     const ch = await fresh();
     ch.setHeight(1.9, '#7A5AF0');
-    ch.setLocomotion(1.4 * 1.9 / 1.75, false);
+    const scale = 1.9 / (ch as unknown as { h0: number }).h0;
+    const walkMps = 1.4 * 1.9 / 1.75;
+    ch.setLocomotion(walkMps, false);
     expect(ch.state).toBe('walk');
     const acts = (ch as unknown as { actions: Record<string, THREE.AnimationAction> }).actions;
-    expect(acts.walk.timeScale).toBeCloseTo(1, 9);
+    // the clips are played at the pace that keeps the planted foot still: speed over how fast the clip carries that foot back
+    expect(ch.gaitSpeed('walk')).toBeGreaterThan(0.3);
+    expect(acts.walk.timeScale).toBeCloseTo(walkMps / (ch.gaitSpeed('walk') * scale), 9);
+    ch.setLocomotion(walkMps * 0.5, false);
+    expect(acts.walk.timeScale).toBeCloseTo(walkMps * 0.5 / (ch.gaitSpeed('walk') * scale), 9); // half the speed, half the cadence
     ch.setLocomotion(2.8 * 1.9 / 1.75 * 0.5, true);
     expect(ch.state).toBe('jog');
-    expect(acts.jog.timeScale).toBeCloseTo(0.5, 9);
+    expect(acts.jog.timeScale).toBeCloseTo(2.8 * 1.9 / 1.75 * 0.5 / (ch.gaitSpeed('jog') * scale), 9);
     ch.setLocomotion(0, false);
     expect(ch.state).toBe('idle');
     run(ch, 0.5);
