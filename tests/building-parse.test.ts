@@ -27,13 +27,13 @@ describe('building.json', () => {
   it('the tower has the spaces the brief asks for', () => {
     const b = readBuilding('sample-tower');
     const kinds = b.levels.flatMap((l) => l.spaces.map((s) => s.kind));
-    for (const k of ['lobby', 'corridor', 'flat', 'gym', 'hall', 'pool', 'garden']) expect(kinds).toContain(k);
-    expect(b.levels.find((l) => l.id === 'l2')!.spaces.filter((s) => s.kind === 'flat')).toHaveLength(4);
+    for (const k of ['home', 'lobby', 'corridor', 'gym', 'hall', 'pool', 'garden']) expect(kinds).toContain(k);
+    expect(b.levels.find((l) => l.id === 'l2')!.spaces.filter((s) => s.kind === 'home')).toHaveLength(4);
     // four different configurations on a floor, one design placed on both floors
-    const types = b.levels.find((l) => l.id === 'l2')!.spaces.filter((s) => s.kind === 'flat').map((s) => s.type);
+    const types = b.levels.find((l) => l.id === 'l2')!.spaces.filter((s) => s.kind === 'home').map((s) => s.type);
     expect(new Set(types).size).toBe(4);
-    const l3 = b.levels.find((l) => l.id === 'l3')!.spaces.filter((s) => s.kind === 'flat');
-    expect(l3.map((s) => s.sceneId).sort()).toEqual(b.levels.find((l) => l.id === 'l2')!.spaces.filter((s) => s.kind === 'flat').map((s) => s.sceneId).sort());
+    const l3 = b.levels.find((l) => l.id === 'l3')!.spaces.filter((s) => s.kind === 'home');
+    expect(l3.map((s) => s.sceneId).sort()).toEqual(b.levels.find((l) => l.id === 'l2')!.spaces.filter((s) => s.kind === 'home').map((s) => s.sceneId).sort());
     expect(b.levels.flatMap((l) => l.spaces).filter((s) => s.kind === 'pool' || s.kind === 'garden').every((s) => s.comingNext)).toBe(true);
   });
 
@@ -44,7 +44,7 @@ describe('building.json', () => {
     expect(bad((r) => { r.id = 'Not Valid!'; })).toMatch(/id "Not Valid!" is not a valid id/);
     expect(bad((r) => { r.floorToFloorM = 40; })).toMatch(/floorToFloorM must be between 2.4 and 8/);
     expect(bad((r) => { r.levels = []; })).toMatch(/levels needs at least 1 entry/);
-    expect(bad((r) => { r.levels[0].spaces[0].kind = 'spa'; })).toMatch(/levels\[0\]\.spaces\[0\]\.kind must be one of lobby, corridor, flat/);
+    expect(bad((r) => { r.levels[0].spaces[0].kind = 'spa'; })).toMatch(/levels\[0\]\.spaces\[0\]\.kind must be one of home, lobby, corridor/);
     expect(bad((r) => { r.levels[0].spaces[0].placement = { rotDeg: 45 }; })).toMatch(/rotDeg must be 0, 90, 180 or 270 \(got 45\)/);
     expect(bad((r) => { r.levels[0].spaces[0].portals[0].kind = 'teleporter'; })).toMatch(/portals\[0\]\.kind must be door, lift, stairs or outside/);
     expect(bad((r) => { r.levels[0].spaces[0].sceneId = 'Bad Scene'; })).toMatch(/sceneId "Bad Scene" is not a valid scene id/);
@@ -57,9 +57,9 @@ describe('building.json', () => {
     // a door that does not lead back
     expect(bad((r) => { r.levels[2].spaces[1].portals[0].to!.portal = 'flat-203'; })).toMatch(/the far side does not lead back/);
     // a flat of a type nobody defined
-    expect(bad((r) => { const f = r.levels[2].spaces.find((s) => s.kind === 'flat')!; f.type = 'penthouse'; })).toMatch(/type "penthouse", which is not in flatTypes/);
+    expect(bad((r) => { const f = r.levels[2].spaces.find((s) => s.kind === 'home')!; f.type = 'penthouse'; })).toMatch(/type "penthouse", which is not in flatTypes/);
     // a flat in a scene that is not its type's
-    expect(bad((r) => { const f = r.levels[2].spaces.find((s) => s.kind === 'flat')!; f.sceneId = 'test-tower-lobby'; })).toMatch(/uses scene "test-tower-lobby" but its/);
+    expect(bad((r) => { const f = r.levels[2].spaces.find((s) => s.kind === 'home')!; f.sceneId = 'test-tower-lobby'; })).toMatch(/uses scene "test-tower-lobby" but its/);
     // a lift that skips a level it claims to serve
     expect(bad((r) => { r.lifts[0].serves.push('l9'); })).toMatch(/serves level "l9", which does not exist/);
     expect(bad((r) => { r.levels[3].spaces[0].portals = r.levels[3].spaces[0].portals.filter((p) => p.id !== 'lift-a'); })).toMatch(/lift "lift-a" must have exactly one lift door there \(found 0\)/);

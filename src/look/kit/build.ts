@@ -21,6 +21,8 @@ export class Acc {
   /** the colour of everything added after this call (sRGB hex) */
   tint(hex: string): this { const c = new THREE.Color(hex); this.cur = [c.r, c.g, c.b]; return this; }
   get empty(): boolean { return this.pos.length === 0; }
+  /** the number of vertices so far: a fitting's triangles are the vertices between two marks (a viewer's edit collapses them in place) */
+  mark(): number { return this.pos.length / 3; }
   get triangles(): number { return this.pos.length / 9; }
 
   /** A quad (loop v0..v3), wound so its front faces along n. uv defaults to a planar (x + z, y) map. */
@@ -295,9 +297,15 @@ export function addCove(b: KitBuckets, s: CoveSite): void {
 
 // ---------------------------------------------------------------- the whole kit
 
+/** where one fitting's vertices sit in the merged buckets, so an edit can take it out of the static meshes without rebuilding them */
+export type BucketName = 'fixtures' | 'tubeLens' | 'fanLight';
+export interface VertexRange { bucket: BucketName; from: number; to: number }
+
 export interface BuiltKit {
   buckets: KitBuckets;
   walls: Map<string, Wall>;
+  /** fitting id -> its vertex ranges in the merged buckets (tubes, door boards and fans) */
+  ranges: Map<string, VertexRange[]>;
   /** the turning parts: one geometry per blade radius (rounded to 5 cm), instanced for the fans of that radius */
   rotors: { radiusM: number; sites: FanSite[]; geometry: THREE.BufferGeometry }[];
 }
@@ -308,12 +316,20 @@ export function buildBuckets(layout: Layout, plan: KitPlan): BuiltKit {
   addSkirting(b, walls, plan.skirting);
   for (const s of plan.windows) addWindow(b, walls, s);
   for (const p of plan.railings) addRailing(b, walls, p);
-  for (const s of plan.tubes) addTube(b, walls, s);
-  for (const s of plan.boards) addBoard(b, walls, s);
-  for (const s of plan.fans) addFanStatic(b, s);
+  const ranges = new Map<string, VertexRange[]>();
+  const track = (id: string, fn: () => void): void => {
+    const before: Record<BucketName, number> = { fixtures: b.fixtures.mark(), tubeLens: b.tubeLens.mark(), fanLight: b.fanLight.mark() };
+    fn();
+    const list: VertexRange[] = [];
+    for (const name of ['fixtures', 'tubeLens', 'fanLight'] as BucketName[]) { const to = b[name].mark(); if (to > before[name]) list.push({ bucket: name, from: before[name], to }); }
+    ranges.set(id, list);
+  };
+  for (const s of plan.tubes) track(s.id, () => addTube(b, walls, s));
+  for (const s of plan.boards) track(s.id, () => addBoard(b, walls, s));
+  for (const s of plan.fans) track(s.id, () => addFanStatic(b, s));
   for (const s of plan.coves) addCove(b, s);
   const byR = new Map<number, FanSite[]>();
   for (const f of plan.fans) { const r = Math.round(f.radiusM / 0.05) * 0.05; byR.set(r, [...(byR.get(r) ?? []), f]); }
   const rotors = [...byR].map(([radiusM, sites]) => ({ radiusM, sites, geometry: fanRotorGeometry(layout.wallHeightM, radiusM) }));
-  return { buckets: b, walls, rotors };
+  return { buckets: b, walls, ranges, rotors };
 }

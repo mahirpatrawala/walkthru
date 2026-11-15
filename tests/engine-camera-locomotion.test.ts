@@ -355,10 +355,11 @@ describe('furniture meshes', () => {
   it('every catalogue item builds, sits on the floor, matches its footprint and height', () => {
     for (const spec of CATALOG) {
       const box: Box = { cx: 0, cz: 0, w: spec.footprint.w, d: spec.footprint.d, yawDeg: 0 };
-      const g = buildFurnitureMesh(itemFromCatalog(spec.id, box, 'virtual'));
+      const placed = itemFromCatalog(spec.id, box, 'virtual');
+      const g = buildFurnitureMesh(placed);
       const b = bounds(g);
       expect(b.min.y).toBeCloseTo(0, 6);
-      expect(b.max.y).toBeCloseTo(spec.heightM, 2);
+      expect(b.max.y).toBeCloseTo(placed.heightM, 2); // a ceiling-height piece takes the home's ceiling, not the row's nominal height
       expect(b.max.x - b.min.x).toBeCloseTo(spec.footprint.w, 2);
       expect(b.max.z - b.min.z).toBeCloseTo(spec.footprint.d, 2);
       g.traverse((o) => {

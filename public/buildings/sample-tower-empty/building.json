@@ -427,7 +427,7 @@
         },
         {
           "id": "f2-201",
-          "kind": "flat",
+          "kind": "home",
           "name": "Flat 201 · 3 BHK",
           "sceneId": "test-tower-empty-flat-3bhk",
           "type": "3bhk",
@@ -454,7 +454,7 @@
         },
         {
           "id": "f2-202",
-          "kind": "flat",
+          "kind": "home",
           "name": "Flat 202 · 1 BHK",
           "sceneId": "test-tower-empty-flat-1bhk",
           "type": "1bhk",
@@ -481,7 +481,7 @@
         },
         {
           "id": "f2-203",
-          "kind": "flat",
+          "kind": "home",
           "name": "Flat 203 · 2 BHK (A)",
           "sceneId": "test-tower-empty-flat-2bhk-a-m",
           "type": "2bhk-a",
@@ -509,7 +509,7 @@
         },
         {
           "id": "f2-204",
-          "kind": "flat",
+          "kind": "home",
           "name": "Flat 204 · 2 BHK (B)",
           "sceneId": "test-tower-empty-flat-2bhk-b-m",
           "type": "2bhk-b",
@@ -628,7 +628,7 @@
         },
         {
           "id": "f3-301",
-          "kind": "flat",
+          "kind": "home",
           "name": "Flat 301 · 3 BHK",
           "sceneId": "test-tower-empty-flat-3bhk",
           "type": "3bhk",
@@ -655,7 +655,7 @@
         },
         {
           "id": "f3-302",
-          "kind": "flat",
+          "kind": "home",
           "name": "Flat 302 · 1 BHK",
           "sceneId": "test-tower-empty-flat-1bhk",
           "type": "1bhk",
@@ -682,7 +682,7 @@
         },
         {
           "id": "f3-303",
-          "kind": "flat",
+          "kind": "home",
           "name": "Flat 303 · 2 BHK (A)",
           "sceneId": "test-tower-empty-flat-2bhk-a-m",
           "type": "2bhk-a",
@@ -710,7 +710,7 @@
         },
         {
           "id": "f3-304",
-          "kind": "flat",
+          "kind": "home",
           "name": "Flat 304 · 2 BHK (B)",
           "sceneId": "test-tower-empty-flat-2bhk-b-m",
           "type": "2bhk-b",

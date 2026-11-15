@@ -182,5 +182,6 @@
     "yawDeg": 0
   },
   "unlisted": true,
+  "spaceKind": "corridor",
   "updatedAt": "2026-11-16T00:00:00.000Z"
 }

@@ -3,8 +3,8 @@
 //   - which catalogue pieces a kind of space allows (`catalogueAllowedIn`): the default allows everything, a later stage installs a filter
 //   - per-space `outdoor` (no ceiling, sky) and `pack` (the style pack a space opens in) are fields of the space in building.json;
 //     they are read here and handed to the walk in `SpaceHost.space`. `pack` is applied (the viewer's own pick still wins); `outdoor` is not.
-import type { FurnitureKind } from '../types';
-import type { Space, SpaceKind } from './types';
+import type { FurnitureKind, SpaceKind } from '../types';
+import type { Space } from './types';
 
 export interface SpaceContext {
   buildingId: string;

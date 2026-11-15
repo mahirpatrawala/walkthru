@@ -2,7 +2,7 @@
 // doors fell), the ground lobby, and the clubhouse level (foyer, hall, gym, pool, garden). Sizes are ordinary Indian apartment sizes:
 // corridor 1.8 m, lift car 1.1 x 1.4 m with a 0.9 m door, main doors 1.0 m. The pool and the garden are plain rooms until stage 3.
 import { catalogItem } from '../../src/core/catalog';
-import type { DoorLeaf, FurnitureItem, Opening, PropertyFile, RoomTag } from '../../src/types';
+import type { DoorLeaf, FurnitureItem, Opening, PropertyFile, RoomTag, SpaceKind } from '../../src/types';
 import { finishes, openingAt, rectRoom, sceneFile, windowAt } from './scene-kit';
 import type { Rect, Side } from './scene-kit';
 import type { Plate } from './plate';
@@ -83,7 +83,7 @@ export function corridorScene(plate: Plate, id: string): CorridorOut {
   openings.push(windowAt(lobby, 'W', lobbyRect.z0 + 2.1, 'window-lobby', 1.6));
   const property = sceneFile({
     id, title: 'Corridor and lift lobby', subtitle: SAMPLE_SUBTITLE, wallHeightM: 2.85, rooms: [corridor, lobby], openings,
-    finishes: finishes({ ...STONE }), spawn: { x: 0, z: zc - 1, yawDeg: 180 }, updatedAt: UPDATED_AT,
+    finishes: finishes({ ...STONE }), spawn: { x: 0, z: zc - 1, yawDeg: 180 }, updatedAt: UPDATED_AT, spaceKind: 'corridor',
   });
   return { property, flatDoor, liftA: 'lift-a', liftB: 'lift-b', stairs: 'door-stairs', lobby: lobbyRect };
 }
@@ -117,7 +117,7 @@ export function groundLobbyScene(id: string, furnished: boolean): LobbyOut {
   ] : [];
   const property = sceneFile({
     id, title: 'Entrance lobby', subtitle: SAMPLE_SUBTITLE, wallHeightM: 3.6, rooms: [entrance, lifts], openings, furniture,
-    finishes: finishes({ ...WARM }), spawn: { x: 4.5, z: 5.6, yawDeg: 0 }, updatedAt: UPDATED_AT,
+    finishes: finishes({ ...WARM }), spawn: { x: 4.5, z: 5.6, yawDeg: 0 }, updatedAt: UPDATED_AT, spaceKind: 'lobby',
   });
   return { property, street: 'door-street', clubhouse: 'door-clubhouse', liftA: 'lift-a', liftB: 'lift-b', stairs: 'door-stairs' };
 }
@@ -147,12 +147,12 @@ export function clubhouseScenes(ids: { foyer: string; hall: string; gym: string;
     openingAt(foyerRoom, 'S', 3.8, { id: 'lift-b', widthM: LIFT_DOOR_M, leaf: OUT }),
     openingAt(foyerRoom, 'S', 6.0, { id: 'door-stairs', widthM: 1.0, leaf: OUT }),
   ];
-  const mk = (id: string, title: string, h: number, rooms: RoomTag[], openings: Opening[], fin: ReturnType<typeof finishes>, spawn: { x: number; z: number; yawDeg: number }): PropertyFile =>
-    sceneFile({ id, title, subtitle: SAMPLE_SUBTITLE, wallHeightM: h, rooms, openings, finishes: fin, spawn, updatedAt: UPDATED_AT });
-  const foyer = mk(ids.foyer, 'Clubhouse foyer', 3.6, [foyerRoom], foyerOpenings, finishes({ ...WARM }), { x: 6, z: 3, yawDeg: 0 });
-  const hallScene = mk(ids.hall, 'Community hall', 3.6, [hallRoom], [hall.b, windowAt(hallRoom, 'W', -1.2, 'window-w1', 2.4, 0.0, 2.6), windowAt(hallRoom, 'N', -6.3, 'window-n1', 2.4, 0.9, 2.6), windowAt(hallRoom, 'N', -2.5, 'window-n2', 2.4, 0.9, 2.6)], finishes({ floorColor: '#B79F7C', tile: null, wallColor: '#EFE8DA' }), { x: -6.3, z: -1.2, yawDeg: 90 });
-  const gymScene = mk(ids.gym, 'Gym', 3.6, [gymRoom], [gym.b, windowAt(gymRoom, 'E', -6.3, 'window-e1', 2.4, 0.9, 2.6), windowAt(gymRoom, 'E', -10.5, 'window-e2', 2.4, 0.9, 2.6)], finishes({ floorColor: '#6E6A66', tile: null, wallColor: '#ECE9E2' }), { x: 6, z: -2, yawDeg: 180 });
-  const poolScene = mk(ids.pool, 'Pool area (placeholder)', 4.2, [poolRoom], [pool.b], finishes({ floorColor: '#CFC6B6', tile: { wM: 0.6, lM: 0.6 }, groutColor: '#B8AE9C', wallColor: '#EDE9DF' }), { x: 14, z: 1.5, yawDeg: 90 });
-  const gardenScene = mk(ids.garden, 'Garden (placeholder)', 3.6, [gardenRoom], [garden.b], finishes({ floorColor: '#A9B58F', tile: null, wallColor: '#EDEADF' }), { x: 9.5, z: 8, yawDeg: 180 });
+  const mk = (id: string, title: string, h: number, rooms: RoomTag[], openings: Opening[], fin: ReturnType<typeof finishes>, spawn: { x: number; z: number; yawDeg: number }, spaceKind: SpaceKind): PropertyFile =>
+    sceneFile({ id, title, subtitle: SAMPLE_SUBTITLE, wallHeightM: h, rooms, openings, finishes: fin, spawn, updatedAt: UPDATED_AT, spaceKind });
+  const foyer = mk(ids.foyer, 'Clubhouse foyer', 3.6, [foyerRoom], foyerOpenings, finishes({ ...WARM }), { x: 6, z: 3, yawDeg: 0 }, 'corridor');
+  const hallScene = mk(ids.hall, 'Community hall', 3.6, [hallRoom], [hall.b, windowAt(hallRoom, 'W', -1.2, 'window-w1', 2.4, 0.0, 2.6), windowAt(hallRoom, 'N', -6.3, 'window-n1', 2.4, 0.9, 2.6), windowAt(hallRoom, 'N', -2.5, 'window-n2', 2.4, 0.9, 2.6)], finishes({ floorColor: '#B79F7C', tile: null, wallColor: '#EFE8DA' }), { x: -6.3, z: -1.2, yawDeg: 90 }, 'hall');
+  const gymScene = mk(ids.gym, 'Gym', 3.6, [gymRoom], [gym.b, windowAt(gymRoom, 'E', -6.3, 'window-e1', 2.4, 0.9, 2.6), windowAt(gymRoom, 'E', -10.5, 'window-e2', 2.4, 0.9, 2.6)], finishes({ floorColor: '#6E6A66', tile: null, wallColor: '#ECE9E2' }), { x: 6, z: -2, yawDeg: 180 }, 'gym');
+  const poolScene = mk(ids.pool, 'Pool area (placeholder)', 4.2, [poolRoom], [pool.b], finishes({ floorColor: '#CFC6B6', tile: { wM: 0.6, lM: 0.6 }, groutColor: '#B8AE9C', wallColor: '#EDE9DF' }), { x: 14, z: 1.5, yawDeg: 90 }, 'pool');
+  const gardenScene = mk(ids.garden, 'Garden (placeholder)', 3.6, [gardenRoom], [garden.b], finishes({ floorColor: '#A9B58F', tile: null, wallColor: '#EDEADF' }), { x: 9.5, z: 8, yawDeg: 180 }, 'garden');
   return { foyer, hall: hallScene, gym: gymScene, pool: poolScene, garden: gardenScene, doors: { hall: 'door-hall', gym: 'door-gym', pool: 'door-pool', garden: 'door-garden', walkway: 'door-walkway' } };
 }

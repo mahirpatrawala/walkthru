@@ -44,8 +44,9 @@ describe('24 raster twins, simulated model', () => {
     const stubborn = await evalRate(twins, sets, 'consistent wrong digits', { ...errorsAtRate(0.2, 13), consistent: true });
     expect(stubborn.wrong / Math.max(1, stubborn.verified)).toBeLessThanOrEqual(0.005);
 
-    // vision off: every picture refused, nothing sent, nothing spent
+    // vision off: nothing sent, nothing spent. A picture is either refused or read by the local reader on this machine
+    // (which one depends on the text engine installed), never sent anywhere
     const off = await evalRate(twins, sets, 'vision off', null);
-    expect(off.runs.every((r) => r.run.status === 'refused' && r.run.sent.length === 0 && r.run.cost.usd === 0)).toBe(true);
+    expect(off.runs.every((r) => r.run.sent.length === 0 && r.run.cost.usd === 0)).toBe(true);
   }, 600000);
 });

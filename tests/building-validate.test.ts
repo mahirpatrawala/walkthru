@@ -31,6 +31,14 @@ describe('building validation', () => {
     }
   });
 
+  it('every scene carries the kind of its space, and it survives the parse that the walk and a swap use', () => {
+    for (const id of ids) for (const l of readBuilding(id).levels) for (const s of l.spaces) {
+      const raw = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '..', 'public/scenes', s.sceneId, 'property.json'), 'utf8'));
+      expect(raw.spaceKind, `${id}/${s.id}`).toBe(s.kind);
+      expect(readScene(s.sceneId)!.spaceKind, `${id}/${s.id} after validateProperty`).toBe(s.kind);
+    }
+  });
+
   it('the empty twin has no furniture anywhere; the furnished tower has some in the lobby and the flats', () => {
     for (const l of readBuilding('sample-tower-empty').levels) for (const s of l.spaces) expect(readScene(s.sceneId)!.furniture, s.sceneId).toEqual([]);
     expect(readScene('test-tower-lobby')!.furniture.length).toBeGreaterThan(0);
@@ -63,7 +71,7 @@ describe('building validation', () => {
       for (const a of rooms[i].rooms) for (const c of rooms[j].rooms) expect(overlapAreaM2(a.polygon, c.polygon), `${rooms[i].s.id}/${a.id} vs ${rooms[j].s.id}/${c.id}`).toBeLessThan(0.05);
     }
     // four flats, each linked to the corridor
-    const flats = level.spaces.filter((s) => s.kind === 'flat');
+    const flats = level.spaces.filter((s) => s.kind === 'home');
     const corridor = level.spaces.find((s) => s.kind === 'corridor')!;
     for (const f of flats) expect(corridor.portals.some((p) => p.kind === 'door' && p.to.space === f.id)).toBe(true);
     void toLevel;

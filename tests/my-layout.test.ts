@@ -201,12 +201,13 @@ describe('My layout in the store', () => {
     expect(t.store.hideOriginal('nope')).toBe(false);
   });
 
-  it('a real piece still refuses plain remove and update (its size and place are the record)', () => {
+  it('a real piece still refuses plain remove; update moves it in My layout only (the drawn piece is the record)', () => {
     const t = rig();
     t.store.remove('bed-1');
     expect(t.store.has('bed-1')).toBe(true);
     t.store.update('bed-1', { cx: 0, cz: 0, w: 1, d: 1, yawDeg: 0 });
-    expect(t.store.get('bed-1')!.box.cx).toBe(1.0);
+    expect(t.store.get('bed-1')!.box.cx).toBe(0);
+    expect(t.store.drawnItem('bed-1')!.box.cx).toBe(1.0);
   });
 
   it('replace: the original is hidden, the new piece shows its own catalogue size, one change event', () => {
@@ -292,8 +293,9 @@ describe('My layout in the store', () => {
     const originals = new Map(buildTruthProperty('furnished').furniture.map((i) => [i.id, i]));
     expect(serializeMine([], {})).toBeNull();
     const raw = serializeMine(['bed-1'], { 'sofa-1': { fabric: 'fab-grey' } })!;
-    expect(parseMine(raw, originals)).toEqual({ removed: ['bed-1'], finishes: { 'sofa-1': { fabric: 'fab-grey' } } });
-    expect(parseMine(null, originals)).toEqual({ removed: [], finishes: {} });
+    expect(JSON.parse(raw).version).toBe(1); // nothing moved or fitted: still the original format
+    expect(parseMine(raw, originals)).toEqual({ removed: ['bed-1'], finishes: { 'sofa-1': { fabric: 'fab-grey' } }, moved: {}, fittings: { removed: [], moved: {}, sized: {} } });
+    expect(parseMine(null, originals)).toEqual({ removed: [], finishes: {}, moved: {}, fittings: { removed: [], moved: {}, sized: {} } });
   });
 });
 
@@ -329,7 +331,7 @@ describe('a layout in a link', () => {
 
   it('an empty layout has no code, and shareUrl adds, replaces and removes the parameter', () => {
     expect(encodeLayout(emptyLayout())).toBeNull();
-    const l = { removed: ['bed-1'], added: [], finishes: {} };
+    const l = { ...emptyLayout(), removed: ['bed-1'] };
     const url = shareUrl('http://x.test/?scene=a&my=old&room=r', l);
     const u = new URL(url);
     expect(u.searchParams.get('scene')).toBe('a');
@@ -339,8 +341,8 @@ describe('a layout in a link', () => {
   });
 
   it('is checked against the home it opens on: wrong version, rubbish, foreign ids, illegal looks, absurd positions', () => {
-    const good = encodeLayout({ removed: ['bed-1'], added: [], finishes: {} })!;
-    expect(decodeLayout(good.replace(/^1\./, '2.'), originals)).toBeNull();
+    const good = encodeLayout({ ...emptyLayout(), removed: ['bed-1'] })!;
+    expect(decodeLayout(good.replace(/^1\./, '3.'), originals)).toBeNull();
     expect(decodeLayout('1.%%%%', originals)).toBeNull();
     expect(decodeLayout('', originals)).toBeNull();
     expect(decodeLayout(null, originals)).toBeNull();
@@ -506,7 +508,7 @@ describe('furnish: edit a piece that came with the home', () => {
     const v = t.session.view();
     expect(v.selection!.builtIn).toBe(true);
     expect(v.message).toContain(BUILT_IN_NOTE);
-    expect(t.session.view().canMove).toBe(false);
+    expect(t.session.view().canMove).toBe(true); // in the viewer's layout only, with the note
     t.session.replaceSelected('sofa-3');
     expect(t.session.view().message).toContain(BUILT_IN_NOTE);
     t.session.place();
@@ -518,12 +520,15 @@ describe('furnish: edit a piece that came with the home', () => {
     expect(u.session.view().message).not.toContain(BUILT_IN_NOTE);
   });
 
-  it('a home piece cannot be moved or rotated in place; a placed one can', () => {
+  it('a home piece can be moved or rotated in the viewer layout (and cancelled), like a placed one', () => {
     const t = rig();
     t.session.select('bed-1');
-    expect(t.session.view().canMove).toBe(false);
-    expect(t.session.view().canRotate).toBe(false);
-    expect(t.session.rotateSelected()).toBe(false);
+    expect(t.session.view().canMove).toBe(true);
+    expect(t.session.view().canRotate).toBe(true);
+    expect(t.session.rotateSelected()).toBe(true);
+    t.session.cancel();
+    expect(t.store.get('bed-1')!.box.yawDeg).toBe(t.store.drawnItem('bed-1')!.box.yawDeg);
+    t.session.select(null);
     t.session.spawn('sofa-3'); t.session.setYaw(0); t.session.moveTo(2, 0.8);
     const id = t.session.place()!;
     expect(t.session.view().canMove).toBe(true);
@@ -559,10 +564,11 @@ describe('replacement geometry and choices', () => {
 
   it('same-family choices come first: a bed offers the four beds, a sofa the sofas, a table all the tables', () => {
     const ids = (l: { id: string }[]) => l.map((c) => c.id);
-    expect(ids(replacementChoices({ kind: 'bed', label: 'Bed' }).same)).toEqual(['bed-single', 'bed-double', 'bed-queen', 'bed-king']);
-    expect(ids(replacementChoices({ kind: 'sofa', label: 'Sofa' }).same)).toEqual(['sofa-3', 'sofa-2', 'sofa-l']);
+    // the rows added later (storage beds, a sofa-cum-bed) are the same family and follow the original ones
+    expect(ids(replacementChoices({ kind: 'bed', label: 'Bed' }).same).slice(0, 4)).toEqual(['bed-single', 'bed-double', 'bed-queen', 'bed-king']);
+    expect(ids(replacementChoices({ kind: 'sofa', label: 'Sofa' }).same).slice(0, 3)).toEqual(['sofa-3', 'sofa-2', 'sofa-l']);
     expect(ids(replacementChoices({ kind: 'wardrobe', label: 'Wardrobe' }).same)).toEqual(['wardrobe-2', 'wardrobe-3', 'wardrobe-4']);
-    expect(ids(replacementChoices({ kind: 'counter', label: 'Study' }).same).sort()).toEqual(['dining-6', 'side-table', 'study-table']);
+    expect(ids(replacementChoices({ kind: 'counter', label: 'Study' }).same)).toEqual(expect.arrayContaining(['dining-6', 'side-table', 'study-table', 'coffee-rect', 'dining-4']));
     const kitchen = replacementChoices({ kind: 'counter', label: 'Kitchen' });
     expect(kitchen.same).toEqual([]);
     expect(kitchen.other).toHaveLength(CATALOG.length); // anything else from the catalogue

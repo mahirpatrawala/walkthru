@@ -85,7 +85,8 @@ class BuildingWalk implements BuildingWalkApi {
       loading: o.screen,
       doorLooks: doorLooksFor(loc.space),
       arrival: o.opening ? (layout, grid) => { const a = arrivalAtDoor(layout, grid, o.opening!, o.fromM ?? ARRIVAL_FROM_M); return a ? { x: a.x, z: a.z, yawDeg: a.yawDeg } : null; } : null,
-      onMounted: (m) => this.onMounted(m, loc),
+      tapClaim: null,
+      onMounted: (m) => this.onMounted(m, loc, host),
     };
     let session: SpaceSession | null = null;
     const t0 = performance.now();
@@ -108,12 +109,13 @@ class BuildingWalk implements BuildingWalkApi {
     return true;
   }
 
-  private onMounted(m: MountedSpace, loc: Located): void {
+  private onMounted(m: MountedSpace, loc: Located, host: SpaceHost): void {
     this.mounted = m;
     setSpaceContext(contextOf(this.building.id, loc.space));
     m.onDispose(() => setSpaceContext(null));
     this.portals = mountPortals(m, loc.space.portals, (p) => { void this.usePortal(p); });
-    m.onDispose(() => { this.portals?.dispose(); this.portals = null; this.closePanels(); });
+    host.tapClaim = (e) => this.portals?.tap(e) ?? false;
+    m.onDispose(() => { host.tapClaim = null; this.portals?.dispose(); this.portals = null; this.closePanels(); });
     // the "Building map" button, beside the HUD's own
     const bar = m.hud.root.querySelector('.wt-buttons');
     if (bar) {

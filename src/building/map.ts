@@ -17,7 +17,7 @@ function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: s
   return e;
 }
 
-export const KIND_NAME: Record<Space['kind'], string> = { lobby: 'Lobby', corridor: 'Corridor', flat: 'Flat', gym: 'Gym', hall: 'Hall', pool: 'Pool', garden: 'Garden', other: 'Space' };
+export const KIND_NAME: Record<Space['kind'], string> = { home: 'Flat', lobby: 'Lobby', corridor: 'Corridor', gym: 'Gym', hall: 'Hall', pool: 'Pool', garden: 'Garden', other: 'Space' };
 
 export interface MapOptions {
   building: BuildingFile;
@@ -100,7 +100,7 @@ export function mountBuildingMap(host: HTMLElement, o: MapOptions): BuildingMap 
   function pickDefault(lv: Level): string {
     if (here && lv.spaces.some((s) => s.id === here.spaceId)) return here.spaceId;
     const start = b.startSpace ? lv.spaces.find((s) => s.id === b.startSpace) : undefined;
-    return (start ?? lv.spaces.find((s) => s.kind === 'flat') ?? lv.spaces[0]).id;
+    return (start ?? lv.spaces.find((s) => s.kind === 'home') ?? lv.spaces[0]).id;
   }
 
   async function draw(): Promise<void> {

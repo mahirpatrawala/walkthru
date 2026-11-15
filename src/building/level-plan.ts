@@ -22,7 +22,7 @@ export interface SpaceArea {
 /** What the map says a space measures. */
 export function spaceArea(space: Space, scene: SceneInfo): SpaceArea {
   const layout = scene.property.layout;
-  if (space.kind === 'flat') {
+  if (space.kind === 'home') {
     const flagged = layout.rooms.filter((r) => r.roomType !== 'balcony' && (r.partial || scene.unverified[r.id]));
     if (flagged.length > 0) return { text: 'area not confirmed', measured: false };
     return { text: `${formatArea(carpetAreaM2(layout)).sqft.toLocaleString('en-IN')} sq ft carpet`, measured: true };
@@ -66,7 +66,7 @@ export function levelPlan(b: BuildingFile, level: Level, scenes: ReadonlyMap<str
       return { x0: Math.min(...xs), z0: Math.min(...zs), x1: Math.max(...xs), z1: Math.max(...zs) };
     };
     const body = placed.filter((r) => r.roomType !== 'balcony');
-    const rects = s.kind === 'flat' || body.length <= 1 ? [{ ...rectOf(body.length ? body : placed), label: s.name }] : body.map((r) => ({ ...rectOf([r]), label: r.label }));
+    const rects = s.kind === 'home' || body.length <= 1 ? [{ ...rectOf(body.length ? body : placed), label: s.name }] : body.map((r) => ({ ...rectOf([r]), label: r.label }));
     const all = rectOf(placed);
     boxes.push({ spaceId: s.id, ...all, rects, area: spaceArea(s, sc) });
   }
@@ -82,8 +82,8 @@ export function levelPlan(b: BuildingFile, level: Level, scenes: ReadonlyMap<str
     const space = level.spaces.find((x) => x.id === bx.spaceId)!;
     const on = o.selected === space.id;
     const here = o.here?.spaceId === space.id;
-    const title = space.kind === 'flat' ? space.name.split(' · ')[0] : space.name.replace(/ \(placeholder\)$/, '');
-    const sub = space.kind === 'flat' ? `${space.name.split(' · ')[1] ?? ''}` : '';
+    const title = space.kind === 'home' ? space.name.split(' · ')[0] : space.name.replace(/ \(placeholder\)$/, '');
+    const sub = space.kind === 'home' ? `${space.name.split(' · ')[1] ?? ''}` : '';
     const aria = `${space.name}, ${space.comingNext ? 'coming in the next stage' : bx.area.text}`;
     const labels = bx.rects.map((r) => {
       const w = r.x1 - r.x0;

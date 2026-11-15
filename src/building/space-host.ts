@@ -7,6 +7,7 @@ import type { LoadingScreen } from '../buyer/loading';
 import type { Look } from '../look/look';
 import type { Grid, Layout, PropertyFile } from '../types';
 import type { Viewer } from '../engine/viewer';
+import type { PointerEvt } from '../engine/controls';
 
 export interface Landing { x: number; z: number; yawDeg: number }
 
@@ -29,6 +30,8 @@ export interface SpaceHost {
   loading: LoadingScreen;
   /** door opening id -> how its leaf looks (a heavy main door, a glass door, a lift door), set before the doors are built */
   doorLooks: ReadonlyMap<string, DoorStyle>;
+  /** Asked first by the walk's tap-to-select: true when the tap was a portal's (a door or the lift), which the building then used. Set by the building once the space is up. */
+  tapClaim: ((e: PointerEvt) => boolean) | null;
   /** called when the space is ready to walk in, before the loading screen goes */
   onMounted(m: MountedSpace): void;
 }

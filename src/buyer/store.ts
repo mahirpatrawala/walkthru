@@ -14,8 +14,12 @@ import type { Box, FurnitureItem, FurnitureKind, Grid, Layout, Vec2 } from '../t
 import type { FurnitureStore } from './context';
 import { finishFamily, sanitizeFinish } from '../look/finishes';
 import type { Finish } from '../look/finishes';
-import { decodeLayout, mineKey, parseMine, serializeMine } from './my-layout';
+import { cloneMoved, decodeLayout, mineKey, parseMine, serializeMine } from './my-layout';
 import type { MyLayout } from './my-layout';
+import { applyEdit, editOf, isNoEdit, sizeChanged as itemSizeChanged } from './resize';
+import type { OriginalEdit } from './resize';
+import { cloneFittings, emptyFittings, isEmptyFittings, sameFittings } from '../look/fittings';
+import type { FittingsOverlay } from '../look/fittings';
 
 // ---------------------------------------------------------------- storage
 
@@ -292,6 +296,8 @@ export interface FurnitureStoreOptions {
   saveDelayMs?: number;
   /** a layout code from a shared link (`?my=`): when it decodes for this home it replaces the stored "My layout" */
   shareCode?: string | null;
+  /** the room's ceiling height, the upper limit of a resized wardrobe (default 2.6 m) */
+  ceilingM?: number;
 }
 
 export interface FurnitureStoreImpl extends FurnitureStore {
@@ -324,6 +330,21 @@ export interface FurnitureStoreImpl extends FurnitureStore {
   restoreOriginal(id: string): boolean;
   /** the originals hidden in this layout, as drawn */
   hiddenOriginals(): FurnitureItem[];
+  /** a piece that came with the home, as the drawing has it (a copy), or undefined for a placed piece */
+  drawnItem(id: string): FurnitureItem | undefined;
+  /**
+   * Moves and/or resizes a piece that came with the home, in this viewer's layout only: the patch is put on the drawn piece (limits per family
+   * apply), the mesh is rebuilt at the new size, the walking grid follows. A patch that gives back the drawn piece drops the edit. Persists.
+   */
+  editOriginal(id: string, patch: Partial<OriginalEdit>): boolean;
+  /** an original back to its drawn place and size (its look stays) */
+  restoreDrawn(id: string, what?: 'place' | 'size' | 'both'): boolean;
+  /** true when this original was moved or resized */
+  isOriginalEdited(id: string): boolean;
+  /** the fittings overlay (removed, moved, sized fittings by stable id): a copy */
+  fittings(): FittingsOverlay;
+  /** replaces the fittings overlay: persists, fires `onChange` (the planners rebuild what they own) */
+  setFittings(next: FittingsOverlay): void;
   /** the look of any piece (null clears it); rebuilds that piece's mesh. Persists. Never touches a box. */
   setFinish(id: string, finish: Finish | null | undefined): boolean;
   /** swaps a piece (an original is hidden, a placed one is removed) for a new virtual item in one step */
@@ -386,6 +407,11 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
   const hidden = new Map<string, FurnitureItem>();
   /** the viewer's looks for originals (a placed piece carries its own `finish`) */
   const looks = new Map<string, Finish>();
+  /** originals the viewer moved or resized: id -> the whole new place and size */
+  const edits = new Map<string, OriginalEdit>();
+  /** removed, moved and resized fittings (AC, fan, curtains ...), by stable id */
+  let fittingsOverlay: FittingsOverlay = emptyFittings();
+  const ceilingM = opts.ceilingM ?? 2.6;
   let linked = false;
 
   const mk = (item: FurnitureItem, origin: Entry['origin']): void => {
@@ -408,6 +434,13 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     if (f) c.finish = { ...f }; else delete c.finish;
     return c;
   };
+  /** an original as this viewer has it: the drawn piece with its edit (if any) and its look (if any) */
+  const asHave = (id: string): FurnitureItem | undefined => {
+    const d = drawnById.get(id);
+    if (!d) return undefined;
+    const e = edits.get(id);
+    return withLook(e ? applyEdit(d, e, ceilingM) : d, looks.get(id));
+  };
   /** puts a layout on the home as drawn, with no events and no save (boot only) */
   const seed = (my: MyLayout): void => {
     for (const id of my.removed) {
@@ -419,7 +452,12 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
       const clean = it ? sanitizeFinish(finishFamily(it), f) : undefined;
       if (clean) looks.set(id, clean);
     }
-    for (const it of drawn) if (!hidden.has(it.id)) mk(withLook(it, looks.get(it.id)), 'property');
+    for (const [id, e] of Object.entries(my.moved)) {
+      const d = drawnById.get(id);
+      if (d && !hidden.has(id) && !isNoEdit(d, e)) edits.set(id, editOf(applyEdit(d, e, ceilingM)));
+    }
+    fittingsOverlay = cloneFittings(my.fittings);
+    for (const it of drawn) if (!hidden.has(it.id)) mk(asHave(it.id)!, 'property');
     for (const it of my.added) if (!entries.has(it.id) && !drawnById.has(it.id)) mk(it, 'buyer');
   };
 
@@ -430,7 +468,7 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
       seed(shared);
     } else {
       const mine = parseMine(tryGet(storage, mineKey(sceneId)), drawnById);
-      seed({ removed: mine.removed, finishes: mine.finishes, added: loadPlaced(storage, sceneId) });
+      seed({ removed: mine.removed, finishes: mine.finishes, moved: mine.moved, fittings: mine.fittings, added: loadPlaced(storage, sceneId) });
     }
   }
 
@@ -445,12 +483,14 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     removed: [...hidden.keys()],
     added: buyerItems(),
     finishes: Object.fromEntries([...looks].map(([k, v]) => [k, { ...v }])),
+    moved: cloneMoved(Object.fromEntries(edits)),
+    fittings: cloneFittings(fittingsOverlay),
   });
   const saveNow = (): void => {
     if (saveTimer !== null) { clearTimeout(saveTimer); saveTimer = null; }
     dirty = false;
     savePlaced(storage, sceneId, buyerItems());
-    const mine = serializeMine([...hidden.keys()], Object.fromEntries(looks));
+    const mine = serializeMine([...hidden.keys()], Object.fromEntries(looks), Object.fromEntries(edits), fittingsOverlay);
     if (mine === null) tryRemove(storage, mineKey(sceneId)); else trySet(storage, mineKey(sceneId), mine);
   };
   const scheduleSave = (): void => {
@@ -479,7 +519,12 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     update(id, box) {
       const e = entries.get(id);
       if (!e) { console.warn(`[walkthru] FurnitureStore.update: no item "${id}"`); return; }
-      if (e.item.source === 'real') { console.warn(`[walkthru] FurnitureStore.update: "${id}" is a real item and cannot be moved`); return; }
+      if (e.item.source === 'real') {
+        // a piece that came with the home moves only in this viewer's layout, as an edit on the drawn piece
+        if (e.origin === 'property') store.editOriginal(id, { cx: box.cx, cz: box.cz, yawDeg: box.yawDeg, w: box.w, d: box.d });
+        else console.warn(`[walkthru] FurnitureStore.update: "${id}" is a real item and cannot be moved`);
+        return;
+      }
       const sizeChanged = Math.abs(box.w - e.item.box.w) > 1e-9 || Math.abs(box.d - e.item.box.d) > 1e-9;
       e.item = { ...e.item, box: { ...box } };
       if (sizeChanged) {
@@ -566,8 +611,9 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     hideOriginal(id) {
       const e = entries.get(id);
       if (!e || e.origin !== 'property') return false;
-      hidden.set(id, e.item);
+      hidden.set(id, drawnById.get(id) ?? e.item);
       looks.delete(id);
+      edits.delete(id);
       disposeMesh(e.mesh);
       entries.delete(id);
       scheduleSave();
@@ -607,7 +653,7 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
       if (next.source !== 'virtual') throw new Error(`FurnitureStore.replace: only virtual items can be added (got "${String(next.source)}")`);
       const e = entries.get(id);
       if (!e) return false;
-      if (e.origin === 'property') { hidden.set(id, e.item); looks.delete(id); }
+      if (e.origin === 'property') { hidden.set(id, drawnById.get(id) ?? e.item); looks.delete(id); edits.delete(id); }
       disposeMesh(e.mesh);
       entries.delete(id);
       mk(next, 'buyer');
@@ -615,9 +661,67 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
       changed();
       return true;
     },
+    drawnItem(id) {
+      const d = drawnById.get(id);
+      return d ? cloneItem(d) : undefined;
+    },
+    editOriginal(id, patch) {
+      const e = entries.get(id);
+      const d = drawnById.get(id);
+      if (!e || !d || e.origin !== 'property') return false;
+      const base = edits.get(id) ?? editOf(d);
+      const nextEdit = editOf(applyEdit(d, { ...base, ...patch }, ceilingM));
+      if (isNoEdit(d, nextEdit)) edits.delete(id); else edits.set(id, nextEdit);
+      const next = asHave(id)!;
+      const rebuild = itemSizeChanged(e.item, next);
+      e.item = next;
+      if (rebuild) {
+        disposeMesh(e.mesh);
+        e.mesh = buildFurnitureMesh(next);
+        parent.add(e.mesh);
+      } else {
+        e.mesh.position.set(next.box.cx, 0, next.box.cz);
+        e.mesh.rotation.y = (next.box.yawDeg * Math.PI) / 180;
+        e.mesh.updateMatrixWorld(true);
+      }
+      scheduleSave();
+      changed();
+      return true;
+    },
+    restoreDrawn(id, what = 'both') {
+      const d = drawnById.get(id);
+      const e = edits.get(id);
+      if (!d || !e) return false;
+      const patch: Partial<OriginalEdit> = {};
+      if (what !== 'size') {
+        // back to the drawn place: the back edge goes where the drawing has it (a piece that grew toward its front keeps its new depth)
+        const dy = (d.box.yawDeg * Math.PI) / 180;
+        const curD = what === 'both' ? d.box.d : e.d;
+        const backX = d.box.cx - Math.sin(dy) * (d.box.d / 2), backZ = d.box.cz - Math.cos(dy) * (d.box.d / 2);
+        patch.cx = backX + Math.sin(dy) * (curD / 2); patch.cz = backZ + Math.cos(dy) * (curD / 2); patch.yawDeg = d.box.yawDeg;
+      }
+      if (what !== 'place') {
+        patch.w = d.box.w; patch.d = d.box.d; patch.heightM = d.heightM; patch.surfaceHeightM = d.surfaceHeightM;
+        if (what === 'size') {
+          // back to the drawn size: the back edge stays where it is
+          const ey = (e.yawDeg * Math.PI) / 180;
+          const bx = e.cx - Math.sin(ey) * (e.d / 2), bz = e.cz - Math.cos(ey) * (e.d / 2);
+          patch.cx = bx + Math.sin(ey) * (d.box.d / 2); patch.cz = bz + Math.cos(ey) * (d.box.d / 2);
+        }
+      }
+      return store.editOriginal(id, patch);
+    },
+    isOriginalEdited: (id) => edits.has(id),
+    fittings: () => cloneFittings(fittingsOverlay),
+    setFittings(next) {
+      if (sameFittings(next, fittingsOverlay)) return;
+      fittingsOverlay = cloneFittings(next);
+      scheduleSave();
+      changed();
+    },
     layout: layoutNow,
     isEdited() {
-      if (hidden.size > 0 || looks.size > 0) return true;
+      if (hidden.size > 0 || looks.size > 0 || edits.size > 0 || !isEmptyFittings(fittingsOverlay)) return true;
       for (const e of entries.values()) {
         if (e.origin === 'buyer') return true;
         const d = drawnById.get(e.item.id);
@@ -628,11 +732,13 @@ export function createFurnitureStore(opts: FurnitureStoreOptions): FurnitureStor
     reset() {
       for (const [id, e] of [...entries]) {
         const d = drawnById.get(id);
-        const keep = e.origin === 'property' && d && !looks.has(id) && JSON.stringify(d.box) === JSON.stringify(e.item.box);
+        const keep = e.origin === 'property' && d && !looks.has(id) && !edits.has(id) && JSON.stringify(d.box) === JSON.stringify(e.item.box);
         if (!keep) { disposeMesh(e.mesh); entries.delete(id); }
       }
       hidden.clear();
       looks.clear();
+      edits.clear();
+      fittingsOverlay = emptyFittings();
       for (const d of drawn) if (!entries.has(d.id)) mk(d, 'property');
       reorder();
       saveNow();

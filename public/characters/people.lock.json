@@ -1,7 +1,7 @@
 {
-  "version": 3,
-  "built": "2026-11-15",
-  "route": "family: MakeHuman base meshes shaped in MPFB2, stylised, clothes and hair modelled by tools/make_family.py (SPEC 16.6.7); 15 Nov 2026: per-leg skirt panels, draped dupatta and pallu, shoulder caps; motion pass 15 Nov 2026: animation clips rebuilt from the free Quaternius Universal Animation Libraries 1 and 2 (CC0, SPEC 16.6.8)",
+  "version": 4,
+  "built": "2026-11-16",
+  "route": "family: MakeHuman base meshes shaped in MPFB2, stylised, clothes and hair modelled by tools/make_family.py (SPEC 16.6.7); 15 Nov 2026: per-leg skirt panels, draped dupatta and pallu, shoulder caps; motion pass 15 Nov 2026: animation clips rebuilt from the free Quaternius Universal Animation Libraries 1 and 2 (CC0, SPEC 16.6.8); 16 Nov 2026: garments refitted close to the body (side slits, no flare, sleeves and legs measured by rays), head 6 % larger (child 14 %), hair dome closed over the crown (SPEC 16.6.9)",
   "sources": {
     "mpfb": {
       "file": "mpfb-2.0.18.zip",
@@ -100,60 +100,60 @@
   },
   "files": {
     "PEOPLE-LICENCE.txt": {
-      "bytes": 4500,
-      "sha256": "d93731428ad2f2e180199c8eb70bd093fffc1c5ab8db8ed2c40ebf14fb473429"
+      "bytes": 4701,
+      "sha256": "8569e6253f7b676a4a0dca828c336e8fc1deeba7a7021ef9ba532e4450104553"
     },
     "clips.glb": {
       "bytes": 197568,
       "sha256": "998c73bd5a3c72caaa3bbf1248b9bf9a260021664e635c01a911bc2247fea1a0"
     },
     "person-child-low.glb": {
-      "bytes": 98936,
-      "sha256": "ddde5bda349e5b47e825531c5d818919fed5173bf083284873aea30e3d76865e"
+      "bytes": 113136,
+      "sha256": "ac6b0d8a8eeac754e227a311aec9bed6492963d150d61eb0638c716bda1f86e9"
     },
     "person-child.glb": {
-      "bytes": 154428,
-      "sha256": "0bf8449acdcf766a401e9bd3660deaaeff4f41234f7fc73ebd3dc0817a9d3cad"
+      "bytes": 158208,
+      "sha256": "d8fe37cb4a9449b9cee6eb47192a2458f53b450e4c1fdb6f56b0deb4bd9e7804"
     },
     "person-elder-low.glb": {
-      "bytes": 115932,
-      "sha256": "6f55a28fbdab23860c92d2a6cd463c7df15f1b5a890c0266e084b79162f3f549"
+      "bytes": 126584,
+      "sha256": "fd8081ce248d4fe48d198e1d44404d17c9b1c4fc0ab5290ad7b200089d69a3f3"
     },
     "person-elder.glb": {
-      "bytes": 175864,
-      "sha256": "6e1cfd958501e2d32f8207887c953b1ac0a9ee2974416e4ac20d2a6a4af0f96c"
+      "bytes": 179996,
+      "sha256": "ddfcf9936d494d8ea1285bbc3475f50555211d8daf4d98ec33cf7689c1c18542"
     },
     "person-man-low.glb": {
-      "bytes": 105496,
-      "sha256": "176c61a3a020a417b3a3701432c69738796f0ea0d4bd414ae45b45430aff09fb"
+      "bytes": 114840,
+      "sha256": "fcd53fe27c1065912a9a0e64097bd83aa2075c30c22d6c5df22348eb822fafca"
     },
     "person-man.glb": {
-      "bytes": 167688,
-      "sha256": "0e7a64d4c6588d8b7b02df4c2b86e9ce3edb7d759c70f90f2ec39b271061e162"
+      "bytes": 172296,
+      "sha256": "bcb59a0dca1842b74bc5970ec600981f45295990223b38e98ca59581d775cc19"
     },
     "person-woman-low.glb": {
-      "bytes": 128584,
-      "sha256": "7392a42ec58ed7f8f4a9b4a623eb810047e334a1d27100cc470fc29e2c7b36a2"
+      "bytes": 137360,
+      "sha256": "2ca805a94a81416197c13e4fa430a40ebc626a2e08c4c41cee3ada2e4ec90381"
     },
     "person-woman.glb": {
-      "bytes": 195200,
-      "sha256": "8565de588ce04bfb0217b5a4841b50a84cd0e6000e4ca9c8f7a220464bbe6949"
+      "bytes": 198984,
+      "sha256": "f48a848573c42e706920b957ea8c67f931106e6f0973e69dcd2553dcc157d69a"
     },
     "thumb-child.jpg": {
-      "bytes": 7115,
-      "sha256": "8bb5d97770b81fbd81821b617ace1043cfb3e49d3f369ccb39f281f44daf1dff"
+      "bytes": 7310,
+      "sha256": "b8c97fe89e9b1f551e9807712bfe8cd6d12b7d1d71fbd829ab70df97893b39f2"
     },
     "thumb-elder.jpg": {
-      "bytes": 8013,
-      "sha256": "75fd24a0df41faa7915570a7bb5ad3d84be5fd92810b911f1029353b6896255c"
+      "bytes": 8181,
+      "sha256": "d0a1ffe7dcba8a9347b63d8c06ac618d412b0cc17a2ef794503c61d254e1f29e"
     },
     "thumb-man.jpg": {
-      "bytes": 6996,
-      "sha256": "ce5c6e3a3a803e81341273288f2fe3cbf929da047ce8940ee86f044390ec3173"
+      "bytes": 7176,
+      "sha256": "4aac9469a3d958f554e129ac8ddfddc08453d3facbf6ae29f34d196c55ec7d5c"
     },
     "thumb-woman.jpg": {
-      "bytes": 8516,
-      "sha256": "dc7df0a16f71e1b054320e7b26ad70dd0328d5eb99b5281342dc3b1f7f4eba1e"
+      "bytes": 8656,
+      "sha256": "b81805a5bfb843f02126501f84d5e8c770d63760b3a75cac0b2f6e0a7953720c"
     }
   }
 }

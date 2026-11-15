@@ -86,6 +86,7 @@ export async function readFlat(spec: FlatSpec, scratch: string): Promise<FlatDes
   property.title = `Flat · ${spec.name}`;
   property.subtitle = 'Sample building · synthetic drawing, made-up flat';
   property.unlisted = true;
+  property.spaceKind = 'home';
   for (const [id, label] of Object.entries(spec.labels ?? {})) {
     const room = property.layout.rooms.find((x) => x.id === id);
     if (!room) throw new Error(`label override for "${id}": no such room in ${spec.sceneId} (${property.layout.rooms.map((x) => x.id).join(', ')})`);

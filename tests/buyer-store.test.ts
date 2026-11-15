@@ -302,12 +302,14 @@ describe('FurnitureStore', () => {
     expect(n).toBe(3); // unsubscribed
   });
 
-  it('real items cannot be moved or removed, and add refuses real items', () => {
+  it('real items cannot be removed outright (hideOriginal does it, in My layout), update moves them in the overlay only, and add refuses real items', () => {
     const { store } = make(fakeStorage());
     const before = store.all().find((i) => i.id === bed.id)!;
-    store.update(bed.id, { ...before.box, cx: 3 });
     store.remove(bed.id);
-    expect(store.all().find((i) => i.id === bed.id)!.box).toEqual(before.box);
+    expect(store.has(bed.id)).toBe(true);
+    store.update(bed.id, { ...before.box, cx: 3 });
+    expect(store.all().find((i) => i.id === bed.id)!.box.cx).toBe(3);
+    expect(store.drawnItem(bed.id)!.box).toEqual(before.box); // the drawn piece is untouched
     expect(() => store.add({ ...before, id: 'x' })).toThrow(/only virtual/);
   });
 

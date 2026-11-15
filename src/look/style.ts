@@ -11,6 +11,7 @@
 // The designer's look is on while the active pack is the sheet's pack. When the viewer picks another pack in the Style picker, the
 // sheet's finishes are not applied (the viewer asked for that pack's look), the drawing's structure still is.
 import type { FurnitureItem } from '../types';
+import { pieceRule } from '../core/pieces';
 import { finishDef } from './finishes';
 import type { FinishDef } from './finishes';
 import { GENERATORS, lookKindOf, sanitizeParams } from './gen';
@@ -125,6 +126,28 @@ export function finishLayer(kind: LookKind, f: FinishChoice, current: Record<str
     case 'bench':
       set(['case'], f.primary); set(['accent'], f.fabric);
       break;
+    case 'swing':
+      set(['case', 'swingWood', 'basket'], f.primary); set(['chain'], f.secondary); set(['cushion'], f.fabric);
+      break;
+    case 'tvunit': case 'cabinet':
+      set(['case', 'top', 'drawerFront', 'almirah'], f.primary); set(['handle', 'almirahHandle'], f.secondary);
+      break;
+    case 'appliance': case 'fit':
+      set(['applianceBody', 'case'], f.primary);
+      break;
+    case 'outdoor':
+      set(['case', 'accent'], f.primary);
+      break;
+    case 'bath':
+      set(['fittings', 'handle'], f.secondary);
+      break;
+    case 'bedx':
+      set(['bedFrame', 'case'], f.primary); set(['bedding', 'duvet'], f.secondary);
+      break;
+    case 'seatx':
+      set(['fabric', 'cushion'], f.fabric); set(['legs'], f.primary);
+      if (f.primary) params.legs = isMetal(f.primary) ? 'metal' : 'wood';
+      break;
     default: // study, side, dresser, counter, dining: Top / Legs (and a seat fabric)
       set(['top'], f.primary); set(['case', 'drawerFront', 'legs'], f.secondary); set(['fabric'], f.fabric);
       break;
@@ -133,8 +156,13 @@ export function finishLayer(kind: LookKind, f: FinishChoice, current: Record<str
 }
 
 /** Resolves an item's look under the current style (or `st`). Returns null in the Classic pack, which uses the 16.6.5 builders. */
-export function resolveLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 'finish'>, drawing?: ItemDesign, st: StyleState = state): ResolvedLook | null {
-  if (st.pack.classic) return null;
+export function resolveLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 'finish'> & { catalogId?: string }, drawing?: ItemDesign, st: StyleState = state): ResolvedLook | null {
+  const rule = pieceRule(item.catalogId);
+  if (st.pack.classic) {
+    // Classic is today's look of the original pieces; the second catalogue table has no old builders and takes the plainest pack's finishes
+    if (!rule) return null;
+    st = { ...st, pack: getPack('walnut-white') ?? st.pack };
+  }
   const kind = lookKindOf(item);
   const spec = GENERATORS[kind];
   const pack = st.pack;
@@ -148,6 +176,8 @@ export function resolveLook(item: Pick<FurnitureItem, 'id' | 'kind' | 'label' | 
   for (const [k, v] of Object.entries(spec.defaults)) { params[k] = Array.isArray(v) ? [...v] : v; prov[`param:${k}`] = 'default'; }
   const put = (src: Record<string, unknown>, p: Prov): void => { for (const [k, v] of Object.entries(src)) { params[k] = v; prov[`param:${k}`] = p; } };
   put(sanitizeParams(kind, pack.generators[kind]), 'pack');
+  // what makes this row the piece it is (a swing's variant, a storage bed's box base): over the pack, under the viewer's own pick
+  if (rule) put(sanitizeParams(kind, rule.look.params), 'default');
 
   // ---- roles, weakest first
   const roles: Roles = {};

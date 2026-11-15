@@ -17,7 +17,7 @@ export function doorLooksFor(space: Space): Map<string, DoorStyle> {
     const kind = lookOf(p);
     if (kind === 'plain' && p.kind !== 'door') continue;
     const style: DoorStyle = { kind };
-    if (kind === 'main' && p.kind === 'door' && p.plate) { style.text = p.plate; style.plateSide = space.kind === 'flat' ? -1 : 1; }
+    if (kind === 'main' && p.kind === 'door' && p.plate) { style.text = p.plate; style.plateSide = space.kind === 'home' ? -1 : 1; }
     if (kind === 'stairs') { style.text = 'STAIRS'; style.plateSide = 1; }
     out.set(p.opening, style);
   }

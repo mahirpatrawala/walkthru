@@ -420,6 +420,7 @@ export function validateProperty(json: unknown): PropertyFile {
     updatedAt: strAt(json, 'updatedAt', 'property', new Date().toISOString()),
   };
   if (isStr(json.subtitle)) out.subtitle = json.subtitle;
+  if (json.spaceKind !== undefined) out.spaceKind = oneOf(json.spaceKind, ['home', 'lobby', 'corridor', 'gym', 'hall', 'pool', 'garden', 'other'] as const, 'spaceKind');
   if (json.splat !== undefined) {
     const s = json.splat;
     if (!isObj(s) || !isStr(s.file) || !isObj(s.transform)) return fail('splat', 'must have file and transform');

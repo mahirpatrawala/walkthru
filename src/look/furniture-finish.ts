@@ -33,6 +33,8 @@ const ROLES: Record<FinishFamily, Array<[RegExp, Role]>> = {
     [/^(legs|apron|side-panel|back-panel|pedestal|shelf|upstand|drawer-box|drawer-fronts|drawer-front|knobs|knob|chair\d+-wood)$/, 'secondary'],
     [/^chair\d+-pad$/, 'fabric'],
   ],
+  // the second catalogue table is always drawn by the generators, which apply the finish themselves: no part names to recolour here
+  swing: [], storage: [], appliance: [], pouf: [], bunk: [], plain: [], sanitary: [],
   chair: [
     [/^legs$/, 'primary'],
     [/^(frame|arm-left|arm-right|backrest|seat-cushion\d*|back-cushion\d*)$/, 'fabric'],

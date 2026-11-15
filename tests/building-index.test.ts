@@ -52,7 +52,7 @@ describe('extension points', () => {
     setCatalogueFilter((kind, item) => !(kind === 'gym' && item.kind === 'bed'));
     expect(catalogueAllowedIn({ id: 'bed-king', kind: 'bed' })).toBe(false);
     expect(catalogueAllowedIn({ id: 'sofa-3', kind: 'sofa' })).toBe(true);
-    expect(catalogueAllowedIn({ id: 'bed-king', kind: 'bed' }, 'flat')).toBe(true);
+    expect(catalogueAllowedIn({ id: 'bed-king', kind: 'bed' }, 'home')).toBe(true);
   });
   it('outdoor and pack are read from building.json', () => {
     const raw = clone(rawBuilding('sample-tower')) as { levels: { spaces: Record<string, unknown>[] }[] };

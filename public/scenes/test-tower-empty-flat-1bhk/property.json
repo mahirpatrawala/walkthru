@@ -332,5 +332,6 @@
   },
   "updatedAt": "2026-11-16T00:00:00.000Z",
   "subtitle": "Sample building · synthetic drawing, made-up flat",
-  "unlisted": true
+  "unlisted": true,
+  "spaceKind": "home"
 }

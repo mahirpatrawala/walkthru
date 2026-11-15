@@ -2,8 +2,10 @@
 // kind and a name; portals join a door opening in one space to a door opening in another, or a lift door to the levels the lift serves.
 // Pure data and rules: no DOM, no three.
 
-export const SPACE_KINDS = ['lobby', 'corridor', 'flat', 'gym', 'hall', 'pool', 'garden', 'other'] as const;
-export type SpaceKind = (typeof SPACE_KINDS)[number];
+// the kind of place, as the scene itself carries it (`PropertyFile.spaceKind`, src/types.ts): a flat is a `home`
+import type { SpaceKind } from '../types';
+export type { SpaceKind };
+export const SPACE_KINDS: readonly SpaceKind[] = ['home', 'lobby', 'corridor', 'gym', 'hall', 'pool', 'garden', 'other'];
 
 /** Where a space's own scene frame sits on its level's plan: turned about the scene origin (clockwise on the plan), then moved. */
 export interface Placement { x: number; z: number; rotDeg: 0 | 90 | 180 | 270 }

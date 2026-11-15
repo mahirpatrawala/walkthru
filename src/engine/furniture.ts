@@ -35,6 +35,8 @@ function addBox(
 
 function buildBed(g: THREE.Group, item: FurnitureItem): void {
   const { w, d } = item.box;
+  // a mat on the floor (a yoga mat is a "bed" you can lie on) is one flat slab, not a frame, a mattress and pillows
+  if (item.heightM < 0.1) { addBox(g, 'mat', C_MATTRESS, 0, 0, w, d, 0, item.heightM); return; }
   const inner = item.inner ?? { w, d };
   addBox(g, 'frame', C_BED_FRAME, 0, 0, w, d, 0, Math.min(0.3, item.surfaceHeightM));
   addBox(g, 'mattress', C_MATTRESS, 0, 0, inner.w, inner.d, 0.3, Math.max(0.31, item.surfaceHeightM));
@@ -67,7 +69,7 @@ function buildDining(g: THREE.Group, item: FurnitureItem): void {
   const cz = tableD / 2 + 0.19;
   for (const side of [-1, 1]) {
     for (const x of [-0.6, 0, 0.6]) {
-      const px = x * (w / 1.8);
+      const px = Math.max(-(w / 2 - 0.22), Math.min(w / 2 - 0.22, x * (w / 1.8))); // a narrow table (the 4-seater) keeps its chairs inside its width
       addBox(g, 'chair-seat', C_DINING, px, side * cz, 0.42, 0.42, 0.43, 0.45);
       addBox(g, 'chair-back', C_DINING, px, side * (cz + 0.19), 0.42, 0.04, 0.45, 0.95);
       for (const lx of [-1, 1]) for (const lz of [-1, 1]) {

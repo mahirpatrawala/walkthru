@@ -9,6 +9,7 @@ import { cellValue } from '../core/grid-codec';
 import { distanceToSegment } from '../core/geometry';
 import { computeEdgeFrames } from '../core/layout-geom';
 import { setPortalPrompts } from '../buyer/door-hooks';
+import type { PointerEvt } from '../engine/controls';
 import type { MountedSpace } from './space-host';
 import { doorFrame } from './geom';
 import type { DoorFrame } from './geom';
@@ -22,7 +23,13 @@ export const PORTAL_TAP_M = 3.2;
 
 interface Live { portal: Portal; frame: DoorFrame; a: Vec2; b: Vec2 }
 
-export interface PortalHandle { dispose(): void; /** for tests and debugging: the portal the walker could use now */ nearest(): Portal | null }
+export interface PortalHandle {
+  dispose(): void;
+  /** for tests and debugging: the portal the walker could use now */
+  nearest(): Portal | null;
+  /** A tap in the walk: true when it landed on a portal door (nothing nearer in front of it), which it then uses. The walk asks this before its tap-to-select. */
+  tap(e: PointerEvt): boolean;
+}
 
 export function mountPortals(m: MountedSpace, portals: Portal[], go: (p: Portal) => void): PortalHandle {
   const layout: Layout = m.layout;
@@ -93,8 +100,8 @@ export function mountPortals(m: MountedSpace, portals: Portal[], go: (p: Portal)
   // a tap on the door itself
   const ray = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
-  const offTap = m.ctx.input.onTap((e) => {
-    if (m.blocked() || m.ctx.mode() !== 'walk') return;
+  function tap(e: PointerEvt): boolean {
+    if (m.blocked() || m.ctx.mode() !== 'walk') return false;
     m.ctx.viewer.camera.updateMatrixWorld(true);
     ndc.set(e.ndcX, e.ndcY);
     ray.setFromCamera(ndc, m.ctx.viewer.camera);
@@ -105,17 +112,21 @@ export function mountPortals(m: MountedSpace, portals: Portal[], go: (p: Portal)
       const hit = ray.intersectObject(g, true)[0];
       if (hit && (!best || hit.distance < best.d)) best = { l, d: hit.distance };
     }
-    if (!best) return;
-    // is something (a wall) in front of it? the shell is the only thing between the camera and a door that matters
+    if (!best) return false;
+    // a wall between the camera and the door, or a piece or fitting nearer than the door, takes the tap instead
     const wall = ray.intersectObject(m.ctx.viewer.scene.getObjectByName('shell') ?? new THREE.Object3D(), true)[0];
-    if (wall && wall.distance < best.d - 0.05) return;
+    if (wall && wall.distance < best.d - 0.05) return false;
+    const near = m.ctx.pickAt?.(e) ?? null;
+    if (near && near.dist < best.d - 0.05) return false;
     const p = m.ctx.character.position;
     if (distanceToSegment(p, best.l.a, best.l.b) <= PORTAL_TAP_M) go(best.l.portal);
     else m.ctx.hud.toast(`Walk up to the door first. ${portalPrompt(best.l.portal)}.`);
-  });
+    return true;
+  }
 
   return {
-    dispose() { setPortalPrompts(null); offTap(); offStore(); live.length = 0; },
+    dispose() { setPortalPrompts(null); offStore(); live.length = 0; },
+    tap,
     nearest: () => nearestLive(m.ctx.character.position)?.l.portal ?? null,
   };
 }

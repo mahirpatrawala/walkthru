@@ -123,7 +123,7 @@ export function checkLinks(b: BuildingFile): string[] {
   if (b.startSpace && !spaces.has(b.startSpace)) out.push(`startSpace "${b.startSpace}" is not a space of this building`);
   for (const { space } of spaces.values()) {
     const where = `space "${space.id}"`;
-    if (space.kind === 'flat') {
+    if (space.kind === 'home') {
       if (!space.type) out.push(`${where} is a flat but has no type`);
       else {
         const t = b.flatTypes[space.type];
@@ -227,4 +227,4 @@ export function liftDoorAt(b: BuildingFile, liftId: string, levelId: string): { 
   return null;
 }
 /** Flats on a level, for "Flats 201–204". */
-export const flatCount = (b: BuildingFile): number => b.levels.reduce((n, l) => n + l.spaces.filter((s) => s.kind === 'flat').length, 0);
+export const flatCount = (b: BuildingFile): number => b.levels.reduce((n, l) => n + l.spaces.filter((s) => s.kind === 'home').length, 0);

@@ -127,7 +127,7 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
       const sceneId = flatScene(t.type, f.mirrored);
       cportals.push({ id: `flat-${num}`, kind: 'door', opening: corridor.flatDoor[t.slot], to: { space: `f${n}-${num}`, portal: 'main' }, label: `Flat ${num}`, prompt: `Enter Flat ${num}`, look: 'main', plate: num });
       flatSpaces.push({
-        id: `f${n}-${num}`, kind: 'flat', name: `Flat ${num} · ${d.spec.name}`, sceneId, type: t.type, ...(f.mirrored ? { mirrored: true } : {}),
+        id: `f${n}-${num}`, kind: 'home', name: `Flat ${num} · ${d.spec.name}`, sceneId, type: t.type, ...(f.mirrored ? { mirrored: true } : {}),
         placement: f.placement,
         portals: [{ id: 'main', kind: 'door', opening: d.mainOpening, to: { space: cid, portal: `flat-${num}` }, label: 'The corridor', prompt: 'To the corridor', look: 'main', plate: num }],
       });

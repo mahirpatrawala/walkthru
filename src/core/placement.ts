@@ -1,6 +1,8 @@
 // Placement check and wall snap (SPEC 4.5). Pure.
 import { GRID_VOID } from '../types';
-import type { AccessRule, Box, CatalogItem, Grid, PlacementResult, Side, Tone } from '../types';
+import type { AccessRule, Box, CatalogItem, Grid, PlacementResult, RoomType, Side, Tone } from '../types';
+import { evaluatePiece } from './clearance';
+import { pieceRule } from './pieces';
 import { boxAxes, boxCorners, pointInBox, sideEdge } from './geometry';
 import { clearance } from './grid-query';
 
@@ -17,7 +19,7 @@ const THREE_RAYS = [-0.8, 0, 0.8];
 type Overlap = 'none' | 'outside' | 'collides';
 
 /** 4.5 step 2: cells whose centre lies inside the box shrunk by 0.03 m. Void (or beyond the grid) beats obstacle. */
-function overlap(grid: Grid, box: Box): Overlap {
+function overlap(grid: Grid, box: Box, floorCm = 0): Overlap {
   const c = grid.cellM;
   const corners = boxCorners(box);
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -37,7 +39,8 @@ function overlap(grid: Grid, box: Box): Overlap {
       if (i < 0 || j < 0 || i >= grid.nx || j >= grid.nz) return 'outside';
       const v = grid.cells[j * grid.nx + i];
       if (v === GRID_VOID) return 'outside';
-      if (v !== 0) hit = 'collides';
+      // a wall-hung piece (a basin, a geyser) clears whatever stands lower than its underside
+      if (v !== 0 && !(floorCm > 0 && v < floorCm)) hit = 'collides';
     }
   }
   return hit;
@@ -73,24 +76,45 @@ function toneFor(verdict: PlacementResult['verdict']): Tone {
   return verdict === 'fits' ? 'good' : verdict === 'tight' ? 'warn' : 'bad';
 }
 
-/** `grid` must exclude the item being placed. */
-export function checkPlacement(grid: Grid, spec: CatalogItem, box: Box, ceilingM: number, ceilingKnown = true): PlacementResult {
+/**
+ * `grid` must exclude the item being placed. `roomType` is the kind of room the piece is in (null: none or unknown): a fitting that
+ * belongs in a bathroom is allowed elsewhere, with a message. A piece with clearance zones (src/core/pieces.ts) also reads them.
+ */
+export function checkPlacement(grid: Grid, spec: CatalogItem, box: Box, ceilingM: number, ceilingKnown = true, roomType: RoomType | null = null): PlacementResult {
   const clearanceM = {} as Record<Side, number>;
   for (const s of SIDES) clearanceM[s] = sideClearance(grid, box, s, FIVE_RAYS);
+  const rule = pieceRule(spec.id);
 
   let verdict: PlacementResult['verdict'];
   let reason: PlacementResult['reason'];
-  if (spec.heightM > ceilingM - 0.02) {
+  if (spec.heightM > ceilingM - 0.02 && !rule?.fullHeight) {
     verdict = 'blocked'; reason = 'too-tall';
   } else {
-    const o = overlap(grid, box);
+    const o = overlap(grid, box, rule?.mountY ? Math.round(rule.mountY * 100) : 0);
     if (o === 'outside') { verdict = 'blocked'; reason = 'outside'; }
     else if (o === 'collides') { verdict = 'blocked'; reason = 'collides'; }
     else if (spec.access.every((r) => accessHolds(r, clearanceM))) { verdict = 'fits'; reason = 'ok'; }
     else { verdict = 'tight'; reason = 'access'; }
   }
-  const partial = { verdict, reason, clearanceM, tone: toneFor(verdict) };
-  return { ...partial, message: placementMessage(spec, partial, ceilingM, ceilingKnown) };
+  const partial: Omit<PlacementResult, 'message'> = { verdict, reason, clearanceM, tone: toneFor(verdict) };
+  let message = placementMessage(spec, partial, ceilingM, ceilingKnown);
+  if (rule && reason !== 'too-tall' && reason !== 'outside' && reason !== 'collides') {
+    // the zones follow the box being checked (a piece the viewer resized has its own width and depth)
+    const pv = evaluatePiece(grid, { ...spec, footprint: { w: box.w, d: box.d } }, rule, box, ceilingM, ceilingKnown, roomType, clearanceM.back);
+    if (pv.verdict) {
+      const rank = { fits: 0, tight: 1, blocked: 2 } as const;
+      const worse = rank[pv.verdict] > rank[verdict];
+      if (pv.readings.length > 0) partial.zones = pv.readings;
+      if (pv.verdict === 'blocked') { verdict = 'blocked'; reason = pv.reason; message = pv.sentence; }
+      else {
+        if (worse) { verdict = pv.verdict; reason = pv.reason; }
+        if (pv.sentence) message = verdict === 'tight' && worse && pv.reason !== 'room' ? `${spec.name} fits, but it is tight. ${pv.sentence}` : `${message} ${pv.sentence}`;
+      }
+      if (pv.verdict !== 'blocked' && verdict === 'tight' && pv.reason === 'room' && !pv.sentence) message = `${spec.name} fits, but it is tight.`;
+      for (const n of pv.notes) message = `${message} ${n}`;
+    }
+  }
+  return { ...partial, verdict, reason, tone: toneFor(verdict), message };
 }
 
 function cmOf(m: number): number {

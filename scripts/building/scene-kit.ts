@@ -1,7 +1,7 @@
 // A small kit for authoring the building's own spaces (corridors, lobbies, amenity rooms) as ordinary scenes: rectangle rooms with a
 // wall on every side, doors and openings placed by where they are on the plan. The flats come from the drawing reader instead.
 import { DEFAULT_FINISHES } from '../../src/types';
-import type { DoorLeaf, EdgeKind, Finishes, FurnitureItem, Layout, Opening, PropertyFile, RoomTag, RoomType, Vec2 } from '../../src/types';
+import type { DoorLeaf, EdgeKind, Finishes, FurnitureItem, Layout, Opening, PropertyFile, RoomTag, RoomType, SpaceKind, Vec2 } from '../../src/types';
 
 export type Side = 'N' | 'E' | 'S' | 'W';
 const EDGE_OF: Record<Side, number> = { N: 0, E: 1, S: 2, W: 3 };
@@ -73,6 +73,8 @@ export interface SceneParts {
   spawn?: { x: number; z: number; yawDeg: number };
   /** the generator's fixed time stamp, so the files are identical on every run */
   updatedAt: string;
+  /** what kind of place the scene is (`PropertyFile.spaceKind`) */
+  spaceKind: SpaceKind;
 }
 
 export function sceneFile(p: SceneParts): PropertyFile {
@@ -84,6 +86,6 @@ export function sceneFile(p: SceneParts): PropertyFile {
   };
   return {
     version: 1, id: p.id, title: p.title, subtitle: p.subtitle, layout, furniture: p.furniture ?? [],
-    spawn: p.spawn ?? { x: c.x, z: c.z, yawDeg: 0 }, unlisted: true, updatedAt: p.updatedAt,
+    spawn: p.spawn ?? { x: c.x, z: c.z, yawDeg: 0 }, unlisted: true, spaceKind: p.spaceKind, updatedAt: p.updatedAt,
   };
 }

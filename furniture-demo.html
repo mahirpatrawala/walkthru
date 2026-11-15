@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>walkthru catalogue contact sheet</title>
+<!--
+  Not a build input. `npx vite`, then /furniture-demo.html?cat=swing|seating|beds|storage|tables|kitchen|bathroom|kids|balcony|fitness (all when absent).
+  Every piece of the second catalogue table at its real size on a floor with a 50 cm grid, through the same builder the app uses.
+  ?pack=light-scandinavian|warm-oak-navy|walnut-white|classic  ?ceiling=2.7  ?cols=6  ?cam=x,y,z,tx,ty,tz  ?ids=a,b   window.__demo.done resolves when drawn.
+-->
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #e9e6e0; font: 12px system-ui; } #app { position: fixed; inset: 0; }</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import * as THREE from 'three';
+import { CATALOG, itemFromCatalog } from '/src/core/catalog.ts';
+import { categoryOf, CATEGORIES } from '/src/core/pieces.ts';
+import { buildFurnitureMesh, setFurnitureDefaults } from '/src/engine/furniture.ts';
+import { furnitureKit } from '/src/look/furniture-materials.ts';
+import { setStyle } from '/src/look/style.ts';
+import { setGenCeiling } from '/src/look/gen/ceiling.ts';
+
+const q = new URLSearchParams(location.search);
+const cat = q.get('cat');
+const tier = q.get('tier') || 'high';
+const ceiling = parseFloat(q.get('ceiling') || '2.7');
+setGenCeiling(ceiling);
+setStyle({ packId: q.get('pack') || 'light-scandinavian' });
+setFurnitureDefaults({ style: 'real', tier });
+await furnitureKit.setTier(tier);
+const ids = q.get('ids')?.split(',');
+const rows = CATALOG.filter((c) => (ids ? ids.includes(c.id) : cat ? categoryOf(c.id) === cat : true)).filter((c) => categoryOf(c.id) !== undefined);
+const cols = parseInt(q.get('cols') || String(Math.ceil(Math.sqrt(rows.length * 1.3))));
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.getElementById('app').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#e9e6e0');
+scene.add(new THREE.HemisphereLight('#ffffff', '#b9b2a6', 1.2));
+const sun = new THREE.DirectionalLight('#fff3e0', 2.6);
+sun.position.set(-3, 8, 6); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 0.5, far: 30 });
+scene.add(sun);
+
+function label(text) {
+  const c = document.createElement('canvas'); const g = c.getContext('2d');
+  g.font = '600 30px system-ui'; const w = Math.ceil(g.measureText(text).width) + 24; c.width = w; c.height = 46;
+  g.font = '600 30px system-ui'; g.fillStyle = '#fff'; g.fillRect(0, 0, w, 46); g.fillStyle = '#222'; g.textBaseline = 'middle'; g.fillText(text, 12, 24);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
+  s.scale.set(w / 46 * 0.16, 0.16, 1); s.renderOrder = 10; return s;
+}
+
+const cell = parseFloat(q.get('cell') || '2.6');
+const rowsN = Math.ceil(rows.length / cols);
+const W = cols * cell, D = rowsN * cell;
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(W + 4, D + 4), new THREE.MeshStandardMaterial({ color: '#d9d3c7', roughness: 0.9 }));
+floor.rotation.x = -Math.PI / 2; floor.position.set(W / 2 - cell / 2, 0, D / 2 - cell / 2); floor.receiveShadow = true; scene.add(floor);
+const grid = new THREE.GridHelper(Math.max(W, D) + 4, (Math.max(W, D) + 4) * 2, '#a49d90', '#c4bdb0'); grid.position.set(W / 2 - cell / 2, 0.002, D / 2 - cell / 2); scene.add(grid);
+
+rows.forEach((c, i) => {
+  const x = (i % cols) * cell, z = Math.floor(i / cols) * cell;
+  const item = itemFromCatalog(c.id, { cx: x, cz: z, w: c.footprint.w, d: c.footprint.d, yawDeg: 0 }, 'virtual');
+  const g = buildFurnitureMesh(item);
+  g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  scene.add(g);
+  const l = label(c.name); l.position.set(x, 0.05, z + c.footprint.d / 2 + 0.25); scene.add(l);
+});
+
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
+const cx = W / 2 - cell / 2, cz = D / 2 - cell / 2;
+const span = Math.max(W, D * 1.4);
+camera.position.set(cx, span * 0.9, cz + span * 0.85);
+camera.lookAt(cx, 0.6, cz);
+const cam = q.get('cam')?.split(',').map(Number);
+if (cam?.length === 6) { camera.position.set(cam[0], cam[1], cam[2]); camera.lookAt(cam[3], cam[4], cam[5]); }
+function draw() { renderer.render(scene, camera); }
+await new Promise((r) => setTimeout(r, 1500));
+draw();
+window.__demo = { done: Promise.resolve(true), draw, camera, scene, rows: rows.map((r) => r.id) };
+</script>
+</body>
+</html>
