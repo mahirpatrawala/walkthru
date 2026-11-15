@@ -21,8 +21,9 @@ fs.mkdirSync(outDir, { recursive: true });
 await MeshoptEncoder.ready; await MeshoptSimplifier.ready;
 
 const KEYS = ['man', 'woman', 'elder', 'child'];
-// meshopt simplify ratios per part: [medium, low]
-const RATIO = { skin: [0.42, 0.16], eyes: [0.5, 0.2], pupil: [1, 0.6], brows: [1, 0.6], top: [0.5, 0.2], bottom: [0.5, 0.2], trim: [0.8, 0.4], wrap: [1, 0.6], hair: [0.8, 0.4], shoes: [0.45, 0.2] };
+// meshopt simplify ratios per part: [medium, low]. The trim is never simplified (its gold borders are thin closed shells, which
+// simplification turns into teeth) and the wrap (dupatta, pallu) only a little in the low tier.
+const RATIO = { skin: [0.42, 0.16], eyes: [0.5, 0.2], pupil: [1, 0.6], brows: [1, 0.6], top: [0.5, 0.2], bottom: [0.5, 0.2], trim: [1, 1], wrap: [1, 0.7], hair: [0.8, 0.4], shoes: [0.45, 0.2] };
 const ROUGH = { skin: 0.6, eyes: 0.2, pupil: 0.15, brows: 0.8, top: 0.9, bottom: 0.9, trim: 0.7, wrap: 0.9, hair: 0.6, shoes: 0.7 };
 const DOUBLE = new Set(['top', 'bottom', 'trim', 'wrap', 'hair']);
 

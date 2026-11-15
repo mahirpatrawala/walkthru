@@ -14,7 +14,8 @@ What they were made from
   (Copyright 2020 Data Collection AB, Joel Palmius, Jonas Hauquier): eyes/high-poly, eyebrows/eyebrow001, clothes/shoes05.
   Their textures are not used: every part is a flat colour set at run time.
 - Garments (kurta, pyjama, kameez, salwar, blouse, saree, dupatta, pallu, trim), hair, bun, braid, pigtails and pupils were modelled
-  for walkthru by tools/make_family.py from the shape of the skin itself. They contain no third-party asset and are CC0 with the rest.
+  for walkthru by tools/make_family.py from the shape of the skin itself (revised 15 Nov 2026: the kurta, kameez and saree skirt hang as one panel per leg
+  so a stride never tears them, and the dupatta and pallu are draped bands with thickness and soft folds). They contain no third-party asset and are CC0 with the rest.
 - The six animation clips in clips.glb are the Universal Animation Library clips Idle_Loop, Walk_Loop, Jog_Fwd_Loop, Sitting_Enter,
   Sitting_Idle_Loop, Sitting_Exit by Quaternius (CC0, https://quaternius.com/packs/universalanimationlibrary.html), taken from
   public/characters/mannequin.glb and retargeted onto these bodies when the page loads. Look_Around and Reach_Forward are made at load time from them.
