@@ -9,6 +9,9 @@ import { planSvg } from './plan-svg';
 import { heroSvg } from './hero-art';
 import { BRAND_MARK } from '../brand/mark';
 import type { SceneEntry, SceneIndex } from './manifest';
+import { renderUploadCard } from '../upload/card';
+import { deleteLocal, loadLocalEntries } from '../upload/local-index';
+import { SAMPLE_UPLOAD_TAG } from '../upload/tag';
 
 function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string, parent?: HTMLElement): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -28,7 +31,9 @@ function planBox(cls: string, svg: string): HTMLElement {
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 function tagEl(entry: SceneEntry): HTMLElement {
-  return h('span', `ws-tag is-${entry.origin}`, ORIGIN_TAG[entry.origin]);
+  // the bundled made-up sample, once read in the browser, says so in its tag
+  const text = entry.origin === 'upload' && /made-up/i.test(entry.subtitle ?? '') ? SAMPLE_UPLOAD_TAG : ORIGIN_TAG[entry.origin];
+  return h('span', `ws-tag is-${entry.origin}`, text);
 }
 
 export function walkUrl(id: string, roomId: string | null): string {
@@ -63,6 +68,8 @@ export async function mountStart(): Promise<void> {
   const lineTimer = setInterval(() => { lineNo = (lineNo + 1) % LOADING_LINES.length; wait.textContent = LOADING_LINES[lineNo]; }, 2200);
 
   let index: SceneIndex;
+  // the plans this visitor uploaded live in this browser; they never touch the server's list
+  const minePromise = loadLocalEntries().catch((): SceneEntry[] => []);
   try {
     index = await loadIndex();
   } catch (err) {
@@ -78,17 +85,28 @@ export async function mountStart(): Promise<void> {
   }
 
   clearInterval(lineTimer);
-  const route = (): void => {
+  let mine = await minePromise;
+  const refreshMine = async (): Promise<void> => { mine = await loadLocalEntries().catch((): SceneEntry[] => []); route(); };
+  const route = (fresh = false): void => {
     const q = new URLSearchParams(location.search);
-    const home = index.scenes.find((s) => s.id === q.get('home'));
+    const checking = q.get('check');
+    const wanted = q.get('home');
+    // what is in this browser's store may have changed since the last screen (an upload just finished, a delete): look again before drawing a list or a home
+    if (!fresh && !checking) { void loadLocalEntries().catch((): SceneEntry[] => []).then((m) => { mine = m; route(true); }); return; }
+    if (checking) {
+      root.replaceChildren();
+      void import('../upload/check').then((m) => m.renderCheck(root, checking, go)).catch(() => { root.replaceChildren(); h('p', 'ws-empty', 'This screen could not load. Reload the page.', root); });
+      return;
+    }
+    const home = [...mine, ...index.scenes].find((s) => s.id === wanted);
     root.replaceChildren();
     root.scrollTop = 0;
     if (home) renderPicker(root, home, q.get('room'), go);
-    else renderGallery(root, index, go);
+    else renderGallery(root, index, mine, go, () => { void refreshMine(); });
   };
   const go = (url: string): void => { history.pushState(null, '', url); route(); };
-  window.addEventListener('popstate', route);
-  route();
+  window.addEventListener('popstate', () => route());
+  route(true); // `mine` was read a moment ago
 }
 
 type Go = (url: string) => void;
@@ -130,14 +148,20 @@ function renderHero(root: HTMLElement): void {
   const cta = h('a', 'ws-cta', 'Choose a home', copy);
   cta.href = '#homes';
   cta.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('homes')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  const upCta = h('a', 'ws-cta is-ghost', 'Upload your floor plan', copy);
+  upCta.href = '#upload';
+  upCta.dataset.testid = 'hero-upload';
+  upCta.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('upload')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   const art = h('div', 'ws-hero-art', undefined, hero);
   art.setAttribute('aria-hidden', 'true');
   art.innerHTML = heroSvg(); // generated from numbers in hero-art.ts, no page data in it
 }
 
-function renderGallery(root: HTMLElement, index: SceneIndex, go: Go): void {
+function renderGallery(root: HTMLElement, index: SceneIndex, mine: SceneEntry[], go: Go, refreshMine: () => void): void {
   document.title = 'walkthru · Walk through a flat before you visit it';
   renderHero(root);
+  renderUploadCard(root, go);
+  if (mine.length > 0) renderUploads(root, mine, go, refreshMine);
   const section = h('div', 'ws-section', undefined, root);
   section.id = 'homes';
   h('h2', undefined, 'Pick a home', section);
@@ -167,6 +191,44 @@ function renderGallery(root: HTMLElement, index: SceneIndex, go: Go): void {
     link(a, go);
   }
   h('p', 'ws-fine', 'Plans are redrawn from each home’s layout. Sizes come from the floor plan. Sample drawings are made up to show how it works.', root);
+}
+
+/** "Your uploads": plans read in this browser, each with a delete button (a second tap confirms). */
+function renderUploads(root: HTMLElement, mine: SceneEntry[], go: Go, refresh: () => void): void {
+  const head = h('h2', 'wu-subhead', 'Your uploads', root);
+  head.dataset.testid = 'your-uploads-title';
+  h('p', 'wu-subnote', 'Kept in this browser only. Clearing this site\u2019s data removes them.', root);
+  const grid = h('div', 'ws-grid wu-grid', undefined, root);
+  grid.dataset.testid = 'your-uploads';
+  for (const s of mine) {
+    const wrap = h('div', 'wu-mine', undefined, grid);
+    const a = h('a', 'ws-card', undefined, wrap);
+    a.href = homeUrl(s.id);
+    a.dataset.scene = s.id;
+    const pic = planSvg(s.layout, s.unverified, { idPrefix: `u-${s.id}`, title: `Floor plan of ${s.title}` });
+    a.appendChild(planBox('ws-plan', pic.svg));
+    const body = h('div', 'ws-body', undefined, a);
+    body.appendChild(tagEl(s));
+    h('h2', undefined, s.title, body);
+    const rooms = s.layout.rooms;
+    h('p', 'ws-meta', plural(rooms.length, 'room', 'rooms'), body);
+    h('span', 'ws-open', 'Walk through', body);
+    link(a, go);
+    const del = h('button', 'wu-del', 'Delete', wrap);
+    del.type = 'button';
+    del.dataset.testid = 'delete-upload';
+    del.setAttribute('aria-label', `Delete ${s.title}`);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    del.addEventListener('click', () => {
+      if (!del.classList.contains('is-sure')) {
+        del.classList.add('is-sure'); del.textContent = 'Tap again to delete';
+        timer = setTimeout(() => { del.classList.remove('is-sure'); del.textContent = 'Delete'; }, 4000);
+        return;
+      }
+      if (timer) clearTimeout(timer);
+      void deleteLocal(s.id).then(refresh);
+    });
+  }
 }
 
 // ---------------------------------------------------------------- step 2: where do you want to start?

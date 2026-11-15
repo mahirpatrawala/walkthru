@@ -11,9 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { buildSet, pdfOf } from './make-drawing-sets';
 import { makeRunner } from '../src/understand/server/run';
 import { makePaths } from '../src/understand/server/store';
-import { createEmptyProperty, validateProperty } from '../src/core/layout-validate';
-import { applyProposal, proposalToPatch } from '../src/editor/save';
-import { chooseSpawn } from '../src/import/propose';
+import { buildHome } from '../src/upload/home';
 import { polygonArea } from '../src/core/geometry';
 import type { PropertyFile } from '../src/types';
 
@@ -45,19 +43,8 @@ export async function readSet(seed: number, sceneId: string, scratch: string, ti
   const dir = path.join(paths.scenesDir, sceneId);
   const proposal = JSON.parse(fs.readFileSync(path.join(dir, 'proposal.json'), 'utf8'));
   const extras = JSON.parse(fs.readFileSync(path.join(dir, 'proposal-extras.json'), 'utf8'));
-  const p = createEmptyProperty(sceneId);
-  const patch = proposalToPatch(proposal, extras);
-  applyProposal(p, patch);
-  // a spawn that is a valid point; the buyer page's smart spawn replaces it
-  // the largest living room, else bedroom, else any room (the importer's own pick is the largest room, which can be a store)
-  const area = (r: (typeof p.layout.rooms)[number]): number => Math.abs(polygonArea(r.polygon));
-  const best = (rooms: typeof p.layout.rooms): (typeof p.layout.rooms)[number] | undefined => [...rooms].sort((a, b) => area(b) - area(a))[0];
-  const home = best(p.layout.rooms.filter((x) => x.roomType === 'living' && !x.partial)) ?? best(p.layout.rooms.filter((x) => x.roomType === 'bedroom' && !x.partial)) ?? best(p.layout.rooms);
-  p.spawn = (home && chooseSpawn({ ...p.layout, rooms: [home], openings: [] }, p.furniture)) ?? patch.spawn ?? chooseSpawn(p.layout, p.furniture) ?? { x: 0, z: 0, yawDeg: 0 };
-  p.title = title ?? `Sample ${BHK[b.truth.options.template]}`;
-  p.subtitle = 'Synthetic sample drawing, made-up flat';
-  p.updatedAt = new Date().toISOString();
-  return { sceneId, dir, property: validateProperty(JSON.parse(JSON.stringify(p))), truth: b.truth, warnings: extras.warnings ?? [] };
+  const property = buildHome(sceneId, proposal, extras, title ?? `Sample ${BHK[b.truth.options.template]}`, 'Synthetic sample drawing, made-up flat');
+  return { sceneId, dir, property, truth: b.truth, warnings: extras.warnings ?? [] };
 }
 
 /** One line per room: what the reader found against what the generator drew. */

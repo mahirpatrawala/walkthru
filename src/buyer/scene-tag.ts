@@ -1,12 +1,14 @@
 // A small, permanent label for made-up scenes (SPEC 16.2 spirit: nothing synthetic may pass for a real home).
 // Pure text rule + a tiny DOM tag placed under the room chip. Kept out of hud.ts so HUD changes elsewhere merge cleanly.
 import type { PropertyFile } from '../types';
+import { SAMPLE_UPLOAD_TAG, UPLOAD_TAG, isLocalHomeId } from '../upload/tag';
 
-/** Where a scene's picture of the home comes from: a real drawing, a made-up sample, or a phone video. */
-export type SceneOrigin = 'real' | 'sample' | 'video';
+/** Where a scene's picture of the home comes from: a real drawing, a made-up sample, a phone video, or a plan the visitor uploaded in this browser. */
+export type SceneOrigin = 'real' | 'sample' | 'video' | 'upload';
 
 /** Test scenes and any scene that calls itself synthetic or a sample are made up; video scenes (and anything with a scan) come from a phone video. */
 export function sceneOrigin(p: Pick<PropertyFile, 'id' | 'subtitle'> & { hasSplat?: boolean }): SceneOrigin {
+  if (isLocalHomeId(p.id)) return 'upload';
   if (/^test-/.test(p.id)) return 'sample';
   if (/^video-/.test(p.id)) return 'video';
   if (/synthetic|sample/i.test(p.subtitle ?? '')) return 'sample';
@@ -18,10 +20,12 @@ export const ORIGIN_TAG: Record<SceneOrigin, string> = {
   real: 'Your drawing',
   sample: 'Sample drawing \u00b7 made-up',
   video: 'From a phone video',
+  upload: UPLOAD_TAG,
 };
 
 /** The label for a test or synthetic scene, or null for a real home. */
 export function sceneTagText(p: Pick<PropertyFile, 'id' | 'subtitle'>): string | null {
+  if (isLocalHomeId(p.id)) return /made-up/i.test(p.subtitle ?? '') ? SAMPLE_UPLOAD_TAG : UPLOAD_TAG;
   if (/^test-/.test(p.id)) return 'Test scene. Made-up flat, not a real home.';
   if (/synthetic|sample/i.test(p.subtitle ?? '')) return 'Sample scene. Not a real home.';
   return null;

@@ -58,6 +58,7 @@ import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
 import { mountSceneTag, sceneOrigin, sceneTagText } from './scene-tag';
+import { isLocalHomeId } from '../upload/tag';
 import { createLivedIn, mountLivedInToggle } from '../look/lived-in';
 import type { LivedIn } from '../look/lived-in';
 import { mountPartialBadge, partialRoomInView } from './partial-badge';
@@ -161,6 +162,12 @@ function guessedBodyTier(): 'low' | 'medium' {
 }
 
 async function boot(): Promise<void> {
+  // an uploaded plan (`?scene=local-...`) is a home in this browser's own store: its files are answered from there, nothing is fetched (src/upload/local-fetch.ts)
+  let uploaded: Awaited<ReturnType<typeof import('../upload/local-fetch').installLocalScene>> = null;
+  if (isLocalHomeId(sceneId)) {
+    uploaded = await (await import('../upload/local-fetch')).installLocalScene(sceneId);
+    if (!uploaded) { loading.showError('This plan is not on this device', 'Uploaded plans stay in the browser that read them. Open Walkthru in that browser, or upload the plan again from the start page.'); return; }
+  }
   // C11b: the body, its clips and the drawing's designs download while the layout and the look start up
   const early = loadPerson(storage);
   prefetchPerson(early.body, guessedBodyTier());
@@ -313,6 +320,7 @@ async function boot(): Promise<void> {
   hud.setVisible(false);
   const tagText = sceneTagText(property);
   if (tagText) mountSceneTag(hud.root, tagText);
+  if (uploaded) { const up = uploaded; void import('../upload/notes-panel').then((m) => m.mountUploadNote(hud.root, up.data.notes, sceneId, up.source === 'sample')); }
   mountHomeLink(hud.root);
   const partialBadge = mountPartialBadge(hud.root);
   // C11c: the painterly mode is a lazy chunk, fetched only when the buyer taps "Show as a painting"
@@ -365,7 +373,8 @@ async function boot(): Promise<void> {
   };
   if (look) mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); }, style: stylePicker });
   // C12f: the optional AI photo (SPEC 17.14). The button exists only if the server says the feature is on; nothing else loads until it is tapped.
-  mountAiPhoto({
+  // never for an uploaded plan: a picture of the view would leave the device, and an upload is promised to stay on it
+  if (!uploaded) mountAiPhoto({
     host: hud.root, viewer, layout, items: () => store.all(), toast: (t) => hud.toast(t),
     withoutCharacter: (fn) => { const was = character.object.visible; character.setVisible(false); livedIn?.setSuppressed(true); try { return fn(); } finally { character.setVisible(was); livedIn?.setSuppressed(!!scanHandle && scanVisible); } },
   });

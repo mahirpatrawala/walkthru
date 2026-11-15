@@ -1,0 +1,7 @@
+/* the note on the walking page: tag, and the sheet behind "What we could not read" */
+.wt-scene-tag.wt-upload-tag { pointer-events: auto; border-radius: 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.wt-upload-more { background: none; border: 0; padding: 0; margin: 0; font: inherit; font-size: 12px; font-weight: 700; color: #FFD9A0; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; min-height: 20px; }
+.wt-upload-sheet h3 { margin: 14px 0 6px; font-family: var(--wt-display); font-size: 16px; font-weight: 800; }
+.wt-upload-sheet ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.5; display: flex; flex-direction: column; gap: 4px; }
+.wt-upload-sheet p { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--wt-muted); }
+.wt-upload-sheet a { color: var(--wt-clay); font-weight: 700; }
