@@ -176,7 +176,7 @@ function frames(ch: Character, input: Input, camYaw: number, grid: Grid, n: numb
 }
 
 describe('stepLocomotion', () => {
-  it('walks at 1.4 m/s relative to the camera and jogs at 2.8 m/s', () => {
+  it('walks at 1.4 m/s relative to the camera and jogs at 3.4 m/s', () => {
     const ch = fakeChar(2, 1);
     const v = frames(ch, fakeInput(0, 1), 0, empty, 60);
     expect(v).toBeCloseTo(1.4, 6);
@@ -185,15 +185,15 @@ describe('stepLocomotion', () => {
     expect(ch.position.x).toBeCloseTo(2, 6);
     const ch2 = fakeChar(2, 0.6);
     const v2 = frames(ch2, fakeInput(0, 1, true), 0, empty, 90);
-    expect(v2).toBeCloseTo(2.8, 6);
-    expect(ch2.calls.at(-1)).toEqual([expect.closeTo(2.8, 6), true]);
+    expect(v2).toBeCloseTo(3.4, 6);
+    expect(ch2.calls.at(-1)).toEqual([expect.closeTo(3.4, 6), true]);
   });
 
   it('scales speed by height / 1.75', () => {
     const ch = fakeChar(2, 1, 1.9);
     expect(frames(ch, fakeInput(0, 1), 0, empty, 60)).toBeCloseTo(1.4 * 1.9 / 1.75, 6);
     const ch2 = fakeChar(2, 1, 1.6);
-    expect(frames(ch2, fakeInput(0, 1, true), 0, empty, 90)).toBeCloseTo(2.8 * 1.6 / 1.75, 6);
+    expect(frames(ch2, fakeInput(0, 1, true), 0, empty, 90)).toBeCloseTo(3.4 * 1.6 / 1.75, 6);
   });
 
   it('is relative to the camera heading: yaw 90 looks +x, so forward moves +x and screen-right moves +z', () => {

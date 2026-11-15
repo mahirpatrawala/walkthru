@@ -108,9 +108,9 @@ describe.skipIf(!haveGlb)('Character (headless, real GLB)', () => {
     expect(acts.walk.timeScale).toBeCloseTo(walkMps / (ch.gaitSpeed('walk') * scale), 9);
     ch.setLocomotion(walkMps * 0.5, false);
     expect(acts.walk.timeScale).toBeCloseTo(walkMps * 0.5 / (ch.gaitSpeed('walk') * scale), 9); // half the speed, half the cadence
-    ch.setLocomotion(2.8 * 1.9 / 1.75 * 0.5, true);
+    ch.setLocomotion(3.4 * 1.9 / 1.75 * 0.5, true);
     expect(ch.state).toBe('jog');
-    expect(acts.jog.timeScale).toBeCloseTo(2.8 * 1.9 / 1.75 * 0.5 / (ch.gaitSpeed('jog') * scale), 9);
+    expect(acts.jog.timeScale).toBeCloseTo(3.4 * 1.9 / 1.75 * 0.5 / (ch.gaitSpeed('jog') * scale), 9);
     ch.setLocomotion(0, false);
     expect(ch.state).toBe('idle');
     run(ch, 0.5);

@@ -7,7 +7,7 @@ import type { Input } from './controls';
 
 const DEG = Math.PI / 180;
 const WALK_MPS = 1.4;
-const JOG_MPS = 2.8;
+const JOG_MPS = 3.4;
 const REF_HEIGHT_M = 1.75;
 /** Turn rate toward the movement direction (15 Nov 2026: was 10, which snapped a half turn in 0.3 s and looked like a spinning statue). */
 const TURN_RAD_S = 6;

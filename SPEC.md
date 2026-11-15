@@ -241,7 +241,7 @@ Minimum to save: at least one room, no validation errors (5.5), and a spawn poin
 
 In furnish mode E rotates instead of interacting. A tap is pointer down and up within 250 ms and 8 px.
 
-Speeds: walk 1.4 m/s, jog 2.8 m/s, both times `height / 1.75`. The character turns toward its movement direction at 10 rad/s. Animation `timeScale = speed / (1.4 * height / 1.75)` for walk and `speed / (2.8 * height / 1.75)` for jog. Cross-fade 0.2 s.
+Speeds: walk 1.4 m/s, jog 3.4 m/s (2.8 until 15 Nov 2026, see 16.6.8), both times `height / 1.75`. The character turns toward its movement direction at 6 rad/s (10 until 15 Nov 2026), walks only once it faces that way, and speeds up and slows down over a fraction of a second (16.6.8). Animation `timeScale = speed / (the clip's own planted-foot speed on that body * model scale)`, measured per body at load, so the planted foot does not slide (it was `speed / (1.4 * height / 1.75)` for walk and `speed / (2.8 * height / 1.75)` for jog, which slid by about a third). Cross-fade 0.2 s.
 
 ### 2.4 Camera indoors
 
