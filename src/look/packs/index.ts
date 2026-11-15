@@ -4,6 +4,8 @@
 import type { LookKind } from '../gen';
 import { LOOK_KINDS, sanitizeParams } from '../gen';
 import { knownFinish } from '../finishes';
+import { libModel } from '../models/library';
+import type { ModelFamily, ModelPolicy } from '../models/library';
 import warmOakNavy from './warm-oak-navy.json';
 import walnutWhite from './walnut-white.json';
 import lightScandinavian from './light-scandinavian.json';
@@ -23,7 +25,11 @@ export interface StylePack {
   room: { wall?: string; floor?: string; ceiling?: string };
   /** typical decor this pack adds to rooms that have no design sheet */
   decor: { rug?: boolean; curtains?: boolean };
+  /** per family (a look kind or a decor kind): "generator" keeps the parametric piece, or model ids in order of preference; a family it does not name takes any model that fits (SPEC 16.15). Absent in Classic. */
+  models?: ModelPolicy;
 }
+
+const MODEL_FAMILIES: ModelFamily[] = ['bed', 'sofa', 'bench', 'wardrobe', 'study', 'side', 'dresser', 'counter', 'dining', 'plant', 'jug', 'fruit', 'clock'];
 
 /** Checks a pack read from JSON: every finish id exists, every generator param is valid. Returns the cleaned pack and what it dropped. */
 export function loadPack(raw: unknown): { pack: StylePack | null; dropped: string[] } {
@@ -48,10 +54,24 @@ export function loadPack(raw: unknown): { pack: StylePack | null; dropped: strin
     const v = (o.room as Record<string, unknown> | undefined)?.[k];
     if (typeof v === 'string') { if (knownFinish(v)) room[k] = v; else dropped.push(`room.${k}: unknown finish ${v}`); }
   }
+  let models: ModelPolicy | undefined;
+  if (o.models && typeof o.models === 'object' && !o.classic) {
+    models = {};
+    for (const [fam, v] of Object.entries(o.models as Record<string, unknown>)) {
+      if (!(MODEL_FAMILIES as string[]).includes(fam)) { dropped.push(`models.${fam}: not a family`); continue; }
+      if (v === 'generator') { models[fam as ModelFamily] = 'generator'; continue; }
+      if (Array.isArray(v)) {
+        const ids = v.filter((x): x is string => typeof x === 'string');
+        const ok = ids.filter((id) => libModel(id)?.family === fam);
+        for (const id of ids) if (!ok.includes(id)) dropped.push(`models.${fam}: ${id} is not a model for it`);
+        models[fam as ModelFamily] = ok;
+      } else dropped.push(`models.${fam}: expected "generator" or a list of model ids`);
+    }
+  }
   const d = (o.decor ?? {}) as Record<string, unknown>;
   const pack: StylePack = {
     id: o.id, name: o.name, blurb: typeof o.blurb === 'string' ? o.blurb : '', ...(o.classic === true ? { classic: true } : {}),
-    roles, generators, room, decor: { rug: d.rug === true, curtains: d.curtains === true },
+    roles, generators, room, decor: { rug: d.rug === true, curtains: d.curtains === true }, ...(models ? { models } : {}),
   };
   return { pack, dropped };
 }

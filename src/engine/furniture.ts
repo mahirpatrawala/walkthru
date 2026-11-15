@@ -136,6 +136,8 @@ export function buildFurnitureMesh(item: FurnitureItem, opts: FurnitureBuildOpts
   if (style === 'real') {
     g.userData.style = 'real';
     g.userData.rebuildTier = (t: Tier): void => { disposeKids(g); buildRealFurniture(g, item, t); applyFinish(g, item); g.updateMatrixWorld(true); };
+    // a library model arriving later (src/look/models) is new materials: the verdict tint the piece wears is put back on them
+    g.userData.afterModelSwap = (): void => { const tone = g.userData.tone as Tone | null | undefined; if (tone !== undefined) setFurnitureTint(g, tone); };
     buildRealFurniture(g, item, tier);
     applyFinish(g, item); // the viewer's chosen finish (src/look/finishes.ts), colours only
   } else {
@@ -160,6 +162,7 @@ export function rebuildFurnitureTier(root: THREE.Object3D, tier: Tier): void {
 
 /** Tints every material toward the verdict colour (lerp 0.45 from its own colour). `null` restores the originals. */
 export function setFurnitureTint(group: THREE.Group, tone: Tone | null): void {
+  group.userData.tone = tone;
   const target = tone ? new THREE.Color(TONE_COLOURS[tone]) : null;
   group.traverse((o) => {
     const mesh = o as THREE.Mesh;

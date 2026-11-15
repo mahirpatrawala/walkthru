@@ -9,6 +9,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { mulberry32 } from '../../core/geometry';
 import type { DecorPiece } from './plan';
+import { attachDecorModel } from '../models/decor';
+import type { ModelPolicy } from '../models/library';
 
 const DEG = Math.PI / 180;
 
@@ -436,14 +438,18 @@ export interface BuiltDecor {
   dispose(): void;
 }
 
-/** Builds every piece into one group. `tier` only thins out the round parts. */
-export function buildDecorGroup(pieces: DecorPiece[], tier: 'low' | 'medium' | 'high' = 'medium'): BuiltDecor {
+/**
+ * Builds every piece into one group. `tier` thins out the round parts and picks the model file. With a `models` policy (the active style
+ * pack's, SPEC 16.15) a piece may be a free CC0 model instead: the generated piece is built first and the model replaces it when it arrives.
+ */
+export function buildDecorGroup(pieces: DecorPiece[], tier: 'low' | 'medium' | 'high' = 'medium', models: ModelPolicy | null = null): BuiltDecor {
   const kit = new DecorKit();
   const root = new THREE.Group();
   root.name = 'lived-in';
   root.userData.livedIn = true;
   const byId = new Map<string, THREE.Object3D>();
   const seg: Seg = { s: tier === 'low' ? 8 : tier === 'medium' ? 12 : 16 };
+  let disposed = false;
   for (const p of pieces) {
     const parts = new Parts(kit);
     BUILD[p.kind](p, parts, kit, seg);
@@ -455,6 +461,7 @@ export function buildDecorGroup(pieces: DecorPiece[], tier: 'low' | 'medium' | '
     g.rotation.y = p.yawDeg * DEG;
     root.add(g);
     byId.set(p.id, g);
+    if (models && !disposed) void attachDecorModel(g, p, tier, models, () => !disposed);
   }
   // a belt and braces pass: no mesh anywhere under the root can be hit by a ray
   root.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).raycast = noRaycast; });
@@ -462,6 +469,7 @@ export function buildDecorGroup(pieces: DecorPiece[], tier: 'low' | 'medium' | '
     group: root,
     byId,
     dispose() {
+      disposed = true;
       root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.geometry.dispose(); });
       kit.dispose();
       root.removeFromParent();

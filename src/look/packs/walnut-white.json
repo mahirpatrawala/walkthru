@@ -26,5 +26,6 @@
     "dining": { "chair": "slat", "legs": "square" }
   },
   "room": { "wall": "wall-cream", "floor": "tile-ivory-gloss", "ceiling": "ceiling-white" },
-  "decor": { "rug": true, "curtains": true }
+  "decor": { "rug": true, "curtains": true },
+  "models": { "jug": ["jug_01", "ceramic_vase_04"] }
 }

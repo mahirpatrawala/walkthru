@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>walkthru model library (SPEC 16.15)</title>
+<!--
+  Not a build input. `npm run dev`, then /models-demo.html. Every model of the library on a floor at its measured size, through the same
+  loader and instancer the app uses (src/look/models). ?tier=low|medium|high picks the file, ?only=id1,id2 shows some, ?role=fabric:#2F7F82
+  recolours the fabric role, ?cam=x,y,z,tx,ty,tz sets the camera. window.__demo.done resolves when everything is in.
+-->
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #eceae6; font: 12px system-ui; } #app { position: fixed; inset: 0; }</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import * as THREE from 'three';
+import { allModelIds, libModel, modelInfo } from '/src/look/models/library.ts';
+import { loadModel, modelStats } from '/src/look/models/load.ts';
+import { instantiate } from '/src/look/models/instance.ts';
+
+const q = new URLSearchParams(location.search);
+const tier = q.get('tier') || 'medium';
+const only = q.get('only')?.split(',');
+const ids = (only ?? allModelIds()).filter((id) => modelInfo(id) && libModel(id));
+const roles = { fabric: { key: 'weave', tint: '#8E9AA6' }, case: { key: 'wood', tint: '#C9A878' }, top: { key: 'wood', tint: '#C9A878' }, legs: { key: 'blackMetal' }, handle: { key: 'blackMetal' }, accent: { key: 'weave', tint: '#8E9AA6' } };
+for (const r of (q.get('role') || '').split(',').filter(Boolean)) { const [name, tint, key] = r.split(':'); roles[name] = { key: key || 'weave', tint }; }
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.getElementById('app').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#eceae6');
+scene.add(new THREE.HemisphereLight('#ffffff', '#b9b2a6', 1.1));
+const sun = new THREE.DirectionalLight('#fff3e0', 2.4);
+sun.position.set(2, 4, 3); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 0.5, far: 20 });
+scene.add(sun);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: '#e4dfd6', roughness: 0.9 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(40, 4), new THREE.MeshStandardMaterial({ color: '#f1ece3', roughness: 1 }));
+wall.position.set(0, 2, -0.6); scene.add(wall);
+
+const cols = Math.min(6, ids.length);
+let x = 0, row = 0, rowH = 0;
+const placed = [];
+const jobs = ids.map(async (id) => {
+  const tpl = await loadModel(id, tier);
+  return { id, tpl };
+});
+const done = (async () => {
+  const res = await Promise.all(jobs);
+  let cx = 0, cz = 0, rowDepth = 0, n = 0;
+  for (const { id, tpl } of res) {
+    if (!tpl) { console.warn('missing', id); continue; }
+    const lm = libModel(id), info = modelInfo(id);
+    const g = instantiate(tpl, [{ x: 0, y: info.place === 'wall' ? 1.2 : 0, z: info.place === 'wall' ? -0.58 : 0, yawDeg: 0, scale: { x: 1, y: 1, z: 1 } }], { partUse: lm.parts, roles });
+    const w = Math.max(info.dims.w, 0.5);
+    if (cx + w > 6.5) { cx = 0; cz += rowDepth + 0.6; rowDepth = 0; }
+    g.position.set(-3 + cx + w / 2, 0, cz);
+    cx += w + 0.35; rowDepth = Math.max(rowDepth, info.dims.d);
+    scene.add(g); placed.push(id);
+    if (++n % 1 === 0) { /* keep order */ }
+  }
+})();
+const cam = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.05, 100);
+const c = (q.get('cam') || '0,1.8,5.5,0,0.5,0.3').split(',').map(Number);
+cam.position.set(c[0], c[1], c[2]); cam.lookAt(c[3], c[4], c[5]);
+function frame() { renderer.render(scene, cam); requestAnimationFrame(frame); }
+frame();
+window.__demo = { done, placed, stats: modelStats, scene, cam, renderer, setCam(a) { cam.position.set(a[0], a[1], a[2]); cam.lookAt(a[3], a[4], a[5]); } };
+</script>
+</body>
+</html>
