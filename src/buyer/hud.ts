@@ -46,6 +46,18 @@ const LABELS: Record<HudButtonId, string> = {
   person: 'Your height', measure: 'Measure', furnish: 'Furnish', rooms: 'Rooms', scan: 'Scan',
 };
 
+/**
+ * Whether a drag on the card throws it away, and which way it leaves: far enough (30% of its width sideways, 45% of its height
+ * down) or a quick flick of at least 24 px. Upward drags never dismiss. dx, dy in px (dy >= 0 is down), dt in ms.
+ */
+export function swipeOutcome(dx: number, dy: number, dt: number, width: number, height: number): { x: -1 | 0 | 1; y: 0 | 1 } | null {
+  const down = Math.max(0, dy);
+  const far = Math.abs(dx) > width * 0.3 || down > height * 0.45;
+  const fast = Math.hypot(dx, down) / Math.max(1, dt) > 0.6 && (Math.abs(dx) > 24 || down > 24);
+  if (!far && !fast) return null;
+  return Math.abs(dx) > down ? { x: dx < 0 ? -1 : 1, y: 0 } : { x: 0, y: 1 };
+}
+
 export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const root = el('div', 'wt-hud', undefined, parent);
   root.dataset.testid = 'hud';
@@ -98,6 +110,47 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const cardHead = el('div', 'wt-card-head', undefined, card);
   const cardLines = el('div', 'wt-card-lines', undefined, card);
   const cardFoot = el('div', 'wt-card-foot', undefined, card);
+  // the card can be swiped away (left, right or down) or closed with its button; the same card stays away until it is hidden
+  // by its owner (standing up, walking off), so getting on the bed again shows it afresh
+  const cardClose = el('button', 'wt-card-close', '×', card);
+  cardClose.type = 'button';
+  cardClose.setAttribute('aria-label', 'Close');
+  let cardSig = '';
+  let dismissedSig: string | null = null;
+  const dismissCard = (dx = 0, dy = 1): void => {
+    dismissedSig = cardSig;
+    card.style.transition = 'transform 160ms ease-in, opacity 160ms ease-in';
+    card.style.transform = `translate(${dx * 120}%, ${dy * 140}%)`;
+    card.style.opacity = '0';
+    setTimeout(() => { card.hidden = true; card.style.transition = ''; card.style.transform = ''; card.style.opacity = ''; }, 170);
+  };
+  cardClose.addEventListener('click', (e) => { e.stopPropagation(); dismissCard(); });
+  {
+    let id = -1, x0 = 0, y0 = 0, dx = 0, dy = 0, t0 = 0;
+    const end = (cancel: boolean): void => {
+      if (id < 0) return;
+      id = -1;
+      const out = cancel ? null : swipeOutcome(dx, dy, Math.max(1, performance.now() - t0), card.offsetWidth, card.offsetHeight);
+      if (out) dismissCard(out.x, out.y);
+      else { card.style.transition = 'transform 140ms ease-out, opacity 140ms ease-out'; card.style.transform = ''; card.style.opacity = ''; setTimeout(() => { card.style.transition = ''; }, 150); }
+    };
+    card.addEventListener('pointerdown', (e) => {
+      if (e.target === cardClose || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      id = e.pointerId; x0 = e.clientX; y0 = e.clientY; dx = dy = 0; t0 = performance.now();
+      try { card.setPointerCapture(id); } catch { /* a synthetic pointer has nothing to capture */ }
+      e.stopPropagation();
+    });
+    card.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== id) return;
+      dx = e.clientX - x0; dy = Math.max(0, e.clientY - y0);
+      const horizontal = Math.abs(dx) > dy;
+      card.style.transform = horizontal ? `translateX(${dx}px)` : `translateY(${dy}px)`;
+      card.style.opacity = String(Math.max(0.25, 1 - (horizontal ? Math.abs(dx) / card.offsetWidth : dy / (card.offsetHeight * 1.2))));
+      e.stopPropagation();
+    });
+    card.addEventListener('pointerup', (e) => { if (e.pointerId === id) end(false); });
+    card.addEventListener('pointercancel', (e) => { if (e.pointerId === id) end(true); });
+  }
   const pill = el('button', 'wt-pill', undefined, stack);
   pill.type = 'button';
   pill.dataset.ui = '1';
@@ -144,10 +197,14 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
       cardFoot.textContent = c.footer ?? '';
       cardFoot.hidden = !c.footer;
       card.dataset.tone = c.tone satisfies Tone;
+      cardSig = [c.title, c.headline, ...c.lines, c.footer ?? ''].join('\n');
+      if (cardSig === dismissedSig) return; // swiped away: stays away until its owner hides it
+      dismissedSig = null;
       card.hidden = false;
     },
     hideCard() {
       card.hidden = true;
+      dismissedSig = null;
     },
     setRoomChip(text) {
       if (text === null) { chip.hidden = true; return; }
