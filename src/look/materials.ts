@@ -669,6 +669,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         set_(r, 'uLkRough', t.rough); set_(r, 'uLkRoughRange', new THREE.Vector2(set.rough[0], set.rough[1])); set_(r, 'uLkRoughOn', 1);
         if (r.kind === 'floor') { set_(r, 'uLkRMap', family === 'plank' ? 1 : 2); set_(r, 'uLkRScale', set.tileM); } else set_(r, 'uLkRepeat', set.tileM);
         set_(r, 'uLkRSwap', set.swap ? 1 : 0);
+        if (r.kind === 'floor' && r.balcony) set_(r, 'uLkRoughOn', 0); // a matt floor (a balcony, a rubber gym floor) stays matt: the map's gloss range is for glazed tile
         if (r.kind === 'wall' && family === 'tile') { set_(r, 'uLkDetailOn', 0); set_(r, 'uLkRoughOn', 0); } // a glazed wall tile: a normal only (its colour and gloss are the pack's)
         set_(r, 'uLkRMix', 0);
       }

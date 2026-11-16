@@ -11,7 +11,7 @@ export type MatKey =
   // style generators (src/look/gen): `wood` is the oak grain tinted to any species, the rest are tinted too
   | 'wood' | 'laminate' | 'gloss' | 'paint' | 'weave' | 'quilt' | 'shag' | 'stripe' | 'brass' | 'blackMetal' | 'sheer' | 'drape' | 'lamp'
   // SPEC 16.21 (round 3): a quartz worktop and a woven rug, which only the Realistic materials layer gives a surface (Off draws them flat)
-  | 'quartz' | 'rug';
+  | 'quartz' | 'rug' | 'felt';
 
 interface Def {
   /** colour, also the flat colour on the low tier (the mean of the texture where there is one) */
@@ -72,6 +72,8 @@ export const DEFS: Record<MatKey, Def> = {
   quartz: { color: '#E9E6E0', roughness: 0.2, metalness: 0, tex: 'grey_plaster', detail: true, tile: 0.8, strength: 0.1, norScale: 0.1 },
   // a woven rug: the linen weave at a finer, deeper pile
   rug: { color: '#B3AEA6', roughness: 0.98, metalness: 0, tex: 'rough_linen', detail: true, tile: 0.22, norScale: 1.0 },
+  // baize and felt (a pool table's cloth): a fine, dense nap
+  felt: { color: '#1F6B46', roughness: 0.98, metalness: 0, tex: 'rough_linen', detail: true, tile: 0.09, norScale: 0.4 },
   lamp: { color: '#FFFFFF', roughness: 0.4, metalness: 0, tile: 1, emissive: '#FFE8C2' },
 };
 

@@ -78,6 +78,41 @@ const ROUGHNESS: Record<string, number> = { skin: 0.62, eyes: 0.25, pupil: 0.12,
  * Prepares the materials of a freshly parsed person. Every skinned mesh gets its own material (tint and tone never leak
  * between characters). Call once per parsed GLB.
  */
+/**
+ * SPEC 16.20: the hair is a cap with a hard lower edge; a real hairline is irregular and soft at the nape and the sideburns. The lowest few centimetres of the
+ * cap (a fraction of its own height, so it follows any body's scale) dissolve into the skin through a stable hash (alpha hash, so no sorting and no blend
+ * halo), per strand-sized cell. The crown and the forehead edge, which sit higher, are untouched, so the bald-spot cover (a geometry test) is unchanged.
+ */
+function softenHairline(m: THREE.MeshPhysicalMaterial): void {
+  const u = { uHairY: { value: 0 }, uHairBand: { value: 1 } };
+  m.alphaHash = true;
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uHairY = u.uHairY;
+    shader.uniforms.uHairBand = u.uHairBand;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vHairP;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvHairP = position;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vHairP;\nuniform float uHairY;\nuniform float uHairBand;')
+      .replace('#include <map_fragment>', `#include <map_fragment>
+{
+  vec3 c = floor(vHairP * (60.0 / max(uHairBand, 1e-4) * 0.02));
+  float n = fract(sin(dot(c, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+  float k = (vHairP.y - uHairY) / uHairBand;
+  diffuseColor.a *= clamp(k * 1.6 + (n - 0.5) * 1.1, 0.0, 1.0);
+}`);
+  };
+  m.customProgramCacheKey = () => 'walkthru-hair-soft-v1';
+  m.onBeforeRender = (_r, _s, _c, geometry) => {
+    const g = geometry as THREE.BufferGeometry;
+    if (!g.boundingBox) g.computeBoundingBox();
+    const b = g.boundingBox;
+    if (!b) return;
+    u.uHairY.value = b.min.y;
+    u.uHairBand.value = Math.max(1e-4, (b.max.y - b.min.y) * 0.1);
+  };
+}
+
 export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: number): PersonLook {
   const mats: THREE.MeshStandardMaterial[] = [];
   const skinMats: THREE.MeshStandardMaterial[] = [];
@@ -94,6 +129,7 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
         sheenColor: new THREE.Color(body === 'elder' ? '#FFFFFF' : '#8A6F5C'), side: old.side,
       });
       old.dispose();
+      softenHairline(hm);
       s.material = hm;
       mats.push(hm);
       s.castShadow = false;

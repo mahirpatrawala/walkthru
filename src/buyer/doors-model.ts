@@ -172,6 +172,18 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
     // two leaves meeting in the middle, a dark joint and a pair of call-button plates beside the opening are drawn by the lobby
     const dark = mat(new THREE.MeshStandardMaterial({ color: '#2A2C2E', roughness: 0.6 }));
     for (const sd of [1, -1]) add(new THREE.BoxGeometry(0.008, H - 0.02, 0.004), dark, 'door-joint', W / 2, DOOR_FLOOR_GAP_M + H / 2, sd * (T / 2 + 0.002));
+    // a brushed-steel surround (10 cm wide, a head 10 cm deep, standing 16 mm proud of the wall on both faces) and a call-button plate beside it at 1.05 m
+    const steel = mat(new THREE.MeshStandardMaterial({ color: '#B4B8BB', roughness: 0.36, metalness: 0.4 }));
+    const lit = mat(new THREE.MeshStandardMaterial({ color: '#E9E6DF', roughness: 0.3, metalness: 0.2, emissive: new THREE.Color('#FFD9A0'), emissiveIntensity: 0.35 }));
+    const wd = Math.max(0.12, d.depth) + 0.032, headTop = Math.max(d.headM, d.topM) + 0.1;
+    add(new THREE.BoxGeometry(0.1, headTop, wd), steel, 'lift-surround', -0.1, headTop / 2, 0);
+    add(new THREE.BoxGeometry(0.1, headTop, wd), steel, 'lift-surround', W + 0.1, headTop / 2, 0);
+    add(new THREE.BoxGeometry(W + 0.3, 0.1, wd), steel, 'lift-surround', W / 2, headTop - 0.05, 0);
+    for (const sd of [1, -1]) {
+      const zf = sd * (Math.max(0.12, d.depth) / 2 + 0.004);
+      add(new THREE.BoxGeometry(0.09, 0.2, 0.008), steel, 'lift-call-plate', W + 0.28, 1.05, zf);
+      for (const by of [1.1, 1.0]) add(new THREE.CylinderGeometry(0.014, 0.014, 0.006, 16).rotateX(Math.PI / 2), lit, 'lift-call-button', W + 0.28, by, zf + sd * 0.006);
+    }
   } else if (kind === 'stairs') {
     const glass = mat(new THREE.MeshStandardMaterial({ color: '#BFDDE2', roughness: 0.1, transparent: true, opacity: 0.45 }));
     for (const sd of [1, -1]) add(new THREE.BoxGeometry(0.22, 0.55, 0.004), glass, 'door-vision', W / 2, 1.55, sd * (T / 2 + 0.002));

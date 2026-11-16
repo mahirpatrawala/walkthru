@@ -302,7 +302,7 @@ export function mountKit(o: KitOptions): KitHandle {
       const kit = lm.floorKit({
         color: room.floorColor ?? layout.finishes.floorColor, groutColor: layout.finishes.groutColor,
         tileU: sp.tileU, tileV: sp.tileV, axisX: sp.axisX, axisZ: sp.axisZ, originX: sp.originX, originZ: sp.originZ,
-        groutM: sp.groutM, antiSkid: sp.antiSkid, matt: sp.matt, plank: sp.plank,
+        groutM: sp.groutM, antiSkid: sp.antiSkid, matt: sp.matt || floorId === 'rubber-grey', plank: sp.plank, // rubber is matt
       });
       if (sp.plank && c.name.startsWith('floor:')) plankRooms++;
       floorSwaps.push({ mesh, original: mesh.material, kit });
