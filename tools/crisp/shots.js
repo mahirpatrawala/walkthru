@@ -8,6 +8,13 @@ for (let i = 0; i < 1600; i++) { if (await ev('!!(window.__walkthru && window.__
 await ev('window.__walkthru.start()');
 await ev('window.__walkthru.look.ready');
 await ev('window.__walkthru.models.idle()');
+// with "Realistic materials" on, wait until the maps of every family in view are in and cross-faded (SPEC 16.21)
+for (let i = 0; i < 1200; i++) {
+  const r = JSON.parse(await ev(`JSON.stringify((() => { const l = window.__walkthru.look.instance; const p = l.realismProgress(); return { eff: l.realismEffective, done: p.done, total: p.total }; })())`));
+  if (r.eff === 'off' || (r.total > 0 && r.done >= r.total)) break;
+  await sleep(500);
+}
+await sleep(2500);
 await sleep(2000);
 await ev("(() => { const g = window.__walkthru.ctx.viewer.scene.getObjectByName('debug-grid'); if (g) { g.visible = false; g.removeFromParent(); } })()");
 if (!process.env.HUD) await ev("document.querySelectorAll('body > *:not(#app)').forEach((e) => { e.style.display = 'none'; })");
@@ -43,6 +50,21 @@ if (set === 'flat') {
   views.deck = ahead(lookAt([2.0, 1.6, 6.6], [1.9, 1.3, 10.7]));
   views.master = ahead(lookAt([8.6, 1.6, 6.2], [11.0, 1.1, 4.2]));
   views.kitchen = ahead(lookAt([4.4, 1.6, 4.5], [5.8, 1.0, 2.2]));
+  // the materials sheet (SPEC 16.21): crops at about 40 cm, and one grazing view of the floor
+  views.rfloor = lookAt([7.3, 0.4, 7.85], [7.55, 0.0, 8.05]);
+  views.rgraze = lookAt([0.9, 0.42, 6.0], [3.4, 0.12, 8.2]);
+  views.rwall = lookAt([9.1, 1.45, 4.25], [9.1, 1.35, 3.68]);
+  { const d = await doorInfo('door-bedroom-1'); const e = d.u1 - 0.1; const c = { x: d.a.x + d.dir.x * e, z: d.a.z + d.dir.z * e };
+    views.rdoor = { eye: [c.x + d.out.x * 0.42, 1.05, c.z + d.out.z * 0.42], target: [c.x - d.dir.x * 0.05, 1.0, c.z - d.dir.z * 0.05], yaw: 0, at: { x: c.x + d.out.x * 0.42, z: c.z + d.out.z * 0.42 } }; }
+  {
+    const sofa = JSON.parse(await ev(`JSON.stringify((() => { const i = window.__walkthru.store.all().find((x) => x.id === 'sofa-1'); return i ? i.box : null; })())`));
+    if (sofa) {
+      // the arm at the sofa's +x end, looked at from outside, 0.45 m away and 0.7 m up
+      const r = sofa.yawDeg * Math.PI / 180, ax = Math.cos(r), az = -Math.sin(r);
+      const hx = sofa.cx + ax * (sofa.w / 2), hz = sofa.cz + az * (sofa.w / 2);
+      views.rsofa = { eye: [hx + ax * 0.45, 0.75, hz + az * 0.45], target: [hx, 0.52, hz], yaw: 0, at: { x: hx + ax * 0.45, z: hz + az * 0.45 } };
+    }
+  }
   // the zoom test (30 cm from the surface): a floor with joints, a wall with its skirting, a door's edge with its frame
   views.zoomfloor = lookAt([1.4, 0.32, 7.5], [1.55, 0.0, 7.6]);
   views.zoomfloor2 = lookAt([7.3, 0.34, 7.85], [7.55, 0.0, 8.0]);

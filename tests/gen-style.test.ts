@@ -350,7 +350,8 @@ describe('decor stays out of collision, measurement and the drawing', () => {
     const g = stampFurniture(baseGrid, items);
     const stamped = g.cells.slice();
     const built = buildDecorGroup(layout, items, 'medium');
-    expect(Object.keys(built.counts).length).toBeGreaterThan(3);
+    // the sample's typical scheme is calm now (curtains and rugs, no panelling), so two kinds is the floor
+    expect(Object.keys(built.counts).length).toBeGreaterThanOrEqual(2);
     expect(JSON.stringify(layout.rooms.map((r) => r.polygon)) + JSON.stringify(layout.openings)).toBe(layoutBefore);
     expect(JSON.stringify(items)).toBe(itemsBefore);
     expect(Array.from(baseGrid.cells)).toEqual(Array.from(gridBefore));
