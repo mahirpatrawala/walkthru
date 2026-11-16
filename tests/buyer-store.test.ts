@@ -130,6 +130,8 @@ describe('test and synthetic scenes are labelled', () => {
   it('tags the test and sample scenes, never a real home', () => {
     expect(sceneTagText({ id: 'test-flat-empty', subtitle: 'Synthetic scene with known sizes' })).toMatch(/not a real home/i);
     expect(sceneTagText({ id: 'clip-13s', subtitle: 'Synthetic scene with known sizes' })).toMatch(/not a real home/i);
+    expect(sceneTagText({ id: 'test-tower-flat-x', subtitle: 'Sample building · plan follows a published builder brochure, furniture illustrative' })).toBe('Sample building. Plan follows a published brochure; furniture is illustrative.');
+    expect(sceneTagText({ id: 'test-tower-club-x', spaceKind: 'gym', subtitle: 'follows a published builder brochure' })).toMatch(/scaled, not measured/);
     expect(sceneTagText({ id: 'my-flat', subtitle: 'Synthetic floor plan' })).toMatch(/not a real home/i);
     expect(sceneTagText({ id: 'a-real-flat' })).toBeNull();
     expect(sceneTagText({ id: 'koramangala-2bhk', subtitle: '2 BHK, 3rd floor' })).toBeNull();
