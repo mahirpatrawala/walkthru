@@ -437,14 +437,47 @@ def outline_profile(body, levels, n):
     R = np.maximum(smooth_vertical(R, 2), np.array(R) * 0.985)
     return C, R, pts
 
-def arc_cols(body, n, side, overlap=0.15):
+def arc_cols(body, n, side, overlap=0.4):
     """Column indices (in ring order) of the open arc that covers one side of the body and reaches `overlap` past the front and back centre."""
     sgn = body.side[side]
     inc = np.cos(angles(n)) * sgn > -overlap
     start = next(j for j in range(n) if inc[j] and not inc[j - 1])
     return [(start + k) % n for k in range(int(inc.sum()))]
 
-def skirted_rings(body, z_top, hem, step, off_fn, flare, taper=1.0, n=32, z_split=None, extra=None, key='top', slit=0.0):
+def hull_radii(pts2, centre, n):
+    """Distance from `centre` to the boundary of the convex hull of the 2D points, per column of an n-column ring. A hull has no
+    concavities: it bridges the cleft between the buttocks, the gap between the thighs and the hollow of the waist."""
+    P = sorted(set((round(float(x), 5), round(float(y), 5)) for x, y in pts2))
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    lo, up = [], []
+    for p in P:
+        while len(lo) >= 2 and cross(lo[-2], lo[-1], p) <= 0:
+            lo.pop()
+        lo.append(p)
+    for p in reversed(P):
+        while len(up) >= 2 and cross(up[-2], up[-1], p) <= 0:
+            up.pop()
+        up.append(p)
+    H = np.array(lo[:-1] + up[:-1])
+    out = np.zeros(n)
+    for j, a in enumerate(angles(n)):
+        d = np.array([math.cos(a), math.sin(a)])
+        best = 0.0
+        for k in range(len(H)):             # the ray from the centre against each hull edge
+            p, q = H[k] - centre, H[(k + 1) % len(H)] - centre
+            e = q - p
+            den = d[0] * e[1] - d[1] * e[0]
+            if abs(den) < 1e-12:
+                continue
+            t = (p[0] * e[1] - p[1] * e[0]) / den
+            u = (p[0] * d[1] - p[1] * d[0]) / den
+            if t > 0 and -1e-9 <= u <= 1 + 1e-9:
+                best = max(best, t)
+        out[j] = best
+    return out
+
+def skirted_rings(body, z_top, hem, step, off_fn, flare, taper=1.0, n=32, z_split=None, extra=None, key='top', slit=0.0, hang=None):
     """Rings for a garment that is a tube down to the hips and hangs below them as a skirt: below `z_split` the outline never
     narrows to the legs' (it keeps the hip outline, tapering to `taper` of it at the hem) and flares by `flare` more at the hem.
     `slit` raises the hem at the two sides by that many metres (a side slit: the cloth is cut up at the hip bone, so the
@@ -461,8 +494,29 @@ def skirted_rings(body, z_top, hem, step, off_fn, flare, taper=1.0, n=32, z_spli
     if len(levels) > isp + 1:
         R[isp + 1:] = np.maximum(smooth_vertical(R[isp:], 2)[1:], R[isp + 1:] * 0.985)
     Rf = np.max([R[i] for i, z in enumerate(levels) if zs - 0.16 <= z <= zs + 0.03], axis=0)
-    rad, cen = [], []
+    if hang is not None:
+        # `hang` = (z where the cloth leaves the body's outline, ease at the hip, ease at the hem): the cloth drops from the widest
+        # point of the hips as a straight convex drape. Its outline is the convex hull of the hips and thighs (no buttock cleft, no
+        # gap between the thighs), eased out by `ease` metres, and from `z_from` down to the hips it opens out from the body's
+        # outline to that hull, so the waist is not traced either.
+        z_from, e_hip, e_hem = hang
+        z_w = body.z_hip - 0.09
+        band = body.V[body.trunk & (body.V[:, 2] < body.z_hip + 0.04) & (body.V[:, 2] > body.z_hip - 0.12)]
+        Rh = hull_radii(band[:, :2], C[isp], n)
+        Rf = np.maximum(Rf, Rh)
+        rad, cen = [], []
+        for i, z in enumerate(levels):
+            w = float(smoothstep((z_from - z) / max(1e-6, z_from - z_w)))
+            ease = e_hip + (e_hem - e_hip) * float(np.clip((z_w - z) / max(1e-6, z_w - hem), 0, 1))
+            body_r = R[i] + off_fn(z)
+            r = (1 - w) * body_r + w * np.maximum(body_r, Rh + ease) if z >= z_w else Rh + ease
+            rad.append(r)
+            cen.append((1 - w) * C[i] + w * C[isp])
+    else:
+      rad, cen = [], []
     for i, z in enumerate(levels):
+        if hang is not None:
+            break
         if z < zs:
             t = float(smoothstep((zs - z) / max(1e-6, zs - hem)))
             r = np.maximum(R[i], Rf * (1 - (1 - taper) * t)) + off_fn(z) + flare * t
@@ -492,8 +546,11 @@ def loft_skirted(body, mesh, rings, isp, n=32, key=None):
     for side in ('l', 'r'):
         # the right panel stands 3 mm proud of the left where they overlap, so the two never z-fight
         rs = rings[max(0, isp - 2):]
-        if side == 'r':      # 1 mm at the top, 4 mm at the hem, so the seam where the panels overlap starts as a hairline
-            rs = [inflate(r, 0.001 + 0.003 * min(1.0, k / max(1, len(rs) - 1))) for k, r in enumerate(rs)]
+        # both panels stand a little off the tube they overlap for their first two rows (0.3 mm growing to 0.8 mm) so the rows never
+        # z-fight with it, and the right one a further 0.2 to 1.2 mm: the step where the panels overlap is a hairline, not a ridge
+        rs = [inflate(r, 0.0003 + 0.0005 * min(1.0, k / 5)) for k, r in enumerate(rs)]
+        if side == 'r':
+            rs = [inflate(r, 0.0002 + 0.0010 * min(1.0, k / max(1, len(rs) - 1))) for k, r in enumerate(rs)]
         mesh.ring_loft(rs, 'pan_' + side, cols=arc_cols(body, n, side), close=True, key=key, row0=max(0, isp - 2))
 
 def inflate(ring, d):
@@ -785,16 +842,19 @@ def build_garments(key, spec, body, extra=None):
     # at the hip, so a garment is 8 to 12 % longer around than the body at the chest. Nothing flares: the hem hangs straight
     # down from the hip, with a side slit (`slit`) where the cloth would otherwise bunch.
     slit = 0.0
+    hang = None
     if outfit == 'kurta':          # a man's kurta: to the knee (a hand above it, so a seated knee does not push through the hem), full sleeves, side slits
         hem = zk + 0.09
         off = lerp_off([(z_collar, 0.009), (body.z_shoulder, 0.011), (body.z_shoulder - 0.15 * H, 0.014), (zw, 0.017), (zh, 0.021), (zh - 0.1, 0.023), (hem, 0.026)])
         sleeve = (1.0, 0.010, 0.008)
         flare, taper, slit = 0.0, 1.0, 0.13
+        hang = (body.z_shoulder - 0.15 * H, 0.022, 0.032)
     elif outfit == 'salwar':       # a woman's kameez: below the hip, three-quarter sleeves, fitted at the waist, long side slits
         hem = zk + 0.10
         off = lerp_off([(z_collar, 0.008), (body.z_shoulder, 0.010), (body.z_shoulder - 0.10 * H, 0.012), (zh + 0.14 * H, 0.013), (zh + 0.10 * H, 0.014), (zw, 0.015), (zh, 0.019), (zh - 0.08, 0.022), (hem, 0.024)])
         sleeve = (0.78, 0.009, 0.007)
         flare, taper, slit = 0.0, 1.0, 0.15
+        hang = (body.z_shoulder - 0.12 * H, 0.018, 0.028)
     elif outfit == 'saree':        # a blouse with elbow sleeves (the saree itself is the skirt and the pallu)
         hem = zh + 0.055 * H
         off = lerp_off([(z_collar, 0.008), (body.z_shoulder, 0.010), (body.z_shoulder - 0.10 * H, 0.013), (hem, 0.014)])
@@ -805,8 +865,9 @@ def build_garments(key, spec, body, extra=None):
         off = lerp_off([(z_collar, 0.007), (body.z_shoulder, 0.008), (zw, 0.011), (zh, 0.018), (hem, 0.022)])
         sleeve = (0.75, 0.008, 0.006)
         flare, taper, slit = 0.0, 1.0, 0.04
+        hang = (zw, 0.020, 0.028)
     if skirted:
-        rings, isp, levels_top = skirted_rings(body, z_collar, hem, 0.013, off, flare, taper, extra=extra, key='top', slit=slit)
+        rings, isp, levels_top = skirted_rings(body, z_collar, hem, 0.013, off, flare, taper, extra=extra, key='top', slit=slit, hang=hang)
         loft_skirted(body, top, rings, isp, key='top')
         top_rings = rings
     else:
@@ -1012,7 +1073,7 @@ CALF_LEAD = float(arg('--calf-lead', '0'))
 PANEL_THIGH_ONLY = '--panel-thigh-only' in argv   # panels of a kurta or kameez hang from the thigh alone (they end above the knee)
 SLEEVE_PASSES = int(arg('--sleeve-passes', '3'))
 LEG_PASSES = int(arg('--leg-passes', '16'))   # smoothing passes of the trousers' weights: fewer follow the skin more closely at the knee
-LEG_SHARE = float(arg('--leg-share', '1.0'))   # how much of its leg's motion a panel takes below the hip (the rest stays with the pelvis, as hanging cloth lags)
+LEG_SHARE = float(arg('--leg-share', '0.55'))   # how much of its leg's motion a panel takes below the hip (the rest stays with the pelvis, as hanging cloth lags)
 
 def skin_copy(p, body, tree=None, k=4):
     """Skin weights at point p: the nearest k skin vertices' weights, weighted by inverse distance."""
@@ -1055,7 +1116,7 @@ def weight_garment(obj, body, mesh, spec, passes=16):
             p = Vector(mesh.anchor[i])
         tag = mesh.tag[i] if i < len(mesh.tag) else None
         if tag and tag.startswith(('leg_', 'pan_')):
-            ws = leg_weights(p, body, tag[-1], LEG_SHARE if tag.startswith('pan_') else 1.0, tag.startswith('pan_') and mesh.role != 'bottom' and PANEL_THIGH_ONLY)
+            ws = leg_weights(p, body, tag[-1], LEG_SHARE if (tag.startswith('pan_') and mesh.role == 'top') else 1.0, tag.startswith('pan_') and mesh.role != 'bottom' and PANEL_THIGH_ONLY)
         else:
             ws = skin_copy(p, body)
         W.append(ws)
@@ -1380,7 +1441,7 @@ def solidify(o, thickness, offset=1.0):
 
 # ---------------------------------------------------------------- thumbnails for the picker
 
-TOP_TINT = {'man': '#E8823A', 'woman': '#1FA3A3', 'elder': '#1FA3A3', 'child': '#E8823A'}   # the tint of each person's default height
+TOP_TINT = {'man': '#B71C6C', 'woman': '#1FA3A3', 'elder': '#1FA3A3', 'child': '#B71C6C'}   # the tint of each person's default height
 OUTFIT = {  # keep in step with OUTFITS in src/look/people-materials.ts
     'man': dict(bottom='#E8E0CC', wrap='#E8E0CC', trim='#C9A24A', hair='#1D1815', brows='#1A1512', shoes='#4B3A2E'),
     'woman': dict(bottom='#D9CDB6', wrap='#9A2E4C', trim='#C9A24A', hair='#1A1513', brows='#1A1512', shoes='#5A4232'),
@@ -1565,7 +1626,7 @@ def render_sheets(key, rig, body, objs, final):
     """Cells are written as <SHEETS>/<tag><key>__<sheet>__<view>__<NN>.png; tools/compose-sheets.mjs tiles them."""
     samples = json.load(open(CLIP_SAMPLES))
     thumb_colours(key, final)
-    cam = sheet_scene((300, 400))
+    cam = sheet_scene(tuple(int(v) for v in (arg('--res') or '300x400').split('x')))
     if '--fast' in argv:    # Workbench with flat studio light: seconds instead of minutes, for iterating on the hems
         scn0 = bpy.context.scene
         scn0.render.engine = 'BLENDER_WORKBENCH'
@@ -1619,6 +1680,9 @@ def render_sheets(key, rig, body, objs, final):
             point_cam(cam, (0.0, 0.0, zt), yaw, el, 6.0, 0.62 * H / 1.7)
             scn.render.filepath = os.path.join(SHEETS, '%s%s__head__v__%02d.png' % (SHEET_TAG, key, i))
             bpy.ops.render.render(write_still=True)
+    if 'follow' in which:    # the whole body from behind and above (the follow camera's angle), the side and the front, standing and mid-stride
+        run('follow', 'Idle_Loop', [0], [('behindhigh', 180, 38), ('side', 270, 8), ('front', 0, 12)], (0.5 * H, 1.04 * H, 0.0))
+        run('followwalk', 'Walk_Loop', [0, 3, 6, 9], [('behindhigh', 180, 38), ('side', 270, 8)], (0.5 * H, 1.04 * H, 0.0))
     if 'walk' in which:
         run('walk', 'Walk_Loop', list(range(12)), [SIDE, BACK], lower)
     if 'jog' in which:

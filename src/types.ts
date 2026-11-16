@@ -247,7 +247,7 @@ export const CHARACTER_URL = '/characters/mannequin.glb';
 export const HEIGHT_PRESETS_CM = [160, 175, 190] as const;
 export const HEIGHT_MIN_CM = 140;
 export const HEIGHT_MAX_CM = 200;
-export const HEIGHT_TINTS = ['#1FA3A3', '#E8823A', '#7A5AF0'] as const;
+export const HEIGHT_TINTS = ['#1FA3A3', '#B71C6C', '#7A5AF0'] as const;
 export const CHARACTER_RADIUS_M = 0.22;
 /** ratios of body height, read from the GLB's Sitting_Idle_Loop hips keyframes */
 export const SIT_HIP_BACK_RATIO = 0.186;  // hips sit this far behind the root

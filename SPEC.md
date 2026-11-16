@@ -102,7 +102,7 @@ Rendering: `outputColorSpace = SRGBColorSpace`, `toneMapping = NoToneMapping`, `
 
 **B2 Pick your height.** Shown once the shell is built, over the live view.
 - Heading: "How tall are you?"
-- Three chips: `160 cm`, `175 cm` (default), `190 cm`, each showing its tint (teal `#1FA3A3`, orange `#E8823A`, violet `#7A5AF0`).
+- Three chips: `160 cm`, `175 cm` (default), `190 cm`, each showing its tint (teal `#1FA3A3`, crimson `#B71C6C` (was orange `#E8823A` until 16 Nov 2026: it read as skin next to a light tone), violet `#7A5AF0`).
 - Stepper row: `-` `175 cm · 5 ft 9 in` `+`, 1 cm steps, 140 to 200. A preset sets the stepper. A custom height takes the tint of the nearest preset.
 - Button "Start walking". Stored in `localStorage` key `walkthru:height`.
 - Reopen any time from the HUD person button. Changing height rescales the character and refreshes any open verdict card.
@@ -503,7 +503,7 @@ export const CHARACTER_URL = '/characters/mannequin.glb';
 export const HEIGHT_PRESETS_CM = [160, 175, 190] as const;
 export const HEIGHT_MIN_CM = 140;
 export const HEIGHT_MAX_CM = 200;
-export const HEIGHT_TINTS = ['#1FA3A3', '#E8823A', '#7A5AF0'] as const;
+export const HEIGHT_TINTS = ['#1FA3A3', '#B71C6C', '#7A5AF0'] as const;
 export const CHARACTER_RADIUS_M = 0.22;
 /** ratios of body height, read from the GLB's Sitting_Idle_Loop hips keyframes */
 export const SIT_HIP_BACK_RATIO = 0.181;  // hips sit this far behind the root
@@ -2576,6 +2576,10 @@ The owner's words: the clothes were "too huge, a little bit out of scale", and "
 - **Measured** (`make_family.py` prints a `FITM` line per measure, T-pose, garment against the skin's true section): chest 1.09 to 1.18 times the body's girth (+1.1 to +1.7 cm), waist 1.05 to 1.18, hip 1.07 to 1.12, sleeve 1.22 to 1.28 at the upper arm (+0.8 to +1.1 cm, a larger ratio because an arm is thin), trousers 1.25 to 1.31 at the thigh (child 1.41) and 1.29 to 1.30 at the calf. Before: chest 1.17 to 1.36, hip 1.43 to 1.46, hem 1.7 to 1.9, sleeve 1.55 to 1.95, trouser knee 1.8 to 3.1.
 - **Seated hands.** The sitting clip rests the hands on the knees, so fingertips can show through the trousers there; that is the clip, not the cloth.
 - **Tools.** `make_family.py` gains `--measure-sleeves`, `--hide <roles>` and the `head` sheet (the head from the top, behind and above); `optimise-people.mjs` caps simplification error at 2 mm of a part's extent (skin) and 4 mm (cloth).
+#### 16.6.9a Hang pass of 16 Nov 2026 (follow-up to 16.6.9)
+
+The close fit of 16.6.9 let the buttocks and the cleft show through the kurta from behind and above. Below the waist the kurta, kameez and child's kurta are now built as hanging cloth (`skirted_rings(hang=...)`): the outline is the convex hull of the hips and thighs between 12 cm above and 8 cm below the hip joint (`hull_radii`, no cleft, no gap between the thighs, no waist hollow), eased out by 2.2 / 2.0 / 1.8 cm at the hip (man / woman / child) to 3.2 / 2.8 / 2.8 cm at the hem, and from the waist it opens from the body's outline to that hull. The two leg panels overlap by 0.4 of the ring (was 0.15) with sub-millimetre steps, and their weights follow 55 % of the leg (the rest stays with the pelvis), so the cloth lags a stride instead of tracing it. Side slits, the fitting loop and the saree skirt are unchanged. Default top tint: HEIGHT_TINTS[1] is crimson `#B71C6C` (was orange `#E8823A`, which read as skin next to a light tone); a test keeps every tint at least 40 degrees of hue from every skin tone.
+
 #### 16.6.10 More people in the home (16 Nov 2026)
 
 The owner: "Currently only 1 person here, have the ability to add another person as well." A buyer can add people besides the walker. They are for size and space (can two of us pass here, does the grandmother sit comfortably, how does a child lie on this bed), not for company.

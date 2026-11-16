@@ -110,7 +110,7 @@ export class Character {
   private poseK: PoseK = { seat: SIT_SEAT_RATIO, hipBack: SIT_HIP_BACK_RATIO, back: LIE_BACK_RATIO, floor: -Infinity };
   private appearanceNow: Appearance = { body: 'mannequin', tone: DEFAULT_TONE, tier: 'medium' };
   private loadToken = 0;
-  private tint = '#E8823A';
+  private tint = '#B71C6C';
   private hasLiePose = false;
   private hasIdles = false;
   private hasTurn = false;
@@ -205,7 +205,7 @@ export class Character {
     this.shadow = Character.makeShadow();
     if (this.shadow) this.object.add(this.shadow);
 
-    this.setHeight(REF_HEIGHT_M, '#E8823A');
+    this.setHeight(REF_HEIGHT_M, '#B71C6C');
   }
 
   /** Adopts a parsed glTF as the visible body: skinned meshes, materials, mixer, the six actions, h0 and the pose constants. */

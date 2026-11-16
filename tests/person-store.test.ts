@@ -96,3 +96,19 @@ describe('view: see yourself or first person (SPEC 16.6.8)', () => {
     expect(s.m.has(PERSON_KEY)).toBe(false);
   });
 });
+
+describe('garment tints read as cloth, not skin (16 Nov 2026)', () => {
+  it('every height tint is at least 40 degrees of hue from every skin tone,', async () => {
+    const { HEIGHT_TINTS } = await import('../src/types');
+    const { SKIN_TONES, fabricColour } = await import('../src/look/people-materials');
+    const hsl = (c: THREE.Color) => { const o = { h: 0, s: 0, l: 0 }; c.getHSL(o, THREE.SRGBColorSpace); return o; };
+    for (const tint of HEIGHT_TINTS) {
+      const t = hsl(fabricColour(tint));
+      for (const skin of SKIN_TONES) {
+        const s = hsl(new THREE.Color(skin));
+        const dh = Math.min(Math.abs(t.h - s.h), 1 - Math.abs(t.h - s.h)) * 360;
+        expect(dh, `${tint} against ${skin}`).toBeGreaterThanOrEqual(40);
+      }
+    }
+  });
+});

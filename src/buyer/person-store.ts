@@ -15,7 +15,7 @@ export const PERSON_LABELS: Record<PersonBodyChoice, string> = { man: 'Man', wom
 export const BODY_DEFAULT_CM: Record<PersonBodyChoice, number> = { man: 175, woman: 160, elder: 150, child: 120 };
 /** The stepper's range for each person. The proportions stay human at every height in it. */
 export const BODY_RANGE_CM: Record<PersonBodyChoice, readonly [number, number]> = { man: [150, 200], woman: [140, 190], elder: [135, 180], child: [90, 150] };
-/** The three quick heights for each person; their tints are HEIGHT_TINTS in order (teal, orange, violet). */
+/** The three quick heights for each person; their tints are HEIGHT_TINTS in order (teal, crimson, violet). */
 export const BODY_CHIPS_CM: Record<PersonBodyChoice, readonly [number, number, number]> = {
   man: [160, 175, 190], woman: [160, 168, 176], elder: [150, 158, 166], child: [105, 120, 135],
 };
