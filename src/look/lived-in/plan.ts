@@ -621,7 +621,11 @@ class Planner {
       const S = h.surfaceHeightM;
       const w = h.box.w;
       // the backsplash between the counter and the cabinets, the counter's whole length
-      if (this.wallFree(f, u - w / 2, u + w / 2, S + 0.9)) this.wallPiece('dado', room, f, u, S, w, 0.012, 0.62);
+      {
+        // up to the corner: the backsplash runs as far as the wall does (wallFree keeps 12 cm off a corner, which a tile does not need)
+        const a = Math.max(0.01, u - w / 2), b = Math.min(f.length - 0.01, u + w / 2);
+        if (b - a > 0.4 && !this.wallBlocks(f, S + 0.9).some((k) => a < k.u1 && b > k.u0)) this.wallPiece('dado', room, f, (a + b) / 2, S, b - a, 0.012, 0.62);
+      }
       // the hood over the hob (the hob sits 0.45 from the counter's left end, seen from the front)
       let hoodU: number | null = null;
       if (h.id === hobId && w >= 1.2) {
