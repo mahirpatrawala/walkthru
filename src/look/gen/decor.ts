@@ -3,7 +3,7 @@
 // ceiling band. Every one is built in a WALL FRAME (x along the wall from its start, y up from the floor, z out of the wall into the
 // room) or a FLOOR FRAME (rug); the mount code places the frame. All of it is decor: no collision, no measurement, no ray.
 import * as THREE from 'three';
-import { Parts, role } from './core';
+import { Parts, role, shade } from './core';
 import type { GenEnv, Roles } from './core';
 import { roundedBoxBetween } from '../furniture-parts';
 import { prism, roundedRectOutline, rod } from './geo';
@@ -22,6 +22,8 @@ export interface CurtainParams {
   trackYM: number;
   /** a sheer behind the drape */
   sheer: boolean;
+  /** the sheer hangs closed across the whole window (the old look); default false: drawn open, gathered at the sides */
+  sheerClosed?: boolean;
   /** drape panels: at both ends of the track, one end, or none */
   drape: 'sides' | 'left' | 'right' | 'none';
   /** how much of the track each drape panel covers when drawn back */
@@ -74,8 +76,14 @@ export function buildCurtain(env: GenEnv, p: CurtainParams, roles: Roles): THREE
   const y0 = 0.02, y1 = p.trackYM - 0.04;
   const density = q.tier === 'low' ? 0.5 : q.tier === 'medium' ? 0.8 : 1.2;
   parts.put('curtain-track', track, rod({ x: -0.03, y: p.trackYM, z: 0.05 }, { x: p.widthM + 0.03, y: p.trackYM, z: 0.05 }, 0.012, 6), { noShadow: true });
-  if (p.sheer) {
+  if (p.sheer && p.sheerClosed) {
     parts.put('curtain-sheer', sheer, clothPanel(0, p.widthM, y0, y1, 0.07, 0.045, p.foldM * 0.8, density, 0.3), { uv: 'keep', noShadow: true });
+  } else if (p.sheer) {
+    // drawn open (round 4): two pleated panels gathered at the sides of the window, each about a fifth of the glass wide, the glass between them clear. The track
+    // runs 25 cm past the window each side (design-mount), so the stack covers that margin and a little of the glass.
+    const gather = Math.min(p.widthM / 2 - 0.1, Math.max(0.35, 0.25 + 0.22 * Math.max(0, p.widthM - 0.5)));
+    if (p.drape !== 'right') parts.put('curtain-sheer', sheer, clothPanel(0, gather, y0, y1, 0.07, 0.04, 0.07, density, 0.3), { uv: 'keep', noShadow: true });
+    if (p.drape !== 'left') parts.put('curtain-sheer', sheer, clothPanel(p.widthM - gather, p.widthM, y0, y1, 0.07, 0.04, 0.07, density, 1.9), { uv: 'keep', noShadow: true });
   }
   const dw = Math.min(p.drapeWidthM, p.widthM / 2 - 0.05);
   if (p.drape !== 'none' && dw > 0.1) {
@@ -107,7 +115,13 @@ export function buildRug(env: GenEnv, p: RugParams, roles: Roles): THREE.Group {
   const rug = named.key === 'weave' ? { ...named, key: 'rug' as const } : named; // a woven rug is a finer, deeper pile than upholstery
   const w = p.widthM, d = p.depthM;
   const seg = env.q.tier === 'low' ? 3 : 6;
-  parts.put('rug', rug, prism(roundedRectOutline(-w / 2, w / 2, -d / 2, d / 2, [p.radiusM, p.radiusM, p.radiusM, p.radiusM], seg), 0, p.pileM, Math.min(0.012, p.pileM * 0.5)), { noShadow: true });
+  // a bordered rug: a darker outer band and the field inset 7 cm and 3 mm proud of it
+  const bordered = w > 1.0 && d > 0.9 && !!rug.tint;
+  parts.put('rug', bordered ? shade(rug, 0.8) : rug, prism(roundedRectOutline(-w / 2, w / 2, -d / 2, d / 2, [p.radiusM, p.radiusM, p.radiusM, p.radiusM], seg), 0, p.pileM, Math.min(0.012, p.pileM * 0.5)), { noShadow: true });
+  if (bordered) {
+    const m = 0.07, r2 = Math.max(0.02, p.radiusM - 0.03);
+    parts.put('rug-field', rug, prism(roundedRectOutline(-w / 2 + m, w / 2 - m, -d / 2 + m, d / 2 - m, [r2, r2, r2, r2], seg), 0, p.pileM + 0.003, Math.min(0.01, p.pileM * 0.4)), { noShadow: true });
+  }
   return parts.done();
 }
 

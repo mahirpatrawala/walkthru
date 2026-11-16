@@ -22,7 +22,7 @@
     "slatBack": "grey-matte",
     "lampMetal": "brass",
     "acBody": "white-gloss",
-    "rug": "shag-ivory",
+    "rug": "weave-sand",
     "curtainSheer": "sheer-white",
     "curtainDrape": "drape-sage",
     "door": "white-laminate",
@@ -104,7 +104,7 @@
       "other": "plank-oak"
     },
     "floorBySpace": {
-      "hall": "plank-oak",
+      "hall": "plank-walnut",
       "games": "plank-oak",
       "lobby": "tile-lobby",
       "corridor": "tile-lobby",

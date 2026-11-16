@@ -320,7 +320,7 @@ export function addMirror(b: KitBuckets, walls: Map<string, Wall>, s: MirrorSite
   const w = walls.get(`${s.roomId}:${s.edge}`);
   if (!w) return;
   const u0 = s.u - s.w / 2, u1 = s.u + s.w / 2, f = 0.008;
-  b.fixtures.tint('#6A6C70');
+  b.fixtures.tint('#9A9FA4');
   w.box(b.fixtures, u0 - f, u1 + f, -0.014, 0, s.y0 - f, s.y0);
   w.box(b.fixtures, u0 - f, u1 + f, -0.014, 0, s.y1, s.y1 + f);
   w.box(b.fixtures, u0 - f, u0, -0.014, 0, s.y0, s.y1);
@@ -329,7 +329,7 @@ export function addMirror(b: KitBuckets, walls: Map<string, Wall>, s: MirrorSite
   for (let i = 0; i < strips; i++) {
     const ya = s.y0 + ((s.y1 - s.y0) * i) / strips, yb = s.y0 + ((s.y1 - s.y0) * (i + 1)) / strips;
     const k = (i + 0.5) / strips;
-    const c = new THREE.Color('#B9C6CC').lerp(new THREE.Color('#F3F8FA'), k * k);
+    const c = new THREE.Color('#8FA5B3').lerp(new THREE.Color('#E6EFF3'), k * k);
     b.mirror.tint(`#${c.getHexString()}`);
     b.mirror.quad([w.pt(u0, -0.0135, ya), w.pt(u1, -0.0135, ya), w.pt(u1, -0.0135, yb), w.pt(u0, -0.0135, yb)], n);
   }

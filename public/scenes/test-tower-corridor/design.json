@@ -2,8 +2,15 @@
   "version": 1,
   "pack": "clean-contrast",
   "source": "typical",
-  "note": "A typical clean scheme for this shared space (the gallery default): timber or polished floor, bright walls. Finishes and decor only.",
-  "items": {},
+  "note": "A typical clean scheme for a building corridor (the gallery default): polished floor, a runner, wall lights by each door, a stretch of wall panelling to break the long white wall. Finishes and decor only.",
+  "items": {
+    "decor": {
+      "roles": {
+        "wallPanel": "wall-greige",
+        "rug": "weave-sand"
+      }
+    }
+  },
   "rooms": {
     "corridor": {
       "floor": "tile-lobby",
@@ -14,5 +21,69 @@
       "wall": "wall-bright"
     }
   },
-  "fixtures": []
+  "fixtures": [
+    {
+      "kind": "rug",
+      "roomId": "corridor",
+      "x": 0,
+      "z": 11.6,
+      "w": 0.9,
+      "d": 20,
+      "yawDeg": 0
+    },
+    {
+      "kind": "bowl-lights",
+      "roomId": "corridor",
+      "edge": 11,
+      "us": [
+        3.0,
+        6.4,
+        8.3,
+        12.0,
+        16.5,
+        20.0
+      ],
+      "y": 1.95
+    },
+    {
+      "kind": "bowl-lights",
+      "roomId": "corridor",
+      "edge": 1,
+      "us": [
+        3.0,
+        6.5,
+        9.1
+      ],
+      "y": 1.95
+    },
+    {
+      "kind": "bowl-lights",
+      "roomId": "corridor",
+      "edge": 5,
+      "us": [
+        0.6,
+        4.5,
+        9.1
+      ],
+      "y": 1.95
+    },
+    {
+      "kind": "panelling",
+      "roomId": "corridor",
+      "edge": 11,
+      "u0": 9.2,
+      "u1": 22.6,
+      "y0M": 0.0,
+      "y1M": 1.1
+    },
+    {
+      "kind": "panelling",
+      "roomId": "corridor",
+      "edge": 11,
+      "u0": 0.8,
+      "u1": 5.9,
+      "y0M": 0.0,
+      "y1M": 1.1
+    }
+  ]
 }

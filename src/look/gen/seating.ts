@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { roundedBoxBetween } from '../furniture-parts';
 import { softCushion } from './soft';
-import { Parts, boxGeo, role } from './core';
+import { Parts, boxGeo, role, shade } from './core';
 import type { GenEnv, GenSize, Roles } from './core';
 import { prism, roundedRectOutline, rod, taperedLeg } from './geo';
 
@@ -54,10 +54,12 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
     }
   }
   // frame, arms and back
-  parts.put('sofa-frame', fab, roundedBoxBetween(sx0, sx1, legH, frameTop, zb0, zb1, 0.03, q.seg));
+  // the base and the frame under the cushions one step darker than the cushions: the seat and back read as separate pads even under flat light
+  const frameM = shade(fab, 0.86);
+  parts.put('sofa-frame', frameM, roundedBoxBetween(sx0, sx1, legH, frameTop, zb0, zb1, 0.03, q.seg));
   if (chaise !== 'none') {
     const cx0 = chaise === 'left' ? -w / 2 : w / 2 - cwChaise, cx1 = cx0 + cwChaise;
-    parts.put('sofa-frame', fab, roundedBoxBetween(cx0, cx1, legH, frameTop, zb0, d / 2, 0.03, q.seg));
+    parts.put('sofa-frame', frameM, roundedBoxBetween(cx0, cx1, legH, frameTop, zb0, d / 2, 0.03, q.seg));
   }
   const armTop = Math.min(S + 0.2, H - 0.02);
   const armR = p.arms === 'round' ? 0.075 : 0.025;
@@ -87,6 +89,11 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
     const g = cush(cw - 0.01, seatH, cd, 0.014);
     g.translate(x, frameTop + seatH / 2, zb1 - cd / 2);
     parts.put('sofa-seat', fab, g, { grain: 'x' });
+    // piping along the front edge of each seat pad, and a seam line where the pads meet
+    if (q.tier !== 'low') {
+      const pipe = shade(fab, 0.74);
+      parts.put('sofa-piping', pipe, rod({ x: x - (cw - 0.03) / 2, y: frameTop + seatH - 0.012, z: zb1 + 0.002 }, { x: x + (cw - 0.03) / 2, y: frameTop + seatH - 0.012, z: zb1 + 0.002 }, 0.0045, 6), { noShadow: true });
+    }
   }
   if (chaise !== 'none') {
     const cx = chaise === 'left' ? -w / 2 + cwChaise / 2 : w / 2 - cwChaise / 2;

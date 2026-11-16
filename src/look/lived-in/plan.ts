@@ -21,7 +21,9 @@ import { tubeSites, TUBE_LEN_M } from '../kit/rules';
 
 export type DecorKind =
   | 'cushion' | 'throw' | 'books' | 'lamp' | 'cooker' | 'dabbas' | 'fruit' | 'jug'
-  | 'plant' | 'rug' | 'shoes' | 'curtain' | 'clock' | 'frame' | 'pooja';
+  | 'plant' | 'rug' | 'shoes' | 'curtain' | 'clock' | 'frame' | 'pooja'
+  // round 4: what an Indian apartment kitchen and a made-up bedroom show (typical fittings, labelled as decor)
+  | 'nightstand' | 'hob' | 'hood' | 'wallcab' | 'dado';
 
 export type DecorPlace = 'floor' | 'surface' | 'wall';
 
@@ -564,6 +566,85 @@ class Planner {
     return id || undefined;
   }
 
+  private readonly hobHosts = new Map<string, string>();
+  /** the kitchen's cooking counter: the widest plain counter that is at least 1.2 m long */
+  private hobHostOf(room: RoomTag): string {
+    let id = this.hobHosts.get(room.id);
+    if (id === undefined) {
+      let best: FurnitureItem | null = null;
+      for (const o of this.items) {
+        if (o.kind !== 'counter' || pieceRule(o.catalogId) || furnitureLook(o) !== 'counter' || o.surfaceHeightM < 0.8 || o.box.w < 1.2 || this.itemRoom(o)?.id !== room.id) continue;
+        if (!best || o.box.w > best.box.w) best = o;
+      }
+      id = best?.id ?? '';
+      this.hobHosts.set(room.id, id);
+    }
+    return id;
+  }
+
+  /** the wall edge behind an item's back (the wall it stands against), with the centre u of the item along it, or null */
+  private wallBehind(h: FurnitureItem): { f: EdgeFrame; u: number } | null {
+    const back = world(h.box, 0, -h.box.d / 2);
+    const f = this.frames.find((w) => {
+      if (w.kind !== 'wall') return false;
+      const o = (back.x - w.a.x) * w.out.x + (back.z - w.a.z) * w.out.z;
+      const u = (back.x - w.a.x) * w.dir.x + (back.z - w.a.z) * w.dir.z;
+      const { a } = boxAxes(h.box);
+      return Math.abs(o) < 0.25 && u > 0 && u < w.length && a.x * w.out.x + a.z * w.out.z < -0.9;
+    });
+    if (!f) return null;
+    return { f, u: (h.box.cx - f.a.x) * f.dir.x + (h.box.cz - f.a.z) * f.dir.z };
+  }
+
+  /** a bedside table with a lit lamp on each free side of a bed's head */
+  private bedsides(room: RoomTag): void {
+    if (room.roomType !== 'bedroom') return;
+    for (const it of this.items) {
+      if (it.kind !== 'bed' || pieceRule(it.catalogId) || this.itemRoom(it)?.id !== room.id || it.box.w < 0.8 || it.box.d < 1.5) continue;
+      for (const sx of [-1, 1]) {
+        const c = world(it.box, sx * (it.box.w / 2 + 0.24), -it.box.d / 2 + 0.2);
+        this.placeFloor('nightstand', room, [{ x: c.x, z: c.z, yawDeg: it.box.yawDeg }], 0.42, 0.38, 0.84, { doorKeepM: 0.2 });
+      }
+    }
+  }
+
+  /** the kitchen's backsplash, wall cabinets and the chimney hood over the hob, along the wall behind each plain counter */
+  private kitchenWall(room: RoomTag): void {
+    if (room.roomType !== 'kitchen') return;
+    const H = this.input.layout.wallHeightM;
+    const hobId = this.hobHostOf(room);
+    for (const h of this.items) {
+      if (h.kind !== 'counter' || pieceRule(h.catalogId) || furnitureLook(h) !== 'counter' || h.surfaceHeightM < 0.8 || h.box.w < 0.9 || this.itemRoom(h)?.id !== room.id) continue;
+      const wb = this.wallBehind(h);
+      if (!wb) continue;
+      const { f, u } = wb;
+      const S = h.surfaceHeightM;
+      const w = h.box.w;
+      // the backsplash between the counter and the cabinets, the counter's whole length
+      if (this.wallFree(f, u - w / 2, u + w / 2, S + 0.12)) this.wallPiece('dado', room, f, u, S, w, 0.012, 0.62);
+      // the hood over the hob (the hob sits 0.45 from the counter's left end, seen from the front)
+      let hoodU: number | null = null;
+      if (h.id === hobId && w >= 1.2) {
+        const hp = world(h.box, -w / 2 + 0.45, 0);
+        const hu = projectU(f, hp);
+        const yH = S + 0.68;
+        if (this.wallFree(f, hu - 0.31, hu + 0.31, yH) && H - yH > 0.5) { this.wallPiece('hood', room, f, hu, yH, 0.62, 0.46, H - yH); hoodU = hu; }
+      }
+      // wall cabinets: 0.6 m units along the counter, a hood's width left out
+      const bottom = S + 0.68;
+      const height = Math.min(0.72, H - 0.2 - bottom);
+      if (height < 0.4) continue;
+      const n = Math.floor((w - 0.02) / 0.6);
+      const u0 = u - (n * 0.6) / 2;
+      for (let i = 0; i < n; i++) {
+        const cu = u0 + 0.3 + i * 0.6;
+        if (hoodU !== null && Math.abs(cu - hoodU) < 0.55) continue;
+        if (!this.wallFree(f, cu - 0.3, cu + 0.3, bottom)) continue;
+        this.wallPiece('wallcab', room, f, cu, bottom, 0.6, 0.32, height);
+      }
+    }
+  }
+
   private dress(it: FurnitureItem): void {
     // swings, appliances, fixtures and the rest of the second catalogue table have their own shapes: no throws or lamps are put on them
     if (pieceRule(it.catalogId)) return;
@@ -613,6 +694,15 @@ class Planner {
       if (room.roomType === 'kitchen' && look === 'counter' && S >= 0.8) {
         if (w < 0.6 || d < 0.5) return;
         const z = -d / 2 + 0.22;
+        if (this.hobHostOf(room) === it.id && w >= 1.2) {
+          // a 60 x 52 cm four-burner hob (typical: not from the drawing) with the pressure cooker on a back burner
+          const hx = -w / 2 + 0.45;
+          on('hob', hx, 0, S, 0.6, 0.52, 0.03);
+          on('cooker', hx - 0.14, -0.12, S + 0.03, 0.24, 0.24, 0.26);
+          if (w >= 1.8) on('dabbas', w / 2 - 0.4, z, S, 0.2, 0.2, 0.3);
+          if (w >= 2.2) on('fruit', w / 2 - 0.85, z + 0.02, S, 0.28, 0.28, 0.14);
+          return;
+        }
         on('cooker', -w / 2 + 0.28, z, S, 0.24, 0.24, 0.26);
         if (w >= 1.0) on('dabbas', -w / 2 + 0.7, z, S, 0.2, 0.2, 0.3);
         if (w >= 1.5) on('fruit', w / 2 - 0.35, z + 0.02, S, 0.28, 0.28, 0.14);
@@ -640,6 +730,7 @@ class Planner {
     const living = this.whole.filter((r) => r.roomType === 'living');
     for (const r of living) this.rugFor(r);
 
+    for (const r of this.whole) this.bedsides(r);
     let bedroomPlants = 0;
     const byArea = (a: RoomTag, b: RoomTag): number => polyArea(b.polygon) - polyArea(a.polygon);
     for (const r of [...living].sort(byArea)) this.plantFor(r);
@@ -652,6 +743,7 @@ class Planner {
 
     for (const r of this.whole) {
       this.curtains(r);
+      this.kitchenWall(r);
       this.pictures(r);
       this.pooja(r);
     }

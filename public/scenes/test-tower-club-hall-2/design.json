@@ -6,13 +6,14 @@
   "items": {
     "decor": {
       "roles": {
-        "slats": "ash-white"
+        "slats": "ash-white",
+        "wallPanel": "wall-greige"
       }
     }
   },
   "rooms": {
     "hall-2": {
-      "floor": "plank-oak",
+      "floor": "plank-walnut",
       "wall": "wall-bright"
     }
   },
