@@ -141,6 +141,8 @@ export interface CatalogItem {
   inner?: { w: number; d: number };     // mattress, when smaller than the footprint
   access: AccessRule[];
   sideWords: Record<Side, string>;
+  /** the kinds of space this piece is offered in (src/core/places.ts). Absent means a home only. */
+  places?: SpaceKind[];
 }
 export interface FurnitureItem {
   id: string;

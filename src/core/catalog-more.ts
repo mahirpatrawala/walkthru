@@ -5,15 +5,15 @@
 // Sizes are w (width, across the front) x d (depth) x h (total height), metres. `s` is the height of the thing you use: a seat, a mattress,
 // a table top, a basin rim. A footprint includes the gap a piece asks for (a fridge's 5 cm for air, a washing machine's 10 cm for hoses): the
 // size label says so. Honesty (SPEC 16.2): a clearance a verdict rests on is an assumption, and its text says which.
-import type { AccessRule, CatalogItem, FurnitureKind, Side } from '../types';
-import type { PieceCategory, PieceFamily, PieceRule, PoseKind, Zone } from './pieces';
+import type { AccessRule, CatalogItem, FurnitureKind, Side, SpaceKind } from '../types';
+import type { PieceCategory, PieceFamily, PieceRule, PoseKind, SeatSpec, Zone } from './pieces';
 
 const cm = (m: number): number => Math.round(m * 100);
 const SOFA_WORDS: Record<Side, string> = { front: 'in front', back: 'behind', left: 'on the left', right: 'on the right' };
 const BED_WORDS: Record<Side, string> = { front: 'at the foot', back: 'at the head', left: 'on the left', right: 'on the right' };
 const DINING_WORDS: Record<Side, string> = { front: 'on the near side', back: 'on the far side', left: 'on the left', right: 'on the right' };
 
-interface Def {
+export interface Def {
   id: string; name: string; cat: PieceCategory; kind: FurnitureKind;
   w: number; d: number; h: number; s: number;
   /** the size label when "w × d × h cm" is not the whole story */
@@ -28,17 +28,24 @@ interface Def {
   mountY?: number; wall?: boolean; fullHeight?: boolean;
   rooms?: PieceRule['rooms']; roomNote?: string;
   zones?: Zone[]; note?: string; hung?: boolean; probe?: [number, number];
+  /** the kinds of space the piece is offered in (default: a home only) */
+  places?: SpaceKind[];
+  /** side words of a piece whose front is not "in front" (a treadmill's front is the end you step on: "behind the belt") */
+  sideWords?: Partial<Record<Side, string>>;
+  /** where a walker sits on it, for a machine, a bench or a bike (src/core/poses.ts `machineSeatPose`) */
+  seat?: SeatSpec;
 }
 
 export interface MorePiece { row: CatalogItem; rule: PieceRule }
 
-function piece(o: Def): MorePiece {
-  const words = o.words === 'bed' ? BED_WORDS : o.words === 'dining' ? DINING_WORDS : SOFA_WORDS;
+export function piece(o: Def): MorePiece {
+  const words = { ...(o.words === 'bed' ? BED_WORDS : o.words === 'dining' ? DINING_WORDS : SOFA_WORDS), ...(o.sideWords ?? {}) };
   const row: CatalogItem = {
     id: o.id, kind: o.kind, name: o.name,
     sizeLabel: o.label ?? `${cm(o.w)} × ${cm(o.d)} × ${cm(o.h)} cm`,
     footprint: { w: o.w, d: o.d }, heightM: o.h, surfaceHeightM: o.s,
     access: (o.access ?? []).map((r) => ({ sides: [...r.sides], minM: r.minM, mode: r.mode })), sideWords: { ...words },
+    ...(o.places ? { places: [...o.places] } : {}),
   };
   if (o.inner) row.inner = { ...o.inner };
   const rule: PieceRule = {
@@ -48,22 +55,23 @@ function piece(o: Def): MorePiece {
     ...(o.mountY !== undefined ? { mountY: o.mountY } : {}), ...(o.wall ? { wall: true } : {}), ...(o.fullHeight ? { fullHeight: true } : {}),
     ...(o.rooms ? { rooms: o.rooms } : {}), ...(o.roomNote ? { roomNote: o.roomNote } : {}),
     ...(o.zones ? { zones: o.zones } : {}), ...(o.note ? { note: o.note } : {}), ...(o.hung ? { hung: true } : {}), ...(o.probe ? { probe: o.probe } : {}),
+    ...(o.seat ? { seat: o.seat } : {}),
   };
   return { row, rule };
 }
 
 // ---------------------------------------------------------------- zone recipes
 
-const FRONT = (m: number): AccessRule => ({ sides: ['front'], minM: m, mode: 'all' });
+export const FRONT = (m: number): AccessRule => ({ sides: ['front'], minM: m, mode: 'all' });
 const BED_SIDES: AccessRule = { sides: ['left', 'right'], minM: 0.6, mode: 'any' };
 
 /** space in front to operate something: a door, a footrest, a drawer */
-function operate(id: string, needM: number, assumption: Zone['assumption'], blocked: string, tight: string, opts: Partial<Zone> = {}): Zone {
+export function operate(id: string, needM: number, assumption: Zone['assumption'], blocked: string, tight: string, opts: Partial<Zone> = {}): Zone {
   return { id, sides: ['front'], needM, where: 'in front', assumption, blockedText: blocked, tightText: tight, tightFrac: 0.75, ...opts };
 }
 
 /** a seat on chains: the chains swing `angleDeg` each way, from a hook `hang` high (the ceiling, or a frame beam) */
-function arc(angleDeg: number, hang: 'ceiling' | number, seatHalfM: number, o: { sides?: Side[]; minNeedM?: number; minCeilingM?: number; where?: string; attachM?: number } = {}): Zone {
+export function arc(angleDeg: number, hang: 'ceiling' | number, seatHalfM: number, o: { sides?: Side[]; minNeedM?: number; minCeilingM?: number; where?: string; attachM?: number } = {}): Zone {
   return {
     id: 'arc', sides: o.sides ?? ['front', 'back'], needM: 0, where: o.where ?? 'in front and behind',
     assumption: `a ${angleDeg}° swing each way`, blockedText: 'it will hit {obs}', tightText: 'a full swing will brush {obs}', tightFrac: 0.75,

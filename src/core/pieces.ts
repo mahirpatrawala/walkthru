@@ -5,7 +5,9 @@
 import type { RoomType, Side } from '../types';
 import { MORE_PIECES } from './catalog-more';
 
-export type PieceCategory = 'seating' | 'beds' | 'storage' | 'tables' | 'kitchen' | 'kids' | 'balcony' | 'fitness' | 'swing' | 'bathroom';
+export type PieceCategory = 'seating' | 'beds' | 'storage' | 'tables' | 'kitchen' | 'kids' | 'balcony' | 'fitness' | 'swing' | 'bathroom'
+  // the shared spaces of a building (stage 2 adds more of these; the pool and the garden use these two and 'seating')
+  | 'amenities' | 'decor';
 export const CATEGORIES: { id: PieceCategory; label: string }[] = [
   { id: 'seating', label: 'Seating' },
   { id: 'beds', label: 'Beds' },
@@ -17,10 +19,18 @@ export const CATEGORIES: { id: PieceCategory; label: string }[] = [
   { id: 'balcony', label: 'Balcony' },
   { id: 'fitness', label: 'Fitness' },
   { id: 'swing', label: 'Swing' },
+  { id: 'amenities', label: 'Amenities' },
+  { id: 'decor', label: 'Plants & decor' },
 ];
 
 /** What the walker does at a piece. `swing` is a seat that rocks; `stand` is "stand at the counter"; `dims` is the size card. */
-export type PoseKind = 'lie' | 'sit' | 'chair' | 'swing' | 'stand' | 'dims';
+export type PoseKind = 'lie' | 'sit' | 'chair' | 'swing' | 'stand' | 'dims' | 'walk-on';
+
+/**
+ * Where a walker sits on a machine, a bench, a bike or a rower: the hips `z` metres from the middle of the footprint toward its front (negative: toward the back),
+ * facing `face` (+1 the front, -1 the back), with the seat at the item's `surfaceHeightM`.
+ */
+export interface SeatSpec { z: number; face: 1 | -1 }
 
 /** The finish families a piece can name (src/look/finishes.ts is the owner of the slots). */
 export type PieceFamily = 'bed' | 'sofa' | 'wardrobe' | 'table' | 'chair' | 'swing' | 'storage' | 'appliance' | 'pouf' | 'bunk' | 'plain' | 'sanitary';
@@ -79,6 +89,8 @@ export interface PieceRule {
   hung?: boolean;
   /** a surface the tests probe from above (x, z in the piece's frame) */
   probe?: [number, number];
+  /** where a walker sits (`pose` 'sit' or 'chair' on a machine): see `SeatSpec` */
+  seat?: SeatSpec;
 }
 
 /**
