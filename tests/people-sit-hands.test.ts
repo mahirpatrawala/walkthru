@@ -8,7 +8,7 @@ const rest = new Map(BONES.map((n) => [n, { name: n, parent: null, q: new THREE.
 const clip = (name: string, d: number) => new THREE.AnimationClip(name, d, BONES.map((b) => new THREE.QuaternionKeyframeTrack(`${b}.quaternion`, [0, d], [0, 0, 0, 1, 0, 0, 0, 1])));
 const angleAt = (c: THREE.AnimationClip, bone: string, t: number): number => {
   const tr = c.tracks.find((k) => k.name === `${bone}.quaternion`)!;
-  const v = (tr.createInterpolant() as unknown as { evaluate(t: number): ArrayLike<number> }).evaluate(t);
+  const v = ((tr as unknown as { createInterpolant(): { evaluate(t: number): ArrayLike<number> } }).createInterpolant()).evaluate(t);
   return (new THREE.Quaternion(v[0], v[1], v[2], v[3]).angleTo(new THREE.Quaternion()) * 180) / Math.PI;
 };
 
