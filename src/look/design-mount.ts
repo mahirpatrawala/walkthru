@@ -59,7 +59,7 @@ export function autoFixtures(layout: Layout, items: FurnitureItem[], st: StyleSt
   if (st.pack.decor.curtains) {
     for (const o of layout.openings) {
       const room = rooms.get(o.roomId);
-      if (o.type !== 'window' || !room || room.partial || (room.roomType !== 'bedroom' && room.roomType !== 'living') || o.widthM < 0.9) continue;
+      if (o.type !== 'window' || !room || room.partial || (room.roomType !== 'bedroom' && room.roomType !== 'living') || o.widthM < 0.9 || (o.sillM ?? 0.9) < 0.3) continue; // a floor-length opening is a way out, not a window: no curtain across its walkway
       const f = frames.find((x) => x.roomId === o.roomId && x.edge === o.edge);
       if (!f) continue;
       const u0 = Math.max(0.05, o.centreM - o.widthM / 2 - 0.25), u1 = Math.min(f.length - 0.05, o.centreM + o.widthM / 2 + 0.25);
