@@ -51,15 +51,19 @@ describe('building validation', () => {
   it('the empty twin has no furniture anywhere; the furnished tower has some in the lobby and the flats', () => {
     for (const l of readBuilding('sample-tower-empty').levels) for (const s of l.spaces) expect(readScene(s.sceneId)!.furniture, s.sceneId).toEqual([]);
     expect(readScene('test-tower-lobby')!.furniture.length).toBeGreaterThan(0);
-    expect(readScene('test-tower-flat-2bhk-a')!.furniture.length).toBeGreaterThan(0);
+    expect(readScene('test-tower-flat-2bhk-b2')!.furniture.length).toBeGreaterThan(0);
   });
 
   it('realistic sizes: corridor 1.8 m, lift car 1.1 x 1.4 m with a 0.9 m door, main doors 1.0 m, taller lobby', () => {
     const b = readBuilding('sample-tower');
     const cor = readScene('test-tower-corridor')!;
+    // the corridor's stem is 1.8 m wide; a bay of it reaches out to a recessed door
     const room = cor.layout.rooms.find((r) => r.label === 'Corridor')!;
     const xs = room.polygon.map((p) => p.x);
-    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(1.8, 2);
+    expect(Math.min(...xs)).toBeLessThanOrEqual(-0.9 + 1e-6);
+    expect(Math.max(...xs)).toBeGreaterThanOrEqual(0.9 - 1e-6);
+    expect(xs.filter((x) => Math.abs(x - 0.9) < 1e-6).length).toBeGreaterThanOrEqual(2);
+    expect(xs.filter((x) => Math.abs(x + 0.9) < 1e-6).length).toBeGreaterThanOrEqual(2);
     expect(b.lifts[0].car).toEqual({ widthM: 1.1, depthM: 1.4, doorM: 0.9 });
     for (const l of b.levels) for (const s of l.spaces) for (const p of s.portals) {
       const o = readScene(s.sceneId)!.layout.openings.find((q) => q.id === p.opening)!;
@@ -117,7 +121,7 @@ describe('validation catches what it is for', () => {
   const b = readBuilding('sample-tower');
 
   it('a main door of another width on one side', () => {
-    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'test-tower-flat-3bhk') p.layout.openings.find((o) => o.id === b.levels[2].spaces.find((s) => s.sceneId === id)!.portals[0].opening)!.widthM = 0.8; }));
+    const rep = validateBuilding(b, lookup((id, p) => { if (id === 'test-tower-flat-3bhk-b') p.layout.openings.find((o) => o.id === b.levels[2].spaces.find((s) => s.sceneId === id)!.portals[0].opening)!.widthM = 0.8; }));
     expect(rep.errors.some((e) => /door widths differ \(0\.80 m and /.test(e))).toBe(true);
   });
   it('a door moved along the wall so the two sides no longer meet', () => {

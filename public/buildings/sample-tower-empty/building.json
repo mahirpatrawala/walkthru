@@ -1,29 +1,27 @@
 {
   "version": 1,
   "id": "sample-tower-empty",
-  "name": "Sample Tower, empty (made-up)",
-  "subtitle": "The same tower with every room unfurnished: where a builder starts",
+  "name": "Sample Tower, empty",
+  "subtitle": "The same tower with every room unfurnished: where a builder starts. The flats and the clubhouse level follow a published builder brochure; the floor arrangement around the lift lobby is ours.",
   "sample": true,
-  "note": "Sample layout for demonstration. The clubhouse level follows the amenity plan of a published builder brochure, scaled from its one printed dimension (the 25 m lap pool); sizes are not measured.",
+  "note": "Sample layout for demonstration. The flats follow the printed plans of a published builder brochure (room sizes as printed); the clubhouse level follows its amenity plan, scaled from its one printed dimension (the 25 m lap pool), sizes not measured. The floor arrangement around the lift lobby is ours.",
   "floorToFloorM": 3.1,
   "flatTypes": {
-    "1bhk": {
-      "name": "1 BHK",
-      "sceneId": "test-tower-empty-flat-1bhk",
-      "mirrorSceneId": "test-tower-empty-flat-1bhk-m"
+    "3bhk-a": {
+      "name": "3 BHK · 1,117 sq ft",
+      "sceneId": "test-tower-empty-flat-3bhk-a"
     },
-    "2bhk-a": {
-      "name": "2 BHK (A)",
-      "sceneId": "test-tower-empty-flat-2bhk-a"
+    "3bhk-b": {
+      "name": "3 BHK · 930 sq ft",
+      "sceneId": "test-tower-empty-flat-3bhk-b"
     },
-    "2bhk-b": {
-      "name": "2 BHK (B)",
-      "sceneId": "test-tower-empty-flat-2bhk-b",
-      "mirrorSceneId": "test-tower-empty-flat-2bhk-b-m"
+    "2bhk-b2": {
+      "name": "2 BHK · 589 sq ft",
+      "sceneId": "test-tower-empty-flat-2bhk-b2"
     },
-    "3bhk": {
-      "name": "3 BHK",
-      "sceneId": "test-tower-empty-flat-3bhk"
+    "2bhk-b4": {
+      "name": "2 BHK · 644 sq ft",
+      "sceneId": "test-tower-empty-flat-2bhk-b4"
     }
   },
   "lifts": [
@@ -783,6 +781,9 @@
             "z": 0,
             "rotDeg": 0
           },
+          "notes": [
+            "Flat plans follow a published builder brochure. The floor arrangement around the lift lobby is ours."
+          ],
           "portals": [
             {
               "id": "lift-a",
@@ -844,7 +845,7 @@
             {
               "id": "flat-204",
               "kind": "door",
-              "opening": "door-sw",
+              "opening": "door-n",
               "to": {
                 "space": "f2-204",
                 "portal": "main"
@@ -859,19 +860,24 @@
         {
           "id": "f2-201",
           "kind": "home",
-          "name": "Flat 201 · 3 BHK",
-          "sceneId": "test-tower-empty-flat-3bhk",
-          "type": "3bhk",
+          "name": "Flat 201 · 2 BHK · 644 sq ft",
+          "sceneId": "test-tower-empty-flat-2bhk-b4",
+          "type": "2bhk-b4",
           "placement": {
-            "x": 4.997306893797185,
-            "z": 6.5277959591481585,
-            "rotDeg": 90
+            "x": 2.04,
+            "z": 11.43,
+            "rotDeg": 270
           },
+          "notes": [
+            "Plan follows a published builder brochure. Stated RERA carpet area 59.85 sq m (644 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 58.8 sq m.",
+            "The brochure's own plan faces east (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces east.",
+            "Unfurnished."
+          ],
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-8",
+              "opening": "door-main",
               "to": {
                 "space": "f2-corridor",
                 "portal": "flat-201"
@@ -886,20 +892,24 @@
         {
           "id": "f2-202",
           "kind": "home",
-          "name": "Flat 202 · 1 BHK",
-          "sceneId": "test-tower-empty-flat-1bhk-m",
-          "type": "1bhk",
-          "mirrored": true,
+          "name": "Flat 202 · 2 BHK · 589 sq ft",
+          "sceneId": "test-tower-empty-flat-2bhk-b2",
+          "type": "2bhk-b2",
           "placement": {
-            "x": 4.357500059708305,
-            "z": 17.338092947253443,
-            "rotDeg": 90
+            "x": 1.3,
+            "z": 21.14,
+            "rotDeg": 270
           },
+          "notes": [
+            "Plan follows a published builder brochure. Stated RERA carpet area 54.74 sq m (589 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 54.2 sq m.",
+            "The brochure's own plan faces east (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces east.",
+            "Unfurnished."
+          ],
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-5",
+              "opening": "door-main",
               "to": {
                 "space": "f2-corridor",
                 "portal": "flat-202"
@@ -914,19 +924,24 @@
         {
           "id": "f2-203",
           "kind": "home",
-          "name": "Flat 203 · 2 BHK (A)",
-          "sceneId": "test-tower-empty-flat-2bhk-a",
-          "type": "2bhk-a",
+          "name": "Flat 203 · 3 BHK · 930 sq ft",
+          "sceneId": "test-tower-empty-flat-3bhk-b",
+          "type": "3bhk-b",
           "placement": {
-            "x": -4.45749992957482,
-            "z": 5.455000539926382,
-            "rotDeg": 270
+            "x": -1.2,
+            "z": 5.14,
+            "rotDeg": 90
           },
+          "notes": [
+            "Plan follows a published builder brochure. Stated RERA carpet area 86.4 sq m (930 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 85.3 sq m.",
+            "The brochure's own plan faces west (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces west.",
+            "Unfurnished."
+          ],
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-8",
+              "opening": "door-main",
               "to": {
                 "space": "f2-corridor",
                 "portal": "flat-203"
@@ -941,20 +956,24 @@
         {
           "id": "f2-204",
           "kind": "home",
-          "name": "Flat 204 · 2 BHK (B)",
-          "sceneId": "test-tower-empty-flat-2bhk-b-m",
-          "type": "2bhk-b",
-          "mirrored": true,
+          "name": "Flat 204 · 3 BHK · 1,117 sq ft",
+          "sceneId": "test-tower-empty-flat-3bhk-a",
+          "type": "3bhk-a",
           "placement": {
-            "x": -4.357507962013844,
-            "z": 16.874995391298498,
-            "rotDeg": 270
+            "x": 0.63,
+            "z": 4.88,
+            "rotDeg": 180
           },
+          "notes": [
+            "Plan follows a published builder brochure. Stated RERA carpet area 103.76 sq m (1,117 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 100.8 sq m.",
+            "The brochure's own plan faces west (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces north.",
+            "Unfurnished."
+          ],
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-8",
+              "opening": "door-main",
               "to": {
                 "space": "f2-corridor",
                 "portal": "flat-204"
@@ -984,6 +1003,9 @@
             "z": 0,
             "rotDeg": 0
           },
+          "notes": [
+            "Flat plans follow a published builder brochure. The floor arrangement around the lift lobby is ours."
+          ],
           "portals": [
             {
               "id": "lift-a",
@@ -1045,7 +1067,7 @@
             {
               "id": "flat-304",
               "kind": "door",
-              "opening": "door-sw",
+              "opening": "door-n",
               "to": {
                 "space": "f3-304",
                 "portal": "main"
@@ -1060,19 +1082,24 @@
         {
           "id": "f3-301",
           "kind": "home",
-          "name": "Flat 301 · 3 BHK",
-          "sceneId": "test-tower-empty-flat-3bhk",
-          "type": "3bhk",
+          "name": "Flat 301 · 2 BHK · 644 sq ft",
+          "sceneId": "test-tower-empty-flat-2bhk-b4",
+          "type": "2bhk-b4",
           "placement": {
-            "x": 4.997306893797185,
-            "z": 6.5277959591481585,
-            "rotDeg": 90
+            "x": 2.04,
+            "z": 11.43,
+            "rotDeg": 270
           },
+          "notes": [
+            "Plan follows a published builder brochure. Stated RERA carpet area 59.85 sq m (644 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 58.8 sq m.",
+            "The brochure's own plan faces east (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces east.",
+            "Unfurnished."
+          ],
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-8",
+              "opening": "door-main",
               "to": {
                 "space": "f3-corridor",
                 "portal": "flat-301"
@@ -1087,20 +1114,24 @@
         {
           "id": "f3-302",
           "kind": "home",
-          "name": "Flat 302 · 1 BHK",
-          "sceneId": "test-tower-empty-flat-1bhk-m",
-          "type": "1bhk",
-          "mirrored": true,
+          "name": "Flat 302 · 2 BHK · 589 sq ft",
+          "sceneId": "test-tower-empty-flat-2bhk-b2",
+          "type": "2bhk-b2",
           "placement": {
-            "x": 4.357500059708305,
-            "z": 17.338092947253443,
-            "rotDeg": 90
+            "x": 1.3,
+            "z": 21.14,
+            "rotDeg": 270
           },
+          "notes": [
+            "Plan follows a published builder brochure. Stated RERA carpet area 54.74 sq m (589 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 54.2 sq m.",
+            "The brochure's own plan faces east (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces east.",
+            "Unfurnished."
+          ],
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-5",
+              "opening": "door-main",
               "to": {
                 "space": "f3-corridor",
                 "portal": "flat-302"
@@ -1115,19 +1146,24 @@
         {
           "id": "f3-303",
           "kind": "home",
-          "name": "Flat 303 · 2 BHK (A)",
-          "sceneId": "test-tower-empty-flat-2bhk-a",
-          "type": "2bhk-a",
+          "name": "Flat 303 · 3 BHK · 930 sq ft",
+          "sceneId": "test-tower-empty-flat-3bhk-b",
+          "type": "3bhk-b",
           "placement": {
-            "x": -4.45749992957482,
-            "z": 5.455000539926382,
-            "rotDeg": 270
+            "x": -1.2,
+            "z": 5.14,
+            "rotDeg": 90
           },
+          "notes": [
+            "Plan follows a published builder brochure. Stated RERA carpet area 86.4 sq m (930 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 85.3 sq m.",
+            "The brochure's own plan faces west (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces west.",
+            "Unfurnished."
+          ],
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-8",
+              "opening": "door-main",
               "to": {
                 "space": "f3-corridor",
                 "portal": "flat-303"
@@ -1142,20 +1178,24 @@
         {
           "id": "f3-304",
           "kind": "home",
-          "name": "Flat 304 · 2 BHK (B)",
-          "sceneId": "test-tower-empty-flat-2bhk-b-m",
-          "type": "2bhk-b",
-          "mirrored": true,
+          "name": "Flat 304 · 3 BHK · 1,117 sq ft",
+          "sceneId": "test-tower-empty-flat-3bhk-a",
+          "type": "3bhk-a",
           "placement": {
-            "x": -4.357507962013844,
-            "z": 16.874995391298498,
-            "rotDeg": 270
+            "x": 0.63,
+            "z": 4.88,
+            "rotDeg": 180
           },
+          "notes": [
+            "Plan follows a published builder brochure. Stated RERA carpet area 103.76 sq m (1,117 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 100.8 sq m.",
+            "The brochure's own plan faces west (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces north.",
+            "Unfurnished."
+          ],
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-8",
+              "opening": "door-main",
               "to": {
                 "space": "f3-corridor",
                 "portal": "flat-304"

@@ -39,8 +39,10 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   const group = new THREE.Group();
   group.name = `door:${d.id}`;
   const kind = style?.kind ?? 'plain';
+  // a sliding leaf is the balcony's glazed door (an aluminium frame round tinted glass), not a flush panel; a building's portal styles keep their own look
+  const glazed = kind === 'glass' || (kind === 'plain' && d.kind === 'sliding');
   // a building's main door is a heavier slab; the rest keep the 35 mm flush leaf
-  const T = kind === 'main' ? 0.045 : kind === 'glass' ? 0.04 : DOOR_THICKNESS_M;
+  const T = kind === 'main' ? 0.045 : glazed ? 0.04 : DOOR_THICKNESS_M;
   const H = Math.max(0.5, d.topM - DOOR_FLOOR_GAP_M);
   const W = d.panelWidthM;
   // a teak-laminate flush door: lighter than the dark frame so the panel reads as wood, not a black slab
@@ -65,7 +67,7 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   // which local face is the room's: local +Z points inward while the leaf hangs from the edge's start, outward when it hangs from the end
   const plateSide = (style?.plateSide ?? 1) * (d.hinge === 'start' ? 1 : -1);
   const mat = (m: THREE.Material): THREE.Material => { extra.push(m); return m; };
-  if (kind === 'glass') {
+  if (glazed) {
     // a slim satin-aluminium frame (4.5 cm stiles and head, a 12 cm kick rail) round a pane of lightly tinted, reflective glass, a stainless pull bar on both faces
     const frame = mat(new THREE.MeshStandardMaterial({ color: '#C5CBCF', roughness: 0.32, metalness: 0.55 }));
     const glass = mat(new THREE.MeshPhysicalMaterial({ color: '#9DBFC8', roughness: 0.03, metalness: 0, transparent: true, opacity: 0.3, specularIntensity: 1, envMapIntensity: 1.6, side: THREE.DoubleSide }));
@@ -96,7 +98,7 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   }
   // the handle sits by the free edge, on both faces: a round rose and a short lever pointing back along the panel
   const hx = W - 0.07;
-  if (kind !== 'glass' && kind !== 'lift') for (const side of [1, -1]) {
+  if (!glazed && kind !== 'lift') for (const side of [1, -1]) {
     add(new THREE.CylinderGeometry(0.026, 0.026, 0.012, 20), handleMat, 'door-handle', hx, HANDLE_Y_M, side * (T / 2 + 0.006), Math.PI / 2);
     add(new THREE.BoxGeometry(0.115, 0.018, 0.016), handleMat, 'door-handle', hx - 0.045, HANDLE_Y_M - 0.012, side * (T / 2 + 0.034));
     add(new THREE.BoxGeometry(0.018, 0.018, 0.034), handleMat, 'door-handle', hx, HANDLE_Y_M - 0.004, side * (T / 2 + 0.017));

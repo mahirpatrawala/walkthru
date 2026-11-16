@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "pack": "light-scandinavian",
+  "source": "typical",
+  "note": "The internal specification of a published builder brochure, as finishes of this look: vitrified floors in the living, dining, bedrooms, kitchen and passages; premium tiles in the utility, the balcony and the toilets; a quartz kitchen platform; flush doors with a laminate finish. Colours are typical, the specification gives none.",
+  "items": {
+    "decor": {
+      "roles": {
+        "door": "white-laminate"
+      }
+    },
+    "counter-k-east": {
+      "roles": {
+        "top": "white-stone"
+      }
+    },
+    "counter-k-south": {
+      "roles": {
+        "top": "white-stone"
+      }
+    }
+  },
+  "rooms": {
+    "master-bedroom": {
+      "floor": "tile-ivory-gloss"
+    },
+    "master-toilet": {
+      "floor": "tile-grey",
+      "wall": "tile-grey"
+    },
+    "master-passage": {
+      "floor": "tile-ivory-gloss"
+    },
+    "passage": {
+      "floor": "tile-ivory-gloss"
+    },
+    "toilet-2": {
+      "floor": "tile-grey",
+      "wall": "tile-grey"
+    },
+    "dining": {
+      "floor": "tile-ivory-gloss"
+    },
+    "living": {
+      "floor": "tile-ivory-gloss"
+    },
+    "bedroom-2": {
+      "floor": "tile-ivory-gloss"
+    },
+    "kitchen": {
+      "floor": "tile-ivory-gloss"
+    },
+    "bedroom-1": {
+      "floor": "tile-ivory-gloss"
+    },
+    "toilet-1": {
+      "floor": "tile-grey",
+      "wall": "tile-grey"
+    },
+    "balcony": {
+      "floor": "tile-sand"
+    }
+  },
+  "fixtures": [
+    {
+      "kind": "ac",
+      "roomId": "living",
+      "edge": 1,
+      "u": 4.57,
+      "y": 2.1
+    },
+    {
+      "kind": "ac",
+      "roomId": "master-bedroom",
+      "edge": 3,
+      "u": 2.08,
+      "y": 2.1
+    },
+    {
+      "kind": "ac",
+      "roomId": "bedroom-2",
+      "edge": 3,
+      "u": 1.79,
+      "y": 2.1
+    },
+    {
+      "kind": "ac",
+      "roomId": "bedroom-1",
+      "edge": 3,
+      "u": 1.76,
+      "y": 2.1
+    }
+  ]
+}

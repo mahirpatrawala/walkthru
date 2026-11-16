@@ -1,0 +1,206 @@
+{
+  "version": 1,
+  "sourceFile": "typed room sizes from a published builder brochure",
+  "planPage": 1,
+  "scale": {
+    "ptPerM": 0,
+    "votes": [],
+    "agreeing": 0,
+    "disagreementPct": 0,
+    "note": "sizes are typed, not measured off an image"
+  },
+  "rooms": [
+    {
+      "id": "living",
+      "label": "Living with foyer",
+      "roomType": "living",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 3.05,
+        "l": 4.83
+      },
+      "areaM2": 15.5655,
+      "verified": true
+    },
+    {
+      "id": "dining",
+      "label": "Dining",
+      "roomType": "living",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 2.22,
+        "l": 2.46
+      },
+      "areaM2": 5.461199999999998,
+      "verified": true
+    },
+    {
+      "id": "kitchen",
+      "label": "Kitchen",
+      "roomType": "kitchen",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 2.12,
+        "l": 2.52
+      },
+      "areaM2": 5.342400000000001,
+      "verified": true
+    },
+    {
+      "id": "utility",
+      "label": "Utility",
+      "roomType": "other",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 0.6858,
+        "l": 1.9558000000000002
+      },
+      "areaM2": 1.352400000000003,
+      "verified": true
+    },
+    {
+      "id": "toilet-1",
+      "label": "Toilet 1",
+      "roomType": "bathroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.37,
+        "l": 1.97
+      },
+      "areaM2": 2.698900000000001,
+      "verified": true
+    },
+    {
+      "id": "cupboard",
+      "label": "Cupboard",
+      "roomType": "other",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 0.508,
+        "l": 2.9972000000000003
+      },
+      "areaM2": 1.4999999999999991,
+      "verified": true
+    },
+    {
+      "id": "passage",
+      "label": "Passage",
+      "roomType": "other",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 0.889,
+        "l": 1.524
+      },
+      "areaM2": 1.3527999999999984,
+      "verified": true
+    },
+    {
+      "id": "master-passage",
+      "label": "Master bed passage",
+      "roomType": "other",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 0.889,
+        "l": 1.4732
+      },
+      "areaM2": 1.308300000000001,
+      "verified": true
+    },
+    {
+      "id": "master-toilet",
+      "label": "Master toilet",
+      "roomType": "bathroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.37,
+        "l": 2.27
+      },
+      "areaM2": 3.109899999999996,
+      "verified": true
+    },
+    {
+      "id": "master-bedroom",
+      "label": "Master bedroom",
+      "roomType": "bedroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 3.05,
+        "l": 3.85
+      },
+      "areaM2": 11.742499999999993,
+      "verified": true
+    },
+    {
+      "id": "bedroom-1",
+      "label": "Bedroom 1",
+      "roomType": "bedroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 2.85,
+        "l": 2.95
+      },
+      "areaM2": 8.407500000000002,
+      "verified": true
+    },
+    {
+      "id": "deck",
+      "label": "Deck",
+      "roomType": "balcony",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.1176000000000001,
+        "l": 2.9718000000000004
+      },
+      "areaM2": 3.3264000000000014,
+      "verified": true
+    }
+  ],
+  "ceiling": {
+    "heightM": 2.75,
+    "method": "default",
+    "page": null,
+    "candidatesM": [],
+    "confidence": 0.1,
+    "verified": false
+  },
+  "furniture": [],
+  "unmapped": [],
+  "spawn": {
+    "x": 0.9,
+    "z": 0.9,
+    "yawDeg": 180
+  },
+  "carpet": {
+    "statedM2": 59.85,
+    "usableM2": 64.85,
+    "roomsM2": 56.49,
+    "partitionsM2": 2.28,
+    "deviationPct": -1.81,
+    "tolerancePct": 3
+  },
+  "assumptions": [
+    "Room sizes are the plan's printed sizes. Where a room sits is scaled off the plan's picture, to about 10 cm.",
+    "Door and window widths, sill and head heights, wall thicknesses and the ceiling height are not printed: they are scaled off the picture or typical, and not measured.",
+    "Furniture, fittings and the balcony chairs are the plan's \"artist's conception\": drawn where the plan draws them, at catalogue sizes, illustrative.",
+    "Reading: the main door is in the foyer's north wall, hinged at its west end (the leaf is drawn there). The foyer is only 0.60 m deep and open to the living room along its whole south side, so it is built as one part of the living room (two printed rectangles, 3.05 x 4.83 and 1.39 x 0.60).",
+    "Reading: the 'cupboard' is a 3.00 x 0.50 m niche of built-in wardrobe, open to the passage and the master bedroom; the master bedroom is entered from the 'master bed passage' through a doorless opening.",
+    "Reading: the long glazed strip between the kitchen and the utility is a 1.5 m sliding door.",
+    "Not drawn: a second leaf drawn in the passage with no wall to hang on, and a hob (no catalogue piece); the deck's west wall is drawn solid."
+  ],
+  "warnings": [
+    "Ceiling height not given by the source. Using 2.75 m. Not confirmed.",
+    "Door and window sizes are scaled from the plan, not measured."
+  ]
+}

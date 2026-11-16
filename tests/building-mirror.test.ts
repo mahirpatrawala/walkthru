@@ -7,17 +7,23 @@ import { doorFrame, mirrorDesigns, mirrorLayout, mirrorProperty } from '../src/b
 import { readBuilding, readScene } from './helpers/sample-building';
 
 const types = readBuilding('sample-tower').flatTypes;
-const mirrored = Object.entries(types).filter(([, t]) => t.mirrorSceneId);
+// The four flats of the tower follow a builder's plans as printed, so none is stored mirrored (a mirror is only made where a plate needs one). The mirror
+// itself is still exercised on every flat here, in memory, the way the generator makes one.
+const mirrored = Object.entries(types).map(([type, t]) => {
+  const a = readScene(t.sceneId)!;
+  return [type, { sceneId: t.sceneId, a, m: mirrorProperty(a, `${t.sceneId}-m`, a.title, a.subtitle) }] as const;
+});
 
 describe('mirrored flat instances', () => {
-  it('the tower uses mirror images, and each is stored once next to its design', () => {
-    expect(mirrored.length).toBeGreaterThanOrEqual(2);
-    for (const [, t] of mirrored) { expect(readScene(t.sceneId)).toBeTruthy(); expect(readScene(t.mirrorSceneId!)).toBeTruthy(); }
+  it('the brochure flats are built as printed: no flat of the tower is stored mirrored, and every flat can be mirrored', () => {
+    for (const t of Object.values(types)) expect(t.mirrorSceneId).toBeUndefined();
+    expect(mirrored.length).toBe(4);
+    for (const [, t] of mirrored) { expect(t.a).toBeTruthy(); expect(t.m.id).toBe(`${t.sceneId}-m`); }
   });
 
   for (const [type, t] of mirrored) {
     describe(type, () => {
-      const a = readScene(t.sceneId)!, m = readScene(t.mirrorSceneId!)!;
+      const { a, m } = t;
       it('every room keeps its area and the carpet area is equal', () => {
         for (const r of a.layout.rooms) {
           const q = m.layout.rooms.find((x) => x.id === r.id)!;
@@ -68,7 +74,7 @@ describe('mirrored flat instances', () => {
   }
 
   it('mirroring twice gives the layout back', () => {
-    const a = readScene(mirrored[0][1].sceneId)!;
+    const a = mirrored[0][1].a;
     const back = mirrorLayout(mirrorLayout(a.layout));
     for (const r of a.layout.rooms) {
       const q = back.rooms.find((x) => x.id === r.id)!;
@@ -89,7 +95,7 @@ describe('mirrored flat instances', () => {
   });
 
   it('a property mirrors with its spawn and loses a splat', () => {
-    const a = readScene(mirrored[0][1].sceneId)!;
+    const a = mirrored[0][1].a;
     const p = mirrorProperty(a, 'x-m', 'T', 'sample');
     expect(p.spawn.x).toBeCloseTo(-a.spawn.x, 6);
     expect(p.id).toBe('x-m');

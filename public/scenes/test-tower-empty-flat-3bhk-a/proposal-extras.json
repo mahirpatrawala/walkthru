@@ -1,0 +1,261 @@
+{
+  "version": 1,
+  "sourceFile": "typed room sizes from a published builder brochure",
+  "planPage": 1,
+  "scale": {
+    "ptPerM": 0,
+    "votes": [],
+    "agreeing": 0,
+    "disagreementPct": 0,
+    "note": "sizes are typed, not measured off an image"
+  },
+  "rooms": [
+    {
+      "id": "living",
+      "label": "Living",
+      "roomType": "living",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 3.81,
+        "l": 5.55
+      },
+      "areaM2": 21.145500000000006,
+      "verified": true
+    },
+    {
+      "id": "dining",
+      "label": "Dining",
+      "roomType": "living",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 2.65,
+        "l": 3.22
+      },
+      "areaM2": 8.533000000000001,
+      "verified": true
+    },
+    {
+      "id": "passage-b",
+      "label": "Passage",
+      "roomType": "other",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.0414,
+        "l": 1.6764000000000001
+      },
+      "areaM2": 1.7471999999999994,
+      "verified": true
+    },
+    {
+      "id": "passage-a",
+      "label": "Passage",
+      "roomType": "other",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.524,
+        "l": 1.6256
+      },
+      "areaM2": 2.4775999999999954,
+      "verified": true
+    },
+    {
+      "id": "kitchen",
+      "label": "Kitchen",
+      "roomType": "kitchen",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 2.42,
+        "l": 3.1
+      },
+      "areaM2": 7.501999999999999,
+      "verified": true
+    },
+    {
+      "id": "utility",
+      "label": "Utility",
+      "roomType": "other",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.52,
+        "l": 1.57
+      },
+      "areaM2": 2.3863999999999983,
+      "verified": true
+    },
+    {
+      "id": "s-room",
+      "label": "Servant room",
+      "roomType": "bedroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.37,
+        "l": 2.55
+      },
+      "areaM2": 4.8420000000000005,
+      "verified": true
+    },
+    {
+      "id": "s-toilet",
+      "label": "Servant toilet",
+      "roomType": "bathroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 0.9,
+        "l": 1.45
+      },
+      "areaM2": 1.3050000000000006,
+      "verified": true
+    },
+    {
+      "id": "master-toilet",
+      "label": "Master toilet",
+      "roomType": "bathroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.52,
+        "l": 2.2
+      },
+      "areaM2": 3.344000000000001,
+      "verified": true
+    },
+    {
+      "id": "powder-toilet",
+      "label": "Powder toilet",
+      "roomType": "bathroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.17,
+        "l": 1.52
+      },
+      "areaM2": 1.7784000000000049,
+      "verified": true
+    },
+    {
+      "id": "master-bedroom",
+      "label": "Master bedroom",
+      "roomType": "bedroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 3.07,
+        "l": 4.02
+      },
+      "areaM2": 12.341399999999998,
+      "verified": true
+    },
+    {
+      "id": "toilet-1",
+      "label": "Toilet 1",
+      "roomType": "bathroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.52,
+        "l": 2.25
+      },
+      "areaM2": 3.4200000000000017,
+      "verified": true
+    },
+    {
+      "id": "bedroom-1",
+      "label": "Bedroom 1",
+      "roomType": "bedroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 3.37,
+        "l": 3.65
+      },
+      "areaM2": 12.3005,
+      "verified": true
+    },
+    {
+      "id": "bedroom-2",
+      "label": "Bedroom 2",
+      "roomType": "bedroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 3.05,
+        "l": 3.65
+      },
+      "areaM2": 11.1325,
+      "verified": true
+    },
+    {
+      "id": "toilet-2",
+      "label": "Toilet 2",
+      "roomType": "bathroom",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.27,
+        "l": 2.45
+      },
+      "areaM2": 3.1115000000000066,
+      "verified": true
+    },
+    {
+      "id": "balcony",
+      "label": "Balcony",
+      "roomType": "balcony",
+      "method": "label-rect",
+      "confidence": 1,
+      "labelDims": {
+        "w": 1.3716,
+        "l": 3.6068000000000002
+      },
+      "areaM2": 4.945700000000002,
+      "verified": true
+    }
+  ],
+  "ceiling": {
+    "heightM": 2.75,
+    "method": "default",
+    "page": null,
+    "candidatesM": [],
+    "confidence": 0.1,
+    "verified": false
+  },
+  "furniture": [],
+  "unmapped": [],
+  "spawn": {
+    "x": 0.98,
+    "z": 6.6,
+    "yawDeg": 180
+  },
+  "carpet": {
+    "statedM2": 103.76,
+    "usableM2": 110.93,
+    "roomsM2": 94.98,
+    "partitionsM2": 5.78,
+    "deviationPct": -2.89,
+    "tolerancePct": 3
+  },
+  "assumptions": [
+    "Room sizes are the plan's printed sizes. Where a room sits is scaled off the plan's picture, to about 10 cm.",
+    "Door and window widths, sill and head heights, wall thicknesses and the ceiling height are not printed: they are scaled off the picture or typical, and not measured.",
+    "Furniture, fittings and the balcony chairs are the plan's \"artist's conception\": drawn where the plan draws them, at catalogue sizes, illustrative.",
+    "Reading: the leaf drawn in the east wall of the servant room's second part leads to a shaft side this tower does not have. It is not built, the wall is closed.",
+    "Reading: the thin pale partition between the kitchen and the utility is a doorless opening 0.9 m wide, and the gap between the servant room and the utility another of 0.8 m, so the servant block can be walked.",
+    "Reading: the main door is in the north wall of the living room, at its west end (the leaf is drawn there, and the typical floor plan puts the lift lobby in front of it): the flat sits in a recess of the brochure's floor outline.",
+    "Reading: the powder toilet's leaf is hinged at the south-east corner of its south wall, so the door opens onto the passage. The master toilet's leaf is read as a door in its east wall, an en-suite to the master bedroom.",
+    "Reading: the two C.PASSAGE rectangles of the table (no metric label on the plan) are placed where the plan shows floor between the rooms.",
+    "Not drawn: the strip between the master toilet and the utility (a vent, not a window onto outside), and a hob, which the catalogue has no piece for (the platform is one box).",
+    "The balcony's west wall is drawn solid, as the plan draws it."
+  ],
+  "warnings": [
+    "Ceiling height not given by the source. Using 2.75 m. Not confirmed.",
+    "Door and window sizes are scaled from the plan, not measured."
+  ]
+}

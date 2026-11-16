@@ -1,0 +1,576 @@
+{
+  "version": 1,
+  "id": "test-tower-empty-flat-2bhk-b4",
+  "title": "Flat · 2 BHK, 644 sq ft",
+  "layout": {
+    "wallHeightM": 2.75,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "living",
+        "roomType": "living",
+        "label": "Living with foyer",
+        "polygon": [
+          {
+            "x": 0,
+            "z": -0.6
+          },
+          {
+            "x": 1.39,
+            "z": -0.6
+          },
+          {
+            "x": 1.39,
+            "z": 0
+          },
+          {
+            "x": 3.05,
+            "z": 0
+          },
+          {
+            "x": 3.05,
+            "z": 2.46
+          },
+          {
+            "x": 3.05,
+            "z": 4.83
+          },
+          {
+            "x": 0,
+            "z": 4.83
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "none",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "dining",
+        "roomType": "living",
+        "label": "Dining",
+        "polygon": [
+          {
+            "x": 3.05,
+            "z": 0
+          },
+          {
+            "x": 5.27,
+            "z": 0
+          },
+          {
+            "x": 5.27,
+            "z": 1.57
+          },
+          {
+            "x": 5.27,
+            "z": 2.46
+          },
+          {
+            "x": 3.05,
+            "z": 2.46
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "none",
+          "wall",
+          "none"
+        ]
+      },
+      {
+        "id": "kitchen",
+        "roomType": "kitchen",
+        "label": "Kitchen",
+        "polygon": [
+          {
+            "x": 3.05,
+            "z": 2.57
+          },
+          {
+            "x": 5.17,
+            "z": 2.57
+          },
+          {
+            "x": 5.17,
+            "z": 5.09
+          },
+          {
+            "x": 3.05,
+            "z": 5.09
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "utility",
+        "roomType": "other",
+        "label": "Utility",
+        "polygon": [
+          {
+            "x": 3.2,
+            "z": 5.22
+          },
+          {
+            "x": 5.16,
+            "z": 5.22
+          },
+          {
+            "x": 5.16,
+            "z": 5.91
+          },
+          {
+            "x": 3.2,
+            "z": 5.91
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "toilet-1",
+        "roomType": "bathroom",
+        "label": "Toilet 1",
+        "polygon": [
+          {
+            "x": 5.38,
+            "z": -0.52
+          },
+          {
+            "x": 6.75,
+            "z": -0.52
+          },
+          {
+            "x": 6.75,
+            "z": 1.45
+          },
+          {
+            "x": 5.38,
+            "z": 1.45
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "cupboard",
+        "roomType": "other",
+        "label": "Cupboard",
+        "polygon": [
+          {
+            "x": 6.87,
+            "z": 1.07
+          },
+          {
+            "x": 9.87,
+            "z": 1.07
+          },
+          {
+            "x": 9.87,
+            "z": 1.57
+          },
+          {
+            "x": 8.38,
+            "z": 1.57
+          },
+          {
+            "x": 8.26,
+            "z": 1.57
+          },
+          {
+            "x": 6.87,
+            "z": 1.57
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "none",
+          "wall",
+          "none",
+          "wall"
+        ]
+      },
+      {
+        "id": "passage",
+        "roomType": "other",
+        "label": "Passage",
+        "polygon": [
+          {
+            "x": 5.27,
+            "z": 1.57
+          },
+          {
+            "x": 6.79,
+            "z": 1.57
+          },
+          {
+            "x": 6.79,
+            "z": 2.46
+          },
+          {
+            "x": 5.27,
+            "z": 2.46
+          }
+        ],
+        "edges": [
+          "wall",
+          "none",
+          "wall",
+          "none"
+        ]
+      },
+      {
+        "id": "master-passage",
+        "roomType": "other",
+        "label": "Master bed passage",
+        "polygon": [
+          {
+            "x": 6.79,
+            "z": 1.57
+          },
+          {
+            "x": 6.87,
+            "z": 1.57
+          },
+          {
+            "x": 8.26,
+            "z": 1.57
+          },
+          {
+            "x": 8.26,
+            "z": 2.46
+          },
+          {
+            "x": 6.79,
+            "z": 2.46
+          }
+        ],
+        "edges": [
+          "wall",
+          "none",
+          "wall",
+          "wall",
+          "none"
+        ]
+      },
+      {
+        "id": "master-toilet",
+        "roomType": "bathroom",
+        "label": "Master toilet",
+        "polygon": [
+          {
+            "x": 9.99,
+            "z": -0.84
+          },
+          {
+            "x": 11.36,
+            "z": -0.84
+          },
+          {
+            "x": 11.36,
+            "z": 1.43
+          },
+          {
+            "x": 9.99,
+            "z": 1.43
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "master-bedroom",
+        "roomType": "bedroom",
+        "label": "Master bedroom",
+        "polygon": [
+          {
+            "x": 8.38,
+            "z": 1.57
+          },
+          {
+            "x": 9.87,
+            "z": 1.57
+          },
+          {
+            "x": 11.43,
+            "z": 1.57
+          },
+          {
+            "x": 11.43,
+            "z": 5.42
+          },
+          {
+            "x": 8.38,
+            "z": 5.42
+          }
+        ],
+        "edges": [
+          "none",
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "bedroom-1",
+        "roomType": "bedroom",
+        "label": "Bedroom 1",
+        "polygon": [
+          {
+            "x": 5.3,
+            "z": 2.58
+          },
+          {
+            "x": 8.25,
+            "z": 2.58
+          },
+          {
+            "x": 8.25,
+            "z": 5.43
+          },
+          {
+            "x": 5.3,
+            "z": 5.43
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "deck",
+        "roomType": "balcony",
+        "label": "Deck",
+        "polygon": [
+          {
+            "x": 0,
+            "z": 4.95
+          },
+          {
+            "x": 2.97,
+            "z": 4.95
+          },
+          {
+            "x": 2.97,
+            "z": 6.07
+          },
+          {
+            "x": 0,
+            "z": 6.07
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "railing",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-main",
+        "roomId": "living",
+        "edge": 0,
+        "type": "door",
+        "centreM": 0.86,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "open-kitchen",
+        "roomId": "kitchen",
+        "edge": 0,
+        "type": "opening",
+        "centreM": 1.1,
+        "widthM": 0.95,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "slide-kitchen-utility",
+        "roomId": "kitchen",
+        "edge": 2,
+        "type": "door",
+        "centreM": 0.85,
+        "widthM": 1.5,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "sliding"
+        }
+      },
+      {
+        "id": "slide-deck",
+        "roomId": "living",
+        "edge": 5,
+        "type": "door",
+        "centreM": 1.13,
+        "widthM": 2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "sliding"
+        }
+      },
+      {
+        "id": "door-toilet-1",
+        "roomId": "toilet-1",
+        "edge": 2,
+        "type": "door",
+        "centreM": 0.93,
+        "widthM": 0.68,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-master-toilet",
+        "roomId": "master-toilet",
+        "edge": 2,
+        "type": "door",
+        "centreM": 0.35,
+        "widthM": 0.68,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "open-master-passage",
+        "roomId": "master-bedroom",
+        "edge": 4,
+        "type": "opening",
+        "centreM": 3.4,
+        "widthM": 0.8,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "door-bedroom-1",
+        "roomId": "bedroom-1",
+        "edge": 0,
+        "type": "door",
+        "centreM": 0.56,
+        "widthM": 0.92,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "win-toilet-1",
+        "roomId": "toilet-1",
+        "edge": 1,
+        "type": "window",
+        "centreM": 1.15,
+        "widthM": 0.58,
+        "sillM": 1.5,
+        "headM": 2.1
+      },
+      {
+        "id": "win-master-toilet",
+        "roomId": "master-toilet",
+        "edge": 3,
+        "type": "window",
+        "centreM": 1.12,
+        "widthM": 0.65,
+        "sillM": 1.5,
+        "headM": 2.1
+      },
+      {
+        "id": "win-bedroom-1",
+        "roomId": "bedroom-1",
+        "edge": 2,
+        "type": "window",
+        "centreM": 1.18,
+        "widthM": 1.77,
+        "sillM": 0.9,
+        "headM": 2.1
+      },
+      {
+        "id": "win-master-bedroom",
+        "roomId": "master-bedroom",
+        "edge": 3,
+        "type": "window",
+        "centreM": 2.02,
+        "widthM": 1.67,
+        "sillM": 0.9,
+        "headM": 2.1
+      }
+    ],
+    "finishes": {
+      "wallColor": "#F2EFE9",
+      "floorColor": "#D9CFC1",
+      "tile": {
+        "wM": 0.6,
+        "lM": 0.6
+      },
+      "groutColor": "#B9AE9F",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 0.9,
+    "z": 0.9,
+    "yawDeg": 180
+  },
+  "unlisted": true,
+  "spaceKind": "home",
+  "updatedAt": "2026-11-16T00:00:00.000Z",
+  "subtitle": "Sample building · plan follows a published builder brochure, furniture illustrative"
+}

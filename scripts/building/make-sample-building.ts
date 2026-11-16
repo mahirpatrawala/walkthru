@@ -17,23 +17,33 @@ import { FLATS, readFlat } from './flats';
 import type { FlatDesign } from './flats';
 import { composeTypicalFloor, mirrorId } from './plate';
 import type { Plate } from './plate';
-import { LIFT_CAR, UPDATED_AT, corridorScene, groundLobbyScene } from './spaces';
+import { LIFT_CAR, UPDATED_AT, groundLobbyScene } from './spaces';
+import { corridorScene } from './typical-floor';
 import { furnishScene } from './furnish-spaces';
 import { buildPodium } from './podium-level';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
-export interface SceneBundle { property: PropertyFile; designs?: unknown | null; extras?: unknown | null; design?: unknown | null; /** an open-air space's outdoor.json (SPEC 19.2) */ outdoor?: OutdoorFile | null }
+export interface SceneBundle { property: PropertyFile; designs?: unknown | null; extras?: unknown | null; design?: unknown | null; /** look.json: where north is */ look?: unknown | null; /** an open-air space's outdoor.json (SPEC 19.2) */ outdoor?: OutdoorFile | null }
 export interface Built { buildings: BuildingFile[]; scenes: Map<string, SceneBundle> }
 
-/** Which flat sits where on the typical floor: east side from the north end, then west side from the north end. */
-const TYPICAL: { slot: string; side: 'E' | 'W'; type: string; mirror?: boolean }[] = [
-  { slot: '01', side: 'E', type: '3bhk' },
-  { slot: '02', side: 'E', type: '1bhk' },
-  { slot: '03', side: 'W', type: '2bhk-a' },
-  // drawn as the mirror image of its design: its foyer then sits towards the lift lobby, and the one mirrored scene of the tower proves the mirror
-  { slot: '04', side: 'W', type: '2bhk-b', mirror: true },
+/**
+ * Which flat sits where on the typical floor: east side from the north end, then west side from the north end, then the flat entered at the corridor's
+ * north end (its entrance recess is the corridor's end). The flats are the brochure's four plans, none mirrored; the arrangement around the lift lobby is ours.
+ */
+const TYPICAL: { slot: string; side: 'E' | 'W' | 'N'; type: string; mirror?: boolean }[] = [
+  { slot: '01', side: 'E', type: '2bhk-b4' },
+  { slot: '02', side: 'E', type: '2bhk-b2' },
+  { slot: '03', side: 'W', type: '3bhk-b' },
+  { slot: '04', side: 'N', type: '3bhk-a' },
 ];
+/** Which way north lies on the typical floor's plan: up the plan (towards the corridor's end where Flat x04 is entered). The floor arrangement is ours, so the sun follows this plate, not each brochure page's own compass. */
+const PLATE_NORTH_DEG = 0;
+const COMPASS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+const compassWord = (deg: number): string => COMPASS[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+/** a flat scene's north on OUR plate: the plan's -z direction, turned with the flat by its placement (the scene is shared by every floor, and every floor has the same plate) */
+const lookOf = (rotDeg: number): { version: 1; northDeg: number } => ({ version: 1, northDeg: (PLATE_NORTH_DEG + rotDeg) % 360 });
+const ARRANGEMENT_NOTE = 'Flat plans follow a published builder brochure. The floor arrangement around the lift lobby is ours.';
 /** The typical floors above the clubhouse level. */
 const TYPICAL_FLOORS = [2, 3];
 
@@ -42,7 +52,8 @@ const withFixedDate = (p: PropertyFile): PropertyFile => ({ ...p, updatedAt: UPD
 export async function buildSample(scratch: string): Promise<Built> {
   const designs: Record<string, FlatDesign> = {};
   for (const s of FLATS) designs[s.typeId] = await readFlat(s, scratch);
-  const plate: Plate = composeTypicalFloor(TYPICAL.map((t) => ({ key: t.slot, side: t.side, design: designs[t.type], ...(t.mirror ? { mirror: true } : {}) })));
+  // the flat across the north end is placed first: the side flats stack south of whatever of it stands out beside its door
+  const plate: Plate = composeTypicalFloor([...TYPICAL].sort((a, b) => Number(b.side === 'N') - Number(a.side === 'N')).map((t) => ({ key: t.slot, side: t.side, design: designs[t.type], ...(t.mirror ? { mirror: true } : {}) })));
   const scenes = new Map<string, SceneBundle>();
   const buildings: BuildingFile[] = [];
   for (const variant of ['full', 'empty'] as const) buildings.push(assemble(variant, designs, plate, scenes));
@@ -65,11 +76,11 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     const t = TYPICAL.find((x) => x.slot === f.key)!.type;
     const d = designs[t];
     const plain = (p: PropertyFile, id: string): PropertyFile => withFixedDate({ ...p, id, furniture: empty ? [] : p.furniture });
-    if (!scenes.has(flatScene(t, false))) add(flatScene(t, false), { property: plain(d.property, flatScene(t, false)), designs: empty ? null : d.designs, extras: d.extras, design: empty ? null : d.design });
+    if (!scenes.has(flatScene(t, false))) add(flatScene(t, false), { property: plain(d.property, flatScene(t, false)), designs: empty ? null : d.designs, extras: d.extras, design: empty ? d.designBare : d.design, look: lookOf(f.placement.rotDeg) });
     if (f.mirrored) {
       mirroredTypes.add(t);
       const id = flatScene(t, true);
-      if (!scenes.has(id)) add(id, { property: plain(f.property, id), designs: empty ? null : f.designs, extras: d.extras, design: empty ? null : d.design });
+      if (!scenes.has(id)) add(id, { property: plain(f.property, id), designs: empty ? null : f.designs, extras: d.extras, design: empty ? d.designBare : d.design, look: lookOf(f.placement.rotDeg) });
     }
   }
   // the typical floor's corridor (bare, shared by both variants)
@@ -115,11 +126,11 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
       cportals.push({ id: `flat-${num}`, kind: 'door', opening: corridor.flatDoor[t.slot], to: { space: `f${n}-${num}`, portal: 'main' }, label: `Flat ${num}`, prompt: `Enter Flat ${num}`, look: 'main', plate: num });
       flatSpaces.push({
         id: `f${n}-${num}`, kind: 'home', name: `Flat ${num} · ${d.spec.name}`, sceneId, type: t.type, ...(f.mirrored ? { mirrored: true } : {}),
-        placement: f.placement,
+        placement: f.placement, notes: flatNotes(d, empty, f.placement.rotDeg),
         portals: [{ id: 'main', kind: 'door', opening: d.mainOpening, to: { space: cid, portal: `flat-${num}` }, label: 'The corridor', prompt: 'To the corridor', look: 'main', plate: num }],
       });
     }
-    spaces.push({ id: cid, kind: 'corridor', name: 'Corridor and lift lobby', sceneId: corridorScene_, placement: { x: 0, z: 0, rotDeg: 0 }, portals: cportals }, ...flatSpaces);
+    spaces.push({ id: cid, kind: 'corridor', name: 'Corridor and lift lobby', sceneId: corridorScene_, placement: { x: 0, z: 0, rotDeg: 0 }, notes: [ARRANGEMENT_NOTE], portals: cportals }, ...flatSpaces);
     return { id: `l${n}`, label: `Level ${n}`, short: String(n), summary: `Flats ${n}01 to ${n}04`, spaces };
   };
   const levels: Level[] = [ground, clubhouse, ...TYPICAL_FLOORS.map(typical)];
@@ -128,10 +139,10 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
   return {
     version: 1,
     id: empty ? 'sample-tower-empty' : 'sample-tower',
-    name: empty ? 'Sample Tower, empty (made-up)' : 'Sample Tower (made-up)',
-    subtitle: empty ? 'The same tower with every room unfurnished: where a builder starts' : 'Lobby, lifts, four flats a floor and a clubhouse level that follows the amenity plan of a published builder brochure',
+    name: empty ? 'Sample Tower, empty' : 'Sample Tower',
+    subtitle: `${empty ? 'The same tower with every room unfurnished: where a builder starts' : 'Lobby, lifts, four flats a floor and a clubhouse level'}. The flats and the clubhouse level follow a published builder brochure; the floor arrangement around the lift lobby is ours.`,
     sample: true,
-    note: 'Sample layout for demonstration. The clubhouse level follows the amenity plan of a published builder brochure, scaled from its one printed dimension (the 25 m lap pool); sizes are not measured.',
+    note: 'Sample layout for demonstration. The flats follow the printed plans of a published builder brochure (room sizes as printed); the clubhouse level follows its amenity plan, scaled from its one printed dimension (the 25 m lap pool), sizes not measured. The floor arrangement around the lift lobby is ours.',
     floorToFloorM: 3.1,
     flatTypes,
     lifts: ['lift-a', 'lift-b'].map((id, i) => ({ id, name: `Lift ${i === 0 ? 'A' : 'B'}`, car: { ...LIFT_CAR }, serves: levels.map((l) => l.id) })),
@@ -139,6 +150,17 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     startSpace: 'lobby',
     ...(empty ? { bare: true } : {}),
   };
+}
+
+/** The lines of a flat's card on the building map: where the plan comes from, what its carpet area is, what the furniture is. */
+function flatNotes(d: FlatDesign, empty: boolean, rotDeg: number): string[] {
+  const a = d.authored, r = d.report.area;
+  const sqft = (m2: number): string => Math.round(m2 * 10.764).toLocaleString('en-IN');
+  return [
+    `${a.origin}. Stated RERA carpet area ${a.carpetAreaM2} sq m (${sqft(a.carpetAreaM2)} sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to ${(r.roomsM2 + r.partitionsM2).toFixed(1)} sq m.`,
+    `The brochure's own plan faces ${compassWord(d.authored.brochureFacing === 'N' ? 0 : d.authored.brochureFacing === 'E' ? 90 : d.authored.brochureFacing === 'S' ? 180 : 270)} (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces ${compassWord(lookOf(rotDeg).northDeg + 180)}.`,
+    empty ? 'Unfurnished.' : "Furniture is the plan's artist's conception: illustrative sample pieces you can move or delete.",
+  ];
 }
 
 // ---------------------------------------------------------------- writing
@@ -157,6 +179,7 @@ export function writeAll(b: Built, root = ROOT): void {
     if (s.designs) writeIf(path.join(dir, 'designs.json'), json(s.designs));
     if (s.extras) writeIf(path.join(dir, 'proposal-extras.json'), json(s.extras));
     if (s.design) writeIf(path.join(dir, 'design.json'), json(s.design));
+    if (s.look) writeIf(path.join(dir, 'look.json'), json(s.look));
     if (s.outdoor) writeIf(path.join(dir, 'outdoor.json'), json(s.outdoor));
   }
   for (const bd of b.buildings) writeIf(path.join(root, 'public', 'buildings', bd.id, 'building.json'), json(bd));

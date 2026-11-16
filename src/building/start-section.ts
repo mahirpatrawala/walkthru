@@ -47,7 +47,7 @@ function card(grid: HTMLElement, b: BuildingIndexEntry, go: (url: string) => voi
   const art = h('div', 'wb-art', undefined, a);
   art.innerHTML = towerArt(b.levels); // a fixed drawing from numbers, no page text
   const body = h('div', 'wb-body', undefined, a);
-  h('span', `ws-tag ${b.sample ? 'is-sample' : ''}`, b.sample ? 'Sample building · made-up' : 'Building', body);
+  h('span', `ws-tag ${b.sample ? 'is-sample' : ''}`, b.sample ? 'Sample building · plans from a published brochure' : 'Building', body);
   h('h3', undefined, b.name, body);
   if (b.subtitle) h('p', 'wb-meta', b.subtitle, body);
   h('p', 'wb-meta', `${b.levels} levels · ${b.flats} flats (${b.flatTypes.map((t) => `${t.name} ×${t.count}`).join(', ')})`, body);

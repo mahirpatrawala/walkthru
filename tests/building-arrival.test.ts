@@ -61,7 +61,7 @@ describe('arriving through a portal', () => {
     const p = readScene('test-tower-corridor')!;
     const g = rasterizeLayout(p.layout);
     const a = arrivalAtDoor(p.layout, g, 'lift-a')!;
-    const doors = ['door-ne', 'door-se', 'door-nw', 'door-sw'].map((id) => arrivalAtDoor(p.layout, g, id)!);
+    const doors = ['door-ne', 'door-se', 'door-nw', 'door-n'].map((id) => arrivalAtDoor(p.layout, g, id)!);
     expect(reachable(g, a, doors)).toEqual([true, true, true, true]);
     // somewhere outside the rooms is not reachable
     expect(reachable(g, a, [{ x: 30, z: 30 }])).toEqual([false]);

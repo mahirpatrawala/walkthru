@@ -1,112 +1,142 @@
-// The four flat designs of the sample tower: each is a synthetic drawing run through the real reader (scripts/make-sample-homes.ts
-// readSet, the same job a broker upload runs), then given the one thing a drawing set of a single flat does not draw: a main door onto the
-// corridor, with the door's own width and swing. Nothing else is changed except names the reader could not read (a broker's rename).
-import fs from 'node:fs';
-import path from 'node:path';
-import { readSet } from '../make-sample-homes';
-import type { SetOptions } from '../drawing-sets/types';
-import { pointInPolygon } from '../../src/core/geometry';
-import { computeEdgeFrames } from '../../src/core/layout-geom';
-import { resolveDoors } from '../../src/core/doors';
-import type { Layout, Opening, PropertyFile, Vec2 } from '../../src/types';
+// The four flat designs of the sample tower: two 3 BHKs and two 2 BHKs whose plans follow a published builder brochure. Each is a typed spec of the
+// brochure's printed room sizes (brochure-flats/*.ts, authored with flat-spec.ts), checked against its own numbers, then shaped into a scene: the
+// layout, the sample furniture the brochure's plan draws ("artist's conception", so illustrative), the room finishes of the brochure's internal
+// specification as a design sheet, and the notes about what the plan did not give. Nothing here reads a drawing: the sizes are typed.
+import { buildFlatScene, buildLayout, checkFlat, SIDE_EDGE } from './flat-spec';
+import type { AcSpec, AuthoredFlat, FlatReport } from './flat-spec';
+import { flat3bhkA } from './brochure-flats/3bhk-a';
+import { flat3bhkB } from './brochure-flats/3bhk-b';
+import { flat2bhkB2 } from './brochure-flats/2bhk-b2';
+import { flat2bhkB4 } from './brochure-flats/2bhk-b4';
+import type { PropertyFile } from '../../src/types';
 
-export interface FlatSpec {
-  typeId: string;
-  name: string;
-  seed: number;
-  /** the drawing set's options: the template (and its arrangement), clean linework, nothing planted wrong */
-  set: Partial<SetOptions>;
-  sceneId: string;
-  /** where the main door goes when the drawing has none: a room of the layout, the wall it is on, by the direction that wall faces */
-  entry?: { roomId: string; facing: 'N' | 'E' | 'S' | 'W' };
-  /** renames a broker would make in the editor for rooms the reader could not name */
-  labels?: Record<string, string>;
-}
-
-export const MAIN_DOOR_M = 1.0;
+/** What the rest of the generator reads of a flat type. */
+export interface FlatSpec { typeId: string; name: string; sceneId: string }
 export const MAIN_DOOR_ID = 'door-main';
 
-/**
- * The set options every flat is drawn with: clean linework, labels with sizes, nothing planted wrong, not rotated or photographed. (The
- * reader then confirms every room's size against the walls, except a balcony, which has no walls on three sides and is never confirmed.)
- */
-const clean = (template: SetOptions['template'], variant?: number): Partial<SetOptions> => ({
-  template, ...(variant ? { variant } : {}), plantWrong: 0, roundShare: 0, noise: false, notToScale: false, rotation: 0, labelStyle: 'brochure', wallStyle: 'fill-dark',
-  textMode: 'real', elevations: 0, internalView: false, raster: { dpi: 200, jpegQuality: 90, phone: false, warpDeg: 0 },
-});
-
-/** Seeds picked in a scan of the layouts: the reader found every room and every door, confirmed every room's size but the balcony's, and every room can be walked to. */
-export const FLATS: FlatSpec[] = [
-  { typeId: '1bhk', name: '1 BHK', seed: 5, set: clean('1bhk'), sceneId: 'test-tower-flat-1bhk' },
-  { typeId: '2bhk-a', name: '2 BHK (A)', seed: 6, set: clean('2bhk', 1), sceneId: 'test-tower-flat-2bhk-a' },
-  { typeId: '2bhk-b', name: '2 BHK (B)', seed: 78, set: clean('2bhk', 2), sceneId: 'test-tower-flat-2bhk-b' },
-  { typeId: '3bhk', name: '3 BHK', seed: 17, set: clean('3bhk', 1), sceneId: 'test-tower-flat-3bhk' },
-];
-
-const DIR: Record<'N' | 'E' | 'S' | 'W', Vec2> = { N: { x: 0, z: -1 }, E: { x: 1, z: 0 }, S: { x: 0, z: 1 }, W: { x: -1, z: 0 } };
-
-/** The door that leads outside already in the layout (the drawing drew one), if any. */
-export function outsideDoor(layout: Layout): Opening | null {
-  const d = resolveDoors(layout).filter((x) => x.rooms[1] === null && (x.widthM ?? 0) >= 0.9);
-  if (d.length === 0) return null;
-  return layout.openings.find((o) => o.id === d[0].id) ?? null;
-}
-
-/** Adds the main door to the entry room's outside wall facing `facing`, centred on that wall. Throws when there is no such wall. */
-export function addMainDoor(layout: Layout, entry: NonNullable<FlatSpec['entry']>): Opening {
-  const room = layout.rooms.find((r) => r.id === entry.roomId);
-  if (!room) throw new Error(`entry room "${entry.roomId}" is not in the layout (${layout.rooms.map((r) => r.id).join(', ')})`);
-  const frames = computeEdgeFrames(layout).filter((f) => f.roomId === room.id);
-  const want = DIR[entry.facing];
-  let best: { f: (typeof frames)[number]; score: number } | null = null;
-  for (const f of frames) {
-    if (f.kind !== 'wall') continue;
-    const facing = f.out.x * want.x + f.out.z * want.z;
-    if (facing < 0.99) continue;
-    const mid = { x: (f.a.x + f.b.x) / 2, z: (f.a.z + f.b.z) / 2 };
-    // outside: nothing of this flat just beyond the wall
-    const beyond = [0.3, 0.6, 0.9].some((o) => layout.rooms.some((r) => r.id !== room.id && pointInPolygon({ x: mid.x + f.out.x * o, z: mid.z + f.out.z * o }, r.polygon)));
-    if (beyond) continue;
-    if (f.length < MAIN_DOOR_M + 0.15) continue;
-    // an existing opening on this wall would collide
-    if (layout.openings.some((o) => o.roomId === room.id && o.edge === f.edge)) continue;
-    if (!best || f.length > best.f.length) best = { f, score: f.length };
-  }
-  if (!best) throw new Error(`room "${room.id}" has no free outside wall facing ${entry.facing}`);
-  const door: Opening = {
-    id: MAIN_DOOR_ID, roomId: room.id, edge: best.f.edge, type: 'door', centreM: best.f.length / 2, widthM: MAIN_DOOR_M, sillM: 0, headM: 2.1,
-    leaf: { hinge: 'start', swing: 'in', kind: 'hinged' },
-  };
-  layout.openings.push(door);
-  return door;
-}
+/** The flats, in the order of the building's flat types. */
+export const AUTHORED: AuthoredFlat[] = [flat3bhkA, flat3bhkB, flat2bhkB2, flat2bhkB4];
+export const FLATS: FlatSpec[] = AUTHORED.map((a) => ({ typeId: a.typeId, name: a.name, sceneId: a.sceneId }));
 
 export interface FlatDesign {
   spec: FlatSpec;
+  authored: AuthoredFlat;
+  report: FlatReport;
   property: PropertyFile;
   designs: unknown | null;
   extras: unknown | null;
   design: unknown | null;
+  /** the same sheet without the decor, for the empty twin */
+  designBare: unknown | null;
+  /** look.json: where north is */
+  look: unknown | null;
   mainOpening: string;
 }
 
-/** Runs the reader on the flat's drawing set and shapes the result into a scene. */
-export async function readFlat(spec: FlatSpec, scratch: string): Promise<FlatDesign> {
-  const r = await readSet(spec.seed, spec.sceneId, scratch, `Flat · ${spec.name}`, spec.set);
-  const property: PropertyFile = JSON.parse(JSON.stringify(r.property));
-  property.id = spec.sceneId;
-  property.title = `Flat · ${spec.name}`;
-  property.subtitle = 'Sample building · synthetic drawing, made-up flat';
-  property.unlisted = true;
-  property.spaceKind = 'home';
-  for (const [id, label] of Object.entries(spec.labels ?? {})) {
-    const room = property.layout.rooms.find((x) => x.id === id);
-    if (!room) throw new Error(`label override for "${id}": no such room in ${spec.sceneId} (${property.layout.rooms.map((x) => x.id).join(', ')})`);
-    room.label = label;
-  }
-  const existing = outsideDoor(property.layout);
-  if (!existing && !spec.entry) throw new Error(`${spec.sceneId}: the drawing has no door onto the outside and the spec gives no entry`);
-  const main = existing ?? addMainDoor(property.layout, spec.entry!);
-  const read = (f: string): unknown | null => { const p = path.join(r.dir, f); return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null; };
-  return { spec, property, designs: read('designs.json'), extras: read('proposal-extras.json'), design: read('design.json'), mainOpening: main.id };
+const SUBTITLE = 'Sample building · plan follows a published builder brochure, furniture illustrative';
+/** the generator's fixed time stamp, so the files are identical on every run */
+const STAMP = '2026-11-16T00:00:00.000Z';
+
+// ---------------------------------------------------------------- the internal specification, as the scene format can say it
+
+/**
+ * The brochure's internal specification, mapped to what a scene can express (SPEC 18.13): finish ids of the look's own table (src/look/finishes.ts)
+ * per room, through the design sheet. Vitrified floors in the dry rooms and the kitchen; premium tiles in the utility, the balcony and the toilets;
+ * the toilets' walls take the tile colour whole (the format has no dado height); a quartz platform; flush doors with a laminate finish.
+ */
+export const SPEC_FINISHES = {
+  dry: { floor: 'tile-ivory-gloss' },
+  kitchen: { floor: 'tile-ivory-gloss' },
+  wet: { floor: 'tile-grey', wall: 'tile-grey' },
+  utility: { floor: 'tile-sand' },
+  balcony: { floor: 'tile-sand' },
+} as const;
+export const SPEC_COUNTER_TOP = 'white-stone';
+export const SPEC_DOOR_FINISH = 'white-laminate';
+export const SPEC_PACK = 'light-scandinavian';
+
+function acFixtures(spec: AuthoredFlat, acs: AcSpec[]): { kind: 'ac'; roomId: string; edge: number; u: number; y: number }[] {
+  const built = buildLayout(spec);
+  return acs.map((a) => {
+    const room = built.rooms.find((r) => r.id === a.room);
+    if (!room) throw new Error(`${spec.sceneId}: ac names no room "${a.room}"`);
+    const n = room.polygon.length;
+    for (let i = 0; i < n; i++) {
+      const p = room.polygon[i], q = room.polygon[(i + 1) % n];
+      const side = Math.abs(q.z - p.z) < 1e-9 ? (q.x > p.x ? 'N' : 'S') : q.z > p.z ? 'E' : 'W';
+      if (side !== a.wall || room.edges[i] !== 'wall') continue;
+      const horiz = a.wall === 'N' || a.wall === 'S';
+      const lo = horiz ? Math.min(p.x, q.x) : Math.min(p.z, q.z), hi = horiz ? Math.max(p.x, q.x) : Math.max(p.z, q.z);
+      if (a.at < lo + 0.4 || a.at > hi - 0.4) continue;
+      const u = horiz ? (q.x > p.x ? a.at - p.x : p.x - a.at) : (q.z > p.z ? a.at - p.z : p.z - a.at);
+      return { kind: 'ac' as const, roomId: a.room, edge: i, u: Math.round(u * 1000) / 1000, y: a.y ?? 2.1 };
+    }
+    throw new Error(`${spec.sceneId}: no free ${a.wall} wall of "${a.room}" at ${a.at} for the AC`);
+  });
 }
+void SIDE_EDGE;
+
+/** `bare`: the specification only (finishes of the rooms and the doors), none of the typical decor (the AC points): the empty twin, a builder starting from nothing */
+function designSheet(spec: AuthoredFlat, bare: boolean): unknown {
+  const rooms: Record<string, { wall?: string; floor?: string }> = {};
+  for (const r of spec.rooms) rooms[r.id] = { ...SPEC_FINISHES[r.finish] };
+  const items: Record<string, unknown> = { decor: { roles: { door: SPEC_DOOR_FINISH } } };
+  if (!bare) for (const p of spec.pieces) if (/kitchen counter/i.test(p.label)) items[p.id] = { roles: { top: SPEC_COUNTER_TOP } };
+  return {
+    version: 1, pack: SPEC_PACK, source: 'typical',
+    note: 'The internal specification of a published builder brochure, as finishes of this look: vitrified floors in the living, dining, bedrooms, kitchen and passages; premium tiles in the utility, the balcony and the toilets; a quartz kitchen platform; flush doors with a laminate finish. Colours are typical, the specification gives none.',
+    items, rooms, fixtures: bare ? [] : acFixtures(spec, spec.ac ?? []),
+  };
+}
+
+function extrasOf(spec: AuthoredFlat, report: FlatReport): unknown {
+  return {
+    version: 1,
+    sourceFile: 'typed room sizes from a published builder brochure',
+    planPage: 1,
+    scale: { ptPerM: 0, votes: [], agreeing: 0, disagreementPct: 0, note: 'sizes are typed, not measured off an image' },
+    rooms: report.rooms.map((r) => ({
+      id: r.id, label: r.label, roomType: spec.rooms.find((x) => x.id === r.id)!.type, method: 'label-rect', confidence: 1,
+      labelDims: { w: r.parts[0].printed[0], l: r.parts[0].printed[1] }, areaM2: r.areaM2, verified: true,
+    })),
+    // the brochure gives no ceiling height: the scene's 2.75 m is typical, and is not confirmed
+    ceiling: { heightM: spec.wallHeightM, method: 'default', page: null, candidatesM: [], confidence: 0.1, verified: false },
+    furniture: [], unmapped: [], spawn: spec.spawn,
+    carpet: {
+      statedM2: spec.carpetAreaM2, usableM2: spec.usableAreaM2 ?? null, roomsM2: round(report.area.roomsM2), partitionsM2: round(report.area.partitionsM2),
+      deviationPct: round(report.area.deviationFrac * 100), tolerancePct: spec.carpetToleranceFrac * 100,
+    },
+    assumptions: [
+      'Room sizes are the plan\'s printed sizes. Where a room sits is scaled off the plan\'s picture, to about 10 cm.',
+      'Door and window widths, sill and head heights, wall thicknesses and the ceiling height are not printed: they are scaled off the picture or typical, and not measured.',
+      'Furniture, fittings and the balcony chairs are the plan\'s "artist\'s conception": drawn where the plan draws them, at catalogue sizes, illustrative.',
+      ...spec.notes,
+    ],
+    warnings: [
+      'Ceiling height not given by the source. Using 2.75 m. Not confirmed.',
+      'Door and window sizes are scaled from the plan, not measured.',
+    ],
+  };
+}
+const round = (v: number): number => Math.round(v * 100) / 100;
+
+/** Builds one flat: the spec is checked first (flat-spec.ts), and a spec that contradicts its own printed numbers builds nothing. */
+export async function readFlat(spec: FlatSpec, _scratch?: string): Promise<FlatDesign> {
+  void _scratch;
+  const authored = AUTHORED.find((a) => a.typeId === spec.typeId);
+  if (!authored) throw new Error(`no authored flat "${spec.typeId}"`);
+  const { property, report } = buildFlatScene(authored, STAMP);
+  property.subtitle = SUBTITLE;
+  property.title = authored.title;
+  return {
+    spec, authored, report, property,
+    designs: { version: 1, source: 'Typed room sizes, no drawing set', items: {} },
+    extras: extrasOf(authored, report),
+    design: designSheet(authored, false),
+    designBare: designSheet(authored, true),
+    look: { version: 1, northDeg: authored.northDeg },
+    mainOpening: authored.mainDoor,
+  };
+}
+
+export { checkFlat };

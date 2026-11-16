@@ -58,7 +58,7 @@ export function mountBuildingMap(host: HTMLElement, o: MapOptions): BuildingMap 
   if (o.back.onClick) back.addEventListener('click', (e) => { e.preventDefault(); o.back.onClick!(); });
 
   const head = h('div', 'bm-head', undefined, root);
-  h('span', `ws-tag ${b.sample ? 'is-sample' : ''}`, b.sample ? 'Sample building · made-up' : 'Building', head);
+  h('span', `ws-tag ${b.sample ? 'is-sample' : ''}`, b.sample ? 'Sample building · plans from a published brochure' : 'Building', head);
   h('h1', undefined, b.name, head);
   if (b.subtitle) h('p', 'bm-sub-line', b.subtitle, head);
 
