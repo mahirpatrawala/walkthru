@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "pack": "clean-contrast",
+  "source": "typical",
+  "note": "A typical clean scheme for this shared space (the gallery default): timber or polished floor, bright walls, wall panelling, a stepped ceiling band. Finishes and decor only.",
+  "items": {
+    "decor": {
+      "roles": {
+        "slats": "ash-white",
+        "wallPanel": "wall-greige"
+      }
+    }
+  },
+  "rooms": {
+    "hall-1": {
+      "floor": "plank-walnut",
+      "wall": "wall-bright"
+    }
+  },
+  "fixtures": [
+    {
+      "kind": "panelling",
+      "roomId": "hall-1",
+      "edge": 0,
+      "u0": 0.3,
+      "u1": 8.27
+    },
+    {
+      "kind": "panelling",
+      "roomId": "hall-1",
+      "edge": 3,
+      "u0": 0.3,
+      "u1": 8.0
+    },
+    {
+      "kind": "ceiling-band",
+      "roomId": "hall-1",
+      "x0": 77.92,
+      "z0": 9.66,
+      "x1": 84.69,
+      "z1": 16.16,
+      "dropM": 0.1
+    }
+  ]
+}

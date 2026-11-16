@@ -30,7 +30,7 @@
       "roomId": "hall-1",
       "edge": 3,
       "u0": 0.3,
-      "u1": 8.0
+      "u1": 8
     },
     {
       "kind": "ceiling-band",

@@ -173,6 +173,7 @@ function flatNotes(d: FlatDesign, empty: boolean, rotDeg: number): string[] {
 
 // ---------------------------------------------------------------- writing
 
+const SPACE_DESIGNS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'space-designs');
 const json = (v: unknown): string => JSON.stringify(v, null, 2) + '\n';
 function writeIf(file: string, text: string): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -187,6 +188,11 @@ export function writeAll(b: Built, root = ROOT): void {
     if (s.designs) writeIf(path.join(dir, 'designs.json'), json(s.designs));
     if (s.extras) writeIf(path.join(dir, 'proposal-extras.json'), json(s.extras));
     if (s.design) writeIf(path.join(dir, 'design.json'), json(s.design));
+    else {
+      // a shared space's design sheet (finishes and decor of a lobby, a hall, a gym) is authored by hand beside this script and travels with the scene
+      const authored = path.join(SPACE_DESIGNS, `${id}.json`);
+      if (fs.existsSync(authored)) writeIf(path.join(dir, 'design.json'), json(JSON.parse(fs.readFileSync(authored, 'utf8'))));
+    }
     if (s.look) writeIf(path.join(dir, 'look.json'), json(s.look));
     if (s.outdoor) writeIf(path.join(dir, 'outdoor.json'), json(s.outdoor));
   }

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "pack": "clean-contrast",
+  "source": "typical",
+  "note": "A typical clean scheme for this shared space (the gallery default): timber or polished floor, bright walls, wall panelling. Finishes and decor only.",
+  "items": {},
+  "rooms": {
+    "games": {
+      "floor": "plank-oak",
+      "wall": "wall-bright"
+    }
+  },
+  "fixtures": [
+    {
+      "kind": "panelling",
+      "roomId": "games",
+      "edge": 2,
+      "u0": 0.3,
+      "u1": 15.24
+    },
+    {
+      "kind": "panelling",
+      "roomId": "games",
+      "edge": 0,
+      "u0": 0.3,
+      "u1": 15.24
+    }
+  ]
+}
