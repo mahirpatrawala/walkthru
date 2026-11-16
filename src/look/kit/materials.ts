@@ -71,7 +71,7 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
     alu: std('#C8C9CB', 0.38, 0.6),
     veil,
     // a near-black rail reads as a black pole against bright walls (and, with metalness and no environment, as a hole): a mid-tone powder-coated grey instead
-    railing: std(((c) => (c.getHSL({ h: 0, s: 0, l: 0 }).l < 0.22 ? `#${c.lerp(new THREE.Color('#8A9094'), 0.6).getHexString()}` : fin.railingColor))(new THREE.Color(fin.railingColor)), 0.45, 0.12),
+    railing: std(((c) => (c.getHSL({ h: 0, s: 0, l: 0 }).l < 0.3 ? `#${c.lerp(new THREE.Color('#8A9094'), 0.6).getHexString()}` : fin.railingColor))(new THREE.Color(fin.railingColor)), 0.45, 0.12),
     fixtures: new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.5, metalness: 0 }),
     fan: std('#DCD8CE', 0.5),
     cove: coveMat,
