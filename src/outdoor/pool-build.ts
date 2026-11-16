@@ -23,10 +23,7 @@ function tileTexture(base: string, grout: string, seed: number): THREE.Texture |
   const g = c.getContext('2d');
   if (!g) return null;
   g.fillStyle = grout; g.fillRect(0, 0, 128, 128);
-  // the canvas wants sRGB bytes: a THREE.Color holds LINEAR values, so read its sRGB hex (using .r .g .b here drew every tile too dark and too
-  // saturated, and the tone mapper turned that saturated blue to magenta when seen from above)
-  const hex = new THREE.Color(base).getHex();
-  const col = { r: ((hex >> 16) & 255) / 255, g: ((hex >> 8) & 255) / 255, b: (hex & 255) / 255 };
+  const col = new THREE.Color(base);
   let s = seed;
   const r = (): number => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {

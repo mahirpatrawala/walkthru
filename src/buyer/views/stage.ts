@@ -60,7 +60,7 @@ function groundShadowTexture(layout: Layout, rect: { x0: number; z0: number; x1:
   return t;
 }
 
-export function createStage(o: { scene: THREE.Scene; layout: Layout; bounds: Bounds; keyAzimuth: number; ground: boolean }): Stage {
+export function createStage(o: { scene: THREE.Scene; layout: Layout; bounds: Bounds; keyAzimuth: number; ground: boolean; /** the soft shadow of the building on the ground (not for an open-air space, whose rooms are the whole site) */ shadow?: boolean }): Stage {
   const { layout, bounds } = o;
   const group = new THREE.Group();
   group.name = 'dollhouse-stage';
@@ -77,7 +77,7 @@ export function createStage(o: { scene: THREE.Scene; layout: Layout; bounds: Bou
     rect.x0 = cx - half; rect.x1 = cx + half; rect.z0 = cz - half; rect.z1 = cz + half;
     // the light comes from the key's side, so the shadow falls away from it
     const slide = { x: -Math.sin(o.keyAzimuth) * SHADOW_SLIDE_M, z: -Math.cos(o.keyAzimuth) * SHADOW_SLIDE_M };
-    const shadowTex = groundShadowTexture(layout, rect, slide);
+    const shadowTex = o.shadow === false ? null : groundShadowTexture(layout, rect, slide);
     const radius = Math.max(60, span * 6);
     const geo = new THREE.CircleGeometry(radius, 64);
     geo.rotateX(-Math.PI / 2);

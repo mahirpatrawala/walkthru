@@ -284,7 +284,7 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
     cur = { ...home };
     hanger = hasRoof ? createHanger({ scene: viewer.scene, wallH: layout.wallHeightM, furnitureRoot: d.furnitureRoot, renderer: viewer.renderer }) : null;
     wallCut = createWallCut({ scene: viewer.scene, shell: d.shell, layout, skipEdges: d.skipEdges, furnitureRoot: d.furnitureRoot, renderer: viewer.renderer });
-    stage = createStage({ scene: viewer.scene, layout, bounds, keyAzimuth: keyAzimuth(), ground: true });
+    stage = createStage({ scene: viewer.scene, layout, bounds, keyAzimuth: keyAzimuth(), ground: true, shadow: !d.outdoor });
     marker = createMarker(viewer.scene);
     outline = createOutline(viewer.scene);
     mixK = 0;
