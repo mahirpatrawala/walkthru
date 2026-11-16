@@ -8,6 +8,7 @@ import type { FollowCamera } from '../engine/camera';
 import { unmeasuredRoomsNear } from './store';
 import type { UnverifiedRooms } from './store';
 import type { FittingsApi } from './fittings-api';
+import type { ViewsApi } from './views/view-modes';
 
 export type BuyerModeId = 'walk' | 'measure' | 'furnish' | 'pose';
 export interface BuyerMode { id: BuyerModeId; enter(): void; exit(): void; update(dt: number): void }
@@ -63,6 +64,8 @@ export interface BuyerContext {
   rayOf?(e: PointerEvt): { origin: Vec3; dir: Vec3 };
   /** labels of the rooms near these floor points whose size is not measured on the drawing (empty for most homes) */
   notMeasuredNear?(pts: Vec2[]): string[];
+  /** the view modes (src/buyer/views): Walk, Doll house, Plan. Set once the space is mounted; absent in a bare context (tests). */
+  views?: ViewsApi;
 }
 
 // ---------------------------------------------------------------- C3 additions (everything above is the SPEC 7.1 contract)

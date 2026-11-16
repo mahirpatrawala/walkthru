@@ -1,0 +1,135 @@
+/* The view modes (src/buyer/views): the segmented control, the doll house's room names and hover tip, and the plan. Chrome in the dark glass style
+   (translucent, rounded, a white pill for the selected mode). Every class is wt-views-... so the top bar that adopts the control can restyle or drop it. */
+
+:root {
+  --wtv-glass: rgba(26, 29, 36, 0.66);
+  --wtv-glass-border: rgba(255, 255, 255, 0.1);
+  --wtv-ink: #f3f5f8;
+  --wtv-muted: rgba(243, 245, 248, 0.68);
+  --wtv-pill: #ffffff;
+  --wtv-pill-ink: #14171c;
+  --wtv-blur: blur(14px) saturate(1.25);
+  --wtv-accent: #c0502e;
+}
+
+/* ---- the segmented control, top centre */
+.wt-views-bar {
+  position: absolute; z-index: 5; left: 50%; top: calc(12px + var(--wt-safe-t, 0px)); transform: translateX(-50%);
+  display: flex; gap: 2px; padding: 4px; border-radius: 16px; pointer-events: auto;
+  background: var(--wtv-glass); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur);
+  box-shadow: 0 4px 18px rgba(8, 10, 16, 0.28);
+}
+.wt-views-seg {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px 0 12px; border: 0; border-radius: 12px; background: transparent; color: var(--wtv-muted);
+  font-family: var(--wt-font, system-ui, sans-serif); font-size: 14px; font-weight: 600; letter-spacing: -0.005em; cursor: pointer; white-space: nowrap;
+  transition: background 160ms ease, color 160ms ease;
+}
+.wt-views-seg svg { display: block; flex: none; }
+.wt-views-seg:hover { color: var(--wtv-ink); background: rgba(255, 255, 255, 0.08); }
+.wt-views-seg.is-on { background: var(--wtv-pill); color: var(--wtv-pill-ink); box-shadow: 0 1px 6px rgba(0, 0, 0, 0.22); }
+.wt-views-seg:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+/* the toast and the mode bar sit under the control */
+.wt-has-views .wt-top { top: calc(68px + var(--wt-safe-t, 0px)); }
+.wt-has-views .wt-hint { top: calc(120px + var(--wt-safe-t, 0px)); }
+@media (max-width: 720px) {
+  /* a phone: the room chip (left) and the round buttons (right) take the top row, so the control takes the next one */
+  .wt-views-bar { top: calc(66px + var(--wt-safe-t, 0px)); }
+  .wt-views-seg { padding: 0 11px 0 9px; min-height: 38px; font-size: 13px; gap: 5px; }
+  .wt-has-views .wt-top { top: calc(118px + var(--wt-safe-t, 0px)); }
+  .wt-has-views .wt-hint { top: calc(170px + var(--wt-safe-t, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) { .wt-views-seg { transition: none; } }
+
+/* ---- what steps aside */
+.wt-view-dollhouse .wt-btn[data-btn='measure'], .wt-view-dollhouse .wt-btn[data-btn='furnish'],
+.wt-view-plan .wt-btn[data-btn='measure'], .wt-view-plan .wt-btn[data-btn='furnish'] { display: none; }
+.wt-view-dollhouse .wt-stack .wt-pill, .wt-view-plan .wt-stack .wt-pill { display: none; }
+.wt-view-plan .wt-nav-map, .wt-view-plan .wt-nav-bar, .wt-view-plan .wt-chip, .wt-view-plan .wt-layout-chip { display: none !important; }
+.wt-view-plan .wt-stack { display: none; }
+
+/* ---- the doll house: room names floating over the rooms, and the hover tip */
+.wt-views-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.wt-views-label {
+  position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; padding: 4px 10px 5px; border-radius: 10px; white-space: nowrap; line-height: 1.2;
+  background: rgba(26, 29, 36, 0.58); color: var(--wtv-ink); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  font-family: var(--wt-font, system-ui, sans-serif); will-change: transform, opacity; opacity: 0;
+}
+.wt-views-label-name { font-size: 12px; font-weight: 700; letter-spacing: -0.005em; }
+.wt-views-label-area { font-size: 11px; font-weight: 500; color: var(--wtv-muted); }
+.wt-views-label.is-partial { background: rgba(70, 82, 96, 0.5); }
+.wt-views-tip {
+  position: absolute; left: 0; top: 0; z-index: 3; margin: -46px 0 0 0; padding: 7px 12px; border-radius: 12px; pointer-events: none; white-space: nowrap; will-change: transform;
+  background: var(--wtv-glass); color: var(--wtv-ink); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur);
+  font-family: var(--wt-font, system-ui, sans-serif); font-size: 13px; font-weight: 600; box-shadow: 0 4px 16px rgba(8, 10, 16, 0.3);
+}
+.wt-views-tip::after { content: ''; position: absolute; left: 14px; bottom: -5px; width: 10px; height: 10px; background: inherit; border-right: 1px solid var(--wtv-glass-border); border-bottom: 1px solid var(--wtv-glass-border); transform: rotate(45deg); }
+.wt-views-tip[hidden] { display: none; }
+
+/* ---- the plan */
+.wt-views-plan {
+  --wvp-bg: #f3efe7; --wvp-floor: #ffffff; --wvp-floor-dim: #f4f0e8; --wvp-pick: #fbe6da; --wvp-on: #f6d9cb;
+  --wvp-wall: #2d3139; --wvp-sill: #a0a7b1; --wvp-rail: #707985; --wvp-window: #2e8a93; --wvp-door: #c77c3a;
+  --wvp-ink: #23282f; --wvp-muted: #5d6671; --wvp-halo: #ffffff; --wvp-furn: #8d96a3; --wvp-furn-fill: rgba(40, 46, 56, 0.045);
+  --wvp-dim: #66707c; --wvp-swing: #aab1bb; --wvp-water: #bfe1e6; --wvp-grid: rgba(40, 46, 56, 0.05);
+  position: fixed; inset: 0; z-index: 9; background: var(--wvp-bg); touch-action: none; cursor: grab; overflow: hidden; -webkit-user-select: none; user-select: none;
+  background-image: linear-gradient(var(--wvp-grid) 1px, transparent 1px), linear-gradient(90deg, var(--wvp-grid) 1px, transparent 1px); background-size: 32px 32px;
+}
+.wt-views-plan[hidden] { display: none; }
+.wt-views-plan.is-dragging { cursor: grabbing; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-wt-theme='light']) .wt-views-plan {
+    --wvp-bg: #14171c; --wvp-floor: #222831; --wvp-floor-dim: #1b2027; --wvp-pick: #3a2a26; --wvp-on: #4a2f27;
+    --wvp-wall: #e7ebf1; --wvp-sill: #7c8591; --wvp-rail: #9aa3ae; --wvp-window: #5cc0cb; --wvp-door: #e8a05c;
+    --wvp-ink: #eef1f5; --wvp-muted: #aab2bd; --wvp-halo: #14171c; --wvp-furn: #7b8593; --wvp-furn-fill: rgba(255, 255, 255, 0.05);
+    --wvp-dim: #9aa3ae; --wvp-swing: #5b6571; --wvp-water: #1d4a52; --wvp-grid: rgba(255, 255, 255, 0.04);
+  }
+}
+:root[data-wt-theme='dark'] .wt-views-plan {
+  --wvp-bg: #14171c; --wvp-floor: #222831; --wvp-floor-dim: #1b2027; --wvp-pick: #3a2a26; --wvp-on: #4a2f27;
+  --wvp-wall: #e7ebf1; --wvp-sill: #7c8591; --wvp-rail: #9aa3ae; --wvp-window: #5cc0cb; --wvp-door: #e8a05c;
+  --wvp-ink: #eef1f5; --wvp-muted: #aab2bd; --wvp-halo: #14171c; --wvp-furn: #7b8593; --wvp-furn-fill: rgba(255, 255, 255, 0.05);
+  --wvp-dim: #9aa3ae; --wvp-swing: #5b6571; --wvp-water: #1d4a52; --wvp-grid: rgba(255, 255, 255, 0.04);
+}
+.wt-views-plan-svg { position: absolute; inset: 124px 20px 28px 20px; width: calc(100% - 40px); height: calc(100% - 152px); display: block; overflow: visible; font-family: var(--wt-font, system-ui, sans-serif); }
+@media (max-width: 720px) { .wt-views-plan-svg { inset: 172px 8px 24px 8px; width: calc(100% - 16px); height: calc(100% - 196px); } }
+.wt-views-plan .plan-floor { fill: var(--wvp-floor); stroke: none; }
+.wt-views-plan .plan-room.is-partial .plan-floor { fill: var(--wvp-floor-dim); stroke: var(--wvp-muted); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-dasharray: 4 3; }
+.wt-views-plan .plan-hatch { stroke: var(--wvp-muted); opacity: 0.5; }
+.wt-views-plan .plan-room.is-pick { cursor: pointer; }
+.wt-views-plan .plan-room.is-pick:hover .plan-floor { fill: var(--wvp-pick); }
+.wt-views-plan .plan-room.is-dim .plan-floor { fill: var(--wvp-floor-dim); }
+.wt-views-plan .plan-room.is-pick:focus-visible { outline: none; }
+.wt-views-plan .plan-room.is-pick:focus-visible .plan-floor { stroke: var(--wtv-accent); stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.wt-views-plan .plan-wall { fill: var(--wvp-wall); }
+.wt-views-plan .plan-wall.is-partial { fill: var(--wvp-sill); }
+.wt-views-plan .plan-sill { fill: var(--wvp-sill); }
+.wt-views-plan .plan-rail { fill: var(--wvp-rail); }
+.wt-views-plan .plan-window { fill: var(--wvp-floor); stroke: var(--wvp-window); stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
+.wt-views-plan .plan-window-line { stroke: var(--wvp-window); stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
+.wt-views-plan .plan-door { stroke: var(--wvp-door); stroke-width: 2.6px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.wt-views-plan .plan-label { fill: var(--wvp-ink); stroke: var(--wvp-halo); paint-order: stroke; stroke-linejoin: round; pointer-events: none; }
+.wt-views-plan .plan-name { font-weight: 700; }
+.wt-views-plan .plan-size { font-weight: 500; fill: var(--wvp-muted); }
+.wt-views-plan .plan-label.is-dim { fill: var(--wvp-muted); }
+.wt-views-plan .wt-views-water { fill: var(--wvp-water); stroke: var(--wvp-window); stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.wt-views-plan .wt-views-piece { fill: var(--wvp-furn-fill); stroke: var(--wvp-furn); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.wt-views-plan .wt-views-leaf { stroke: var(--wvp-door); stroke-width: 1.4px; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.wt-views-plan .wt-views-arc { fill: none; stroke: var(--wvp-swing); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-dasharray: 3 3; }
+.wt-views-plan .wt-views-dim { stroke: var(--wvp-dim); stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.wt-views-plan .wt-views-dim-text { fill: var(--wvp-dim); font-weight: 600; }
+.wt-views-plan .wt-views-north-arrow { fill: var(--wvp-ink); }
+.wt-views-plan .wt-views-north-n { fill: var(--wvp-ink); font-size: 0.9px; font-weight: 800; }
+.wt-views-plan .wt-views-cone { fill: rgba(192, 80, 46, 0.3); stroke: none; }
+.wt-views-plan .wt-views-dot { fill: var(--wtv-accent); stroke: #fff; }
+.wt-views-plan-ctl {
+  position: absolute; right: calc(16px + var(--wt-safe-r, 0px)); bottom: calc(22px + var(--wt-safe-b, 0px)); display: flex; flex-direction: column; gap: 2px; padding: 4px; border-radius: 14px;
+  background: var(--wtv-glass); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur); cursor: default;
+}
+.wt-views-plan-ctl button { width: 40px; height: 40px; border: 0; border-radius: 10px; background: transparent; color: var(--wtv-ink); font-size: 20px; line-height: 1; cursor: pointer; font-family: inherit; }
+.wt-views-plan-ctl button:hover { background: rgba(255, 255, 255, 0.12); }
+.wt-views-plan-ctl button:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+.wt-views-plan-hint {
+  position: absolute; left: 50%; bottom: calc(22px + var(--wt-safe-b, 0px)); transform: translateX(-50%); padding: 8px 14px; border-radius: 999px; pointer-events: none; white-space: nowrap;
+  background: var(--wtv-glass); color: var(--wtv-ink); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur); font-size: 13px; font-weight: 600;
+}
+@media (max-width: 720px) { .wt-views-plan-hint { bottom: calc(80px + var(--wt-safe-b, 0px)); } }

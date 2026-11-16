@@ -29,6 +29,22 @@ export type { LookPreset, InteriorLightKind } from './grade';
 
 export type QualityMode = 'auto' | Tier;
 
+/**
+ * A lighting state laid over the look by a view that needs its own (the doll house, src/buyer/views): the time of day it is graded at, whether the
+ * bake and the planar reflection step back, and a last word on the lights once the look has set them. Set with `setLightOverride`, removed with
+ * `null`: everything the look sets is then simply set again from its own state, so nothing of the override survives.
+ */
+export interface LightOverride {
+  /** the hour the grade and the sun are taken from (the viewer's own hour is untouched) */
+  hour?: number;
+  /** the baked lighting steps back (a bake was made with a ceiling) */
+  bakedOff?: boolean;
+  /** no planar reflection (a second pass of the whole scene that a view from above does not need) */
+  noReflection?: boolean;
+  /** called at the end of every lighting pass with the lights as the look set them: change them here */
+  apply?(l: { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight; scene: THREE.Scene; renderer: THREE.WebGLRenderer; cfg: TierConfig; shadows: boolean }): void;
+}
+
 export interface LookStats { tier: Tier; fps: number; drawCalls: number; triangles: number; textures: number; bytesLoaded: number }
 
 export interface Look {
@@ -88,6 +104,8 @@ export interface Look {
   setBaked(h: BakedHook | null): void;
   /** the bake is applied right now */
   readonly bakedActive: boolean;
+  /** a view's own lighting laid over the look (see LightOverride); null gives the look back its own */
+  setLightOverride(o: LightOverride | null): void;
   /** acceptance helpers (SPEC 16.8) */
   debug: LookDebug;
 }
@@ -185,6 +203,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let held: ((dt: number) => void) | null = null;
   let baked: BakedHook | null = null;
   let bakedApplied = false;
+  let lightOverride: LightOverride | null = null;
 
   renderer.info.autoReset = false;
   const sunLight = viewer.lights.sun;
@@ -256,8 +275,9 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   }
 
   function applyLighting(): void {
-    sun = sunState(layout, lookFile, hour);
-    grade = trueColours ? TRUE_GRADE : gradeAt(hour);
+    const litHour = lightOverride?.hour !== undefined ? clampDayHour(lightOverride.hour) : hour;
+    sun = sunState(layout, lookFile, litHour);
+    grade = trueColours ? TRUE_GRADE : gradeAt(litHour);
     if (scanVisible) {
       // rule 5: exactly as before C11
       hemi.color.copy(oldLights.hemiColour); hemi.groundColor.copy(oldLights.hemiGround); hemi.intensity = oldLights.hemiIntensity;
@@ -327,8 +347,9 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     if (kit?.setLit) { const on = !trueColours && !scanVisible; kit.setLit('tube', on && grade.interior.tube > 0.2); kit.setLit('fan', on && grade.interior.tube > 0.2); kit.setLit('cove', on && grade.interior.cove > 0.2); }
     // low tiers have no post chain to carry the vignette, so it is the CSS one on all of them
     if (vignette) vignette.style.opacity = trueColours ? '0' : String(grade.vignette);
-    baked?.update({ grade, hour, cfg, off: trueColours || scanVisible });
+    baked?.update({ grade, hour: litHour, cfg, off: trueColours || scanVisible || lightOverride?.bakedOff === true });
     syncBaked();
+    lightOverride?.apply?.({ hemi, sun: sunLight, scene, renderer, cfg, shadows: shadowsOn() });
     needsShadowRefresh();
   }
 
@@ -402,7 +423,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
 
   function applyRenderPath(): void {
     const wantPost = cfg.post && !scanVisible && !postFailed && postAllowed;
-    const wantReflection = scanVisible || outdoor ? 'none' : cfg.reflection;
+    const wantReflection = scanVisible || outdoor || lightOverride?.noReflection ? 'none' : cfg.reflection;
     if (wantPost) {
       if (post) viewer.setRenderOverride(renderFrame);
       else if (!postLoading) {
@@ -584,6 +605,12 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       notify();
     },
     get bakedActive() { return bakedApplied; },
+    setLightOverride(o) {
+      lightOverride = o;
+      applyLighting();
+      applyRenderPath();
+      scheduleCube();
+    },
     setBaked(h) {
       baked = h;
       if (!h) bakedApplied = false;

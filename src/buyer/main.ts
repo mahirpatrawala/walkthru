@@ -79,6 +79,8 @@ import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
 import { mountNav } from './nav/mount';
+import { mountViews } from './views/mount';
+import { parseViewParam } from './views/view-modes';
 import { mountSceneTag, sceneOrigin, sceneTagText } from './scene-tag';
 import { isLocalHomeId } from '../upload/tag';
 import { createLivedIn, mountLivedInToggle } from '../look/lived-in';
@@ -816,6 +818,21 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     }
   }
 
+  // ---- the view modes: Walk (this loop, as it always was), Doll house and Plan (src/buyer/views). Mounted after the loop above so its frame callback runs after the walk's camera.
+  const views = mountViews({
+    ctx, viewer, look, character, hud, modes, shell, furnitureRoot,
+    outdoor: !!outdoorFile, skipEdges: outdoorFile ? ownedEdges(outdoorFile) : undefined,
+    unverified: unverifiedRooms, water: outdoorFile?.pools.map((p) => p.rect) ?? [],
+    nav, wardrobe: wardrobes, seats, cardFor: (item) => interactions.card(item),
+    standUp: async () => { if (interactions.pose()) await interactions.getUp(); },
+    northDeg: look?.lookFile?.northDeg,
+    initial: host && !host.first ? 'walk' : parseViewParam(location.search),
+    controls: true,
+    hudVisible: () => hud.root.style.display !== 'none',
+  });
+  cleanup.push(() => views.dispose());
+  ctx.views = views;
+
   // ---- debug hooks
   function snapshot() {
     const pos = character.position;
@@ -925,6 +942,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     seats,
     /** the mini plan, room bar and tour (src/buyer/nav) */
     nav: nav.debug,
+    /** the view modes (src/buyer/views): `mode()`, `set('walk' | 'dollhouse' | 'plan')`, `onChange`, and the machine, the doll house, the plan and a census of the scene */
+    views,
     /** the people a buyer added (src/buyer/people): the model, and the sheets and card */
     people: { get model() { return people!.people; }, get ui() { return people!.ui; } },
     /** SPEC 16.14: the offline bake dumps the scene as built (loaded on demand, never part of a first load) */

@@ -27,6 +27,7 @@ import type { PersonSpec } from '../buyer/people/manager';
 import type { MountedSpace, SpaceHost, SpaceSession } from './space-host';
 import type { BuildingFile, Portal } from './types';
 import { buildingUrl, parseBuildingUrl } from './url';
+import { withViewParam } from '../buyer/views/view-modes';
 
 const MAP_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21"/><path d="M3.5 21h17"/><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1M9.5 15h1M13.5 15h1"/><path d="M11 21v-3h2v3"/></svg>';
 
@@ -110,7 +111,8 @@ class BuildingWalk implements BuildingWalkApi {
     this.session = session;
     this.here = loc;
     this.count += 1;
-    const url = buildingUrl({ building: b.id, space: spaceId });
+    // the view the space opened in (`?view=dollhouse|plan`) stays in the address, so a shared link opens the same way
+    const url = withViewParam(buildingUrl({ building: b.id, space: spaceId }), (this.mounted as MountedSpace | null)?.ctx.views?.mode() ?? 'walk');
     if (o.history === 'push') history.pushState({ wb: spaceId }, '', url);
     else if (o.history === 'replace') history.replaceState({ wb: spaceId }, '', url);
     document.title = `${loc.space.name} · ${b.name} · walkthru`;

@@ -4,7 +4,7 @@ import { checkFor } from '../core/checks';
 import { circleFree, nearestFree } from '../core/grid-query';
 import { liePose, seatPose, standPose, treadmillPose } from '../core/poses';
 import { CHARACTER_RADIUS_M } from '../types';
-import type { FurnitureItem, Vec2 } from '../types';
+import type { CheckCard, FurnitureItem, Vec2 } from '../types';
 import type { BuyerContext, BuyerMode } from './context';
 import { CHAIR_PROMPT } from './seats';
 import type { Seats } from './seats';
@@ -50,6 +50,8 @@ export interface Interactions {
   nearest(): { item: FurnitureItem; distM: number } | null;
   pose(): PoseInfo | null;
   hideDims(): void;
+  /** the card a piece shows (its checks, notes, the door it sits in) at the walker's height: the doll house shows it for a tapped piece */
+  card(item: FurnitureItem): CheckCard;
 }
 
 /** Optional extras: a wardrobe that opens takes over the prompt and the action of its items (src/buyer/wardrobe.ts);
@@ -324,6 +326,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
       }
     },
     nearest,
+    card: (item) => cardOf(item, ctx.heightM()),
     pose() {
       return active
         ? { itemId: active.item.id, action: active.action, ready: active.ready, tone: cardOf(active.item, ctx.heightM()).tone }
