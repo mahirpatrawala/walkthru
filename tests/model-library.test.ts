@@ -415,7 +415,7 @@ describe('style packs choose models', () => {
     for (const f of ['bed', 'sofa', 'side', 'dresser', 'dining'] as const) expect(warm[f]).toBe('generator');
     expect(getPack('light-scandinavian')!.models).toBeTruthy();
     expect(getPack('walnut-white')!.models).toBeTruthy();
-    expect(PACKS.length).toBe(4);
+    expect(PACKS.length).toBe(6);
   });
   it('loadPack drops a family it does not know and a model that is not for the family, and keeps "generator"', () => {
     const { pack, dropped } = loadPack({ id: 'x-pack', name: 'X', models: { plant: ['potted_plant_01', 'dining_chair_02'], sofa: 'generator', nonsense: ['a'], jug: 'yes' } });

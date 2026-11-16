@@ -123,7 +123,8 @@ export function createViewer(container: HTMLElement, opts: { hasSplat: boolean; 
     const h = container.clientHeight || window.innerHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    camera.fov = camera.aspect < 1 ? 70 : 60;
+    const fovFor = camera.userData.fovFor as ((aspect: number) => number) | undefined; // first person asks for its own (SPEC 16.18)
+    camera.fov = fovFor ? fovFor(camera.aspect) : camera.aspect < 1 ? 70 : 60;
     camera.updateProjectionMatrix();
     for (const cb of [...resizeCbs]) {
       try { cb(w, h); } catch (err) { console.error('[walkthru] resize callback threw', err); }

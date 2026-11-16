@@ -28,7 +28,9 @@ const send = (method, params = {}) => new Promise((res, rej) => { const i = ++id
 const ev = async (expr) => { const r = await send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description ?? r.exceptionDetails.text); return r.result.value; };
 const shot = async (name) => { const r = await send('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(`${OUT}/${name}.png`, Buffer.from(r.data, 'base64')); };
 await send('Runtime.enable'); await send('Page.enable');
-await send('Emulation.setDeviceMetricsOverride', { width: +(process.env.W||1280), height: +(process.env.H||800), deviceScaleFactor: 1, mobile: process.env.MOBILE==='1' });
+await send('Emulation.setDeviceMetricsOverride', { width: +(process.env.W||1280), height: +(process.env.H||800), deviceScaleFactor: +(process.env.DPR||1), mobile: process.env.MOBILE==='1' });
+if (process.env.MOBILE === '1') await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+if (process.env.INJECT) await send('Page.addScriptToEvaluateOnNewDocument', { source: fs.readFileSync(process.env.INJECT, 'utf8') });
 await send('Page.navigate', { url });
 const body = fs.readFileSync(scriptPath, 'utf8');
 try {

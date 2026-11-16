@@ -1,0 +1,125 @@
+{
+  "id": "clean-contrast-dark",
+  "name": "Clean Contrast, charcoal",
+  "blurb": "The same bright walls and light stone floor, with charcoal skirting and deep walnut frames and handles as strong accents, warm wood doors.",
+  "roles": {
+    "case": "oak-light",
+    "flute": "oak-light",
+    "slats": "oak-light",
+    "legs": "oak-light",
+    "drawerFront": "white-laminate",
+    "accent": "charcoal-matte",
+    "bedFrame": "oak-light",
+    "headboard": "oak-light",
+    "top": "oak-light",
+    "fabric": "weave-sage",
+    "bedding": "cotton-white",
+    "duvet": "quilt-white",
+    "pillow": "cotton-white",
+    "cushion": "weave-sage",
+    "handle": "black-metal",
+    "plinth": "charcoal-matte",
+    "slatBack": "grey-matte",
+    "lampMetal": "brass",
+    "acBody": "white-gloss",
+    "rug": "shag-ivory",
+    "curtainSheer": "sheer-white",
+    "curtainDrape": "drape-sage",
+    "door": "oak-warm",
+    "wallPanel": "wall-bright",
+    "chain": "steel",
+    "swingWood": "oak-light",
+    "applianceBody": "white-gloss",
+    "applianceTrim": "steel",
+    "fittings": "steel"
+  },
+  "generators": {
+    "wardrobe": {
+      "shutterStyle": "flat",
+      "handle": "groove"
+    },
+    "bed": {
+      "base": "legs",
+      "headboard": "slatted",
+      "duvet": "plain",
+      "cushions": 1
+    },
+    "sofa": {
+      "arms": "box",
+      "legs": "metal"
+    },
+    "bench": {
+      "shape": "curved-end",
+      "cushion": true
+    },
+    "study": {
+      "top": "slab",
+      "handle": "groove"
+    },
+    "side": {
+      "style": "legs",
+      "handle": "groove"
+    },
+    "dresser": {
+      "base": "legs",
+      "handle": "groove"
+    },
+    "counter": {
+      "shutterStyle": "flat",
+      "handle": "groove"
+    },
+    "dining": {
+      "chair": "slat",
+      "legs": "tapered"
+    },
+    "swing": {
+      "cushion": true
+    },
+    "tvunit": {
+      "base": "legs",
+      "handle": "groove"
+    },
+    "cabinet": {
+      "handle": "groove"
+    },
+    "tablex": {
+      "legs": "tapered",
+      "handle": "groove"
+    },
+    "seatx": {
+      "legs": "metal"
+    }
+  },
+  "room": {
+    "wall": "wall-bright",
+    "floor": "tile-stone",
+    "ceiling": "ceiling-white"
+  },
+  "decor": {
+    "rug": true,
+    "curtains": true
+  },
+  "models": {
+    "jug": [
+      "ceramic_vase_01",
+      "ceramic_vase_04",
+      "ceramic_vase_02"
+    ]
+  },
+  "trim": {
+    "skirting": "charcoal-matte",
+    "frame": "walnut-deep",
+    "handle": "black-metal"
+  },
+  "tiles": {
+    "large": [
+      0.8,
+      0.8
+    ],
+    "standard": [
+      1.2,
+      0.6
+    ],
+    "groutMm": 2
+  }
+}

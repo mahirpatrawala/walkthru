@@ -39,8 +39,16 @@ function smooth(k: number): number {
 
 interface Focus { centre: Vec3; distance: number; pitchDeg: number; yawDeg: number }
 
-/** First person (SPEC 16.6.8): vertical field of view, and how far down and up the walker may look. */
-const FP_FOV_DEG = 70;
+/** First person (SPEC 16.6.8, 16.18): vertical field of view by aspect (72 on a desktop or tablet landscape; a portrait phone has a narrow slice, so 80), the near plane (a wall 15 cm from the eye does not clip), and how far down and up the walker may look. */
+const FP_FOV_DEG = 72;
+const FP_FOV_PORTRAIT_DEG = 80;
+const FP_NEAR_M = 0.03;
+const THIRD_NEAR_M = 0.05;
+/** third person, close to a wall (SPEC 16.18): below 0.95 m of boom the camera glides to the walker's eyes (a gentle fade into first person), and is there at 0.4 m. Seen from 40 cm behind the head, a room is hidden by a back. */
+const CLOSE_FULL_M = 0.4;
+const CLOSE_NONE_M = 0.95;
+const EYE_RATIO = 0.93;
+const fpFov = (aspect: number): number => (aspect < 1 ? FP_FOV_PORTRAIT_DEG : FP_FOV_DEG);
 const FP_PITCH_MIN_DEG = -80;
 const FP_PITCH_MAX_DEG = 80;
 /** Lying on a bed the walker looks at the ceiling: this much above level, eased in. */
@@ -78,6 +86,7 @@ export class FollowCamera {
   private fpBiasTarget = 0;
   private thirdFov: number;
   private yawTween: { from: number; to: number; t: number; dur: number } | null = null;
+  private closeFade = 0;
 
   constructor(camera: THREE.PerspectiveCamera, getGrid: () => Grid, ceilingM: number) {
     this.camera = camera;
@@ -114,6 +123,10 @@ export class FollowCamera {
   get firstPerson(): boolean {
     return this.firstPersonOn;
   }
+  /** 0..1: how far the camera has glided to the walker's eyes. 1 in first person; in third person it rises as a wall behind the walker shortens the boom. The page hides the body above 0.55. */
+  get fade(): number {
+    return this.firstPersonOn ? 1 : this.closeFade;
+  }
   set firstPerson(on: boolean) {
     if (on === this.firstPersonOn) return;
     this.firstPersonOn = on;
@@ -124,8 +137,12 @@ export class FollowCamera {
     this.fpBias = 0;
     this.fpBiasTarget = 0;
     this.yawTween = null;
-    this.camera.fov = on ? FP_FOV_DEG : this.thirdFov;
+    // the viewer's resize asks `userData.fovFor` for the field of view, so a resize in first person keeps it
+    this.camera.userData.fovFor = on ? fpFov : undefined;
+    this.camera.fov = on ? fpFov(this.camera.aspect) : this.thirdFov;
+    this.camera.near = on ? FP_NEAR_M : THIRD_NEAR_M;
     this.camera.updateProjectionMatrix();
+    this.closeFade = 0;
     if (!on) { this.haveBoom = false; this.boomLen = this.distance; }
   }
 
@@ -249,8 +266,21 @@ export class FollowCamera {
       this.boomLen = Math.min(free, this.boomLen + LENGTHEN_MPS * dt); // lengthen at 2 m/s
     }
 
-    this.camera.position.set(pivot.x + dir.x * this.boomLen, pivot.y + dir.y * this.boomLen, pivot.z + dir.z * this.boomLen);
-    this.camera.lookAt(pivot.x, pivot.y, pivot.z);
+    const px = pivot.x + dir.x * this.boomLen, py = pivot.y + dir.y * this.boomLen, pz = pivot.z + dir.z * this.boomLen;
+    // close to a wall: glide from the boom to the eyes, and look ahead instead of at the back (no pop: the blend is continuous in the boom length)
+    const k = clamp((this.boomLen - CLOSE_FULL_M) / (CLOSE_NONE_M - CLOSE_FULL_M), 0, 1);
+    const t = (1 - smooth(k)) * (1 - s);
+    this.closeFade += (t - this.closeFade) * (1 - Math.exp(-dt * 12));
+    const c = this.closeFade;
+    if (c > 1e-3) {
+      const ex = this.target.x - Math.sin(yr) * 0.04, ey = EYE_RATIO * this.heightM, ez = this.target.z - Math.cos(yr) * 0.04;
+      const ax = ex + Math.sin(yr) * Math.cos(pr) * 2, ay = ey - Math.sin(pr) * 2, az = ez + Math.cos(yr) * Math.cos(pr) * 2;
+      this.camera.position.set(px + (ex - px) * c, py + (ey - py) * c, pz + (ez - pz) * c);
+      this.camera.lookAt(pivot.x + (ax - pivot.x) * c, pivot.y + (ay - pivot.y) * c, pivot.z + (az - pivot.z) * c);
+    } else {
+      this.camera.position.set(px, py, pz);
+      this.camera.lookAt(pivot.x, pivot.y, pivot.z);
+    }
   }
 
   private updateFirstPerson(dt: number, look: { dx: number; dy: number; zoom: number }): void {

@@ -83,6 +83,10 @@ export function savePerson(storage: StorageLike | null, p: PersonState): void {
 /** SPEC 16.6.8: 'third' = see yourself (the follow camera, the default), 'first' = through your own eyes, no body in shot. */
 export type ViewMode = 'third' | 'first';
 export const VIEW_KEY = 'walkthru:view';
+/**
+ * THE one place to flip which view a buyer opens in (SPEC 16.18): change this to 'first' and every home opens through the walker's eyes. A saved choice
+ * (`walkthru:view`) and `?view=first|third` in the URL still win. Both views are crisp: the third-person camera glides to the eyes when a wall is close behind.
+ */
 export const DEFAULT_VIEW: ViewMode = 'third';
 
 export function viewFrom(v: unknown): ViewMode {

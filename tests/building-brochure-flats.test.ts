@@ -122,7 +122,7 @@ describe('the four brochure flats', () => {
 
       it('carries the specification as finishes of the look\'s own table, and a look.json', () => {
         const sheet = parseDesignSheet(json(a.sceneId, 'design.json'))!;
-        expect(sheet.pack).toBe('light-scandinavian');
+        expect(sheet.pack).toBe('clean-contrast'); // SPEC 16.18: the default pack (it was Light Scandinavian)
         expect(sheet.source).toBe('typical');
         for (const r of a.rooms) {
           const want = SPEC_FINISHES[r.finish];
@@ -131,7 +131,7 @@ describe('the four brochure flats', () => {
         }
         expect(sheet.fixtures.length).toBeGreaterThanOrEqual(3); // an AC point for the living room and every bedroom
         expect(sheet.fixtures.every((f) => f.kind === 'ac')).toBe(true);
-        expect(sheet.items.decor?.roles?.door).toBe('white-laminate');
+        expect(sheet.items.decor?.roles?.door).toBe('oak-warm');
         expect(json(a.sceneId, 'look.json')).toMatchObject({ version: 1 });
       });
 

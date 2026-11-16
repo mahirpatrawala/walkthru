@@ -30,7 +30,7 @@ import type { KitHandle } from '../look/kit';
 import { fetchDesignSheet } from '../look/design-sheet';
 import { mountDesign } from '../look/design-mount';
 import { PACKS } from '../look/packs';
-import { doorPanelColour, finishNote, getStyle, onStyleChange, setStyle } from '../look/style';
+import { doorPanelFinish, finishNote, getStyle, onStyleChange, setStyle, trimColours } from '../look/style';
 import { resolveItemLook } from '../look/furniture-real';
 import { modelNote } from '../look/models/apply';
 import { setModelsEnabled } from '../look/models/library';
@@ -489,10 +489,11 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   cleanup.push(() => wardrobes.dispose());
   const doors = mountDoors({ ctx, store, layout, looks: host?.doorLooks });
   cleanup.push(() => { doors.dispose(); delete (window as unknown as { __walkthruDoors?: unknown }).__walkthruDoors; });
-  doors.setPanelColour(doorPanelColour());
+  const styleDoors = (): void => { doors.setPanelFinish(doorPanelFinish()); doors.setHandleColour(trimColours().handle); };
+  styleDoors();
   // a board over every door, on both sides, naming the room beyond it (src/buyer/door-labels.ts)
   { const labels = mountDoorLabels(viewer.scene, layout, property.spaceKind ?? 'home'); cleanup.push(() => labels.dispose()); }
-  cleanup.push(onStyleChange(() => { doors.setPanelColour(doorPanelColour()); })); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
+  cleanup.push(onStyleChange(styleDoors)); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
   const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, editNote: (item) => { const d = store.drawnItem(item.id); return d && store.isOriginal(item.id) ? editNote(d, item) : null; }, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name) + modelNote(item.id)) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
@@ -549,7 +550,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   character.setHeight(heightCm / 100, tintForPerson(person.body, heightCm));
 
   // ---- view (SPEC 16.6.8): see yourself (the follow camera, the default) or look through your own eyes (no body in shot)
-  let view: ViewMode = loadView(storage);
+  // `?view=first|third` forces a view for a link or a check; otherwise the saved choice, otherwise DEFAULT_VIEW (src/buyer/person-store.ts: the one place to flip the default)
+  let view: ViewMode = params.get('view') === 'first' || params.get('view') === 'third' ? (params.get('view') as ViewMode) : loadView(storage);
   const eyeNow = new THREE.Vector3();
   let lastCharState = character.state;
   function applyView(v: ViewMode, announce = true): void {
@@ -784,9 +786,9 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     people!.people.update(dt);
     people!.ui.update(dt);
     outdoor?.update(dt);
-    // below a 0.7 m boom the character is hidden, above 0.8 m it comes back (SPEC 2.4)
-    if (camera.boom < 0.7) character.setVisible(false);
-    else if (camera.boom > 0.8) character.setVisible(true);
+    // close to a wall the camera glides to the eyes (camera.fade, SPEC 16.18): the body goes at half way, and comes back when the fade falls under 0.45
+    if (camera.fade > 0.55) character.setVisible(false);
+    else if (camera.fade < 0.45) character.setVisible(true);
     hud.setJoystick(input.joystick);
 
     chipClock += dt;

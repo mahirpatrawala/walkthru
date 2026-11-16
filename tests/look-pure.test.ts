@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { buildTruthProperty, truthGrid } from '../scripts/make-test-room';
 import { buildShell } from '../src/engine/shell';
 import { aoAt, buildAoField } from '../src/look/floor-ao';
-import { FpsWatch, FrameTimer, TIERS, guessTier, lowerTier, parseTier, stepDown, tierFromQuery, toneMapperFromQuery } from '../src/look/quality';
+import { FpsWatch, FrameTimer, TIERS, clampAnisotropy, clampSamples, guessTier, postWanted, tierPixelCap, lowerTier, parseTier, stepDown, tierFromQuery, toneMapperFromQuery } from '../src/look/quality';
 import { DEFAULT_PRESET, LOOK_PRESETS, PRESET_HOURS, SUN_SET_HOUR, TRUE_GRADE, gradeAt, presetOfHour } from '../src/look/grade';
 import { InteriorLights } from '../src/look/interior';
 import { chooseBackdrop, backdropPath, skyPixels } from '../src/look/sky';
@@ -155,11 +155,28 @@ describe('quality (SPEC 16.8 check 7)', () => {
   });
   it('the tier table matches SPEC 16.5', () => {
     expect(TIERS.low).toMatchObject({ fpsTarget: 30, pixelRatioCap: 1, shadow: 'none', environment: false, reflection: 'none', post: false });
-    expect(TIERS.medium).toMatchObject({ fpsTarget: 50, pixelRatioCap: 1.5, shadow: 'static', shadowMapSize: 1024, reflection: 'cube', post: false });
-    expect(TIERS.high).toMatchObject({ fpsTarget: 55, pixelRatioCap: 2, shadow: 'live', shadowMapSize: 2048, reflection: 'planar', post: true, bloom: true });
+    expect(TIERS.medium).toMatchObject({ fpsTarget: 50, pixelRatioCap: 2, shadow: 'static', shadowMapSize: 2048, reflection: 'cube', post: true, bloom: false, msaa: 4, anisotropy: 16 });
+    expect(TIERS.high).toMatchObject({ fpsTarget: 55, pixelRatioCap: 2, shadow: 'live', shadowMapSize: 4096, reflection: 'planar', post: true, bloom: true, msaa: 4, anisotropy: 16 });
     expect(stepDown('high')).toBe('medium');
     expect(stepDown('medium')).toBe('low');
     expect(lowerTier('high', 'medium')).toBe('medium');
+  });
+  it('SPEC 16.18: phones keep the 1.5 cap and no composer on medium, desktops get both; anisotropy and samples follow the GPU', () => {
+    expect(tierPixelCap(TIERS.medium, false)).toBe(2);
+    expect(tierPixelCap(TIERS.medium, true)).toBe(1.5);
+    expect(tierPixelCap(TIERS.low, true)).toBe(1);
+    expect(postWanted(TIERS.medium, false)).toBe(true);
+    expect(postWanted(TIERS.medium, true)).toBe(false);
+    expect(postWanted(TIERS.high, true)).toBe(true);
+    expect(postWanted(TIERS.low, false)).toBe(false);
+    expect(clampAnisotropy(16, 8)).toBe(8);
+    expect(clampAnisotropy(16, 16)).toBe(16);
+    expect(clampAnisotropy(32, 32)).toBe(16);
+    expect(clampAnisotropy(4, 0)).toBe(4);
+    expect(clampSamples(4, 8)).toBe(4);
+    expect(clampSamples(4, 2)).toBe(2);
+    expect(clampSamples(4, 1)).toBe(0);
+    expect(clampSamples(4, 0)).toBe(0);
   });
   it('the watchdog fires once the 4 second average is under the target, and ignores long gaps', () => {
     const w = new FpsWatch(50);

@@ -52,8 +52,8 @@ export const SPEC_FINISHES = {
   balcony: { floor: 'tile-sand' },
 } as const;
 export const SPEC_COUNTER_TOP = 'white-stone';
-export const SPEC_DOOR_FINISH = 'white-laminate';
-export const SPEC_PACK = 'light-scandinavian';
+export const SPEC_DOOR_FINISH = 'oak-warm';
+export const SPEC_PACK = 'clean-contrast';
 
 function acFixtures(spec: AuthoredFlat, acs: AcSpec[]): { kind: 'ac'; roomId: string; edge: number; u: number; y: number }[] {
   const built = buildLayout(spec);

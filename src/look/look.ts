@@ -12,7 +12,8 @@ import { createLookMaterials } from './materials';
 import type { LookMaterials } from './materials';
 import { createPostChain } from './post';
 import type { PostChain } from './post';
-import { FpsWatch, FrameTimer, TIERS, lowerTier, loadSavedTier, readDevice, guessTier, saveTier, stepDown, tierFromQuery, toneMapperFromQuery } from './quality';
+import { TIERS, clampAnisotropy, lowerTier, loadSavedTier, readDevice, guessTier, saveTier, stepDown, tierFromQuery, postWanted, tierPixelCap, toneMapperFromQuery } from './quality';
+import { ResolutionGovernor } from './resolution';
 import type { TierConfig, ToneMapperName } from './quality';
 import type { BakedHook } from './baked/hook';
 import { Reflections } from './reflect';
@@ -27,9 +28,12 @@ export type { Tier } from './types';
 export type { LookFile } from './types';
 export type { LookPreset, InteriorLightKind } from './grade';
 
+/** strength of the sharpening pass on the high tier (0 = off); chosen by comparing with and without, SPEC 16.18 */
+const DEFAULT_SHARPEN = 0;
+
 export type QualityMode = 'auto' | Tier;
 
-export interface LookStats { tier: Tier; fps: number; drawCalls: number; triangles: number; textures: number; bytesLoaded: number }
+export interface LookStats { tier: Tier; /** the pixel ratio the governor is drawing at (SPEC 16.18) */ pixelRatio: number; fps: number; drawCalls: number; triangles: number; textures: number; bytesLoaded: number }
 
 export interface Look {
   readonly tier: Tier;
@@ -157,7 +161,13 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   const device = readDevice(renderer.getContext());
   let tier: Tier = forced ?? lowerTier(guessTier(device), loadSavedTier(storage) ?? 'high');
   let quality: QualityMode = forced ?? 'auto';
-  let cfg: TierConfig = TIERS[tier];
+  /** a tier's settings with the anisotropy held to what this GPU offers (SPEC 16.18) */
+  const gpuAniso = renderer.capabilities.getMaxAnisotropy();
+  const tierCfg = (t: Tier): TierConfig => ({ ...TIERS[t], anisotropy: clampAnisotropy(TIERS[t].anisotropy, gpuAniso) });
+  let cfg: TierConfig = tierCfg(tier);
+  /** SPEC 16.18: the pixel ratio has its own ladder, walked before the tier steps down (auto quality only) */
+  const screenRatio = (): number => (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
+  const governor = new ResolutionGovernor(Math.min(screenRatio(), tierPixelCap(cfg, device.touch)), { target: cfg.fpsTarget });
   const toneMapper: ToneMapperName = toneMapperFromQuery(typeof location !== 'undefined' ? location.search : '');
   const queryPreset = (() => { try { return parsePreset(new URLSearchParams(location.search).get('preset')); } catch { return null; } })();
   let hour = clampDayHour(lookFile?.hour ?? PRESET_HOURS[queryPreset ?? lookFile?.preset ?? DEFAULT_PRESET]);
@@ -287,7 +297,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       tmp.setRGB(g.sunColour[0], g.sunColour[1], g.sunColour[2]);
       hemi.color.setRGB(g.hemiSky[0], g.hemiSky[1], g.hemiSky[2]).multiplyScalar(cfg.skyScale);
       hemi.groundColor.setRGB(g.hemiGround[0], g.hemiGround[1], g.hemiGround[2]);
-      if (!g.night) hemi.groundColor.lerp(tmp.multiply(floorLinear).multiplyScalar(1.4), 0.25);
+      if (!g.night) hemi.groundColor.lerp(tmp.multiply(floorLinear).multiplyScalar(1.4), 0.12);
       hemi.groundColor.multiplyScalar(cfg.groundScale);
       hemi.intensity = g.hemiIntensity * (cfg.hemiIntensity / HEMI_REFERENCE) * (outdoor ? outdoorHemiBoost(g) : 1);
       // tiers with no grade pass (low and medium: no post chain) get the sun's warmth through the sky half of the ambient instead
@@ -373,7 +383,9 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   function applyTier(): void {
     const prevType = renderer.shadowMap.type;
     const wasEnabled = renderer.shadowMap.enabled;
-    viewer.setPixelRatioCap(cfg.pixelRatioCap);
+    governor.setMax(Math.min(screenRatio(), tierPixelCap(cfg, device.touch)));
+    governor.setTarget(cfg.fpsTarget);
+    viewer.setPixelRatioCap(governor.ratio);
     renderer.shadowMap.enabled = shadowsOn();
     // SPEC-GAP: 16.5 names PCFSoftShadowMap for high, but three 0.186 removed it (PCFShadowMap is the soft one now); high widens the filter instead
     renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -400,15 +412,26 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     notify();
   }
 
+  const postOn = (): boolean => postWanted(cfg, device.touch);
+
+  /** `?aa=smaa` puts SMAA back on top of the multisampled buffer and `?sharpen=0.6` adds the sharpening pass: switches for comparing, nothing ships on by default but MSAA */
+  function postQuery(): { smaa?: boolean; sharpen?: number } {
+    try {
+      const q = new URLSearchParams(location.search);
+      const sh = Number(q.get('sharpen'));
+      return { smaa: q.get('aa') === 'smaa', sharpen: Number.isFinite(sh) && sh > 0 ? Math.min(sh, 1.5) : DEFAULT_SHARPEN };
+    } catch { return { sharpen: DEFAULT_SHARPEN }; }
+  }
+
   function applyRenderPath(): void {
-    const wantPost = cfg.post && !scanVisible && !postFailed && postAllowed;
+    const wantPost = postOn() && !scanVisible && !postFailed && postAllowed;
     const wantReflection = scanVisible || outdoor ? 'none' : cfg.reflection;
     if (wantPost) {
       if (post) viewer.setRenderOverride(renderFrame);
       else if (!postLoading) {
-        postLoading = createPostChain(viewer, { exposure: trueColours ? EXPOSURE_TRUE : grade.exposure, bloom: cfg.bloom, mapper: toneMapper })
+        postLoading = createPostChain(viewer, { exposure: trueColours ? EXPOSURE_TRUE : grade.exposure, bloom: cfg.bloom, mapper: toneMapper, msaa: cfg.msaa, ao: cfg.tier === 'high' ? 'full' : 'cheap', ...postQuery() })
           .then((p) => {
-            if (disposed || !TIERS[tier].post) { p.dispose(); return; }
+            if (disposed || !postWanted(TIERS[tier], device.touch)) { p.dispose(); return; }
             post = p;
             post.setAoStrength(bakedApplied ? BAKED_SSAO_STRENGTH : outdoor ? OUTDOOR_SSAO_STRENGTH : 1);
             syncAo();
@@ -419,7 +442,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
           .finally(() => { postLoading = null; });
       }
     } else {
-      if (post && !cfg.post) { post.dispose(); post = null; }
+      if (post && !postOn()) { post.dispose(); post = null; }
       if (post && scanVisible) { /* keep the chain, just do not use it */ }
     }
     const usePost = !!post && wantPost;
@@ -430,9 +453,10 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     if (held) viewer.setRenderOverride(held);
   }
 
-  /** N8AO costs about 1.5 ms per megapixel of drawing buffer on an M2: 8 ms at 2880 x 1800. Past 2.5 megapixels the high tier keeps the
-   *  grid AO and drops the screen-space pass rather than miss its 55 fps target. */
-  const SSAO_MAX_PIXELS = 2.5e6;
+  /** N8AO costs about 1.5 ms per megapixel of drawing buffer on an M2: 8 ms at 2880 x 1800. Past 5.6 megapixels (about 2880 x 1900: a 2x
+   *  retina laptop at ratio 2 still has it, the 4K desktop does not) the high tier keeps the grid AO and drops the screen-space pass rather
+   *  than miss its 55 fps target. The resolution governor lowers the ratio first, which brings the pass back under the limit. */
+  const SSAO_MAX_PIXELS = 5.6e6;
   function syncAo(): void {
     if (!post) return;
     const s = renderer.getDrawingBufferSize(new THREE.Vector2());
@@ -442,7 +466,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
 
   function renderFrame(dt: number): void {
     if (cfg.reflection === 'planar' && !scanVisible && !trueColours) reflections.updatePlanar();
-    if (post && cfg.post && !scanVisible) post.render(dt);
+    if (post && postOn() && !scanVisible) post.render(dt);
     else renderer.render(scene, camera);
   }
 
@@ -457,13 +481,15 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       const jobs: Promise<unknown>[] = [
         materials.loadTextures(loader, cfg).catch((e) => console.warn('[walkthru] textures not loaded', e)),
       ];
-      if (cfg.post) {
+      if (postOn()) {
         applyRenderPath();
         if (postLoading) jobs.push(postLoading);
       }
       await Promise.all(jobs);
       if (disposed || my !== tier) return;
       materials.configure(cfg, { trueColours });
+      // every shader variant of the scene is compiled before the first frame that needs it, in the background (no first-frame stall)
+      void renderer.compileAsync(scene, camera).catch(() => {});
       syncSky(true);
       applyLighting();
       needsShadowRefresh();
@@ -476,8 +502,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   async function switchTier(t: Tier): Promise<void> {
     if (disposed) return;
     tier = t;
-    cfg = TIERS[t];
-    if (!cfg.post && post) { post.dispose(); post = null; }
+    cfg = tierCfg(t);
+    if (!postOn() && post) { post.dispose(); post = null; }
     applyTier();
     readyPromise = loadForTier();
     if (grid) rebuildAo(grid);
@@ -502,10 +528,11 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     cubeTimer = setTimeout(() => { cubeTimer = null; if (!disposed) reflections.updateCube(); }, 150);
   }
 
-  // ---- auto tier: the first guess is timed, then a watchdog steps down once
+  // ---- auto quality: resolution first, then the tier (SPEC 16.18)
+  // The first guess is the device's. A window of slow frames takes one rung off the pixel-ratio ladder (2 -> 1.75 -> 1.5 -> 1.25); only
+  // when the ladder is spent and the window is still slow does the tier step down, once, and it is remembered. After a stretch of fast
+  // frames the ratio probes one rung back up; a probe that has to be undone makes the next wait twice as long.
 
-  const watch = new FpsWatch(cfg.fpsTarget);
-  let bench: FrameTimer | null = null;
   let lastNow = 0;
   const offFrame = viewer.onFrame((frameDt) => {
     renderer.info.reset();
@@ -513,19 +540,20 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     const now = performance.now();
     const dt = lastNow ? (now - lastNow) / 1000 : 0;
     lastNow = now;
-    if (disposed || quality !== 'auto' || loadingTier || document.hidden) { bench = null; watch.reset(); return; }
-    if (bench) {
-      const fps = bench.frame(dt);
-      if (fps !== null) {
-        bench = null;
-        if (fps < cfg.fpsTarget && tier !== 'low') {
-          steppedDown = true;
-          void switchTier(stepDown(tier)).then(() => { bench = new FrameTimer(40); });
-        }
-      }
+    if (disposed || quality !== 'auto' || loadingTier || document.hidden) { governor.resetWindow(); return; }
+    const ev = governor.frame(dt);
+    if (!ev) return;
+    if (ev.type === 'ratio') { viewer.setPixelRatioCap(ev.ratio); notify(); return; }
+    if (cfg.shadow === 'live' && cfg.shadowMapSize > 2048) {
+      // the cheapest thing left to give up on the high tier: the 4096 shadow map, drawn every frame, goes to 2048 before the tier steps down
+      cfg = { ...cfg, shadowMapSize: 2048 };
+      sunLight.shadow.mapSize.set(2048, 2048);
+      sunLight.shadow.map?.dispose();
+      sunLight.shadow.map = null;
+      governor.resetWindow();
       return;
     }
-    if (!steppedDown && tier !== 'low' && watch.frame(dt)) {
+    if (!steppedDown && tier !== 'low') {
       steppedDown = true;
       const next = stepDown(tier);
       saveTier(storage, next);
@@ -548,18 +576,14 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     sun: () => sun,
     async setTier(t) {
       quality = t;
-      bench = null;
       await switchTier(t);
     },
     async setQuality(q) {
       quality = q;
       steppedDown = false;
-      watch.reset();
       if (q === 'auto') {
         const t = lowerTier(guessTier(device), loadSavedTier(storage) ?? 'high');
-        watch.setTarget(TIERS[t].fpsTarget);
         await switchTier(t);
-        bench = new FrameTimer(40);
       } else {
         await switchTier(q);
       }
@@ -614,7 +638,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     stats() {
       const info = renderer.info;
       return {
-        tier, fps: viewer.fps, drawCalls: info.render.calls, triangles: info.render.triangles,
+        tier, pixelRatio: renderer.getPixelRatio(), fps: viewer.fps, drawCalls: info.render.calls, triangles: info.render.triangles,
         textures: info.memory.textures, bytesLoaded: loader.bytes,
       };
     },
@@ -744,6 +768,6 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   // ---- start
   applyTier();
   readyPromise = loadForTier();
-  if (quality === 'auto') void readyPromise.then(() => { if (!disposed && quality === 'auto') { watch.setTarget(cfg.fpsTarget); bench = new FrameTimer(40); } });
+  if (quality === 'auto') void readyPromise.then(() => { if (!disposed && quality === 'auto') governor.resetWindow(); });
   return look;
 }

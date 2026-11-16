@@ -195,9 +195,10 @@ function signTexture(text: string): THREE.Texture | null {
 }
 function paintSign(text: string): THREE.Texture | null {
   const c = document.createElement('canvas');
-  c.width = 256; c.height = 150;
+  c.width = 1024; c.height = 600; // 4x the 256 x 150 design: a depth sign is read from a metre away (SPEC 16.18)
   const g = c.getContext('2d');
   if (!g) return null;
+  g.scale(4, 4);
   g.fillStyle = '#1E73A8'; g.fillRect(0, 0, 256, 150);
   g.fillStyle = '#FFFFFF'; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.font = 'bold 76px sans-serif'; g.fillText(text, 128, 62);
@@ -205,6 +206,7 @@ function paintSign(text: string): THREE.Texture | null {
   g.strokeStyle = '#FFFFFF'; g.lineWidth = 4; g.strokeRect(8, 8, 240, 134);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 16;
   return t;
 }
 
