@@ -64,6 +64,7 @@ import { createInteractions } from './interactions';
 import { buildSeats } from './seats';
 import { createWardrobes } from './wardrobe';
 import { mountDoors } from './doors';
+import { mountDoorLabels } from './door-labels';
 import { createLoadingScreen } from './loading';
 import type { LoadingScreen } from './loading';
 import { beginGuard } from '../building/guard';
@@ -489,6 +490,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   const doors = mountDoors({ ctx, store, layout, looks: host?.doorLooks });
   cleanup.push(() => { doors.dispose(); delete (window as unknown as { __walkthruDoors?: unknown }).__walkthruDoors; });
   doors.setPanelColour(doorPanelColour());
+  // a board over every door, on both sides, naming the room beyond it (src/buyer/door-labels.ts)
+  { const labels = mountDoorLabels(viewer.scene, layout, property.spaceKind ?? 'home'); cleanup.push(() => labels.dispose()); }
   cleanup.push(onStyleChange(() => { doors.setPanelColour(doorPanelColour()); })); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
   const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, editNote: (item) => { const d = store.drawnItem(item.id); return d && store.isOriginal(item.id) ? editNote(d, item) : null; }, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name) + modelNote(item.id)) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
