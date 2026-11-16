@@ -6,7 +6,6 @@ import { defaultStartRoom, startableRooms } from '../core/start-rooms';
 import { polygonArea } from '../core/geometry';
 import { formatArea } from '../core/units';
 import { planSvg } from './plan-svg';
-import { heroSvg } from './hero-art';
 import { BRAND_MARK } from '../brand/mark';
 import type { SceneEntry, SceneIndex } from './manifest';
 import { renderUploadCard } from '../upload/card';
@@ -65,10 +64,8 @@ export async function mountStart(): Promise<void> {
 
   // the hero is static, so it is on screen before the list of homes arrives; a light line stands in for the gallery
   renderHero(root);
-  const wait = h('p', 'ws-loading', LOADING_LINES[0], root);
+  const wait = h('p', 'ws-loading', 'Loading the homes…', root);
   wait.dataset.testid = 'start-loading';
-  let lineNo = 0;
-  const lineTimer = setInterval(() => { lineNo = (lineNo + 1) % LOADING_LINES.length; wait.textContent = LOADING_LINES[lineNo]; }, 2200);
 
   let index: SceneIndex;
   // the plans this visitor uploaded live in this browser; they never touch the server's list
@@ -78,7 +75,6 @@ export async function mountStart(): Promise<void> {
   try {
     index = await loadIndex();
   } catch (err) {
-    clearInterval(lineTimer);
     root.replaceChildren();
     const box = h('div', 'ws-empty', undefined, root);
     h('h1', undefined, 'Could not load the homes.', box);
@@ -89,7 +85,7 @@ export async function mountStart(): Promise<void> {
     return;
   }
 
-  clearInterval(lineTimer);
+  wait.remove();
   const buildings = await buildingsPromise;
   let mine = await minePromise;
   const refreshMine = async (): Promise<void> => { mine = await loadLocalEntries().catch((): SceneEntry[] => []); route(); };
@@ -130,14 +126,6 @@ function link(a: HTMLAnchorElement, go: Go): void {
 
 // ---------------------------------------------------------------- step 1: the gallery
 
-/** Lines for the wait before the homes arrive. A light touch of humour, never at the cost of what is actually happening. */
-export const LOADING_LINES = [
-  'Measuring twice, cutting never…',
-  'Unrolling the floor plans…',
-  'Asking the walls how thick they are…',
-  'Checking the sofa will fit through the door…',
-];
-
 function renderHero(root: HTMLElement): void {
   const hero = h('header', 'ws-hero', undefined, root);
   hero.dataset.testid = 'start-hero';
@@ -145,39 +133,22 @@ function renderHero(root: HTMLElement): void {
   const brand = h('span', 'wt-brand', undefined, nav);
   brand.innerHTML = `${BRAND_MARK}<span>walkthru</span>`; // a fixed string from src/brand/mark.ts
   const copy = h('div', 'ws-hero-copy', undefined, hero);
-  h('span', 'ws-eyebrow', 'ghar baithe, flat dekho', copy);
-  const title = h('h1', undefined, undefined, copy);
-  title.append('Walk through a flat ');
-  h('em', undefined, 'before', title);
-  title.append(' you visit it');
-  h('p', 'ws-lead', 'Your floor plan becomes a 3D home you can walk around, sit in and measure. Sizes come from the drawing, and anything it does not show is marked as not measured.', copy);
-  const points = h('ul', 'ws-points', undefined, copy);
-  for (const t of ['Real sizes from the plan', 'Lie on the bed, sit on the sofa', 'Check if your furniture fits']) h('li', undefined, t, points);
-  const cta = h('a', 'ws-cta', 'Choose a home', copy);
-  cta.href = '#homes';
-  cta.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('homes')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-  const upCta = h('a', 'ws-cta is-ghost', 'Upload your floor plan', copy);
-  upCta.href = '#upload';
-  upCta.dataset.testid = 'hero-upload';
-  upCta.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('upload')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-  const art = h('div', 'ws-hero-art', undefined, hero);
-  art.setAttribute('aria-hidden', 'true');
-  art.innerHTML = heroSvg(); // generated from numbers in hero-art.ts, no page data in it
+  h('h1', undefined, 'Choose where to walk', copy);
+  h('p', 'ws-lead', 'Pick a building or a home. Sizes come from the drawing, and anything it does not show is marked as not measured.', copy);
 }
 
 function renderGallery(root: HTMLElement, index: SceneIndex, mine: SceneEntry[], buildings: BuildingIndex, go: Go, refreshMine: () => void): void {
-  document.title = 'walkthru · Walk through a flat before you visit it';
+  document.title = 'walkthru';
   renderHero(root);
-  renderUploadCard(root, go);
-  if (mine.length > 0) renderUploads(root, mine, go, refreshMine);
   renderBuildingList(root, buildings, go);
   const section = h('div', 'ws-section', undefined, root);
   section.id = 'homes';
-  h('h2', undefined, 'Pick a home', section);
+  h('h2', undefined, 'Homes', section);
   h('p', undefined, 'Choose a room to start in, then walk.', section);
 
   if (index.scenes.length === 0) {
     h('p', 'ws-empty', 'There are no homes here yet.', root);
+    renderUploadCard(root, go);
     return;
   }
   const grid = h('div', 'ws-grid', undefined, root);
@@ -200,6 +171,8 @@ function renderGallery(root: HTMLElement, index: SceneIndex, mine: SceneEntry[],
     link(a, go);
   }
   h('p', 'ws-fine', 'Plans are redrawn from each home’s layout. Sizes come from the floor plan. Sample drawings are made up to show how it works.', root);
+  if (mine.length > 0) renderUploads(root, mine, go, refreshMine);
+  renderUploadCard(root, go);
 }
 
 /** "Your uploads": plans read in this browser, each with a delete button (a second tap confirms). */

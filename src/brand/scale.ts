@@ -9,11 +9,20 @@ export function scaleFor(width: number, height: number): number {
   return Math.round(z * 20) / 20;
 }
 
+/** How much text the chrome can carry: `width / scale` is the room in design units. Icons alone below 1400, the main tools named from 1400, every tool named from 1850. */
+export function labelsFor(width: number, height: number): 'icons' | 'primary' | 'full' {
+  const u = width / scaleFor(width, height);
+  return u >= 1850 ? 'full' : u >= 1400 ? 'primary' : 'icons';
+}
+
 /** Applies the scale now and on every resize; returns the remover. Safe to call twice (the second call replaces nothing). */
 export function installScale(win: Window = window): () => void {
   const root = win.document.documentElement;
   let raf = 0;
-  const apply = (): void => { root.style.setProperty('--wt-z', String(scaleFor(win.innerWidth, win.innerHeight))); };
+  const apply = (): void => {
+    root.style.setProperty('--wt-z', String(scaleFor(win.innerWidth, win.innerHeight)));
+    root.dataset.labels = labelsFor(win.innerWidth, win.innerHeight);
+  };
   const onResize = (): void => { if (raf) return; raf = win.requestAnimationFrame(() => { raf = 0; apply(); }); };
   apply();
   win.addEventListener('resize', onResize);

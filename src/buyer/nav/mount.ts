@@ -143,28 +143,35 @@ export function mountNav(d: NavDeps): MountedNav {
     return best?.at ?? null;
   }
 
-  // the tour's own camera: first person at eye height, the body hidden, a 75 degree lens and a few degrees down; the viewer's own view comes back after
-  const camAny = ctx.camera as unknown as { firstPerson: boolean; fpBiasTarget?: number };
-  let saved: { first: boolean; fov: number } | null = null;
+  // the tour's own camera (the camera director of src/engine/camera.ts): at eye height, the body hidden, a 75 degree lens and a few degrees down. It takes over
+  // from wherever the camera is by gliding (never a cut) and gives the walker's own view back the same way when the tour ends or is interrupted.
+  const camDir = ctx.camera as unknown as {
+    driveTo(p: { x: number; y: number; z: number }, look: { x: number; y: number; z: number }, smooth?: number): void;
+    releaseDrive(smooth?: number): void; setBodyHidden(h: boolean | null): void; setFov(deg: number | null, smooth?: number): void;
+  };
+  let presenting = false;
+  let presentT = 0;
   function enterPresentation(): void {
-    if (saved) return;
-    saved = { first: camAny.firstPerson, fov: ctx.viewer.camera.fov };
-    camAny.firstPerson = true;
-    ctx.viewer.camera.fov = 75;
-    ctx.viewer.camera.updateProjectionMatrix();
-    ch.setVisible?.(false);
-    // the pitch bias of the first-person camera eases toward this (a camera hook for a pitch setter would replace this line)
-    camAny.fpBiasTarget = TOUR_PITCH_DEG;
+    if (presenting) return;
+    presenting = true; presentT = 0;
+    camDir.setBodyHidden(true);
+    camDir.setFov(75, 1.0);
   }
   function exitPresentation(): void {
-    if (!saved) return;
-    const was = saved;
-    saved = null;
-    camAny.fpBiasTarget = 0;
-    camAny.firstPerson = false; // the setter restores the lens of the third-person view; turn first person back on if that was the view
-    camAny.firstPerson = was.first;
-    ctx.viewer.camera.updateProjectionMatrix();
-    if (!was.first) ch.setVisible?.(true);
+    if (!presenting) return;
+    presenting = false;
+    camDir.releaseDrive(0.9);
+    camDir.setBodyHidden(null);
+    camDir.setFov(null, 0.9);
+  }
+  /** each frame of a tour: the camera is told where the eyes are and where they look (heading from the glide, a few degrees down) */
+  function poseCamera(dt: number): void {
+    if (!presenting) return;
+    const eye = { x: ch.position.x, y: 0.93 * ch.heightM, z: ch.position.z };
+    const yaw = (ctx.camera.yawDeg * Math.PI) / 180, pitch = (TOUR_PITCH_DEG * Math.PI) / 180;
+    const look = { x: eye.x + Math.sin(yaw) * Math.cos(pitch) * 5, y: eye.y - Math.sin(pitch) * 5, z: eye.z + Math.cos(yaw) * Math.cos(pitch) * 5 };
+    presentT += dt;
+    camDir.driveTo(eye, look, presentT < 1.2 ? 0.7 : 0.14); // a slow take-over, then close behind the glide
   }
 
   const fade = el('div', 'wt-nav-fade', undefined, parent);
@@ -524,6 +531,7 @@ export function mountNav(d: NavDeps): MountedNav {
   let auditOn = false;
   const drive = (dt: number): boolean => {
     const moved = driver.update(dt);
+    poseCamera(dt);
     if (auditOn && moved) {
       audit.frames++;
       const p = ch.position;
