@@ -35,7 +35,9 @@
           "wall",
           "wall",
           "wall"
-        ]
+        ],
+        "floorColor": "#CBC3B6",
+        "wallColor": "#EDE6DA"
       }
     ],
     "openings": [
@@ -233,7 +235,7 @@
       "catalogId": "armchair",
       "label": "Armchair",
       "box": {
-        "cx": 2,
+        "cx": 2.25,
         "cz": 3.6,
         "w": 0.8,
         "d": 0.85,

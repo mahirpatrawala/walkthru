@@ -35,7 +35,9 @@
           "wall",
           "wall",
           "wall"
-        ]
+        ],
+        "floorColor": "#6D7075",
+        "wallColor": "#E9E8E6"
       }
     ],
     "openings": [
@@ -52,7 +54,7 @@
     ],
     "finishes": {
       "wallColor": "#E9E8E6",
-      "floorColor": "#2E3033",
+      "floorColor": "#6D7075",
       "tile": {
         "wM": 0.5,
         "lM": 0.5

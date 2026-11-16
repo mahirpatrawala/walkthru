@@ -12,7 +12,7 @@ export type StudioVariant = (typeof STUDIO_VARIANTS)[number];
 export interface StudioParams { variant: StudioVariant; liftM: number }
 export const STUDIO_DEFAULTS: StudioParams = { variant: 'ball', liftM: 0 };
 
-const MIRROR_GLASS: MatSpec = { key: 'gloss', tint: '#B4C9D4' };
+const MIRROR_GLASS: MatSpec = { key: 'laminate', tint: '#C3D3DC' };
 const LOCKER_DOOR: MatSpec = { key: 'paint', tint: '#3F6785' };
 const LOCKER_BODY: MatSpec = { key: 'laminate', tint: '#D2D5D8' };
 

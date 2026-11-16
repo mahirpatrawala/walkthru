@@ -35,7 +35,9 @@
           "wall",
           "wall",
           "wall"
-        ]
+        ],
+        "floorColor": "#CBC3B6",
+        "wallColor": "#EDE6DA"
       }
     ],
     "openings": [

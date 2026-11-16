@@ -139,7 +139,7 @@ function lobbyPieces(room: RoomBounds, o: SampleOptions): FurnitureItem[] {
   b.put('lobby-planter-trough', W - 1.4, L - 0.25 - 0.05, 180);
   // a seating group by the west wall: a 3-seater, an armchair and a side table
   b.put('sofa-3', 0.45 + 0.03, L / 2 + 0.2, 90);
-  b.put('armchair', 2.0, L / 2 - 0.9, 180);
+  b.put('armchair', 2.25, L / 2 - 0.9, 180);
   b.put('side-table', 0.5, L / 2 - 1.7, 0);
   b.put('lobby-bench', 0.225 + 0.03, L - 2.0, 90);
   return b.items;

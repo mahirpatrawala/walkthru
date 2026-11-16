@@ -103,7 +103,7 @@ export function fillBoxes(spec: Pick<CatalogItem, 'footprint'>, rect: { x0: numb
 const turnDiff = (a: number, b: number): number => { const d = Math.abs((((a - b) % 180) + 180) % 180); return Math.min(d, 180 - d); };
 
 /**
- * Snaps a box to the nearest piece beside it: when the pieces face the same way and the gap between their sides is under `reachM`, the box slides along
+ * Snaps a box to the nearest piece beside it: when the pieces face the same way and the gap between their sides is within `reachM` of the piece's own spacing, the box slides along
  * its width axis to leave exactly `gap` (the piece's own spacing), and its back edge is lined up with the neighbour's when that is within 15 cm.
  * Returns the box unchanged when nothing is near.
  */
@@ -118,7 +118,7 @@ export function snapToNeighbour(box: Box, others: Box[], gap: number, reachM = 0
     // side by side: their depths overlap
     if (Math.abs(dz) > (box.d + o.d) / 2 - 0.05) continue;
     const gapNow = Math.abs(dx) - (box.w + o.w) / 2;
-    if (gapNow < -0.02 || gapNow > reachM) continue;
+    if (gapNow < -0.02 || gapNow > gap + reachM) continue;
     const backShift = dz - o.d / 2 + box.d / 2;
     if (!best || gapNow < best.gapNow) best = { shift: (gapNow - gap) * Math.sign(dx), align: Math.abs(backShift) < 0.15 ? backShift : 0, gapNow };
   }

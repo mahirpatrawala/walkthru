@@ -65,6 +65,30 @@ export function chairPose(box: Box, seatHeightM: number, heightM: number): SeatP
   };
 }
 
+/**
+ * Sitting on a machine, a bench or a bike (SPEC 16.17): the hips `seat.z` metres from the middle toward the item's front, facing the front for `seat.face` 1
+ * and the back for -1, on a seat `seatHeightM` high. A rower or a bike is ridden facing its console, which is at the back.
+ */
+export function machineSeatPose(box: Box, seat: { z: number; face: 1 | -1 }, seatHeightM: number, heightM: number): SeatPose {
+  const { a } = boxAxes(box);
+  const hip = { x: box.cx + a.x * seat.z, z: box.cz + a.z * seat.z };
+  const back = SIT_HIP_BACK_RATIO * heightM;
+  return {
+    root: { x: hip.x + a.x * seat.face * back, z: hip.z + a.z * seat.face * back },
+    rootY: Math.max(-0.02, seatHeightM - SIT_SEAT_RATIO * heightM),
+    yawDeg: (box.yawDeg + (seat.face < 0 ? 180 : 0)) % 360,
+  };
+}
+
+/** How far along a treadmill's belt the walker stands (from the middle toward the step-on end), metres. */
+export const TREADMILL_STAND_Z_M = 0.3;
+
+/** Walking on a treadmill: on the belt a little toward the step-on end, facing the console at the back, on the belt's top. */
+export function treadmillPose(box: Box, beltTopM: number): StandPose {
+  const { a } = boxAxes(box);
+  return { root: { x: box.cx + a.x * TREADMILL_STAND_Z_M, z: box.cz + a.z * TREADMILL_STAND_Z_M }, yawDeg: (box.yawDeg + 180) % 360, rootY: beltTopM };
+}
+
 /** Standing 0.30 m in front of the item, facing it. */
 export function standPose(item: FurnitureItem, heightM: number, approach: Vec2): StandPose {
   void heightM;

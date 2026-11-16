@@ -163,7 +163,7 @@ export function savePlaced(storage: StorageLike | null, sceneId: string, items: 
 
 // ---------------------------------------------------------------- interaction (SPEC 2.1 prompts table)
 
-export type PoseAction = 'lie' | 'sit' | 'stand' | 'dims';
+export type PoseAction = 'lie' | 'sit' | 'stand' | 'dims' | 'walk';
 export const INTERACT_RADIUS_M = 1.0;
 
 const ACTIONS: Record<FurnitureKind, { action: PoseAction; prompt: string; upPrompt: string }> = {

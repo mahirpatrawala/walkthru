@@ -490,7 +490,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     const r = check(s);
     return {
       id: s.id, catalogId: s.item.catalogId ?? null, name: s.spec.name, box: copyBox(s.box),
-      verdict: r.verdict, reason: r.reason, tone: r.tone, message: withSwingNote(r.message, s.box, s.id),
+      verdict: r.verdict, reason: r.reason, tone: r.tone, message: [withSwingNote(r.message, s.box, s.id), notHereNote(s.item.catalogId, s.spec.name, spaceKind())].filter(Boolean).join(' '),
       clearanceM: { ...r.clearanceM }, canPlace: r.verdict !== 'blocked',
       lines: clearanceLines(s.box, r.clearanceM).map((l) => ({ side: l.side, cm: l.cm })),
     };
@@ -780,7 +780,8 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     touch();
     flush();
   };
-  const plural = (n: number, name: string): string => `${n} ${name.toLowerCase()}${n === 1 ? '' : 's'}`;
+  /** "3 chest presses": the name before any comma, pluralised */
+  const plural = (n: number, name: string): string => { const w = name.split(',')[0].toLowerCase(); return `${n} ${n === 1 ? w : /(s|x|ch|sh)$/.test(w) ? `${w}es` : `${w}s`}`; };
   const spacingWords = (gap: number): string => `${Math.round(gap * 100)} cm apart`;
 
   const session: FurnishSession = {
@@ -1154,7 +1155,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
       finishPlacing(ids);
       const message = ids.length === n
         ? `Placed ${plural(n, spec.name)}, ${spacingWords(gap)}.`
-        : ids.length === 0 ? `No room for another ${spec.name.toLowerCase()} on that side: ${skippedBy ?? 'no room'} is in the way.` : `Placed ${ids.length} of ${n} ${spec.name.toLowerCase()}s, ${spacingWords(gap)}: ${skippedBy ?? 'no room'} stopped the row.`;
+        : ids.length === 0 ? `No room for another ${spec.name.split(',')[0].toLowerCase()} on that side: ${skippedBy ?? 'no room'} is in the way.` : `Placed ${ids.length} of ${plural(n, spec.name)}, ${spacingWords(gap)}: ${skippedBy ?? 'no room'} stopped the row.`;
       ctx.hud.toast(message);
       return { requested: n, placed: ids.length, ids, message };
     },
@@ -1185,7 +1186,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
       const boxes = fillBoxes(spec, rect);
       const { ids, skippedBy } = placeBoxes(catalogId, boxes, false, undefined);
       finishPlacing(ids);
-      const message = ids.length === boxes.length ? `Laid ${plural(ids.length, spec.name)} over the area.` : `Laid ${ids.length} of ${boxes.length} ${spec.name.toLowerCase()}s; ${skippedBy ?? 'no room'} was in the way of the rest.`;
+      const message = ids.length === boxes.length ? `Laid ${plural(ids.length, spec.name)} over the area.` : `Laid ${ids.length} of ${plural(boxes.length, spec.name)}; ${skippedBy ?? 'no room'} was in the way of the rest.`;
       return { requested: boxes.length, placed: ids.length, ids, message };
     },
     resetLayout() {
@@ -1334,6 +1335,11 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   bReplace.dataset.act = 'replace';
   const bLook = btn('Change look', 'is-ghost', () => setPanel(panelOpen === 'look' ? null : 'look'));
   bLook.dataset.act = 'look';
+  // layout helpers of a shared space (SPEC 16.17): one more beside it, a row of it, a block of seats
+  const bDup = btn('Duplicate', 'is-ghost', () => { session.duplicateSelected(); });
+  bDup.dataset.act = 'duplicate';
+  const bRow = btn('Row…', 'is-ghost', () => setPanel(panelOpen === 'row' ? null : 'row'));
+  bRow.dataset.act = 'row';
   // Remove asks twice for a built-in of a real drawing: hiding it needs its note read (BUILT_IN_NOTE sits in the bar above)
   let removeArmed = false;
   let removeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1366,13 +1372,14 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   bRemove.dataset.act = 'remove';
 
   // ---- the panels under the bar: Replace and Change look
-  let panelOpen: 'replace' | 'look' | 'size' | null = null;
+  let panelOpen: 'replace' | 'look' | 'size' | 'row' | null = null;
+  const rowState = { count: 4, rows: 4, cols: 8, aisleEvery: 0 };
   const panel = h('div', 'wtf-panel', root);
   panel.dataset.ui = '1';
   panel.dataset.testid = 'furnish-panel';
   panel.hidden = true;
 
-  const setPanel = (p: 'replace' | 'look' | 'size' | null): void => {
+  const setPanel = (p: 'replace' | 'look' | 'size' | 'row' | null): void => {
     panelOpen = p;
     disarmRemove();
     renderPanel();
@@ -1381,6 +1388,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     bReplace.classList.toggle('is-on', p === 'replace');
     bLook.classList.toggle('is-on', p === 'look');
     bSize.classList.toggle('is-on', p === 'size');
+    bRow.classList.toggle('is-on', p === 'row');
   };
 
   const specCard = (parent: HTMLElement, spec: CatalogItem, onPick: () => void): void => {
@@ -1455,6 +1463,56 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
         bs.addEventListener('click', (e) => { e.stopPropagation(); session.backFittingSize(); });
         h('div', 'wtf-panel-note', panel, 'These sizes are a try-out. The home as drawn does not change.');
       }
+      return;
+    }
+    // Row: more of the selected piece along its width at its own spacing, and for a seat a block of rows with aisles
+    if (panelOpen === 'row' && v?.phase === 'selected' && sel) {
+      panel.hidden = false;
+      const topR = h('div', 'wtf-panel-head', panel);
+      h('div', 'wtf-panel-title', topR, `Row · ${sel.name}`);
+      const doneR = h('button', 'wtf-link is-strong', topR, 'Done');
+      doneR.type = 'button'; doneR.dataset.ui = '1'; doneR.dataset.act = 'panel-close';
+      doneR.addEventListener('click', (e) => { e.stopPropagation(); setPanel(null); });
+      const item = ctx.furniture.all().find((i) => i.id === sel.id);
+      const cid = item?.catalogId;
+      const gapCm = cid ? Math.round(rowGapM(cid) * 100) : 5;
+      const stepRow = (parent: HTMLElement, label: string, key: keyof typeof rowState, min: number, max: number): void => {
+        const rowEl = h('div', 'wtf-step', parent);
+        h('div', 'wtf-step-label', rowEl, label);
+        const minus = h('button', 'wtf-step-btn', rowEl, '−');
+        minus.type = 'button'; minus.dataset.ui = '1'; minus.dataset.step = `${key}-`; minus.setAttribute('aria-label', `${label} fewer`); minus.disabled = rowState[key] <= min;
+        minus.addEventListener('click', (e) => { e.stopPropagation(); rowState[key] = Math.max(min, rowState[key] - 1); renderPanel(); });
+        const val = h('div', 'wtf-step-val', rowEl, key === 'aisleEvery' && rowState[key] === 0 ? 'none' : String(rowState[key]));
+        val.dataset.stepValue = key;
+        const plus = h('button', 'wtf-step-btn', rowEl, '+');
+        plus.type = 'button'; plus.dataset.ui = '1'; plus.dataset.step = `${key}+`; plus.setAttribute('aria-label', `${label} more`); plus.disabled = rowState[key] >= max;
+        plus.addEventListener('click', (e) => { e.stopPropagation(); rowState[key] = Math.min(max, rowState[key] + 1); renderPanel(); });
+      };
+      h('div', 'wtf-sub', panel, `A row along ${sel.name.toLowerCase()}'s width, ${gapCm} cm apart`);
+      const steps = h('div', 'wtf-steps', panel);
+      stepRow(steps, 'How many more', 'count', 1, 20);
+      const tools = h('div', 'wtf-panel-tools', panel);
+      for (const [label, dir, act] of [['Place to its right', 1, 'row-right'], ['Place to its left', -1, 'row-left']] as const) {
+        const b = h('button', 'wtf-chipbtn', tools, label);
+        b.type = 'button'; b.dataset.ui = '1'; b.dataset.act = act;
+        b.addEventListener('click', (e) => { e.stopPropagation(); session.placeRow(rowState.count, dir); });
+      }
+      if (cid && categoryOf(cid) === 'seating' && item && item.box.w < 0.7) {
+        h('div', 'wtf-sub', panel, 'A block of seats in front of you');
+        const gs = h('div', 'wtf-steps', panel);
+        stepRow(gs, 'Rows', 'rows', 1, 20);
+        stepRow(gs, 'Seats a row', 'cols', 1, 24);
+        stepRow(gs, 'Aisle after every', 'aisleEvery', 0, 24);
+        const spec = catalogItem(cid);
+        const plan = seatingPlan(spec, { rows: rowState.rows, cols: rowState.cols, aisleEvery: rowState.aisleEvery });
+        const words = h('div', 'wtf-panel-note', panel, plan.words);
+        words.dataset.testid = 'seat-plan';
+        const tg = h('div', 'wtf-panel-tools', panel);
+        const bg = h('button', 'wtf-chipbtn', tg, `Place ${plan.seats} seats`);
+        bg.type = 'button'; bg.dataset.ui = '1'; bg.dataset.act = 'place-grid';
+        bg.addEventListener('click', (e) => { e.stopPropagation(); session.placeGrid(cid, rowState.rows, rowState.cols, { aisleEvery: rowState.aisleEvery }); });
+      }
+      h('div', 'wtf-panel-note', panel, 'Each one is a piece of its own: move, resize or remove any of them. Spacing is the piece\'s own use zone (typical guidance, check your consultant).');
       return;
     }
     const show = !!panelOpen && !!sel && v?.phase === 'selected' && panelOpen !== 'size';
@@ -1553,6 +1611,21 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   const resetBtn = h('button', 'wtf-link', mineBtns, RESET_LABEL);
   resetBtn.type = 'button'; resetBtn.dataset.ui = '1'; resetBtn.dataset.act = 'reset';
 
+  // the summary of a gym or a hall: stations, floor used against free, whether the walkway is clear (SPEC 16.17)
+  const summaryEl = h('div', 'wtf-summary', tray);
+  summaryEl.dataset.ui = '1';
+  summaryEl.dataset.testid = 'space-summary';
+  summaryEl.hidden = true;
+  const renderSummary = (sm: FurnishView['summary']): void => {
+    summaryEl.textContent = '';
+    summaryEl.hidden = !sm;
+    if (!sm) return;
+    summaryEl.dataset.tone = sm.tone;
+    h('div', 'wtf-summary-title', summaryEl, spaceKindOf(ctx.property) === 'hall' ? 'This hall' : 'This gym');
+    sm.lines.forEach((line, i) => h('div', `wtf-summary-line${i === sm.lines.length - 1 ? ' is-walkway' : ''}`, summaryEl, line));
+    h('div', 'wtf-summary-foot', summaryEl, sm.footer);
+  };
+
   // the pieces in this home, as chips, and the originals removed from it
   const piecesWrap = h('div', 'wtf-pieces-wrap', tray);
   h('div', 'wtf-sub', piecesWrap, 'In this home');
@@ -1575,6 +1648,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       const b = h('button', `wtf-piece${v.selection?.id === p.id ? ' is-on' : ''}`, pieces, p.label);
       b.type = 'button'; b.dataset.ui = '1'; b.dataset.itemId = p.id;
       if (!p.home) b.classList.add('is-mine');
+      if (p.notHere) { b.classList.add('is-flagged'); b.title = 'This piece is not usually put in this kind of space. It stays in your layout.'; }
       b.addEventListener('click', (e) => { e.stopPropagation(); session.select(v.selection?.id === p.id ? null : p.id); b.blur(); });
     }
     piecesWrap.hidden = v.pieces.length === 0;
@@ -1716,6 +1790,8 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       bTurn.hidden = !((sel && v.canRotate) || (fitIdle && fit!.canTurn));
       bSize.hidden = !((sel && !!v.selection?.sizes) || (fitIdle && !!fit!.resize));
       bReplace.hidden = !sel;
+      // the layout helpers of a shared space: any placed or home piece of the catalogue, never in a home
+      bDup.hidden = bRow.hidden = !(sel && spaceKindOf(ctx.property) !== 'home' && !!ctx.furniture.all().find((i) => i.id === v.selection!.id)?.catalogId);
       bLook.hidden = !sel || !v.selection?.family;
       bRemove.hidden = !((sel && v.canRemove) || fitIdle);
       if (v.selection && !removeArmed) setLabel(bRemove, removeLabel(v.selection));
@@ -1723,6 +1799,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       bReplace.classList.toggle('is-on', panelOpen === 'replace');
       bLook.classList.toggle('is-on', panelOpen === 'look');
       bSize.classList.toggle('is-on', panelOpen === 'size');
+      bRow.classList.toggle('is-on', panelOpen === 'row');
       actions.hidden = !(showEdit || sel || fitIdle);
       bPlace.disabled = !v.canPlace;
       clearBtn.hidden = v.buyerCount === 0;
@@ -1741,6 +1818,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       picker.setHidden(selected);
       piecesWrap.classList.toggle('is-quiet', showEdit);
       renderPieces(v);
+      renderSummary(v.summary);
       renderRemoved(v);
       removedWrap.classList.toggle('is-quiet', showEdit);
       renderPanel();

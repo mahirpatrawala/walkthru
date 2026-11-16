@@ -43,9 +43,9 @@ const HOME_CATS: PieceCategory[] = ['seating', 'beds', 'storage', 'tables', 'kit
 const CATS: Record<SpaceKind, PieceCategory[] | null> = {
   home: HOME_CATS,
   gym: ['cardio', 'strength', 'freeweights', 'studio', 'amenities'],
-  lobby: ['reception', 'seating', 'tables', 'storage', 'decor'],
-  corridor: ['seating', 'reception', 'decor', 'amenities'],
-  hall: ['seating', 'tables', 'stage', 'games', 'decor'],
+  lobby: ['reception', 'seating', 'tables', 'storage', 'decor', 'amenities'],
+  corridor: ['seating', 'tables', 'reception', 'decor', 'amenities'],
+  hall: ['seating', 'tables', 'stage', 'games', 'decor', 'amenities'],
   pool: ['amenities', 'decor', 'seating'],
   garden: ['decor', 'seating', 'amenities'],
   other: null,
@@ -57,9 +57,10 @@ export function categoriesFor(kind: SpaceKind | undefined): { id: PieceCategory;
 
 /** A few pieces sit under another tray category in a lobby or a hall (a planter is "Plants & decor" there, "Balcony" in a home). */
 const CAT_IN: Partial<Record<SpaceKind, Record<string, PieceCategory>>> = {
+  gym: { 'yoga-mat': 'studio', 'lobby-notice-board': 'amenities' },
   lobby: { 'planter-pot': 'decor', 'planter-box': 'decor', sideboard: 'storage', 'bookshelf-wide': 'storage', 'office-chair': 'seating', 'bar-stool': 'seating' },
   corridor: { 'planter-pot': 'decor', 'planter-box': 'decor' },
-  hall: { 'planter-pot': 'decor', 'planter-box': 'decor', sideboard: 'tables', 'dining-4': 'tables', 'bar-stool': 'seating' },
+  hall: { 'planter-pot': 'decor', 'planter-box': 'decor', sideboard: 'tables', 'dining-4': 'tables', 'bar-stool': 'seating', 'lobby-notice-board': 'amenities', 'lobby-stanchions': 'amenities' },
   pool: { 'planter-pot': 'decor', 'planter-box': 'decor', 'balcony-chair': 'seating', 'balcony-set': 'seating' },
   garden: { 'planter-pot': 'decor', 'planter-box': 'decor', 'balcony-chair': 'seating', 'balcony-set': 'seating' },
 };

@@ -27,7 +27,7 @@ interface SpaceDef {
 
 export const SPACES: SpaceDef[] = [
   { kind: 'gym', spaceKind: 'gym', title: 'Test gym', w: 8, d: 12, wallHeightM: 3.2, roomType: 'other', label: 'Gym',
-    finishes: { wallColor: '#E9E8E6', floorColor: '#2E3033', groutColor: '#27292C', tile: { wM: 0.5, lM: 0.5 }, ceilingColor: '#F4F4F2' },
+    finishes: { wallColor: '#E9E8E6', floorColor: '#6D7075', groutColor: '#27292C', tile: { wM: 0.5, lM: 0.5 }, ceilingColor: '#F4F4F2' },
     door: { wall: 'south', atM: 7.0, widthM: 1.0 }, spawn: { x: 7.0, z: 11.2, yawDeg: 180 } },
   { kind: 'lobby', spaceKind: 'lobby', title: 'Test lobby', w: 7, d: 9, wallHeightM: 3.6, roomType: 'other', label: 'Entrance lobby',
     finishes: { wallColor: '#EDE6DA', floorColor: '#CBC3B6', groutColor: '#B4AB9C', tile: { wM: 0.8, lM: 0.8 }, ceilingColor: '#FAFAF8' },
@@ -43,6 +43,8 @@ export function layoutOf(s: SpaceDef): Layout {
     id: s.kind, roomType: s.roomType, label: s.label,
     polygon: [{ x: 0, z: 0 }, { x: s.w, z: 0 }, { x: s.w, z: s.d }, { x: 0, z: s.d }],
     edges: ['wall', 'wall', 'wall', 'wall'],
+    // the room's own colours: a made-up room names its floor and walls (finishes of source 'default' are only a fallback)
+    ...(s.finishes.floorColor ? { floorColor: s.finishes.floorColor } : {}), ...(s.finishes.wallColor ? { wallColor: s.finishes.wallColor } : {}),
   };
   // edges run: 0 north (x 0 to w), 1 east (z 0 to d), 2 south (x w to 0), 3 west (z d to 0)
   const wallEdge = { north: 0, east: 1, south: 2, west: 3 }[s.door.wall];

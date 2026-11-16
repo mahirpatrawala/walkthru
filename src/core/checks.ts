@@ -146,6 +146,11 @@ function pieceCard(item: FurnitureItem, heightM: number, ceilingM: number): Chec
   if (!rule) return null;
   const footer = sourceFooter(item, rule);
   const zl = zoneLines(item, ceilingM);
+  // a seat on a machine, a bike or a bench is not judged against a chair: its height is the machine's (many adjust), so the card gives the size and the seat
+  if (rule.seat && (rule.pose === 'chair' || rule.pose === 'sit')) {
+    const c = dimensionsCard(item);
+    return { ...c, lines: [`Seat at ${cm(item.surfaceHeightM)} cm${/bike|rower|rowing/i.test(item.label) ? ' (the saddle or seat adjusts)' : ''}.`, ...zl], footer };
+  }
   switch (rule.pose) {
     case 'lie': {
       const sleep = item.inner ?? { w: item.box.w, d: item.box.d };

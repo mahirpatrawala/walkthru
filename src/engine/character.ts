@@ -805,6 +805,20 @@ export class Character {
   }
   private rideBase: THREE.Vector3 | null = null;
 
+  /**
+   * Walks in place on something that moves under the feet (a treadmill's belt): the walking clip at `speedMps`, facing `pose.yawDeg`, on a floor `pose.rootY`
+   * above the room's. The belt itself is driven by the buyer page (src/buyer/machine-motion.ts). `release` stands the body on the room's floor again.
+   */
+  walkOn(pose: StandPose, speedMps: number): Promise<void> {
+    this.posed = 'stand';
+    this.setState('transition');
+    const key = this.walkKey();
+    const scale = this._heightM / this.h0;
+    const nat = this.gait[key] ?? 0.95 * this.h0 / REF_HEIGHT_M;
+    this.play(key, FADE_S, true).timeScale = clampTs(speedMps / (nat * scale));
+    return this.moveTo({ x: pose.root.x, z: pose.root.z, y: pose.rootY ?? 0, tilt: 0 }, pose.yawDeg, STAND_MOVE_S, () => this.setState('standing-at'));
+  }
+
   /** Stands facing the item, in Idle_Loop. */
   standAt(pose: StandPose): Promise<void> {
     this.posed = 'stand';

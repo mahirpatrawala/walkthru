@@ -117,9 +117,10 @@ export function serializeMine(removed: string[], finishes: Record<string, Finish
 export const SHARE_PARAM = 'my';
 /** Version 1 carries removed pieces, added pieces and looks. Version 2 adds moved/resized originals and fittings; a layout with neither is still written as 1, so old readers keep working. */
 const VERSION = 2;
-const MAX_ADDED = 60;
+/** a hall's seating is a piece per chair (SPEC 16.17): a block of 72 seats and the pieces round it fit in a link */
+const MAX_ADDED = 220;
 const MAX_MOVED = 60;
-const MAX_CODE_CHARS = 8000;
+const MAX_CODE_CHARS = 12000;
 
 interface Wire {
   /** removed original ids */ r?: string[];
