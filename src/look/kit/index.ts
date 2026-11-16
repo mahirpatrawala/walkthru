@@ -13,6 +13,7 @@ import type { KitMaterials, LightKind } from './materials';
 import { KIT_NOTE, kitPlan } from './rules';
 import type { KitPlan } from './rules';
 import { kitFittings } from './fittings';
+import { getStyle, trimColours } from '../style';
 import type { KitFittings } from './fittings';
 import type { FittingRecord, FittingRegistry, FittingsOverlay } from '../fittings';
 import { PRISTINE_CHECKSUM_KEY, geometryChecksum } from '../baked/assign';
@@ -74,9 +75,13 @@ function whenFound(selector: string, fn: (el: HTMLElement) => void, timeoutMs = 
 export function mountKit(o: KitOptions): KitHandle {
   const { layout } = o;
   const furniture = o.store?.pristine?.() ?? o.store?.all() ?? [];
-  const plan = kitPlan(layout, furniture, o.outdoor === true);
+  const style = getStyle();
+  const plan = kitPlan(layout, furniture, o.outdoor === true, style.pack.classic ? {} : style.pack.tiles ?? {});
+  // a design sheet that draws its own downlights in a room keeps them: the kit's rings are for rooms without
+  const sheetDownlit = new Set((style.sheet && style.designerLook ? style.sheet.fixtures : []).filter((f) => f.kind === 'downlights').map((f) => (f as { roomId?: string }).roomId ?? ''));
+  plan.downlights = plan.downlights.filter((d) => !sheetDownlit.has(d.roomId));
   const built = buildBuckets(layout, plan);
-  const mats: KitMaterials = createKitMaterials(layout.finishes, { wall: o.look ? (c) => o.look!.materials().wall(c) : null });
+  const mats: KitMaterials = createKitMaterials(layout.finishes, { wall: null }, { skirting: trimColours(style).skirting });
 
   const group = new THREE.Group();
   group.name = 'kit';
@@ -109,6 +114,7 @@ export function mountKit(o: KitOptions): KitHandle {
   const fanLightMesh = add('fan-light', b.fanLight, mats.lens.fan, 'fan');
   add('cove', b.cove, mats.cove);
   add('cove-led', b.coveLed, mats.lens.cove, 'cove');
+  { const dl = add('downlight-lens', b.downlightLens, mats.downlight); if (dl) dl.userData.walkthruLight = 'lamp'; }
 
   // the blades turn: one instanced mesh per blade radius (rebuilt when the viewer moves, resizes or removes a fan)
   let rotors: { mesh: THREE.InstancedMesh; sites: { x: number; z: number }[]; phase: number[] }[] = [];

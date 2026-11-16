@@ -11,6 +11,8 @@ export const SIGN_HEIGHT_M = 0.2;
 /** Gap between the door head and the board's lower edge. */
 export const SIGN_GAP_M = 0.07;
 const SIGN_THICK_M = 0.014;
+/** canvas pixels per design pixel: 2 gives the 1,280 px a metre that stays sharp at arm's length (SPEC 16.18) */
+export const SIGN_TEXTURE_SCALE = 2;
 
 /** Board width for its words: 7.5 cm a letter plus margins, between 0.5 m and 1.8 m. */
 export function signWidthM(text: string): number {
@@ -20,19 +22,25 @@ export function signWidthM(text: string): number {
 function board(text: string, w: number): THREE.CanvasTexture | null {
   if (typeof document === 'undefined') return null;
   const c = document.createElement('canvas');
-  c.height = 128; c.width = Math.round(128 * (w / SIGN_HEIGHT_M));
+  // 1,280 px a metre (a board is read from 1 m away on a 2x screen): drawn in a 128 px high design space, scaled up by K
+  const K = SIGN_TEXTURE_SCALE;
+  c.height = 128 * K; c.width = Math.round(128 * K * (w / SIGN_HEIGHT_M));
   const g = c.getContext('2d');
   if (!g) return null;
-  g.fillStyle = '#23292E'; g.fillRect(0, 0, c.width, c.height);
-  g.strokeStyle = '#C9A657'; g.lineWidth = 5; g.strokeRect(7, 7, c.width - 14, c.height - 14);
+  g.scale(K, K);
+  const W = c.width / K, H = c.height / K;
+  g.fillStyle = '#23292E'; g.fillRect(0, 0, W, H);
+  g.strokeStyle = '#C9A657'; g.lineWidth = 5; g.strokeRect(7, 7, W - 14, H - 14);
   g.fillStyle = '#F6F2E8'; g.textAlign = 'center'; g.textBaseline = 'middle';
   let px = 84;
   g.font = `700 ${px}px system-ui, sans-serif`;
-  while (px > 24 && g.measureText(text).width > c.width - 48) { px -= 2; g.font = `700 ${px}px system-ui, sans-serif`; }
-  g.fillText(text, c.width / 2, c.height / 2 + 3);
+  while (px > 24 && g.measureText(text).width > W - 48) { px -= 2; g.font = `700 ${px}px system-ui, sans-serif`; }
+  g.fillText(text, W / 2, H / 2 + 3);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 8;
+  t.anisotropy = 16;
+  t.generateMipmaps = true;
+  t.minFilter = THREE.LinearMipmapLinearFilter;
   return t;
 }
 

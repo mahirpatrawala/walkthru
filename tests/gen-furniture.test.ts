@@ -50,8 +50,8 @@ describe('the style packs are data and never carry a size', () => {
       expect(r.dropped).toEqual([]);
     }
   });
-  it('the four packs the product ships are there, Classic keeps today\'s look', () => {
-    expect(PACKS.map((p) => p.id).sort()).toEqual(['classic', 'light-scandinavian', 'walnut-white', 'warm-oak-navy']);
+  it('the six packs the product ships are there, Classic keeps today\'s look', () => {
+    expect(PACKS.map((p) => p.id).sort()).toEqual(['classic', 'clean-contrast', 'clean-contrast-dark', 'light-scandinavian', 'walnut-white', 'warm-oak-navy']);
     expect(getPack('classic')!.classic).toBe(true);
   });
   it('every role names a finish that exists and no generator default is a size', () => {

@@ -237,6 +237,22 @@ export function roomFinishIds(roomId: string, st: StyleState = state): { wall?: 
   return out;
 }
 
+/** what a door panel is made of under the active style: its colour and whether the wood grain shows (a wood finish keeps its grain, a laminate or paint is plain); null in Classic */
+export function doorPanelFinish(st: StyleState = getStyle()): { colour: string; grain: boolean } | null {
+  if (st.pack.classic) return null;
+  const id = sheetInForce(st)?.items.decor?.roles?.door ?? st.pack.roles.door;
+  const f = finishDef(id);
+  return f ? { colour: f.colour, grain: f.kind === 'wood' } : null;
+}
+
+/** The pack's accents of the shell itself (SPEC 16.18): skirting, frame and handle colours; every field null where the pack names none (and always in Classic). */
+export function trimColours(st: StyleState = getStyle()): { skirting: string | null; frame: string | null; handle: string | null; /** the frame is a wood (its grain shows), not paint */ frameGrain: boolean } {
+  if (st.pack.classic) return { skirting: null, frame: null, handle: null, frameGrain: true };
+  const t = st.pack.trim ?? {};
+  const frame = finishDef(t.frame);
+  return { skirting: finishDef(t.skirting)?.colour ?? null, frame: frame?.colour ?? null, handle: finishDef(t.handle)?.colour ?? null, frameGrain: frame ? frame.kind === 'wood' : true };
+}
+
 /** the colour of door panels under the active style: the sheet's or the pack's `door` role (a wood or laminate finish), null in Classic */
 export function doorPanelColour(st: StyleState = getStyle()): string | null {
   if (st.pack.classic) return null;

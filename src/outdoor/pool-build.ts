@@ -40,13 +40,14 @@ function tileTexture(base: string, grout: string, seed: number): THREE.Texture |
 function numeralTexture(text: string): THREE.Texture | null {
   if (!hasDom()) return null;
   const c = document.createElement('canvas');
-  c.width = 128; c.height = 48;
+  c.width = 512; c.height = 192; // 4x the 128 x 48 design (SPEC 16.18)
   const g = c.getContext('2d');
   if (!g) return null;
+  g.scale(4, 4);
   g.fillStyle = '#1E5F8C'; g.fillRect(0, 0, 128, 48);
   g.fillStyle = '#FFFFFF'; g.font = 'bold 30px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 64, 26);
   const t = new THREE.CanvasTexture(c);
-  t.colorSpace = SRGB; t.anisotropy = 4;
+  t.colorSpace = SRGB; t.anisotropy = 16;
   return t;
 }
 const SRGB = THREE.SRGBColorSpace;

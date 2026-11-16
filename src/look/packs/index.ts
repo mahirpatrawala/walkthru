@@ -9,6 +9,8 @@ import type { ModelFamily, ModelPolicy } from '../models/library';
 import warmOakNavy from './warm-oak-navy.json';
 import walnutWhite from './walnut-white.json';
 import lightScandinavian from './light-scandinavian.json';
+import cleanContrast from './clean-contrast.json';
+import cleanContrastDark from './clean-contrast-dark.json';
 import classic from './classic.json';
 
 export interface StylePack {
@@ -25,6 +27,10 @@ export interface StylePack {
   room: { wall?: string; floor?: string; ceiling?: string };
   /** typical decor this pack adds to rooms that have no design sheet */
   decor: { rug?: boolean; curtains?: boolean };
+  /** the dark or warm accents of the shell itself: skirting, door frames and architraves, door handles (finish ids; SPEC 16.18). Absent = the wall's own colour, the layout's frame colour, brushed steel */
+  trim?: { skirting?: string; frame?: string; handle?: string };
+  /** floor tile formats in metres as [along the room's longest wall, across it]: `large` in a room of 12 m2 or more with a short side of 3 m or more, `standard` in other rooms, and the joint width. A tile the drawing gives always wins (SPEC 16.11) */
+  tiles?: { large?: [number, number]; standard?: [number, number]; groutMm?: number };
   /** per family (a look kind or a decor kind): "generator" keeps the parametric piece, or model ids in order of preference; a family it does not name takes any model that fits (SPEC 16.15). Absent in Classic. */
   models?: ModelPolicy;
 }
@@ -68,17 +74,31 @@ export function loadPack(raw: unknown): { pack: StylePack | null; dropped: strin
       } else dropped.push(`models.${fam}: expected "generator" or a list of model ids`);
     }
   }
+  const trim: NonNullable<StylePack['trim']> = {};
+  for (const k of ['skirting', 'frame', 'handle'] as const) {
+    const v = (o.trim as Record<string, unknown> | undefined)?.[k];
+    if (typeof v === 'string') { if (knownFinish(v)) trim[k] = v; else dropped.push(`trim.${k}: unknown finish ${v}`); }
+  }
+  const tiles: NonNullable<StylePack['tiles']> = {};
+  const rawTiles = (o.tiles ?? {}) as Record<string, unknown>;
+  const fmt = (v: unknown): [number, number] | undefined => (Array.isArray(v) && v.length === 2 && v.every((x) => typeof x === 'number' && x >= 0.2 && x <= 1.6) ? [v[0] as number, v[1] as number] : undefined);
+  const big = fmt(rawTiles.large), std = fmt(rawTiles.standard);
+  if (big) tiles.large = big; else if (rawTiles.large !== undefined) dropped.push('tiles.large: expected [a, b] between 0.2 and 1.6 m');
+  if (std) tiles.standard = std; else if (rawTiles.standard !== undefined) dropped.push('tiles.standard: expected [a, b] between 0.2 and 1.6 m');
+  if (typeof rawTiles.groutMm === 'number' && rawTiles.groutMm >= 1 && rawTiles.groutMm <= 6) tiles.groutMm = rawTiles.groutMm; else if (rawTiles.groutMm !== undefined) dropped.push('tiles.groutMm: expected 1 to 6');
   const d = (o.decor ?? {}) as Record<string, unknown>;
   const pack: StylePack = {
     id: o.id, name: o.name, blurb: typeof o.blurb === 'string' ? o.blurb : '', ...(o.classic === true ? { classic: true } : {}),
     roles, generators, room, decor: { rug: d.rug === true, curtains: d.curtains === true }, ...(models ? { models } : {}),
+    ...(Object.keys(trim).length ? { trim } : {}), ...(Object.keys(tiles).length ? { tiles } : {}),
   };
   return { pack, dropped };
 }
 
-const RAW = [lightScandinavian, warmOakNavy, walnutWhite, classic];
+const RAW = [cleanContrast, cleanContrastDark, lightScandinavian, warmOakNavy, walnutWhite, classic];
 export const PACKS: StylePack[] = RAW.map((r) => loadPack(r).pack).filter((p): p is StylePack => !!p);
-export const DEFAULT_PACK_ID = 'light-scandinavian';
+/** the pack a home with no design sheet and no saved choice opens in (SPEC 16.18); it was Light Scandinavian */
+export const DEFAULT_PACK_ID = 'clean-contrast';
 export const CLASSIC_PACK_ID = 'classic';
 
 export function getPack(id: string | undefined | null): StylePack | null {

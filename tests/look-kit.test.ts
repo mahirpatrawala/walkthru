@@ -275,7 +275,7 @@ describe('decor only', () => {
     const kit = mountKit({ viewer: v, layout: l, shell, look: lookWith(l), plain: false });
     const tags = new Map<string, THREE.Mesh>();
     kit.group.traverse((o) => { const t = o.userData.walkthruLight as string | undefined; if (t) tags.set(t, o as THREE.Mesh); });
-    expect([...tags.keys()].sort()).toEqual(['cove', 'fan', 'tube']);
+    expect([...tags.keys()].sort()).toEqual(['cove', 'fan', 'lamp', 'tube']); // 'lamp': the recessed downlights' glass (SPEC 16.18)
     for (const m of tags.values()) expect((m.material as THREE.MeshStandardMaterial).emissiveIntensity).toBe(0);
     kit.setLit('tube', true);
     expect((tags.get('tube')!.material as THREE.MeshStandardMaterial).emissiveIntensity).toBeGreaterThan(1);

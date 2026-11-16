@@ -5,6 +5,7 @@
 import type { Box, EdgeFrame, FurnitureItem, Layout, RoomTag, RoomType, Vec2, WallPiece } from '../../types';
 import { boxCorners, distanceToSegment, pointInPolygon, polygonArea, sideEdge } from '../../core/geometry';
 import { computeEdgeFrames, computeTunnels, computeWallPieces } from '../../core/layout-geom';
+import { planDownlights } from '../baked/lights';
 
 /** The one line that says what this is (rooms sheet and look panel). */
 export const KIT_NOTE = 'Fan, lights, switches, grills and tiles are typical fittings, not from your drawing.';
@@ -25,6 +26,8 @@ export const TUBE_LEN_M = 1.22;
 export const TUBE_Y_M = 2.05;
 export const SKIRTING_H_M = 0.1;
 export const SKIRTING_T_M = 0.014;
+/** how far a skirting run stops short of an opening: the door architrave's width (src/engine/shell.ts) */
+export const ARCHITRAVE_RUN_STOP_M = 0.04;
 /** at least this much clear wall either side of a plate or a tube */
 const CORNER_PAD_M = 0.08;
 const DOOR_PAD_M = 0.06;
@@ -372,7 +375,8 @@ export function skirtingRuns(layout: Layout): SkirtingRun[] {
   for (const p of computeWallPieces(layout)) {
     if (p.kind !== 'wall' || p.y0 > 1e-6 || partial.has(p.roomId)) continue;
     const len = lengths.get(`${p.roomId}:${p.edge}`) ?? 0;
-    const u0 = Math.max(0, p.u0), u1 = Math.min(len, p.u1);
+    // where a run ends at a door's architrave (not at a room corner) it stops at the architrave's outer edge: it meets the frame, it does not run into it
+    const u0 = Math.max(0, p.u0) + (p.u0 > 1e-6 ? ARCHITRAVE_RUN_STOP_M : 0), u1 = Math.min(len, p.u1) - (p.u1 < len - 1e-6 ? ARCHITRAVE_RUN_STOP_M : 0);
     if (u1 - u0 > 0.05) out.push({ roomId: p.roomId, edge: p.edge, u0, u1 });
   }
   return out;
@@ -417,7 +421,10 @@ function longestEdge(room: RoomTag): { a: Vec2; b: Vec2; len: number } {
 }
 
 /** `null` when the drawing says the floor is plain (no tile grid), else the grid for this room: aligned to the longest wall, square tiles, never stretched. */
-export function floorTileSpec(room: RoomTag, layout: Layout): FloorSpec | null {
+/** tile formats a style pack asks for (SPEC 16.18); a format the drawing gave still wins */
+export interface TileFormats { large?: [number, number]; standard?: [number, number]; groutMm?: number }
+
+export function floorTileSpec(room: RoomTag, layout: Layout, formats: TileFormats = {}): FloorSpec | null {
   if (layout.finishes.tile === null) return null;
   const e = longestEdge(room);
   const ax = (e.b.x - e.a.x) / e.len, az = (e.b.z - e.a.z) / e.len;
@@ -436,11 +443,14 @@ export function floorTileSpec(room: RoomTag, layout: Layout): FloorSpec | null {
   if (drawn) { tileU = drawn.wM; tileV = drawn.lM; }
   else if (bath) { tileU = tileV = 0.3; }
   else if (room.roomType === 'balcony') { tileU = tileV = 0.6; }
-  else { tileU = tileV = area >= 12 && shortSide >= 3 ? 0.8 : 0.6; }
+  else if (area >= 12 && shortSide >= 3) { [tileU, tileV] = formats.large ?? [0.8, 0.8]; }
+  // a narrow room (a passage, a utility) or a small one keeps the square 600: a long tile there would be one tile wide
+  else if (formats.standard && shortSide >= 1.8 && area >= 5) { [tileU, tileV] = formats.standard; }
+  else { tileU = tileV = 0.6; }
   return {
     roomId: room.id, tileU, tileV, axisX: ax, axisZ: az,
     originX: uMin * ax + vMin * vx, originZ: uMin * az + vMin * vz,
-    groutM: bath ? 0.003 : 0.0025, antiSkid: bath, matt: room.roomType === 'balcony', drawn: !!drawn,
+    groutM: formats.groutMm ? (bath ? formats.groutMm + 0.5 : formats.groutMm) / 1000 : bath ? 0.003 : 0.0025, antiSkid: bath, matt: room.roomType === 'balcony', drawn: !!drawn,
   };
 }
 
@@ -449,23 +459,26 @@ export function floorTileSpec(room: RoomTag, layout: Layout): FloorSpec | null {
 export interface KitPlan {
   fans: FanSite[]; tubes: TubeSite[]; boards: BoardSite[]; bedheads: BoardSite[]; windows: WindowSite[]; railings: WallPiece[];
   coves: CoveSite[]; skirting: SkirtingRun[]; floors: FloorSpec[];
+  /** recessed ceiling downlights, drawn as small rings (SPEC 16.18); the same places the bake lights from (baked/lights.ts) */
+  downlights: { x: number; y: number; z: number; roomId: string }[];
 }
 
 /** An open-air space (SPEC 19.1) has no fan, tube, switchboard, grill, cove, skirting or tiled floor: the indoor kit plans nothing for it. */
-export const EMPTY_PLAN = (): KitPlan => ({ fans: [], tubes: [], boards: [], bedheads: [], windows: [], railings: [], coves: [], skirting: [], floors: [] });
+export const EMPTY_PLAN = (): KitPlan => ({ fans: [], tubes: [], boards: [], bedheads: [], windows: [], railings: [], coves: [], skirting: [], floors: [], downlights: [] });
 
-export function kitPlan(layout: Layout, furniture: FurnitureItem[] = [], outdoor = false): KitPlan {
+export function kitPlan(layout: Layout, furniture: FurnitureItem[] = [], outdoor = false, formats: TileFormats = {}): KitPlan {
   if (outdoor) return EMPTY_PLAN();
   const floors: FloorSpec[] = [];
   for (const r of layout.rooms) {
     if (isPartial(r) || r.polygon.length < 3) continue;
-    const s = floorTileSpec(r, layout);
+    const s = floorTileSpec(r, layout, formats);
     if (s) floors.push(s);
   }
   return {
     fans: fanSites(layout), tubes: tubeSites(layout, furniture),
     boards: doorBoards(layout, furniture), bedheads: bedheadBoards(layout, furniture),
     windows: windowSites(layout), railings: railingPieces(layout), coves: coveSites(layout, furniture), skirting: skirtingRuns(layout), floors,
+    downlights: planDownlights(layout).map((f) => ({ x: f.position[0], y: layout.wallHeightM, z: f.position[2], roomId: f.roomId ?? '' })),
   };
 }
 

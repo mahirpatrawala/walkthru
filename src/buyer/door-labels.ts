@@ -9,6 +9,7 @@ import type { Layout, SpaceKind } from '../types';
 export const DOOR_LABEL_HEIGHT_M = 0.13;
 export const DOOR_LABEL_GAP_M = 0.06;
 const THICK_M = 0.012;
+export const DOOR_LABEL_TEXTURE_SCALE = 2;
 
 /** Board width for its words: 5 cm a letter plus margins, between 0.34 m and 1.3 m. */
 export function doorLabelWidthM(text: string): number {
@@ -34,19 +35,25 @@ export function doorLabels(layout: Layout, spaceKind: SpaceKind = 'home'): DoorL
 function board(text: string, w: number): THREE.CanvasTexture | null {
   if (typeof document === 'undefined') return null;
   const c = document.createElement('canvas');
-  c.height = 96; c.width = Math.round(96 * (w / DOOR_LABEL_HEIGHT_M));
+  // drawn in a 96 px high design space and scaled up (about 2,200 px a metre: sharp at arm's length on a 2x screen, SPEC 16.18)
+  const K = DOOR_LABEL_TEXTURE_SCALE;
+  c.height = 96 * K; c.width = Math.round(96 * K * (w / DOOR_LABEL_HEIGHT_M));
   const g = c.getContext('2d');
   if (!g) return null;
-  g.fillStyle = '#23292E'; g.fillRect(0, 0, c.width, c.height);
-  g.strokeStyle = '#C9A657'; g.lineWidth = 4; g.strokeRect(5, 5, c.width - 10, c.height - 10);
+  g.scale(K, K);
+  const W = c.width / K, H = c.height / K;
+  g.fillStyle = '#23292E'; g.fillRect(0, 0, W, H);
+  g.strokeStyle = '#C9A657'; g.lineWidth = 4; g.strokeRect(5, 5, W - 10, H - 10);
   g.fillStyle = '#F6F2E8'; g.textAlign = 'center'; g.textBaseline = 'middle';
   let px = 60;
   g.font = `700 ${px}px system-ui, sans-serif`;
-  while (px > 20 && g.measureText(text).width > c.width - 36) { px -= 2; g.font = `700 ${px}px system-ui, sans-serif`; }
-  g.fillText(text, c.width / 2, c.height / 2 + 2);
+  while (px > 20 && g.measureText(text).width > W - 36) { px -= 2; g.font = `700 ${px}px system-ui, sans-serif`; }
+  g.fillText(text, W / 2, H / 2 + 2);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 8;
+  t.anisotropy = 16;
+  t.generateMipmaps = true;
+  t.minFilter = THREE.LinearMipmapLinearFilter;
   return t;
 }
 

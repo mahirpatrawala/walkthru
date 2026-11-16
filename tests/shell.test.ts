@@ -25,11 +25,13 @@ describe('buildShell under Node (no canvas)', () => {
     expect(b.min.y).toBeCloseTo(0, 9);
     expect(b.max.y).toBeCloseTo(2.6, 5);
   });
-  it('one frames child for 2 doors (3 boxes of 36 vertices each), one panes child', () => {
+  it('one frames child for 2 doors (lining, stop and architrave, SPEC 16.18: whole boxes of 36 vertices, more than the 3 posts and heads of old), one panes child', () => {
     expect(names.filter((n) => n === 'frames').length).toBe(1);
     expect(names.filter((n) => n === 'panes').length).toBe(1);
     const frames = shell.getObjectByName('frames') as THREE.Mesh;
-    expect(frames.geometry.getAttribute('position').count).toBe(2 * 3 * 36);
+    const n = frames.geometry.getAttribute('position').count;
+    expect(n % 36).toBe(0);
+    expect(n).toBeGreaterThan(2 * 3 * 36);
     const panes = shell.getObjectByName('panes') as THREE.Mesh;
     expect(panes.geometry.getAttribute('position').count).toBe(6);
     expect((panes.material as THREE.MeshBasicMaterial).color.getHexString()).toBe('cfe8ff');
