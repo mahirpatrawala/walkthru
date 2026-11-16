@@ -311,7 +311,8 @@ export function addCove(b: KitBuckets, s: CoveSite): void {
     b.cove.quad([at(i0, yLow), at(i1, yLow), at(i1, H - 0.07), at(i0, H - 0.07)], nIn);
     // the LED strip lies on the real ceiling just behind the fascia: seen through the slot, never directly
     const back = (p: Vec2, d: number): V3 => [p.x - nIn[0] * d, H - 0.004, p.z - nIn[2] * d];
-    b.coveLed.quad([back(i0, 0.02), back(i1, 0.02), back(i1, 0.07), back(i0, 0.07)], [0, -1, 0]);
+    // (its shading normal points up: lit from the ceiling's side it reads as a pale strip, where a downward normal went near black in the slot)
+    b.coveLed.quad([back(i0, 0.02), back(i1, 0.02), back(i1, 0.07), back(i0, 0.07)], [0, 1, 0]);
   }
 }
 
