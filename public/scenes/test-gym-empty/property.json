@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "id": "test-gym-empty",
+  "title": "Test gym, empty",
+  "subtitle": "Test scene. Made-up room, not a real space.",
+  "layout": {
+    "wallHeightM": 3.2,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "gym",
+        "roomType": "other",
+        "label": "Gym",
+        "polygon": [
+          {
+            "x": 0,
+            "z": 0
+          },
+          {
+            "x": 8,
+            "z": 0
+          },
+          {
+            "x": 8,
+            "z": 12
+          },
+          {
+            "x": 0,
+            "z": 12
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "gym-door",
+        "roomId": "gym",
+        "edge": 2,
+        "type": "door",
+        "centreM": 1,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1
+      }
+    ],
+    "finishes": {
+      "wallColor": "#E9E8E6",
+      "floorColor": "#2E3033",
+      "tile": {
+        "wM": 0.5,
+        "lM": 0.5
+      },
+      "groutColor": "#27292C",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#F4F4F2",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 7,
+    "z": 11.2,
+    "yawDeg": 180
+  },
+  "spaceKind": "gym",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

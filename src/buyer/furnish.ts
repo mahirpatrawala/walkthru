@@ -15,6 +15,10 @@ import { mountCatalogPicker, catalogIcon } from './catalog-tray';
 import { pointInBox, sideEdge } from '../core/geometry';
 import { circleFree, nearestFree } from '../core/grid-query';
 import { checkPlacement, snapToWalls } from '../core/placement';
+import { fillBoxes, rowBoxes, rowGapM, seatingPlan, snapToNeighbour } from '../core/space-layout';
+import type { SeatingOptions } from '../core/space-layout';
+import { spaceSummary } from '../core/space-rules';
+import type { SpaceSummary } from '../core/space-rules';
 import type { PointerEvt } from '../engine/controls';
 import { buildFurnitureMesh, setFurnitureTint } from '../engine/furniture';
 import { CHARACTER_RADIUS_M } from '../types';
@@ -249,9 +253,24 @@ export interface FurnishView {
   removed: Array<{ id: string; label: string; builtIn: boolean; fitting?: boolean }>;
   /** true when this layout differs from the home as drawn (the chip shows) */
   edited: boolean;
+  /** a shared space (a gym, a hall, a lobby): its stations, floor used against free and whether the walkway is clear (SPEC 16.17); null in a home */
+  summary: SpaceSummary | null;
 }
 
 export interface FurnishUi { render(view: FurnishView): void }
+
+/** What a helper that places several pieces at once did: how many it asked for, how many it put down, and why it stopped. */
+export interface PlaceReport {
+  requested: number;
+  placed: number;
+  /** ids of the new pieces */
+  ids: string[];
+  /** seating: the seat count and the plan in words */
+  seats?: number;
+  words?: string;
+  /** one sentence for the toast: "Placed 6 of 6 treadmills, 50 cm apart." */
+  message: string;
+}
 
 export interface FurnishVerdict {
   id: string;
@@ -350,6 +369,15 @@ export interface FurnishSession {
   backFittingPlace(): boolean;
   removeFitting(id?: string): boolean;
   restoreFitting(id: string): boolean;
+  // ---- layout helpers for a shared space (SPEC 16.17). Each places ordinary pieces, so move, remove, My layout and the share link work on them.
+  /** `count` more of the selected piece beside it, along its width at its own spacing (right of it for `dir` 1, left for -1), stopping at the first wall or piece in the way */
+  placeRow(count: number, dir?: 1 | -1): PlaceReport | null;
+  /** a block of seats: `rows` x `cols` of `catalogId` with optional aisles, its front row centred 1.8 m ahead of the walker (or at `centre`), facing the walker (or turned `yawDeg`). Reports the seat count. */
+  placeGrid(catalogId: string, rows: number, cols: number, opts?: Omit<SeatingOptions, 'rows' | 'cols'> & { centre?: Vec2; yawDeg?: number }): PlaceReport | null;
+  /** one more of the selected piece beside it (a row of one, the side with room) */
+  duplicateSelected(): PlaceReport | null;
+  /** `catalogId` (flooring tiles) laid over the rectangle in whole pieces */
+  fillArea(catalogId: string, rect: { x0: number; z0: number; x1: number; z1: number }): PlaceReport | null;
   /** back to the home as drawn */
   resetLayout(): void;
   /** the layout as a link a buyer can send */
@@ -560,7 +588,20 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     });
   };
   const removedList = (): FurnishView['removed'] => [...(store.hiddenOriginals ? store.hiddenOriginals().map((i) => ({ id: i.id, label: pieceName(i), builtIn: builtIn(i) })) : []), ...removedFittings()];
-  const extras = (): Pick<FurnishView, 'pieces' | 'removed' | 'edited'> => ({ pieces: piecesList(), removed: removedList(), edited: store.isEdited ? store.isEdited() : false });
+  /** the gym or hall summary (stations, floor used, walkway): worked out when the pieces change, not on every frame of a drag */
+  let sumCache: { key: string; v: SpaceSummary | null } | null = null;
+  const summaryFor = (): SpaceSummary | null => {
+    const k = spaceKind();
+    if (k !== 'gym' && k !== 'hall') return null;
+    const items = store.all();
+    const key = items.map((i) => `${i.id}:${i.box.cx.toFixed(3)},${i.box.cz.toFixed(3)},${i.box.yawDeg}`).join('|');
+    if (sumCache?.key === key) return sumCache.v;
+    let v: SpaceSummary | null = null;
+    try { v = spaceSummary(ctx.property.layout, items, undefined, k); } catch (err) { console.warn('[walkthru] space summary failed', err); }
+    sumCache = { key, v };
+    return v;
+  };
+  const extras = (): Pick<FurnishView, 'pieces' | 'removed' | 'edited' | 'summary'> => ({ pieces: piecesList(), removed: removedList(), edited: store.isEdited ? store.isEdited() : false, summary: summaryFor() });
 
   const computeViewBase = (): FurnishView => {
     const bc = buyerCount();
@@ -714,6 +755,34 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     return w;
   };
 
+  /** puts down pieces of `catalogId` at the boxes, skipping a box that is blocked (a wall, a piece) and, for a row, stopping there */
+  const placeBoxes = (catalogId: string, boxes: Box[], stopAtBlock: boolean, finish: Finish | undefined): { ids: string[]; skippedBy: string | null } => {
+    const spec = catalogItem(catalogId);
+    const ids: string[] = [];
+    let skippedBy: string | null = null;
+    for (const box of boxes) {
+      const item = itemFromCatalog(catalogId, box, 'virtual');
+      const r = check({ id: item.id, spec, box });
+      if (r.verdict === 'blocked') {
+        skippedBy ??= r.reason === 'outside' ? 'the edge of the room' : r.reason === 'collides' ? 'another piece or a wall' : 'no room';
+        if (stopAtBlock) break;
+        continue;
+      }
+      if (finish) item.finish = { ...finish };
+      store.add(item);
+      ids.push(item.id);
+    }
+    return { ids, skippedBy };
+  };
+  const finishPlacing = (ids: string[]): void => {
+    flushStore();
+    if (ids.length > 0) { selectedId = ids[ids.length - 1]; selectedFit = null; }
+    touch();
+    flush();
+  };
+  const plural = (n: number, name: string): string => `${n} ${name.toLowerCase()}${n === 1 ? '' : 's'}`;
+  const spacingWords = (gap: number): string => `${Math.round(gap * 100)} cm apart`;
+
   const session: FurnishSession = {
     spawn(catalogId) {
       let spec: CatalogItem;
@@ -736,6 +805,12 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     release() {
       if (!work) return null;
       work.box = snapToWalls(gridWithout(work.item.id), work.box);
+      // in a shared space a piece also lines up with its neighbour at its own spacing (a row of machines, a row of chairs)
+      if (spaceKind() !== 'home' && work.item.catalogId) {
+        const others = store.all().filter((i) => i.id !== work!.item.id && !(work!.replaces && i.id === work!.replaces) && i.heightM >= 0.06).map((i) => i.box);
+        const nb = snapToNeighbour(work.box, others, rowGapM(work.item.catalogId));
+        if (nb !== work.box && check({ id: work.item.id, spec: work.spec, box: nb }).verdict !== 'blocked') work.box = nb;
+      }
       syncMesh(work);
       touch();
       flush();
@@ -1068,6 +1143,50 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
       const ok = store.restoreOriginal?.(id) ?? false;
       if (ok) { flushStore(); selectedId = id; touch(); flush(); }
       return ok;
+    },
+    placeRow(count, dir = 1) {
+      const n = Math.max(1, Math.min(40, Math.floor(count)));
+      const sel = selectedId ? getItem(selectedId) : undefined;
+      if (!sel || !sel.catalogId) return null;
+      const spec = catalogItem(sel.catalogId);
+      const gap = rowGapM(sel.catalogId);
+      const { ids, skippedBy } = placeBoxes(sel.catalogId, rowBoxes(spec, sel.box, n, dir, gap), true, sel.finish);
+      finishPlacing(ids);
+      const message = ids.length === n
+        ? `Placed ${plural(n, spec.name)}, ${spacingWords(gap)}.`
+        : ids.length === 0 ? `No room for another ${spec.name.toLowerCase()} on that side: ${skippedBy ?? 'no room'} is in the way.` : `Placed ${ids.length} of ${n} ${spec.name.toLowerCase()}s, ${spacingWords(gap)}: ${skippedBy ?? 'no room'} stopped the row.`;
+      ctx.hud.toast(message);
+      return { requested: n, placed: ids.length, ids, message };
+    },
+    duplicateSelected() {
+      const sel = selectedId ? getItem(selectedId) : undefined;
+      if (!sel) return null;
+      let r = session.placeRow(1, 1);
+      if (r && r.placed === 0) r = session.placeRow(1, -1);
+      return r;
+    },
+    placeGrid(catalogId, rows, cols, opts = {}) {
+      let spec: CatalogItem;
+      try { spec = catalogItem(catalogId); } catch { return null; }
+      const plan = seatingPlan(spec, { rows, cols, seatGapM: opts.seatGapM, rowPitchM: opts.rowPitchM, aisleEvery: opts.aisleEvery, aisleM: opts.aisleM });
+      const yaw = opts.yawDeg ?? rotateYaw(ctx.character.yawDeg, 180);
+      const centre = opts.centre ?? { x: ctx.character.position.x + Math.sin((ctx.character.yawDeg * Math.PI) / 180) * (SPAWN_DISTANCE_M + 0.5), z: ctx.character.position.z + Math.cos((ctx.character.yawDeg * Math.PI) / 180) * (SPAWN_DISTANCE_M + 0.5) };
+      // the front row is nearest the walker's far side: the block's front row is at the centre, its rows run back toward the walker
+      const boxes = plan.place(centre, yaw);
+      const { ids, skippedBy } = placeBoxes(catalogId, boxes, false, undefined);
+      finishPlacing(ids);
+      const message = ids.length === plan.seats ? `Placed ${plan.words}` : `Placed ${ids.length} of ${plan.seats} seats; ${skippedBy ?? 'no room'} was in the way of the rest. ${plan.words}`;
+      ctx.hud.toast(message);
+      return { requested: plan.seats, placed: ids.length, ids, seats: ids.length, words: plan.words, message };
+    },
+    fillArea(catalogId, rect) {
+      let spec: CatalogItem;
+      try { spec = catalogItem(catalogId); } catch { return null; }
+      const boxes = fillBoxes(spec, rect);
+      const { ids, skippedBy } = placeBoxes(catalogId, boxes, false, undefined);
+      finishPlacing(ids);
+      const message = ids.length === boxes.length ? `Laid ${plural(ids.length, spec.name)} over the area.` : `Laid ${ids.length} of ${boxes.length} ${spec.name.toLowerCase()}s; ${skippedBy ?? 'no room'} was in the way of the rest.`;
+      return { requested: boxes.length, placed: ids.length, ids, message };
     },
     resetLayout() {
       discardWork();

@@ -1,0 +1,1197 @@
+{
+  "version": 1,
+  "id": "test-hall-sample",
+  "title": "Test hall, furnished",
+  "subtitle": "Made-up sample layout for demonstration.",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "hall",
+        "roomType": "other",
+        "label": "Community hall",
+        "polygon": [
+          {
+            "x": 0,
+            "z": 0
+          },
+          {
+            "x": 12,
+            "z": 0
+          },
+          {
+            "x": 12,
+            "z": 8.4
+          },
+          {
+            "x": 0,
+            "z": 8.4
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "hall-door",
+        "roomId": "hall",
+        "edge": 1,
+        "type": "door",
+        "centreM": 6.2,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EFEAE0",
+      "floorColor": "#B48D5C",
+      "tile": {
+        "wM": 0.9,
+        "lM": 0.9
+      },
+      "groutColor": "#A47F52",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [
+    {
+      "id": "hall-1-hall-stage-40",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-stage-40",
+      "label": "Stage platform, 40 cm",
+      "box": {
+        "cx": 0.77,
+        "cz": 5.4,
+        "w": 1.2,
+        "d": 2.4,
+        "yawDeg": 180
+      },
+      "heightM": 0.4,
+      "surfaceHeightM": 0.4
+    },
+    {
+      "id": "hall-2-hall-stage-40",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-stage-40",
+      "label": "Stage platform, 40 cm",
+      "box": {
+        "cx": 0.77,
+        "cz": 3,
+        "w": 1.2,
+        "d": 2.4,
+        "yawDeg": 180
+      },
+      "heightM": 0.4,
+      "surfaceHeightM": 0.4
+    },
+    {
+      "id": "hall-3-hall-stage-40",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-stage-40",
+      "label": "Stage platform, 40 cm",
+      "box": {
+        "cx": 1.97,
+        "cz": 5.4,
+        "w": 1.2,
+        "d": 2.4,
+        "yawDeg": 180
+      },
+      "heightM": 0.4,
+      "surfaceHeightM": 0.4
+    },
+    {
+      "id": "hall-4-hall-stage-40",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-stage-40",
+      "label": "Stage platform, 40 cm",
+      "box": {
+        "cx": 1.97,
+        "cz": 3,
+        "w": 1.2,
+        "d": 2.4,
+        "yawDeg": 180
+      },
+      "heightM": 0.4,
+      "surfaceHeightM": 0.4
+    },
+    {
+      "id": "hall-5-hall-podium",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-podium",
+      "label": "Podium (lectern)",
+      "box": {
+        "cx": 1.6,
+        "cz": 7.6,
+        "w": 0.6,
+        "d": 0.5,
+        "yawDeg": 270
+      },
+      "heightM": 1.15,
+      "surfaceHeightM": 1.05
+    },
+    {
+      "id": "hall-6-hall-speaker",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-speaker",
+      "label": "PA speaker on stand",
+      "box": {
+        "cx": 1,
+        "cz": 0.6,
+        "w": 0.7,
+        "d": 0.7,
+        "yawDeg": 90
+      },
+      "heightM": 1.65,
+      "surfaceHeightM": 1.65
+    },
+    {
+      "id": "hall-7-hall-speaker",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-speaker",
+      "label": "PA speaker on stand",
+      "box": {
+        "cx": 2,
+        "cz": 0.6,
+        "w": 0.7,
+        "d": 0.7,
+        "yawDeg": 90
+      },
+      "heightM": 1.65,
+      "surfaceHeightM": 1.65
+    },
+    {
+      "id": "hall-8-hall-screen",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-screen",
+      "label": "Projector screen, 3 m",
+      "box": {
+        "cx": 0.08,
+        "cz": 4.2,
+        "w": 3,
+        "d": 0.1,
+        "yawDeg": 90
+      },
+      "heightM": 2.6,
+      "surfaceHeightM": 2.6
+    },
+    {
+      "id": "hall-9-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 7.495,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-10-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 7.005,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-11-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 6.515,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-12-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 6.025,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-13-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 5.535,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-14-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 5.045,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-15-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 3.355,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-16-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 2.865,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-17-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 2.375,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-18-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 1.885,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-19-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 1.395,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-20-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 3.4,
+        "cz": 0.905,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-21-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 7.495,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-22-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 7.005,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-23-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 6.515,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-24-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 6.025,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-25-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 5.535,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-26-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 5.045,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-27-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 3.355,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-28-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 2.865,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-29-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 2.375,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-30-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 1.885,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-31-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 1.395,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-32-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 4.3,
+        "cz": 0.905,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-33-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 7.495,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-34-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 7.005,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-35-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 6.515,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-36-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 6.025,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-37-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 5.535,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-38-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 5.045,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-39-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 3.355,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-40-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 2.865,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-41-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 2.375,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-42-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 1.885,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-43-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 1.395,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-44-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 5.2,
+        "cz": 0.905,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-45-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 7.495,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-46-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 7.005,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-47-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 6.515,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-48-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 6.025,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-49-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 5.535,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-50-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 5.045,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-51-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 3.355,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-52-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 2.865,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-53-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 2.375,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-54-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 1.885,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-55-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 1.395,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-56-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 6.1,
+        "cz": 0.905,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-57-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 7.495,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-58-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 7.005,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-59-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 6.515,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-60-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 6.025,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-61-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 5.535,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-62-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 5.045,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-63-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 3.355,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-64-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 2.865,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-65-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 2.375,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-66-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 1.885,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-67-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 1.395,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-68-hall-chair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "hall-chair",
+      "label": "Stacking chair",
+      "box": {
+        "cx": 7,
+        "cz": 0.905,
+        "w": 0.46,
+        "d": 0.52,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.46
+    },
+    {
+      "id": "hall-69-hall-table-rect",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-table-rect",
+      "label": "Banquet table, 6 ft",
+      "box": {
+        "cx": 10.6,
+        "cz": 3.4,
+        "w": 1.8,
+        "d": 0.76,
+        "yawDeg": 90
+      },
+      "heightM": 0.74,
+      "surfaceHeightM": 0.74
+    },
+    {
+      "id": "hall-70-hall-table-rect",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-table-rect",
+      "label": "Banquet table, 6 ft",
+      "box": {
+        "cx": 10.6,
+        "cz": 1.2,
+        "w": 1.8,
+        "d": 0.76,
+        "yawDeg": 90
+      },
+      "heightM": 0.74,
+      "surfaceHeightM": 0.74
+    }
+  ],
+  "spawn": {
+    "x": 11,
+    "z": 6.2,
+    "yawDeg": 270
+  },
+  "spaceKind": "hall",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}
