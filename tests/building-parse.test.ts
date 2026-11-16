@@ -64,6 +64,8 @@ describe('building.json', () => {
     expect(bad((r) => { r.lifts[0].serves.push('l9'); })).toMatch(/serves level "l9", which does not exist/);
     expect(bad((r) => { r.levels[3].spaces[0].portals = r.levels[3].spaces[0].portals.filter((p) => p.id !== 'lift-a'); })).toMatch(/lift "lift-a" must have exactly one lift door there \(found 0\)/);
     expect(bad((r) => { r.levels[3].spaces[0].portals.find((p) => p.id === 'lift-a')!.lift = 'lift-z'; })).toMatch(/lift "lift-z" is not defined/);
+    expect(bad((r) => { (r.levels[0].spaces[0] as Record<string, unknown>).lobbyAnchors = [{ id: 'x', role: 'bar', at: { x: 1, z: 1 }, yawDeg: 0, footprint: { w: 1, d: 1 } }]; })).toMatch(/lobbyAnchors\[0\]\.role must be reception, security, seating or letterboxes/);
+    expect(bad((r) => { (r.levels[1].spaces[0] as Record<string, unknown>).lobbyAnchors = []; })).toMatch(/is not a lobby, so it takes no lobbyAnchors/);
     expect(bad((r) => { r.startSpace = 'nope'; })).toMatch(/startSpace "nope" is not a space/);
     expect(bad((r) => { const p = r.levels[2].spaces[0].portals; p.push({ ...p[0], id: 'dup' }); })).toMatch(/the opening "[^"]+" has two portals/);
   });

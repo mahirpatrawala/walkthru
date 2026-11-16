@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { readSet } from '../make-sample-homes';
+import type { SetOptions } from '../drawing-sets/types';
 import { pointInPolygon } from '../../src/core/geometry';
 import { computeEdgeFrames } from '../../src/core/layout-geom';
 import { resolveDoors } from '../../src/core/doors';
@@ -13,9 +14,11 @@ export interface FlatSpec {
   typeId: string;
   name: string;
   seed: number;
+  /** the drawing set's options: the template (and its arrangement), clean linework, nothing planted wrong */
+  set: Partial<SetOptions>;
   sceneId: string;
   /** where the main door goes when the drawing has none: a room of the layout, the wall it is on, by the direction that wall faces */
-  entry: { roomId: string; facing: 'N' | 'E' | 'S' | 'W' };
+  entry?: { roomId: string; facing: 'N' | 'E' | 'S' | 'W' };
   /** renames a broker would make in the editor for rooms the reader could not name */
   labels?: Record<string, string>;
 }
@@ -23,12 +26,21 @@ export interface FlatSpec {
 export const MAIN_DOOR_M = 1.0;
 export const MAIN_DOOR_ID = 'door-main';
 
-/** Seeds picked in the scan: the reader found every room and every door, and every room can be walked into. */
+/**
+ * The set options every flat is drawn with: clean linework, labels with sizes, nothing planted wrong, not rotated or photographed. (The
+ * reader then confirms every room's size against the walls, except a balcony, which has no walls on three sides and is never confirmed.)
+ */
+const clean = (template: SetOptions['template'], variant?: number): Partial<SetOptions> => ({
+  template, ...(variant ? { variant } : {}), plantWrong: 0, roundShare: 0, noise: false, notToScale: false, rotation: 0, labelStyle: 'brochure', wallStyle: 'fill-dark',
+  textMode: 'real', elevations: 0, internalView: false, raster: { dpi: 200, jpegQuality: 90, phone: false, warpDeg: 0 },
+});
+
+/** Seeds picked in a scan of the layouts: the reader found every room and every door, confirmed every room's size but the balcony's, and every room can be walked to. */
 export const FLATS: FlatSpec[] = [
-  { typeId: '1bhk', name: '1 BHK', seed: 32, sceneId: 'test-tower-flat-1bhk', entry: { roomId: 'lobby', facing: 'S' } },
-  { typeId: '2bhk-a', name: '2 BHK (A)', seed: 93, sceneId: 'test-tower-flat-2bhk-a', entry: { roomId: 'passage', facing: 'W' } },
-  { typeId: '2bhk-b', name: '2 BHK (B)', seed: 45, sceneId: 'test-tower-flat-2bhk-b', entry: { roomId: 'passage', facing: 'E' } },
-  { typeId: '3bhk', name: '3 BHK', seed: 130, sceneId: 'test-tower-flat-3bhk', entry: { roomId: 'lobby', facing: 'W' }, labels: { 'room-9': 'Bath 1', 'room-10': 'Bath 2', 'room-11': 'Puja room' } },
+  { typeId: '1bhk', name: '1 BHK', seed: 5, set: clean('1bhk'), sceneId: 'test-tower-flat-1bhk' },
+  { typeId: '2bhk-a', name: '2 BHK (A)', seed: 6, set: clean('2bhk', 1), sceneId: 'test-tower-flat-2bhk-a' },
+  { typeId: '2bhk-b', name: '2 BHK (B)', seed: 78, set: clean('2bhk', 2), sceneId: 'test-tower-flat-2bhk-b' },
+  { typeId: '3bhk', name: '3 BHK', seed: 17, set: clean('3bhk', 1), sceneId: 'test-tower-flat-3bhk' },
 ];
 
 const DIR: Record<'N' | 'E' | 'S' | 'W', Vec2> = { N: { x: 0, z: -1 }, E: { x: 1, z: 0 }, S: { x: 0, z: 1 }, W: { x: -1, z: 0 } };
@@ -41,7 +53,7 @@ export function outsideDoor(layout: Layout): Opening | null {
 }
 
 /** Adds the main door to the entry room's outside wall facing `facing`, centred on that wall. Throws when there is no such wall. */
-export function addMainDoor(layout: Layout, entry: FlatSpec['entry']): Opening {
+export function addMainDoor(layout: Layout, entry: NonNullable<FlatSpec['entry']>): Opening {
   const room = layout.rooms.find((r) => r.id === entry.roomId);
   if (!room) throw new Error(`entry room "${entry.roomId}" is not in the layout (${layout.rooms.map((r) => r.id).join(', ')})`);
   const frames = computeEdgeFrames(layout).filter((f) => f.roomId === room.id);
@@ -80,7 +92,7 @@ export interface FlatDesign {
 
 /** Runs the reader on the flat's drawing set and shapes the result into a scene. */
 export async function readFlat(spec: FlatSpec, scratch: string): Promise<FlatDesign> {
-  const r = await readSet(spec.seed, spec.sceneId, scratch, `Flat · ${spec.name}`);
+  const r = await readSet(spec.seed, spec.sceneId, scratch, `Flat · ${spec.name}`, spec.set);
   const property: PropertyFile = JSON.parse(JSON.stringify(r.property));
   property.id = spec.sceneId;
   property.title = `Flat · ${spec.name}`;
@@ -93,7 +105,8 @@ export async function readFlat(spec: FlatSpec, scratch: string): Promise<FlatDes
     room.label = label;
   }
   const existing = outsideDoor(property.layout);
-  const main = existing ?? addMainDoor(property.layout, spec.entry);
+  if (!existing && !spec.entry) throw new Error(`${spec.sceneId}: the drawing has no door onto the outside and the spec gives no entry`);
+  const main = existing ?? addMainDoor(property.layout, spec.entry!);
   const read = (f: string): unknown | null => { const p = path.join(r.dir, f); return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null; };
   return { spec, property, designs: read('designs.json'), extras: read('proposal-extras.json'), design: read('design.json'), mainOpening: main.id };
 }

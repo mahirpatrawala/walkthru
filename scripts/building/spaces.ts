@@ -3,6 +3,7 @@
 // corridor 1.8 m, lift car 1.1 x 1.4 m with a 0.9 m door, main doors 1.0 m. The pool and the garden are plain rooms until stage 3.
 import { catalogItem } from '../../src/core/catalog';
 import type { DoorLeaf, FurnitureItem, Opening, PropertyFile, RoomTag, SpaceKind } from '../../src/types';
+import type { LobbyAnchor } from '../../src/building/types';
 import { finishes, openingAt, rectRoom, sceneFile, windowAt } from './scene-kit';
 import type { Rect, Side } from './scene-kit';
 import type { Plate } from './plate';
@@ -38,9 +39,6 @@ function piece(id: string, catalogId: string, cx: number, cz: number, yawDeg: nu
     id, source: 'virtual', kind: s.kind, catalogId, label: s.name, box: { cx, cz, w: s.footprint.w, d: s.footprint.d, yawDeg },
     heightM: s.heightM, surfaceHeightM: s.surfaceHeightM,
   };
-}
-function desk(id: string, label: string, cx: number, cz: number, w: number, d: number, yawDeg: number): FurnitureItem {
-  return { id, source: 'real', kind: 'counter', label, box: { cx, cz, w, d, yawDeg }, heightM: 1.05, surfaceHeightM: 1.05 };
 }
 
 const STONE = { floorColor: '#BDB5A8', tile: { wM: 0.8, lM: 0.8 }, groutColor: '#A29A8D', wallColor: '#EEE8DC', ceilingColor: '#F7F4EE' } as const;
@@ -90,7 +88,15 @@ export function corridorScene(plate: Plate, id: string): CorridorOut {
 
 // ---------------------------------------------------------------- the ground lobby
 
-export interface LobbyOut { property: PropertyFile; street: string; clubhouse: string; liftA: string; liftB: string; stairs: string }
+export interface LobbyOut { property: PropertyFile; street: string; clubhouse: string; liftA: string; liftB: string; stairs: string; anchors: LobbyAnchor[] }
+
+/** The positions the ground lobby leaves marked and empty for a later stage's pieces: where its reception desk, security desk, seating and letterbox wall go. */
+export const LOBBY_ANCHORS: LobbyAnchor[] = [
+  { id: 'reception', role: 'reception', at: { x: 6.0, z: 0.95 }, yawDeg: 0, footprint: { w: 3.2, d: 0.7 }, note: 'Along the north wall, facing the street door, clear of the clubhouse door and the opening to the lifts.' },
+  { id: 'security', role: 'security', at: { x: 7.7, z: 5.9 }, yawDeg: 270, footprint: { w: 1.6, d: 0.6 }, note: 'By the street door on the lift side, facing across the lobby.' },
+  { id: 'seating', role: 'seating', at: { x: 2.2, z: 4.3 }, yawDeg: 90, footprint: { w: 3.8, d: 2.6 }, note: 'The waiting corner in the south-west. The sample puts two sofas, an armchair and a side table here; they can be replaced.' },
+  { id: 'letterboxes', role: 'letterboxes', at: { x: 0.2, z: 1.9 }, yawDeg: 90, footprint: { w: 2.4, d: 0.3 }, note: 'The letterbox wall: the west wall north of the seating, a bank of boxes about 2.4 m long.' },
+];
 
 export function groundLobbyScene(id: string, furnished: boolean): LobbyOut {
   const entrance = rectRoom('entrance-lobby', 'Entrance lobby', 'other', { x0: 0, z0: 0, x1: 9, z1: 7 });
@@ -108,8 +114,6 @@ export function groundLobbyScene(id: string, furnished: boolean): LobbyOut {
     windowAt(entrance, 'W', 3.0, 'window-w', 2.4, 0.0, 2.6),
   ];
   const furniture: FurnitureItem[] = furnished ? [
-    desk('reception-desk', 'Reception desk', 6.0, 0.95, 3.2, 0.7, 0),
-    desk('security-desk', 'Security desk', 7.7, 5.9, 1.6, 0.6, 90),
     piece('lobby-sofa-1', 'sofa-3', 0.65, 4.9, 90),
     piece('lobby-sofa-2', 'sofa-2', 3.6, 4.6, 270),
     piece('lobby-table', 'side-table', 2.1, 4.75, 0),
@@ -117,9 +121,10 @@ export function groundLobbyScene(id: string, furnished: boolean): LobbyOut {
   ] : [];
   const property = sceneFile({
     id, title: 'Entrance lobby', subtitle: SAMPLE_SUBTITLE, wallHeightM: 3.6, rooms: [entrance, lifts], openings, furniture,
-    finishes: finishes({ ...WARM }), spawn: { x: 4.5, z: 5.6, yawDeg: 0 }, updatedAt: UPDATED_AT, spaceKind: 'lobby',
+    // aluminium door and window frames: the glass doors, the lifts and the stairs door read as metal and glass
+    finishes: finishes({ ...WARM, frameColor: '#A8B0B5' }), spawn: { x: 4.5, z: 5.6, yawDeg: 0 }, updatedAt: UPDATED_AT, spaceKind: 'lobby',
   });
-  return { property, street: 'door-street', clubhouse: 'door-clubhouse', liftA: 'lift-a', liftB: 'lift-b', stairs: 'door-stairs' };
+  return { property, street: 'door-street', clubhouse: 'door-clubhouse', liftA: 'lift-a', liftB: 'lift-b', stairs: 'door-stairs', anchors: LOBBY_ANCHORS };
 }
 
 // ---------------------------------------------------------------- the clubhouse level (plan frame, one scene per space)

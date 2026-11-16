@@ -58,6 +58,20 @@ function rowsFor(t: Template, rng: Rng, o: SetOptions): RowSpec[] {
         { depth: f(8, 9.5), cells: [{ w: f(8, 10), rooms: [{ kind: 'kitchen' }] }, { w: f(5, 6), rooms: [{ kind: 'toilet' }] }, { w: f(3, 4), rooms: [{ kind: 'foyer' }] }] },
       ];
     case '2bhk': {
+      // no passage (the reader cannot measure a long one): a small entrance lobby on the wet row, under the living room, opens to the
+      // kitchen and to the last room; the bedrooms open to the living room, which fills the middle of the street-side row
+      if (o.variant === 1) {
+        return [
+          { depth: f(11, 12), cells: [{ w: f(9.5, 10.5), rooms: [{ kind: 'bedroom' }] }, { w: f(13, 14.5), rooms: [{ kind: 'living' }] }, { w: f(11, 12), rooms: [{ kind: 'master' }] }] },
+          { depth: f(8.5, 9.5), cells: [{ w: f(5, 5.5), rooms: [{ kind: 'toilet' }] }, { w: f(5, 5.5), rooms: [{ kind: 'toilet' }] }, { w: f(8, 9), rooms: [{ kind: 'kitchen' }] }, { w: f(5.5, 6), rooms: [{ kind: 'foyer' }] }, { w: f(8, 10), rooms: [{ kind: 'study' }] }] },
+        ];
+      }
+      if (o.variant === 2) {
+        return [
+          { depth: f(11.5, 12.5), cells: [{ w: f(11.5, 12), rooms: [{ kind: 'master' }] }, { w: f(14, 15), rooms: [{ kind: 'living' }] }, { w: f(10, 10.5), rooms: [{ kind: 'bedroom' }] }] },
+          { depth: f(8.5, 9.5), cells: [{ w: f(5, 5.5), rooms: [{ kind: 'toilet' }] }, { w: f(5, 5.5), rooms: [{ kind: 'toilet' }] }, { w: f(9, 10), rooms: [{ kind: 'kitchen' }] }, { w: f(5.5, 6.5), rooms: [{ kind: 'foyer' }] }, { w: f(7, 9), rooms: [{ kind: 'dining' }] }] },
+        ];
+      }
       const rows: RowSpec[] = [
         { depth: f(11, 13), cells: [{ w: f(11, 13), rooms: [{ kind: 'master' }] }, { w: f(13, 16), rooms: [{ kind: 'living' }] }, { w: f(10, 12), rooms: [{ kind: 'bedroom' }] }] },
         { depth: f(3.5, 4), passage: true, cells: [{ w: f(10, 10.5), rooms: [{ kind: 'passage' }] }] },
@@ -66,6 +80,14 @@ function rowsFor(t: Template, rng: Rng, o: SetOptions): RowSpec[] {
       return rows;
     }
     case '3bhk':
+      if (o.variant === 1) {
+        // no passage (see the 2 BHK): master, living and the kids' room in one row of about 12 m; the wet row has the kitchen, a small entrance lobby
+        // under the living room and the third bedroom beside it
+        return [
+          { depth: f(13, 14), cells: [{ w: f(13, 14), rooms: [{ kind: 'master' }] }, { w: f(15.5, 17), rooms: [{ kind: 'living' }] }, { w: f(11.5, 12.5), rooms: [{ kind: 'kids' }] }] },
+          { depth: f(10, 11), cells: [{ w: f(5.5, 6), rooms: [{ kind: 'toilet' }] }, { w: f(5.5, 6), rooms: [{ kind: 'toilet' }] }, { w: f(10, 11), rooms: [{ kind: 'kitchen' }] }, { w: f(6, 6.5), rooms: [{ kind: 'foyer' }] }, { w: f(11, 12.5), rooms: [{ kind: 'bedroom' }] }] },
+        ];
+      }
       return [
         { depth: f(12, 13.5), cells: [{ w: f(12, 14), rooms: [{ kind: 'master' }] }, { w: f(12, 14), rooms: [{ kind: 'kids' }] }, { w: f(11, 13), rooms: [{ kind: 'bedroom' }] }, { w: f(14, 17), rooms: [{ kind: 'living' }] }] },
         { depth: f(3.5, 4.5), passage: true, cells: [{ w: f(10, 11), rooms: [{ kind: 'passage' }] }] },

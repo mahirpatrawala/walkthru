@@ -23,11 +23,11 @@
           },
           {
             "x": 0.9,
-            "z": 17.461199559493323
+            "z": 22.719990406996033
           },
           {
             "x": -0.9,
-            "z": 17.461199559493323
+            "z": 22.719990406996033
           }
         ],
         "edges": [
@@ -44,19 +44,19 @@
         "polygon": [
           {
             "x": -3,
-            "z": 17.581199559493324
+            "z": 22.839990406996034
           },
           {
             "x": 3,
-            "z": 17.581199559493324
+            "z": 22.839990406996034
           },
           {
             "x": 3,
-            "z": 21.781199559493324
+            "z": 27.039990406996033
           },
           {
             "x": -3,
-            "z": 21.781199559493324
+            "z": 27.039990406996033
           }
         ],
         "edges": [
@@ -73,7 +73,22 @@
         "roomId": "corridor",
         "edge": 1,
         "type": "door",
-        "centreM": 4.51500017215044,
+        "centreM": 8.099991827398693,
+        "widthM": 1.0668064773902617,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-se",
+        "roomId": "corridor",
+        "edge": 1,
+        "type": "door",
+        "centreM": 15.07059260890638,
         "widthM": 1,
         "sillM": 0,
         "headM": 2.1,
@@ -84,26 +99,11 @@
         }
       },
       {
-        "id": "door-se",
-        "roomId": "corridor",
-        "edge": 1,
-        "type": "door",
-        "centreM": 14.82999913503382,
-        "widthM": 0.9999999442261778,
-        "sillM": 0,
-        "headM": 2.1,
-        "leaf": {
-          "hinge": "start",
-          "swing": "out",
-          "kind": "hinged"
-        }
-      },
-      {
         "id": "door-nw",
         "roomId": "corridor",
         "edge": 3,
         "type": "door",
-        "centreM": 13.34619932902202,
+        "centreM": 18.709990031395073,
         "widthM": 1,
         "sillM": 0,
         "headM": 2.1,
@@ -118,12 +118,12 @@
         "roomId": "corridor",
         "edge": 3,
         "type": "door",
-        "centreM": 6.161699641236821,
-        "widthM": 1,
+        "centreM": 4.1599963732972185,
+        "widthM": 0.9999991018195937,
         "sillM": 0,
         "headM": 2.1,
         "leaf": {
-          "hinge": "start",
+          "hinge": "end",
           "swing": "out",
           "kind": "hinged"
         }
@@ -222,7 +222,7 @@
   "furniture": [],
   "spawn": {
     "x": 0,
-    "z": 16.461199559493323,
+    "z": 21.719990406996033,
     "yawDeg": 180
   },
   "unlisted": true,

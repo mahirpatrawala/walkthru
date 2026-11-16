@@ -2,6 +2,9 @@
 // Errors are things that break a walk or a drawing; warnings are things worth a look.
 import { stampFurniture, rasterizeLayout } from '../core/layout-raster';
 import { overlapAreaM2, validateLayout } from '../core/layout-validate';
+import { boxCorners, pointInPolygon } from '../core/geometry';
+import { polygonCentroid } from '../core/spawn';
+import { nearestFree } from '../core/grid-query';
 import type { PropertyFile } from '../types';
 import { arrivalAtDoor, reachable } from './arrival';
 import { doorFrame, dirToLevel, roomsOnLevel, toLevel } from './geom';
@@ -56,6 +59,20 @@ export function validateBuilding(b: BuildingFile, scene: SceneLookup): BuildingR
       else if (portal.kind === 'door' || portal.kind === 'outside') {
         if (o.widthM < 0.9) warnings.push(`Space "${s.id}", portal "${portal.id}": the door is ${o.widthM.toFixed(2)} m wide; a main door is usually 1.0 m.`);
       }
+    }
+  }
+
+  // ---- lobby anchors: each marked position lies wholly inside a room of its lobby, and no two overlap
+  for (const l of b.levels) for (const s of l.spaces) {
+    const p = props.get(s.sceneId);
+    if (!p || !s.lobbyAnchors) continue;
+    const boxes = s.lobbyAnchors.map((a) => ({ a, box: { cx: a.at.x, cz: a.at.z, w: a.footprint.w, d: a.footprint.d, yawDeg: a.yawDeg } }));
+    for (const { a, box } of boxes) {
+      const inside = p.layout.rooms.some((r) => boxCorners(box).every((c) => pointInPolygon(c, r.polygon)));
+      if (!inside) errors.push(`Space "${s.id}": the anchor "${a.id}" does not lie wholly inside a room.`);
+    }
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      if (boxesOverlap(boxes[i].box, boxes[j].box)) errors.push(`Space "${s.id}": the anchors "${boxes[i].a.id}" and "${boxes[j].a.id}" overlap.`);
     }
   }
 
@@ -117,6 +134,12 @@ export function validateBuilding(b: BuildingFile, scene: SceneLookup): BuildingR
     const grid = stampFurniture(rasterizeLayout(p.layout), p.furniture);
     const landings = s.portals.map((portal) => ({ portal, at: arrivalAtDoor(p.layout, grid, portal.opening) }));
     for (const { portal, at } of landings) if (!at) errors.push(`Space "${s.id}", portal "${portal.id}": there is no clear spot to land just inside the door.`);
+    // a home: every room (a balcony apart) can be walked to from the main door
+    if (s.kind === 'home' && landings[0]?.at) {
+      const rooms = p.layout.rooms.filter((r) => !r.partial && r.roomType !== 'balcony');
+      const spots = rooms.map((r) => { const c0 = polygonCentroid(r.polygon); const c = pointInPolygon(c0, r.polygon) ? c0 : r.polygon[0]; return nearestFree(grid, c.x, c.z, 0.25, 1.2) ?? c; });
+      reachable(grid, landings[0].at, spots).forEach((yes, i) => { if (!yes) errors.push(`Space "${s.id}": the room "${rooms[i].label}" cannot be walked to from the main door.`); });
+    }
     const ok = landings.filter((x) => x.at);
     if (ok.length > 1) {
       const reach = reachable(grid, ok[0].at!, ok.slice(1).map((x) => x.at!));
@@ -141,3 +164,6 @@ export function validateBuilding(b: BuildingFile, scene: SceneLookup): BuildingR
   if (b.sample && !/sample/i.test(`${b.name} ${b.note}`)) warnings.push('A sample building should say "sample" in its name or note.');
   return { errors, warnings };
 }
+
+const boxesOverlap = (a: Parameters<typeof boxCorners>[0], b: Parameters<typeof boxCorners>[0]): boolean =>
+  overlapAreaM2(boxCorners(a), boxCorners(b)) > 0.02;

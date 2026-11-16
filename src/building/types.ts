@@ -20,6 +20,20 @@ export type Portal =
   /** a door to the street or anywhere the sample does not model: it says so */
   | { id: string; kind: 'outside'; opening: string; label: string; look?: DoorLook; prompt?: string };
 
+/**
+ * A marked, empty position in a lobby for a piece a later stage supplies: where the reception desk, the security desk, the seating and the
+ * letterbox wall go. Scene frame, metres; `yawDeg` is a furniture box's: the piece's front looks along (sin yaw, cos yaw).
+ */
+export interface LobbyAnchor {
+  id: string;
+  role: 'reception' | 'security' | 'seating' | 'letterboxes';
+  at: { x: number; z: number };
+  yawDeg: number;
+  /** the floor the piece may take, width along its front */
+  footprint: { w: number; d: number };
+  note?: string;
+}
+
 export interface Space {
   /** unique in the building; the `space=` of the URL. Equals the scene id unless one scene is used by several spaces. */
   id: string;
@@ -37,6 +51,8 @@ export interface Space {
   /** a placeholder for a later stage: enterable as an empty room, labelled on the map */
   comingNext?: boolean;
   notes?: string[];
+  /** lobbies: the marked positions a later stage drops its pieces into */
+  lobbyAnchors?: LobbyAnchor[];
   /** a space under the sky (no ceiling): read and handed to the walk, not drawn that way yet (SPEC 18.9) */
   outdoor?: boolean;
   /** the style pack this space opens in, unless the viewer has picked one (src/look/packs ids) */

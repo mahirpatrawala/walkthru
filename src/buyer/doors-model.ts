@@ -44,7 +44,7 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   const H = Math.max(0.5, d.topM - DOOR_FLOOR_GAP_M);
   const W = d.panelWidthM;
   // a teak-laminate flush door: lighter than the dark frame so the panel reads as wood, not a black slab
-  const defaultPanel = kind === 'main' ? new THREE.Color('#7B5334') : kind === 'lift' ? new THREE.Color('#C9CDCF') : kind === 'stairs' ? new THREE.Color('#6F8076') : kind === 'glass' ? new THREE.Color('#2B3033') : new THREE.Color(frameColor).lerp(new THREE.Color('#A9794E'), 0.75);
+  const defaultPanel = kind === 'main' ? new THREE.Color('#7B5334') : kind === 'lift' ? new THREE.Color('#D9DDDF') : kind === 'stairs' ? new THREE.Color('#6F8076') : kind === 'glass' ? new THREE.Color('#2B3033') : new THREE.Color(frameColor).lerp(new THREE.Color('#A9794E'), 0.75);
   const panelMat = new THREE.MeshStandardMaterial({ color: defaultPanel.clone(), roughness: kind === 'lift' ? 0.45 : 0.55, metalness: kind === 'lift' ? 0.3 : kind === 'glass' ? 0.6 : 0 });
   const styled = kind !== 'plain';
   const extra: THREE.Material[] = [];
@@ -66,18 +66,23 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   const plateSide = (style?.plateSide ?? 1) * (d.hinge === 'start' ? 1 : -1);
   const mat = (m: THREE.Material): THREE.Material => { extra.push(m); return m; };
   if (kind === 'glass') {
-    // aluminium frame round a pane of glass, a steel push bar across the middle
-    const frame = mat(new THREE.MeshStandardMaterial({ color: '#2B3033', roughness: 0.4, metalness: 0.6 }));
-    const glass = mat(new THREE.MeshStandardMaterial({ color: '#BFDDE2', roughness: 0.05, metalness: 0, transparent: true, opacity: 0.28 }));
-    const stile = 0.07, rail = 0.09, railLow = 0.2;
+    // a slim satin-aluminium frame (4.5 cm stiles and head, a 12 cm kick rail) round a pane of lightly tinted, reflective glass, a stainless pull bar on both faces
+    const frame = mat(new THREE.MeshStandardMaterial({ color: '#C5CBCF', roughness: 0.32, metalness: 0.55 }));
+    const glass = mat(new THREE.MeshPhysicalMaterial({ color: '#9DBFC8', roughness: 0.03, metalness: 0, transparent: true, opacity: 0.3, specularIntensity: 1, envMapIntensity: 1.6, side: THREE.DoubleSide }));
+    const pull = mat(new THREE.MeshStandardMaterial({ color: '#DDE0E2', roughness: 0.22, metalness: 0.65 }));
+    const stile = 0.045, rail = 0.045, railLow = 0.12;
     add(new THREE.BoxGeometry(stile, H, T), frame, 'door-frame', stile / 2, DOOR_FLOOR_GAP_M + H / 2, 0);
     add(new THREE.BoxGeometry(stile, H, T), frame, 'door-frame', W - stile / 2, DOOR_FLOOR_GAP_M + H / 2, 0);
     add(new THREE.BoxGeometry(W - 2 * stile, rail, T), frame, 'door-frame', W / 2, DOOR_FLOOR_GAP_M + H - rail / 2, 0);
     add(new THREE.BoxGeometry(W - 2 * stile, railLow, T), frame, 'door-frame', W / 2, DOOR_FLOOR_GAP_M + railLow / 2, 0);
-    const pane = add(new THREE.BoxGeometry(W - 2 * stile, H - rail - railLow, 0.012), glass, 'door-glass', W / 2, DOOR_FLOOR_GAP_M + railLow + (H - rail - railLow) / 2, 0);
+    const pane = add(new THREE.BoxGeometry(W - 2 * stile, H - rail - railLow, 0.008), glass, 'door-glass', W / 2, DOOR_FLOOR_GAP_M + railLow + (H - rail - railLow) / 2, 0);
     pane.castShadow = false;
-    for (const sd of [1, -1]) add(new THREE.CylinderGeometry(0.014, 0.014, 0.6, 12), handleMat, 'door-handle', W - 0.14, HANDLE_Y_M + 0.1, sd * (T / 2 + 0.05), 0);
-    for (const sd of [1, -1]) for (const dy of [0.25, -0.25]) add(new THREE.BoxGeometry(0.02, 0.02, 0.05), handleMat, 'door-handle', W - 0.14, HANDLE_Y_M + 0.1 + dy, sd * (T / 2 + 0.025));
+    // the pull sits near the free edge, a hand's width in from the stile
+    const px = W - stile - 0.07;
+    for (const sd of [1, -1]) {
+      add(new THREE.CylinderGeometry(0.0155, 0.0155, 0.7, 14), pull, 'door-handle', px, 1.05, sd * (T / 2 + 0.055), 0);
+      for (const dy of [0.28, -0.28]) add(new THREE.CylinderGeometry(0.008, 0.008, 0.055, 8), pull, 'door-handle', px, 1.05 + dy, sd * (T / 2 + 0.0275), Math.PI / 2);
+    }
   } else {
     add(new THREE.BoxGeometry(W, H, T), panelMat, 'door-panel', W / 2, DOOR_FLOOR_GAP_M + H / 2, 0);
   }

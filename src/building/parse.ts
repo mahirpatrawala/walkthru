@@ -1,7 +1,7 @@
 // Reads and checks a building.json. Throws an Error with a readable message that names where the problem is.
 // Shape first (types, ids, ranges), then the links between parts (portals pair up, lifts serve real levels, flat types exist).
 import { SPACE_KINDS } from './types';
-import type { BuildingFile, DoorLook, FlatType, Level, Lift, Placement, Portal, Space, SpaceKind } from './types';
+import type { BuildingFile, DoorLook, FlatType, Level, Lift, LobbyAnchor, Placement, Portal, Space, SpaceKind } from './types';
 
 export const BUILDING_ID_RE = /^[a-z0-9-]{1,40}$/;
 export const SPACE_ID_RE = /^[a-z0-9-]{1,40}$/;
@@ -77,6 +77,21 @@ function parseSpace(v: unknown, path: string): Space {
   if (v.type !== undefined) s.type = str(v, 'type', path);
   if (v.mirrored !== undefined) { if (typeof v.mirrored !== 'boolean') fail(`${path}.mirrored`, 'must be true or false'); s.mirrored = v.mirrored as boolean; }
   if (v.comingNext !== undefined) s.comingNext = v.comingNext === true;
+  if (v.lobbyAnchors !== undefined) {
+    s.lobbyAnchors = arr(v, 'lobbyAnchors', path).map((a, i): LobbyAnchor => {
+      const ap = `${path}.lobbyAnchors[${i}]`;
+      if (!isObj(a)) return fail(ap, 'must be an object');
+      const role = a.role;
+      if (role !== 'reception' && role !== 'security' && role !== 'seating' && role !== 'letterboxes') return fail(`${ap}.role`, `must be reception, security, seating or letterboxes (got ${String(role)})`);
+      if (!isObj(a.at) || !isObj(a.footprint)) return fail(ap, 'needs at {x, z} and footprint {w, d}');
+      return {
+        id: str(a, 'id', ap), role,
+        at: { x: num(a.at, 'x', `${ap}.at`, -500, 500), z: num(a.at, 'z', `${ap}.at`, -500, 500) }, yawDeg: num(a, 'yawDeg', ap, -720, 720),
+        footprint: { w: num(a.footprint, 'w', `${ap}.footprint`, 0.1, 20), d: num(a.footprint, 'd', `${ap}.footprint`, 0.1, 20) },
+        ...(typeof a.note === 'string' ? { note: a.note } : {}),
+      };
+    });
+  }
   if (v.outdoor !== undefined) { if (typeof v.outdoor !== 'boolean') fail(`${path}.outdoor`, 'must be true or false'); s.outdoor = v.outdoor as boolean; }
   if (v.pack !== undefined) s.pack = str(v, 'pack', path);
   if (v.notes !== undefined) s.notes = arr(v, 'notes', path).map((n, i) => (typeof n === 'string' ? n : fail(`${path}.notes[${i}]`, 'must be text')));
@@ -134,7 +149,8 @@ export function checkLinks(b: BuildingFile): string[] {
           else if (want && space.sceneId !== want) out.push(`${where} uses scene "${space.sceneId}" but its ${space.mirrored ? 'mirrored ' : ''}type "${space.type}" is scene "${want}"`);
         }
       }
-    } else if (space.type || space.mirrored) out.push(`${where} is not a flat, so it takes no type or mirror`);
+    } else if (space.type || space.mirrored) out.push(`${where} is not a home, so it takes no type or mirror`);
+    if (space.lobbyAnchors && space.kind !== 'lobby') out.push(`${where} is not a lobby, so it takes no lobbyAnchors`);
     const pids = new Set<string>();
     const openings = new Set<string>();
     for (const p of space.portals) {

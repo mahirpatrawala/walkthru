@@ -23,11 +23,12 @@ export interface SceneBundle { property: PropertyFile; designs?: unknown | null;
 export interface Built { buildings: BuildingFile[]; scenes: Map<string, SceneBundle> }
 
 /** Which flat sits where on the typical floor: east side from the north end, then west side from the north end. */
-const TYPICAL: { slot: string; side: 'E' | 'W'; type: string }[] = [
+const TYPICAL: { slot: string; side: 'E' | 'W'; type: string; mirror?: boolean }[] = [
   { slot: '01', side: 'E', type: '3bhk' },
   { slot: '02', side: 'E', type: '1bhk' },
   { slot: '03', side: 'W', type: '2bhk-a' },
-  { slot: '04', side: 'W', type: '2bhk-b' },
+  // drawn as the mirror image of its design: its foyer then sits towards the lift lobby, and the one mirrored scene of the tower proves the mirror
+  { slot: '04', side: 'W', type: '2bhk-b', mirror: true },
 ];
 /** The typical floors above the clubhouse level. */
 const TYPICAL_FLOORS = [2, 3];
@@ -37,7 +38,7 @@ const withFixedDate = (p: PropertyFile): PropertyFile => ({ ...p, updatedAt: UPD
 export async function buildSample(scratch: string): Promise<Built> {
   const designs: Record<string, FlatDesign> = {};
   for (const s of FLATS) designs[s.typeId] = await readFlat(s, scratch);
-  const plate: Plate = composeTypicalFloor(TYPICAL.map((t) => ({ key: t.slot, side: t.side, design: designs[t.type] })));
+  const plate: Plate = composeTypicalFloor(TYPICAL.map((t) => ({ key: t.slot, side: t.side, design: designs[t.type], ...(t.mirror ? { mirror: true } : {}) })));
   const scenes = new Map<string, SceneBundle>();
   const buildings: BuildingFile[] = [];
   for (const variant of ['full', 'empty'] as const) buildings.push(assemble(variant, designs, plate, scenes));
@@ -87,7 +88,8 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     id: 'g', label: 'Ground', short: 'G', summary: 'Entrance lobby, lifts', floorToFloorM: 4.2,
     spaces: [{
       id: 'lobby', kind: 'lobby', name: 'Entrance lobby', sceneId: lobbyScene, placement: { x: 0, z: 0, rotDeg: 0 },
-      notes: empty ? ['Unfurnished'] : ['Reception desk, seating and security desk. The letterbox wall is not drawn yet.'],
+      lobbyAnchors: lobby.anchors,
+      notes: empty ? ['Unfurnished. The reception, security, seating and letterbox positions are marked in lobbyAnchors.'] : ['Seating from the catalogue. The reception desk, security desk and letterbox wall are marked positions (lobbyAnchors), left empty for the pieces that come in the next stage.'],
       portals: [
         { id: 'street', kind: 'outside', opening: lobby.street, label: 'The street', prompt: 'To the street', look: 'glass' },
         lift('lift-a', lobby.liftA), lift('lift-b', lobby.liftB), stairs(lobby.stairs),

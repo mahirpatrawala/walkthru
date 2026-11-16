@@ -14,6 +14,7 @@ import { makePaths } from '../src/understand/server/store';
 import { buildHome } from '../src/upload/home';
 import { polygonArea } from '../src/core/geometry';
 import type { PropertyFile } from '../src/types';
+import type { SetOptions } from './drawing-sets/types';
 
 /** n -> generator seed. Chosen by `--eval` for variety (BHK, units, text, wall style) and for a reader result that matches the truth. */
 export const SAMPLES: { n: number; seed: number; title: string }[] = [
@@ -31,8 +32,8 @@ const BHK: Record<string, string> = { studio: 'Studio', '1bhk': '1 BHK', '2bhk':
 export interface Read { sceneId: string; dir: string; property: PropertyFile; truth: ReturnType<typeof buildSet>['truth']; warnings: string[] }
 
 /** Generate the set, write its PDF to a scratch folder (never into the repo), run the upload job on it, and build the property. */
-export async function readSet(seed: number, sceneId: string, scratch: string, title?: string): Promise<Read> {
-  const b = buildSet(seed);
+export async function readSet(seed: number, sceneId: string, scratch: string, title?: string, overrides: Partial<SetOptions> = {}): Promise<Read> {
+  const b = buildSet(seed, overrides);
   const pdf = path.join(scratch, `${sceneId}.pdf`);
   fs.mkdirSync(scratch, { recursive: true });
   fs.writeFileSync(pdf, pdfOf(b));

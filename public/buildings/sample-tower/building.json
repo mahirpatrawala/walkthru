@@ -9,12 +9,12 @@
   "flatTypes": {
     "1bhk": {
       "name": "1 BHK",
-      "sceneId": "test-tower-flat-1bhk"
+      "sceneId": "test-tower-flat-1bhk",
+      "mirrorSceneId": "test-tower-flat-1bhk-m"
     },
     "2bhk-a": {
       "name": "2 BHK (A)",
-      "sceneId": "test-tower-flat-2bhk-a",
-      "mirrorSceneId": "test-tower-flat-2bhk-a-m"
+      "sceneId": "test-tower-flat-2bhk-a"
     },
     "2bhk-b": {
       "name": "2 BHK (B)",
@@ -76,8 +76,66 @@
             "z": 0,
             "rotDeg": 0
           },
+          "lobbyAnchors": [
+            {
+              "id": "reception",
+              "role": "reception",
+              "at": {
+                "x": 6,
+                "z": 0.95
+              },
+              "yawDeg": 0,
+              "footprint": {
+                "w": 3.2,
+                "d": 0.7
+              },
+              "note": "Along the north wall, facing the street door, clear of the clubhouse door and the opening to the lifts."
+            },
+            {
+              "id": "security",
+              "role": "security",
+              "at": {
+                "x": 7.7,
+                "z": 5.9
+              },
+              "yawDeg": 270,
+              "footprint": {
+                "w": 1.6,
+                "d": 0.6
+              },
+              "note": "By the street door on the lift side, facing across the lobby."
+            },
+            {
+              "id": "seating",
+              "role": "seating",
+              "at": {
+                "x": 2.2,
+                "z": 4.3
+              },
+              "yawDeg": 90,
+              "footprint": {
+                "w": 3.8,
+                "d": 2.6
+              },
+              "note": "The waiting corner in the south-west. The sample puts two sofas, an armchair and a side table here; they can be replaced."
+            },
+            {
+              "id": "letterboxes",
+              "role": "letterboxes",
+              "at": {
+                "x": 0.2,
+                "z": 1.9
+              },
+              "yawDeg": 90,
+              "footprint": {
+                "w": 2.4,
+                "d": 0.3
+              },
+              "note": "The letterbox wall: the west wall north of the seating, a bank of boxes about 2.4 m long."
+            }
+          ],
           "notes": [
-            "Reception desk, seating and security desk. The letterbox wall is not drawn yet."
+            "Seating from the catalogue. The reception desk, security desk and letterbox wall are marked positions (lobbyAnchors), left empty for the pieces that come in the next stage."
           ],
           "portals": [
             {
@@ -432,15 +490,15 @@
           "sceneId": "test-tower-flat-3bhk",
           "type": "3bhk",
           "placement": {
-            "x": 9.472513365134214,
-            "z": 4.01499997652494,
-            "rotDeg": 0
+            "x": 4.997306893797185,
+            "z": 6.5277959591481585,
+            "rotDeg": 90
           },
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-main",
+              "opening": "door-8",
               "to": {
                 "space": "f2-corridor",
                 "portal": "flat-201"
@@ -456,11 +514,12 @@
           "id": "f2-202",
           "kind": "home",
           "name": "Flat 202 · 1 BHK",
-          "sceneId": "test-tower-flat-1bhk",
+          "sceneId": "test-tower-flat-1bhk-m",
           "type": "1bhk",
+          "mirrored": true,
           "placement": {
-            "x": 4.257492441485127,
-            "z": 12.587499752031729,
+            "x": 4.357500059708305,
+            "z": 17.338092947253443,
             "rotDeg": 90
           },
           "portals": [
@@ -483,19 +542,18 @@
           "id": "f2-203",
           "kind": "home",
           "name": "Flat 203 · 2 BHK (A)",
-          "sceneId": "test-tower-flat-2bhk-a-m",
+          "sceneId": "test-tower-flat-2bhk-a",
           "type": "2bhk-a",
-          "mirrored": true,
           "placement": {
-            "x": -6.940000122615275,
-            "z": 3.690000065848944,
-            "rotDeg": 0
+            "x": -4.45749992957482,
+            "z": 5.455000539926382,
+            "rotDeg": 270
           },
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-main",
+              "opening": "door-8",
               "to": {
                 "space": "f2-corridor",
                 "portal": "flat-203"
@@ -515,15 +573,15 @@
           "type": "2bhk-b",
           "mirrored": true,
           "placement": {
-            "x": -7.029300013623917,
-            "z": 11.68049975022818,
-            "rotDeg": 180
+            "x": -4.357507962013844,
+            "z": 16.874995391298498,
+            "rotDeg": 270
           },
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-main",
+              "opening": "door-8",
               "to": {
                 "space": "f2-corridor",
                 "portal": "flat-204"
@@ -633,15 +691,15 @@
           "sceneId": "test-tower-flat-3bhk",
           "type": "3bhk",
           "placement": {
-            "x": 9.472513365134214,
-            "z": 4.01499997652494,
-            "rotDeg": 0
+            "x": 4.997306893797185,
+            "z": 6.5277959591481585,
+            "rotDeg": 90
           },
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-main",
+              "opening": "door-8",
               "to": {
                 "space": "f3-corridor",
                 "portal": "flat-301"
@@ -657,11 +715,12 @@
           "id": "f3-302",
           "kind": "home",
           "name": "Flat 302 · 1 BHK",
-          "sceneId": "test-tower-flat-1bhk",
+          "sceneId": "test-tower-flat-1bhk-m",
           "type": "1bhk",
+          "mirrored": true,
           "placement": {
-            "x": 4.257492441485127,
-            "z": 12.587499752031729,
+            "x": 4.357500059708305,
+            "z": 17.338092947253443,
             "rotDeg": 90
           },
           "portals": [
@@ -684,19 +743,18 @@
           "id": "f3-303",
           "kind": "home",
           "name": "Flat 303 · 2 BHK (A)",
-          "sceneId": "test-tower-flat-2bhk-a-m",
+          "sceneId": "test-tower-flat-2bhk-a",
           "type": "2bhk-a",
-          "mirrored": true,
           "placement": {
-            "x": -6.940000122615275,
-            "z": 3.690000065848944,
-            "rotDeg": 0
+            "x": -4.45749992957482,
+            "z": 5.455000539926382,
+            "rotDeg": 270
           },
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-main",
+              "opening": "door-8",
               "to": {
                 "space": "f3-corridor",
                 "portal": "flat-303"
@@ -716,15 +774,15 @@
           "type": "2bhk-b",
           "mirrored": true,
           "placement": {
-            "x": -7.029300013623917,
-            "z": 11.68049975022818,
-            "rotDeg": 180
+            "x": -4.357507962013844,
+            "z": 16.874995391298498,
+            "rotDeg": 270
           },
           "portals": [
             {
               "id": "main",
               "kind": "door",
-              "opening": "door-main",
+              "opening": "door-8",
               "to": {
                 "space": "f3-corridor",
                 "portal": "flat-304"

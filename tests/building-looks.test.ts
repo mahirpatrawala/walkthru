@@ -1,4 +1,7 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { unverifiedRoomsFromExtras } from '../src/core/room-trust';
 import { doorLooksFor, lookOf, portalPrompt } from '../src/building/portal-looks';
 import { levelPlan, spaceArea } from '../src/building/level-plan';
 import type { SceneInfo } from '../src/building/load';
@@ -12,7 +15,7 @@ describe('portal doors', () => {
     const cor = doorLooksFor(space('f2-corridor'));
     expect(cor.get('door-ne')).toEqual({ kind: 'main', text: '201', plateSide: 1 });
     const flat = doorLooksFor(space('f2-201'));
-    expect(flat.get('door-main')).toEqual({ kind: 'main', text: '201', plateSide: -1 });
+    expect(flat.get(space('f2-201').portals[0].opening)).toEqual({ kind: 'main', text: '201', plateSide: -1 });
   });
   it('lifts are steel, the stairs are marked, the street door is glass', () => {
     const cor = doorLooksFor(space('f2-corridor'));
@@ -48,13 +51,26 @@ describe('the building map', () => {
     for (const name of ['Community hall', 'Gym', 'Clubhouse foyer']) expect(plan.svg).toContain(name);
     expect(plan.svg).toMatch(/Coming in the next stage/);
   });
-  it('a flat states its carpet area from its own rooms, and not when a room was not measured', () => {
-    const measured = spaceArea(space('f2-202'), { property: readScene('test-tower-flat-1bhk')!, unverified: {} });
-    expect(measured.measured).toBe(true);
-    expect(measured.text).toMatch(/^[\d,]+ sq ft carpet$/);
-    const not = spaceArea(space('f2-203'), scenes(['test-tower-flat-2bhk-a-m']).get('test-tower-flat-2bhk-a-m')!);
+  it('a flat states its carpet area from its own rooms: every flat of the tower has one, and one with a room not measured has none', () => {
+    const extras = (id: string): Record<string, string> => {
+      const f = path.resolve(import.meta.dirname, '..', 'public/scenes', id, 'proposal-extras.json');
+      return fs.existsSync(f) ? unverifiedRoomsFromExtras(JSON.parse(fs.readFileSync(f, 'utf8'))) : {};
+    };
+    for (const id of ['f2-201', 'f2-202', 'f2-203', 'f2-204']) {
+      const s = space(id);
+      const a = spaceArea(s, { property: readScene(s.sceneId)!, unverified: extras(s.sceneId) });
+      expect(a.measured, id).toBe(true);
+      expect(a.text, id).toMatch(/^[\d,]+ sq ft carpet$/);
+    }
+    const s = space('f2-203');
+    const p = readScene(s.sceneId)!;
+    const kitchen = p.layout.rooms.find((r) => r.roomType === 'kitchen')!;
+    const not = spaceArea(s, { property: p, unverified: { [kitchen.id]: 'label size only' } });
     expect(not.measured).toBe(false);
     expect(not.text).toBe('area not confirmed');
+    // a balcony the drawing does not confirm never takes the number away
+    const balcony = p.layout.rooms.find((r) => r.roomType === 'balcony')!;
+    expect(spaceArea(s, { property: p, unverified: { [balcony.id]: 'size not confirmed yet' } }).measured).toBe(true);
     const soon = spaceArea(space('pool'), { property: readScene('test-tower-club-pool')!, unverified: {} });
     expect(soon.measured).toBe(false);
     expect(soon.text).toMatch(/placeholder/);

@@ -13,7 +13,8 @@ export const WALL_GAP_M = 0.3;
 /** Between two flats on one side (their party wall). */
 export const PARTY_GAP_M = 0.3;
 
-export interface PlateInput { key: string; side: 'E' | 'W'; design: FlatDesign }
+/** `mirror`: the builder draws this flat as the mirror image of its design (the plan asks for it, whatever the balcony does) */
+export interface PlateInput { key: string; side: 'E' | 'W'; design: FlatDesign; mirror?: boolean }
 
 export interface PlacedFlat {
   key: string;
@@ -62,6 +63,7 @@ function candidates(inp: PlateInput, cursorZ: number): PlacedFlat[] {
   const want: Vec2 = inp.side === 'E' ? { x: -1, z: 0 } : { x: 1, z: 0 };
   const out: PlacedFlat[] = [];
   for (const t of TRANSFORMS) {
+    if (inp.mirror !== undefined && inp.mirror !== t.mirror) continue;
     const m = t.mirror ? mirrored(inp.design) : { property: inp.design.property, designs: inp.design.designs as unknown | null };
     const pl0: Placement = { x: 0, z: 0, rotDeg: t.rot };
     const f = doorFrame(m.property.layout, inp.design.mainOpening);
@@ -87,6 +89,9 @@ function candidates(inp: PlateInput, cursorZ: number): PlacedFlat[] {
 }
 
 const clashes = (a: PlacedFlat, placed: PlacedFlat[]): boolean => placed.some((o) => a.rooms.some((ra) => o.rooms.some((rb) => overlapAreaM2(ra.polygon, rb.polygon) > 0.02)));
+/** Two main doors facing each other across the corridor (closer than this along it) are not drawn: a flat is turned or mirrored to stagger them. */
+export const DOOR_STAGGER_M = 2.2;
+const doorsFace = (a: PlacedFlat, placed: PlacedFlat[]): boolean => placed.some((o) => o.side !== a.side && Math.abs(o.door.centre.z - a.door.centre.z) < DOOR_STAGGER_M);
 const bodyEndZ = (f: PlacedFlat): number => Math.max(...f.rooms.filter((r) => r.roomType !== 'balcony').flatMap((r) => r.polygon.map((p) => p.z)));
 
 export function composeTypicalFloor(input: PlateInput[]): Plate {
@@ -95,7 +100,7 @@ export function composeTypicalFloor(input: PlateInput[]): Plate {
     if (i === input.length) return placed;
     const inp = input[i];
     for (const c of candidates(inp, cursor[inp.side])) {
-      if (clashes(c, placed)) continue;
+      if (clashes(c, placed) || doorsFace(c, placed)) continue;
       const next = solve(i + 1, [...placed, c], { ...cursor, [inp.side]: bodyEndZ(c) + PARTY_GAP_M });
       if (next) return next;
     }
