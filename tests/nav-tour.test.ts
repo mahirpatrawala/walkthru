@@ -24,7 +24,9 @@ describe('tour of a 16-room flat with every door shut', () => {
     const rooms = sim.layout.rooms.map((r) => r.id);
     const missing = rooms.filter((id) => !st.visited.includes(id) && !st.skipped.some((s) => s.roomId === id));
     expect(missing).toEqual([]);
-    expect(st.visited.length).toBe(st.total);
+    // passages are glided through (listed as visited, not counted as stops): the count on the card is the other rooms
+    const passages = st.visited.filter((id) => /passage|lobby|corridor|foyer|hall/i.test(sim.layout.rooms.find((r) => r.id === id)?.label ?? '')).length;
+    expect(st.visited.length - passages).toBe(st.total);
     expect(st.visited.length).toBeGreaterThanOrEqual(14);
     // it really went through doors it had to open
     expect(sim.doors.opened.length).toBeGreaterThan(5);
@@ -113,7 +115,7 @@ describe('taking over', () => {
     expect(sim.ch.position).toEqual(held);
     expect(sim.driver.tour?.paused).toBe(true);
     sim.driver.resume();
-    await sim.run(() => false, 1);
+    await sim.run(() => false, 3); // it eases away from rest: a glide, not a lunge
     expect(Math.hypot(sim.ch.position.x - held.x, sim.ch.position.z - held.z)).toBeGreaterThan(0.2);
     sim.driver.stop();
     const stopped = { ...sim.ch.position };
@@ -125,16 +127,19 @@ describe('taking over', () => {
     expect(sim.driver.tour?.phase).toBe('stopped');
   }, 60000);
 
-  it('with reduced motion, the look round is a hold (no pan) and a turn is a cut', async () => {
+  it('with reduced motion, a room is a hold (no arc) and arriving in the next is a cut', async () => {
     const sim = makeSim(FLAT_204, 'living', { reduced: true });
-    const camAt: number[] = [];
     void sim.driver.startTour();
-    await sim.run(() => sim.driver.tour?.phase === 'looking', 5, () => camAt.push(sim.cam.yawDeg));
+    await sim.run(() => sim.driver.tour?.phase === 'looking', 5);
+    const room = sim.driver.tour?.roomId;
     const base = sim.cam.yawDeg;
     const seen: number[] = [];
-    await sim.run(() => sim.driver.tour?.phase !== 'looking', 10, () => seen.push(sim.cam.yawDeg));
+    await sim.run(() => sim.driver.tour?.roomId !== room, 10, () => { if (sim.driver.tour?.roomId === room) seen.push(sim.cam.yawDeg); });
+    expect(seen.length).toBeGreaterThan(30);
     expect(Math.max(...seen) - Math.min(...seen)).toBeLessThan(1e-6);
     expect(seen[0]).toBeCloseTo(base, 6);
+    // the next room was a jump (a fade in the page), never a glide
+    expect(sim.jumps.length).toBeGreaterThan(0);
   }, 60000);
 });
 

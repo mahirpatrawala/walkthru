@@ -5,13 +5,15 @@
 import { CHARACTER_RADIUS_M } from '../../types';
 import type { Grid, Layout, Vec2 } from '../../types';
 import { circleFree, nearestFree } from '../../core/grid-query';
+import { roomAt } from '../../core/layout-geom';
 import { planSvg } from '../../start/plan-svg';
 import type { Doors } from '../doors';
 import type { BuyerContext } from '../context';
 import { el } from '../hud';
 import { storageGet, storageSet } from '../store';
 import type { FurnitureStoreImpl, StorageLike, UnverifiedRooms } from '../store';
-import { Driver } from './driver';
+import { Driver, TOUR_PITCH_DEG } from './driver';
+import type { TourOptions } from './driver';
 import type { GoResult, TourState } from './driver';
 import { findRoute } from './grid-path';
 import { firstCrossing, isOpenEnough, planGridOf } from './door-route';
@@ -20,6 +22,7 @@ import type { Rect, RoomChip } from './nav-model';
 import { skippedNote } from './tour-plan';
 import './nav.css';
 
+const DOTS = ['#F0906F', '#8FBFC4', '#E6C072', '#A7C99B', '#B7A2D6', '#E59AA6'];
 const MAP_KEY = 'walkthru:nav:map-collapsed';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 /** px: the plan's walker dot, and the length of the view cone */
@@ -52,13 +55,15 @@ export interface NavDeps {
 export interface NavAudit { frames: number; bad: number; visited: string[]; samples: Vec2[] }
 
 export interface MountedNav {
+  /** starts a tour (the idle display's loop: `{ loop: true }`) */
+  startTour(opts?: TourOptions): Promise<TourState>;
   /** called from the frame loop where the keys and the thumb are read: true when the auto-walk moved the walker this frame (they are not read) */
   drive(dt: number): boolean;
   dispose(): void;
   debug: {
     driver: Driver;
     go(roomId: string): Promise<GoResult>;
-    startTour(): Promise<TourState>;
+    startTour(opts?: TourOptions): Promise<TourState>;
     stop(): void;
     chips(): RoomChip[];
     here(): string | null;
@@ -81,6 +86,8 @@ const ICONS = {
   pause: ICON('<path d="M8 5.5v13M16 5.5v13" stroke-width="3"/>'),
   stop: ICON('<rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/>'),
   chev: ICON('<path d="M6 9l6 6 6-6"/>'),
+  chevUp: ICON('<path d="M6 15l6-6 6 6"/>'),
+  next: ICON('<path d="M5 12h14M13 6l6 6-6 6"/>'),
 };
 
 const reducedMotion = (): boolean => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
@@ -123,6 +130,43 @@ export function mountNav(d: NavDeps): MountedNav {
     ch.setLocomotion(0, false, 0);
   };
 
+  // what a room is about: its bed, else its sofa, table, counter, wardrobe (the first of the best kind), where it stands
+  const FOCAL_RANK: Record<string, number> = { bed: 5, sofa: 4, dining: 3, counter: 2, wardrobe: 1 };
+  function focalOf(roomId: string): Vec2 | null {
+    let best: { rank: number; at: Vec2 } | null = null;
+    for (const it of d.store.all()) {
+      const rank = FOCAL_RANK[it.kind] ?? 0;
+      if (rank === 0 || (best && rank <= best.rank)) continue;
+      const at = { x: it.box.cx, z: it.box.cz };
+      if (roomAt(layout, at)?.id === roomId) best = { rank, at };
+    }
+    return best?.at ?? null;
+  }
+
+  // the tour's own camera: first person at eye height, the body hidden, a 75 degree lens and a few degrees down; the viewer's own view comes back after
+  const camAny = ctx.camera as unknown as { firstPerson: boolean; fpBiasTarget?: number };
+  let saved: { first: boolean; fov: number } | null = null;
+  function enterPresentation(): void {
+    if (saved) return;
+    saved = { first: camAny.firstPerson, fov: ctx.viewer.camera.fov };
+    camAny.firstPerson = true;
+    ctx.viewer.camera.fov = 75;
+    ctx.viewer.camera.updateProjectionMatrix();
+    ch.setVisible?.(false);
+    // the pitch bias of the first-person camera eases toward this (a camera hook for a pitch setter would replace this line)
+    camAny.fpBiasTarget = TOUR_PITCH_DEG;
+  }
+  function exitPresentation(): void {
+    if (!saved) return;
+    const was = saved;
+    saved = null;
+    camAny.fpBiasTarget = 0;
+    camAny.firstPerson = false; // the setter restores the lens of the third-person view; turn first person back on if that was the view
+    camAny.firstPerson = was.first;
+    ctx.viewer.camera.updateProjectionMatrix();
+    if (!was.first) ch.setVisible?.(true);
+  }
+
   const fade = el('div', 'wt-nav-fade', undefined, parent);
   fade.setAttribute('aria-hidden', 'true');
 
@@ -144,6 +188,8 @@ export function mountNav(d: NavDeps): MountedNav {
       fade.classList.remove('is-on');
     },
     reducedMotion,
+    focal: (roomId) => focalOf(roomId),
+    presentation: { enter: enterPresentation, exit: exitPresentation },
   });
 
   // ---------------------------------------------------------------- the minimap
@@ -152,9 +198,12 @@ export function mountNav(d: NavDeps): MountedNav {
   mapWrap.dataset.ui = '1';
   mapWrap.dataset.testid = 'nav-map';
   mapWrap.setAttribute('aria-label', 'Plan of this space');
+  mapWrap.classList.add('wt-glass');
+  const mapHead = el('div', 'wt-nav-map-head', undefined, mapWrap);
+  el('span', 'wt-nav-map-title', 'Floor plan', mapHead);
   const mapBody = el('div', 'wt-nav-map-body', undefined, mapWrap);
   mapBody.id = `wt-nav-map-${Math.random().toString(36).slice(2, 7)}`;
-  const mapToggle = el('button', 'wt-nav-map-toggle', undefined, mapWrap);
+  const mapToggle = el('button', 'wt-nav-map-toggle', undefined, mapHead);
   mapToggle.type = 'button';
   mapToggle.dataset.testid = 'nav-map-toggle';
   mapToggle.setAttribute('aria-controls', mapBody.id);
@@ -197,9 +246,9 @@ export function mountNav(d: NavDeps): MountedNav {
     mapOpen = open;
     mapWrap.classList.toggle('is-collapsed', !open);
     mapBody.hidden = !open;
-    mapToggle.innerHTML = open ? ICONS.close : ICONS.plan;
+    mapToggle.innerHTML = open ? ICONS.chev : ICONS.chevUp;
     mapToggle.setAttribute('aria-expanded', String(open));
-    const name = open ? 'Hide the plan' : 'Show the plan';
+    const name = open ? 'Hide the floor plan' : 'Show the floor plan';
     mapToggle.setAttribute('aria-label', name);
     mapToggle.title = name;
     if (remember) storageSet(d.storage, MAP_KEY, open ? '0' : '1');
@@ -248,31 +297,46 @@ export function mountNav(d: NavDeps): MountedNav {
   const bar = el('div', 'wt-nav-bar', undefined, parent);
   bar.dataset.ui = '1';
   bar.dataset.testid = 'nav-bar';
-  const tourRow = el('div', 'wt-nav-tour', undefined, bar);
+  const tourRow = el('div', 'wt-nav-tour wt-glass', undefined, bar);
   tourRow.dataset.testid = 'nav-tour-row';
   tourRow.hidden = true;
-  const tourProg = el('div', 'wt-nav-tour-prog', undefined, tourRow);
-  const tourFill = el('i', undefined, undefined, tourProg);
-  const tourPause = el('button', 'wt-nav-tour-btn', undefined, tourRow);
+  const tourTop = el('div', 'wt-nav-tour-top', undefined, tourRow);
+  const tourCount = el('span', 'wt-nav-tour-count', undefined, tourTop);
+  const tourBtns = el('div', 'wt-nav-tour-btns', undefined, tourTop);
+  const tourPause = el('button', 'wt-nav-tour-btn', undefined, tourBtns);
   tourPause.type = 'button';
   tourPause.dataset.testid = 'nav-tour-pause';
+  const tourNext = el('button', 'wt-nav-tour-btn', undefined, tourBtns);
+  tourNext.type = 'button';
+  tourNext.dataset.testid = 'nav-tour-next';
+  tourNext.innerHTML = ICONS.next;
+  tourNext.setAttribute('aria-label', 'Next room');
+  const tourStop = el('button', 'wt-nav-tour-btn is-stop', undefined, tourBtns);
+  tourStop.type = 'button';
+  tourStop.dataset.testid = 'nav-tour-stop';
   const tourText = el('div', 'wt-nav-tour-text', undefined, tourRow);
   tourText.setAttribute('role', 'status');
   tourText.setAttribute('aria-live', 'polite');
   const tourTitle = el('div', 'wt-nav-tour-title', undefined, tourText);
   tourTitle.dataset.testid = 'nav-tour-title';
   const tourSub = el('div', 'wt-nav-tour-sub', undefined, tourText);
-  const tourStop = el('button', 'wt-nav-tour-btn is-stop', undefined, tourRow);
-  tourStop.type = 'button';
-  tourStop.dataset.testid = 'nav-tour-stop';
+  const tourProg = el('div', 'wt-nav-tour-prog', undefined, tourRow);
+  const tourFill = el('i', undefined, undefined, tourProg);
 
   const row = el('div', 'wt-nav-row', undefined, bar);
-  const tourBtn = el('button', 'wt-nav-tourbtn', undefined, row);
+  // the Tour control lives in the tools bar at the top (first tool); it reads Stop while a tour runs
+  const tourBtn = el('button', 'wt-btn wt-tool wt-nav-tourbtn', undefined);
   tourBtn.type = 'button';
+  tourBtn.dataset.ui = '1';
+  tourBtn.dataset.btn = 'tour';
   tourBtn.dataset.testid = 'nav-tour-btn';
-  tourBtn.innerHTML = `${ICONS.play}<span>Tour</span>`;
+  const tourBtnIcon = el('span', 'wt-nav-tour-ico', undefined, tourBtn);
+  const tourBtnLabel = el('span', 'wt-tool-label', 'Tour', tourBtn);
+  tourBtnIcon.innerHTML = ICONS.play;
   tourBtn.setAttribute('aria-label', 'Take a tour of this home, room by room');
   tourBtn.hidden = !multi;
+  const toolsHost = parent.querySelector<HTMLElement>('.wt-tools');
+  if (toolsHost) toolsHost.insertBefore(tourBtn, toolsHost.firstChild); else row.appendChild(tourBtn);
   const scroller = el('div', 'wt-nav-chips', undefined, row);
   scroller.setAttribute('role', 'group');
   scroller.setAttribute('aria-label', 'Rooms');
@@ -283,6 +347,8 @@ export function mountNav(d: NavDeps): MountedNav {
     b.type = 'button';
     b.dataset.room = c.id;
     b.setAttribute('aria-label', c.goable ? `Go to ${c.title}` : `${c.title}. Only partly on the drawing, so you cannot walk there.`);
+    const dotEl = el('span', 'wt-nav-chip-dot', undefined, b);
+    dotEl.style.setProperty('--dot', DOTS[chips.indexOf(c) % DOTS.length]);
     el('span', 'wt-nav-chip-name', c.label, b);
     el('span', 'wt-nav-chip-area', c.area, b);
     if (!c.goable) { b.classList.add('is-partial'); b.setAttribute('aria-disabled', 'true'); }
@@ -310,27 +376,34 @@ export function mountNav(d: NavDeps): MountedNav {
     const shownNote = t && !t.active && t.phase === 'done' && performance.now() < noteUntil;
     const show = !!t && (t.active || shownNote);
     tourRow.hidden = !show;
-    tourBtn.disabled = !!t?.active;
+    tourBtn.classList.toggle('is-running', !!t?.active);
+    tourBtnIcon.innerHTML = t?.active ? ICONS.stop : ICONS.play;
+    tourBtnLabel.textContent = t?.active ? 'Stop' : 'Tour';
+    tourBtn.setAttribute('aria-label', t?.active ? 'Stop the tour' : 'Take a tour of this home, room by room');
     if (!t || !show) { syncBarHeight(); return; }
     const chip = t.roomId ? chipById.get(t.roomId) : null;
     if (t.active) {
-      tourTitle.textContent = t.phase === 'looking' && chip ? chipCaption(chip)
+      tourCount.textContent = t.total > 0 ? `${Math.max(1, t.index)} OF ${t.total}` : 'TOUR';
+      tourTitle.textContent = t.phase === 'looking' && chip ? chip.label
         : t.phase === 'returning' ? 'Back to where you started'
-          : t.roomLabel ? `On the way to ${t.roomLabel}` : 'Starting the tour';
-      tourSub.textContent = t.paused ? `Paused · room ${Math.max(1, t.index)} of ${t.total}` : `Room ${Math.max(1, t.index)} of ${t.total} · tap or press a key to take over`;
+          : t.roomLabel ? t.roomLabel : 'Starting the tour';
+      tourSub.textContent = t.paused ? 'Paused' : t.phase === 'looking' && chip ? chip.area : 'On the way';
       tourPause.innerHTML = t.paused ? ICONS.play : ICONS.pause;
       tourPause.setAttribute('aria-label', t.paused ? 'Resume the tour' : 'Pause the tour');
       tourPause.hidden = false;
-      tourStop.innerHTML = ICONS.stop;
+      tourNext.hidden = false;
+      tourStop.innerHTML = ICONS.close;
       tourStop.setAttribute('aria-label', 'Stop the tour');
     } else {
+      tourCount.textContent = 'TOUR';
       tourTitle.textContent = 'Tour finished';
       tourSub.textContent = skippedNote(t.skipped) ?? `You saw ${t.visited.length} ${t.visited.length === 1 ? 'room' : 'rooms'} and you are back where you started.`;
       tourPause.hidden = true;
+      tourNext.hidden = true;
       tourStop.innerHTML = ICONS.close;
       tourStop.setAttribute('aria-label', 'Close');
     }
-    tourFill.style.width = `${t.total > 0 ? Math.min(100, Math.round((100 * (t.phase === 'done' ? t.total : t.visited.length)) / t.total)) : 0}%`;
+    tourFill.style.width = `${t.phase === 'done' ? 100 : Math.round(100 * driver.dwellProgress)}%`;
     syncBarHeight();
   };
   const offDriver = driver.onChange(renderTour);
@@ -340,7 +413,8 @@ export function mountNav(d: NavDeps): MountedNav {
     if (driver.touring) driver.stop(); else { noteUntil = 0; renderTour(); }
     tourStop.blur();
   });
-  tourBtn.addEventListener('click', (e) => { e.stopPropagation(); void startTour(); tourBtn.blur(); });
+  tourBtn.addEventListener('click', (e) => { e.stopPropagation(); if (driver.touring) driver.stop(); else void startTour(); tourBtn.blur(); });
+  tourNext.addEventListener('click', (e) => { e.stopPropagation(); driver.next(); tourNext.blur(); });
 
   // ---------------------------------------------------------------- doing things
 
@@ -354,11 +428,11 @@ export function mountNav(d: NavDeps): MountedNav {
     if (r === 'no-spot') d.ctx.hud.toast(`${chipById.get(roomId)?.label ?? 'That room'} is only partly on the drawing, so there is nowhere to stand.`);
     return r;
   }
-  async function startTour(): Promise<TourState> {
+  async function startTour(opts: TourOptions = {}): Promise<TourState> {
     if (!allowed() || driver.touring) return driver.tour ?? ({ active: false } as TourState);
     await standUp();
     noteUntil = 0;
-    const done = await driver.startTour();
+    const done = await driver.startTour(opts);
     if (!disposed && done.phase === 'done') { noteUntil = performance.now() + DONE_NOTE_MS; renderTour(); later(renderTour, DONE_NOTE_MS + 50); }
     return done;
   }
@@ -368,14 +442,14 @@ export function mountNav(d: NavDeps): MountedNav {
   const onKey = (e: KeyboardEvent): void => {
     if (!driver.busy) return;
     if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta' || e.key === 'Tab') return;
-    if ((e.target as Element | null)?.closest?.('.wt-nav-bar, .wt-nav-map')) return; // keys inside the aids are the aids' own
+    if ((e.target as Element | null)?.closest?.('.wt-nav-bar, .wt-nav-map, .wt-nav-tourbtn')) return; // keys inside the aids are the aids' own
     interrupt();
   };
   window.addEventListener('keydown', onKey, true);
   const canvas = ctx.viewer.canvas;
   canvas.addEventListener('pointerdown', interrupt, true);
   // a press on anything else of the HUD (the Open door pill, the round buttons) is the buyer's own doing too; the aids' own controls are not
-  const onHudPress = (e: Event): void => { if (!(e.target as Element | null)?.closest?.('.wt-nav-bar, .wt-nav-map')) interrupt(); };
+  const onHudPress = (e: Event): void => { if (!(e.target as Element | null)?.closest?.('.wt-nav-bar, .wt-nav-map, .wt-nav-tourbtn')) interrupt(); };
   parent.addEventListener('pointerdown', onHudPress, true);
   canvas.addEventListener('wheel', interrupt, { capture: true, passive: true });
 
@@ -466,6 +540,7 @@ export function mountNav(d: NavDeps): MountedNav {
     clock = now;
     applyVisibility();
     if (driver.touring && (d.blocked() || ctx.mode() !== 'walk')) driver.stop();
+    if (driver.touring) renderTour();
     setHere(currentRoomId(layout, ch.position, here));
     if (mapOpen && !mapWrap.hidden) drawMe();
     if (now - liftClock > 250) { liftClock = now; keepClearOfPrompts(); }
@@ -477,6 +552,7 @@ export function mountNav(d: NavDeps): MountedNav {
 
   return {
     drive,
+    startTour,
     dispose() {
       if (disposed) return;
       disposed = true;
@@ -493,7 +569,7 @@ export function mountNav(d: NavDeps): MountedNav {
       timers.clear();
       parent.style.removeProperty('--wt-nav-h');
       parent.style.removeProperty('--wt-nav-pad');
-      mapWrap.remove(); bar.remove(); fade.remove();
+      mapWrap.remove(); bar.remove(); fade.remove(); tourBtn.remove();
     },
     debug: {
       driver,

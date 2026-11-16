@@ -27,29 +27,19 @@ export const ORIGIN_TAG: Record<SceneOrigin, string> = {
 export function sceneTagText(p: Pick<PropertyFile, 'id' | 'subtitle'> & { spaceKind?: PropertyFile['spaceKind'] }): string | null {
   if (isLocalHomeId(p.id)) return /made-up/i.test(p.subtitle ?? '') ? SAMPLE_UPLOAD_TAG : UPLOAD_TAG;
   // a plan taken from a published brochure is not made-up: say what is the plan's and what is illustrative
-  if (/published (builder )?brochure/i.test(p.subtitle ?? '')) return p.spaceKind && p.spaceKind !== 'home' ? 'Sample building. Follows a published brochure plan, scaled, not measured.' : 'Sample building. Plan follows a published brochure; furniture is illustrative.';
+  if (/published (builder )?brochure/i.test(p.subtitle ?? '')) return p.spaceKind && p.spaceKind !== 'home' ? 'Sample building. Plan follows a published brochure, scaled, not measured.' : 'Sample building. Plan follows a published brochure; furniture is illustrative.';
   // a shared space of a building (a gym, a lobby, a hall) is a room, not a flat
-  if (/^test-/.test(p.id)) return p.spaceKind && p.spaceKind !== 'home' ? 'Test scene. Made-up room, not a real space.' : 'Test scene. Made-up flat, not a real home.';
-  if (/synthetic|sample/i.test(p.subtitle ?? '')) return 'Sample scene. Not a real home.';
+  if (/^test-/.test(p.id)) return p.spaceKind && p.spaceKind !== 'home' ? 'Sample space. Made up, not a real place.' : 'Sample home. Made up, not a real home.';
+  if (/synthetic|sample/i.test(p.subtitle ?? '')) return 'Sample home. Made up, not a real home.';
   return null;
 }
 
-/** Mounts the tag under the room chip (which grows to two lines on a phone). Returns the remover. */
+/** Mounts the quiet line as the third line of the identity card (top left of the HUD). Returns the remover. */
 export function mountSceneTag(hudRoot: HTMLElement, text: string): () => void {
   const tag = document.createElement('div');
   tag.className = 'wt-scene-tag';
   tag.dataset.testid = 'scene-tag';
   tag.textContent = text;
-  hudRoot.appendChild(tag);
-  const chip = hudRoot.querySelector<HTMLElement>('.wt-chip');
-  const place = (): void => {
-    const h = chip && !chip.hidden ? chip.offsetHeight : 0;
-    tag.style.setProperty('--wt-chip-h', `${Math.max(h, 40)}px`);
-  };
-  place();
-  const ro = chip && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(place) : null;
-  if (chip) ro?.observe(chip);
-  const mo = chip && typeof MutationObserver !== 'undefined' ? new MutationObserver(place) : null;
-  if (chip) mo?.observe(chip, { attributes: true, attributeFilter: ['hidden'] });
-  return () => { ro?.disconnect(); mo?.disconnect(); tag.remove(); };
+  (hudRoot.querySelector('.wt-id-text') ?? hudRoot).appendChild(tag);
+  return () => tag.remove();
 }

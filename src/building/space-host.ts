@@ -25,7 +25,9 @@ export interface SpaceHost {
   bare: boolean;
   /** which space this is (SPEC 18.9): its kind, whether it is outdoors, the style pack it opens in */
   space: { id: string; kind: string; outdoor: boolean; pack: string | null };
-  /** replaces the sample tag under the room chip ("Sample building. Not a real home.") */
+  /** the first line of the identity card: the building and the level ("Sample Tower, Level 2") */
+  placeText: string | null;
+  /** the quiet third line of the identity card ("Sample building. Plan follows a published brochure."), or null for none */
   tagText: string | null;
   /** the loading screen already showing, so the walk does not make a second one */
   loading: LoadingScreen;
