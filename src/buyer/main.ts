@@ -81,6 +81,8 @@ import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
 import { mountNav } from './nav/mount';
+import { mountViews } from './views/mount';
+import { parseViewParam } from './views/view-modes';
 import { mountSceneTag, sceneOrigin, sceneTagText } from './scene-tag';
 import { isLocalHomeId } from '../upload/tag';
 import { createLivedIn, mountLivedInToggle } from '../look/lived-in';
@@ -644,7 +646,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   // a screen nobody holds: the chrome fades after a few seconds, and with ?kiosk=1 or ?idle=<s> the tour starts by itself and loops (src/buyer/presence.ts)
   const presence = mountPresence({
     hud, cfg: presenceCfg, free: () => modes.id === 'walk' && !blocking() && !interactions.pose(),
-    startTour: () => nav.startTour({ loop: true }), stopTour: () => nav.debug.stop(), touring: () => nav.debug.driver.busy,
+    // an idle kiosk tour is a walk: from the doll house or the plan the view goes back to Walk first and the tour starts when it has landed
+    startTour: async () => { const v = ctx.views; if (v && v.mode() !== 'walk') { v.set('walk'); await new Promise((r) => setTimeout(r, 1000)); } return nav.startTour({ loop: true }); }, stopTour: () => nav.debug.stop(), touring: () => nav.debug.driver.busy,
   });
   cleanup.push(() => presence.dispose());
   // look-kit: typical Indian-flat fittings (decor only, labelled, 'Plain' removes them). The style's room finishes are applied first (the kit's
@@ -855,6 +858,22 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     }
   }
 
+  // ---- the view modes: Walk (this loop, as it always was), Doll house and Plan (src/buyer/views). Mounted after the loop above so its frame callback runs after the walk's camera.
+  const views = mountViews({
+    ctx, viewer, look, character, hud, modes, shell, furnitureRoot,
+    outdoor: !!outdoorFile, skipEdges: outdoorFile ? ownedEdges(outdoorFile) : undefined,
+    unverified: unverifiedRooms, water: outdoorFile?.pools.map((p) => p.rect) ?? [],
+    nav, wardrobe: wardrobes, seats, cardFor: (item) => interactions.card(item),
+    standUp: async () => { if (interactions.pose()) await interactions.getUp(); },
+    northDeg: look?.lookFile?.northDeg,
+    initial: host && !host.first ? 'walk' : parseViewParam(location.search),
+    controls: false, // the HUD's own top bar carries the Walk / Doll house / Plan switch (`hud.bindViews`)
+    hudVisible: () => hud.root.style.display !== 'none',
+  });
+  cleanup.push(() => views.dispose());
+  ctx.views = views;
+  hud.bindViews(views);
+
   // ---- debug hooks
   function snapshot() {
     const pos = character.position;
@@ -964,6 +983,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     seats,
     /** the mini plan, room bar and tour (src/buyer/nav) */
     nav: nav.debug,
+    /** the view modes (src/buyer/views): `mode()`, `set('walk' | 'doll' | 'plan')`, `onChange`, and the machine, the doll house, the plan and a census of the scene */
+    views,
     /** the people a buyer added (src/buyer/people): the model, and the sheets and card */
     people: { get model() { return people!.people; }, get ui() { return people!.ui; } },
     /** SPEC 16.14: the offline bake dumps the scene as built (loaded on demand, never part of a first load) */

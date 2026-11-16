@@ -38,6 +38,28 @@ const DEFAULT_SHARPEN = 0;
 
 export type QualityMode = 'auto' | Tier;
 
+/**
+ * A lighting state laid over the look by a view that needs its own (the doll house, src/buyer/views): the time of day it is graded at, whether the
+ * bake and the planar reflection step back, and a last word on the lights once the look has set them. Set with `setLightOverride`, removed with
+ * `null`: everything the look sets is then simply set again from its own state, so nothing of the override survives.
+ */
+export interface LightOverride {
+  /** the hour the grade and the sun are taken from (the viewer's own hour is untouched) */
+  hour?: number;
+  /** the baked lighting steps back (a bake was made with a ceiling) */
+  bakedOff?: boolean;
+  /** no planar reflection (a second pass of the whole scene that a view from above does not need) */
+  noReflection?: boolean;
+  /** no window light and lamp pools in the shell shader (they are chosen by the nearest to the camera, which is no use from above) */
+  noDaylight?: boolean;
+  /** leave the sky and the backdrop as they are (they change with the hour; a view that replaces the backdrop does not want them rebuilt each frame while the hour moves) */
+  holdSky?: boolean;
+  /** multiplies the exposure (a view that is lit brighter than the grade says wants it brought down, with the lights, together) */
+  exposureScale?: number;
+  /** called at the end of every lighting pass with the lights as the look set them: change them here */
+  apply?(l: { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight; scene: THREE.Scene; renderer: THREE.WebGLRenderer; cfg: TierConfig; shadows: boolean }): void;
+}
+
 export interface LookStats { tier: Tier; /** the pixel ratio the governor is drawing at (SPEC 16.18) */ pixelRatio: number; fps: number; drawCalls: number; triangles: number; textures: number; bytesLoaded: number }
 
 export interface Look {
@@ -104,6 +126,8 @@ export interface Look {
   setBaked(h: BakedHook | null): void;
   /** the bake is applied right now */
   readonly bakedActive: boolean;
+  /** a view's own lighting laid over the look (see LightOverride); null gives the look back its own */
+  setLightOverride(o: LightOverride | null): void;
   /** acceptance helpers (SPEC 16.8) */
   debug: LookDebug;
 }
@@ -207,6 +231,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let held: ((dt: number) => void) | null = null;
   let baked: BakedHook | null = null;
   let bakedApplied = false;
+  let lightOverride: LightOverride | null = null;
+  let overrideNoRefl = false;
 
   renderer.info.autoReset = false;
   const sunLight = viewer.lights.sun;
@@ -268,7 +294,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
 
   /** the sky the window shows: the plain graded one (or the broker's own backdrop picture from look.json) */
   function syncSky(force = false): void {
-    if (opts.backdrop === false || scanVisible) return;
+    if (opts.backdrop === false || scanVisible || lightOverride?.holdSky) return;
     const bd = chooseBackdrop(lookFile, hour, trueColours);
     const key = bd ? `pic|${bd}|${cfg.hdri}` : `plain|${trueColours ? 'true' : hour.toFixed(2)}|${cfg.environment}`;
     if (!force && key === skyKey) return;
@@ -284,7 +310,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let daylightAt = { x: NaN, z: NaN };
   function updateDaylight(force = false): void {
     const sh = materials.shared;
-    const on = cfg.tier !== 'low' && !scanVisible && !trueColours && !outdoor && windows.length + lamps.length > 0;
+    const on = cfg.tier !== 'low' && !scanVisible && !trueColours && !outdoor && lightOverride?.noDaylight !== true && windows.length + lamps.length > 0;
     sh.winOn.value = on ? 1 : 0;
     if (!on) { daylightAt = { x: NaN, z: NaN }; return; }
     const cx = camera.position.x, cz = camera.position.z;
@@ -306,8 +332,9 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   }
 
   function applyLighting(): void {
-    sun = sunState(layout, lookFile, hour);
-    grade = trueColours ? TRUE_GRADE : gradeAt(hour);
+    const litHour = lightOverride?.hour !== undefined ? clampDayHour(lightOverride.hour) : hour;
+    sun = sunState(layout, lookFile, litHour);
+    grade = trueColours ? TRUE_GRADE : gradeAt(litHour);
     if (scanVisible) {
       // rule 5: exactly as before C11
       hemi.color.copy(oldLights.hemiColour); hemi.groundColor.copy(oldLights.hemiGround); hemi.intensity = oldLights.hemiIntensity;
@@ -361,7 +388,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       fitShadow();
     }
     // low is a touch brighter: with no sun patch and no real lights it has less to show
-    const exposure = grade.exposure * (cfg.tier === 'low' && !trueColours ? 1.12 : 1) * (outdoor && !trueColours ? outdoorExposure(grade) : 1);
+    const exposure = grade.exposure * (lightOverride?.exposureScale ?? 1) * (cfg.tier === 'low' && !trueColours ? 1.12 : 1) * (outdoor && !trueColours ? outdoorExposure(grade) : 1);
     // "True colours" is no tone mapping at all: nothing in it is brighter than its own colour, so surfaces show it exactly
     renderer.toneMapping = post || trueColours ? THREE.NoToneMapping : threeToneMapping();
     renderer.toneMappingExposure = exposure;
@@ -377,8 +404,9 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     if (kit?.setLit) { const on = !trueColours && !scanVisible; kit.setLit('tube', on && grade.interior.tube > 0.2); kit.setLit('fan', on && grade.interior.tube > 0.2); kit.setLit('cove', on && grade.interior.cove > 0.2); }
     // low tiers have no post chain to carry the vignette, so it is the CSS one on all of them
     if (vignette) vignette.style.opacity = trueColours ? '0' : String(grade.vignette);
-    baked?.update({ grade, hour, cfg, off: trueColours || scanVisible });
+    baked?.update({ grade, hour: litHour, cfg, off: trueColours || scanVisible || lightOverride?.bakedOff === true });
     syncBaked();
+    lightOverride?.apply?.({ hemi, sun: sunLight, scene, renderer, cfg, shadows: shadowsOn() });
     needsShadowRefresh();
     updateDaylight(true);
   }
@@ -466,7 +494,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
 
   function applyRenderPath(): void {
     const wantPost = postOn() && !scanVisible && !postFailed && postAllowed;
-    const wantReflection = scanVisible || outdoor ? 'none' : cfg.reflection;
+    const wantReflection = scanVisible || outdoor || lightOverride?.noReflection ? 'none' : cfg.reflection;
     if (wantPost) {
       if (post) viewer.setRenderOverride(renderFrame);
       else if (!postLoading) {
@@ -743,6 +771,13 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       notify();
     },
     get bakedActive() { return bakedApplied; },
+    setLightOverride(o) {
+      const same = o !== null && o === lightOverride; // the same override again (its values moved): only the lighting pass is run again
+      lightOverride = o;
+      applyLighting();
+      const refl = o?.noReflection === true;
+      if (!same || refl !== overrideNoRefl) { overrideNoRefl = refl; applyRenderPath(); scheduleCube(); }
+    },
     setBaked(h) {
       baked = h;
       if (!h) bakedApplied = false;
