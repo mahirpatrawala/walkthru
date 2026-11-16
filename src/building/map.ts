@@ -160,14 +160,15 @@ export function mountBuildingMap(host: HTMLElement, o: MapOptions): BuildingMap 
     h('span', 'bm-kind', KIND_NAME[s.kind], pickCard);
     h('h3', undefined, s.name, pickCard);
     h('p', 'bm-area', s.comingNext ? `${areaOf.get(s.id) ?? ''}` : areaOf.get(s.id) ?? '', pickCard);
-    if (s.comingNext) h('p', 'bm-soon', 'Coming in the next stage. You can walk into it now as an empty room.', pickCard);
-    for (const n of s.notes ?? []) h('p', 'bm-note', n, pickCard);
     const isHere = here?.spaceId === s.id;
+    // the one primary action comes first, the notes after it
     const go = h('button', 'ws-go', isHere ? 'You are here' : o.actionLabel, pickCard);
     go.type = 'button';
     go.dataset.testid = 'map-action';
     go.disabled = isHere;
     go.addEventListener('click', () => o.onAction(s.id));
+    if (s.comingNext) h('p', 'bm-soon', 'Coming in the next stage. You can walk into it now as an empty room.', pickCard);
+    for (const n of s.notes ?? []) h('p', 'bm-note', n, pickCard);
   }
 
   function select(id: string | null, scenes?: Map<string, SceneInfo>): void {

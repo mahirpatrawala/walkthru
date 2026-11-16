@@ -113,13 +113,13 @@ describe('the Flats list', () => {
 });
 
 describe('one design language: the chrome is sized in tokens', () => {
-  // a pixel size written raw (over 1.5 px) is a size that does not scale on a wall display; media queries and zoom-scaled panels are the exceptions
+  // a pixel size written raw (over 1.5 px) is a size that does not scale on a wall display; media queries and zoom-scaled panels (a rule that names `var(--wt-z)`) are the exceptions
   const files = ['src/buyer/buyer.css', 'src/buyer/nav/nav.css', 'src/building/building.css', 'src/start/start.css', 'src/upload/upload.css'];
   it.each(files)('%s has no raw pixel sizes', (f) => {
     const bad: string[] = [];
     fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((line, i) => {
       const t = line.trimStart();
-      if (t.startsWith('@media') || t.startsWith('@supports') || t.startsWith('/*') || t.startsWith('*') || line.includes('url(') || line.includes('zoom:')) return;
+      if (t.startsWith('@media') || t.startsWith('@supports') || t.startsWith('/*') || t.startsWith('*') || line.includes('url(') || line.includes('zoom:') || line.includes('var(--wt-z)')) return;
       const code = line.split('/*')[0];
       for (const m of code.matchAll(/(?<![\w.#-])(\d+(?:\.\d+)?)px\b/g)) if (Number(m[1]) > 1.5) bad.push(`${f}:${i + 1} ${m[0]}`);
     });

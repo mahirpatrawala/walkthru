@@ -14,8 +14,8 @@ export interface HudHandlers {
   share?(): void;
 }
 /** The three views (src/buyer/views, another branch): `ctx.views`. Absent until that branch is merged; the bar then shows Walk only. */
-export type ViewMode = 'walk' | 'doll' | 'plan';
-export interface ViewsApi { mode(): ViewMode; set(m: ViewMode): void; onChange(cb: (m: ViewMode) => void): (() => void) | void }
+export type ViewsMode = 'walk' | 'doll' | 'plan';
+export interface ViewsApi { mode(): ViewsMode; set(m: ViewsMode): void; onChange(cb: (m: ViewsMode) => void): (() => void) | void }
 export type ScanButtonState = 'hidden' | 'loading' | 'on' | 'off';
 
 export interface HudImpl extends Hud {
@@ -140,8 +140,8 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   seg.setAttribute('role', 'group');
   seg.setAttribute('aria-label', 'View');
   seg.hidden = true;
-  const modeBtns = {} as Record<ViewMode, HTMLButtonElement>;
-  (['walk', 'doll', 'plan'] as ViewMode[]).forEach((m) => {
+  const modeBtns = {} as Record<ViewsMode, HTMLButtonElement>;
+  (['walk', 'doll', 'plan'] as ViewsMode[]).forEach((m) => {
     const label = m === 'walk' ? 'Walk' : m === 'doll' ? 'Doll house' : 'Plan';
     const b = el('button', 'wt-seg-btn', undefined, seg);
     b.type = 'button'; b.dataset.ui = '1'; b.dataset.mode = m;
@@ -172,8 +172,8 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   });
   segBtns.third.classList.add('is-on');
   let viewsOff: (() => void) | void = undefined;
-  const syncViews = (m: ViewMode): void => {
-    for (const k of ['walk', 'doll', 'plan'] as ViewMode[]) { modeBtns[k].classList.toggle('is-on', k === m); modeBtns[k].setAttribute('aria-pressed', k === m ? 'true' : 'false'); }
+  const syncViews = (m: ViewsMode): void => {
+    for (const k of ['walk', 'doll', 'plan'] as ViewsMode[]) { modeBtns[k].classList.toggle('is-on', k === m); modeBtns[k].setAttribute('aria-pressed', k === m ? 'true' : 'false'); }
     eye.hidden = m !== 'walk';
   };
   const bar = el('div', 'wt-buttons wt-tools wt-glass', undefined, topbar);
@@ -291,16 +291,16 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const toolsObserver = typeof MutationObserver !== 'undefined' ? new MutationObserver(decorate) : null;
   toolsObserver?.observe(bar, { childList: true });
   decorate();
-  // first visit: on a phone the tools are icons, so show their names for a few seconds once
-  {
-    let seen = true;
-    try { seen = localStorage.getItem(LABELS_KEY) === '1'; } catch { /* no storage: skip the hint */ }
-    if (!seen) {
-      bar.classList.add('is-labelled');
-      setTimeout(() => bar.classList.remove('is-labelled'), 7000);
-      try { localStorage.setItem(LABELS_KEY, '1'); } catch { /* ignore */ }
-    }
-  }
+  // first visit: on a phone the tools are icons, so show their names for a few seconds once, when the chrome first appears (not while it is loading)
+  let labelsPending = true;
+  try { labelsPending = localStorage.getItem(LABELS_KEY) !== '1'; } catch { labelsPending = false; }
+  const showLabelsOnce = (): void => {
+    if (!labelsPending) return;
+    labelsPending = false;
+    bar.classList.add('is-labelled');
+    setTimeout(() => bar.classList.remove('is-labelled'), 7000);
+    try { localStorage.setItem(LABELS_KEY, '1'); } catch { /* ignore */ }
+  };
 
   // bottom: card + pill stack, and the mount slot for a mode's own UI
   const stack = el('div', 'wt-stack', undefined, root);
@@ -413,7 +413,7 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
       viewsOff = undefined;
       seg.hidden = !api;
       if (!api) { eye.hidden = false; return; }
-      for (const m of ['walk', 'doll', 'plan'] as ViewMode[]) modeBtns[m].onclick = (e) => { e.stopPropagation(); api.set(m); modeBtns[m].blur(); };
+      for (const m of ['walk', 'doll', 'plan'] as ViewsMode[]) modeBtns[m].onclick = (e) => { e.stopPropagation(); api.set(m); modeBtns[m].blur(); };
       syncViews(api.mode());
       viewsOff = api.onChange(syncViews);
     },
@@ -525,6 +525,7 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
     },
     setVisible(v) {
       root.style.display = v ? '' : 'none';
+      if (v) showLabelsOnce();
     },
     dispose() {
       ro?.disconnect();

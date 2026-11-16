@@ -228,7 +228,7 @@ export function mountNav(d: NavDeps): MountedNav {
   svg.removeAttribute('role');
   svg.setAttribute('focusable', 'false');
   const vb = svg.viewBox.baseVal;
-  mapBody.style.setProperty('--wt-nav-aspect', String(plan.aspect));
+  mapWrap.style.setProperty('--wt-nav-aspect', String(plan.aspect));
   // the water of a pool area, under the walls
   for (const w of d.water) {
     const p = document.createElementNS(SVG_NS, 'polygon');

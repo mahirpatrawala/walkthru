@@ -17,14 +17,14 @@ html, body {
 #app canvas { display: block; }
 
 /* ---- the walk's chrome: glass over the 3D view (tokens.css). One radius, one blur, one shadow, one font in two weights, the terracotta as the accent. */
-.wt-hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; user-select: none; -webkit-user-select: none; font-family: var(--wt-font); font-weight: var(--wt-fw); }
+.wt-hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; user-select: none; -webkit-user-select: none; font-family: var(--wt-font); font-weight: var(--wt-fw); font-size: var(--wt-fs-md); }
 .wt-hud [hidden] { display: none !important; }
-.wt-hud button { font: inherit; }
+:where(.wt-hud button) { font: inherit; }
 .wt-hud .wt-glass, .wt-hud .wt-seg, .wt-hud .wt-tools { pointer-events: auto; }
 .wt-hud :focus-visible { outline: calc(3 * var(--wt-u)) solid var(--wt-ochre); outline-offset: calc(2 * var(--wt-u)); }
 /* clean view and the idle fade: the chrome steps away (the prompt, the cards and the toasts stay: they answer what you just did) */
-.wt-id, .wt-topbar, .wt-exit, .wt-nav-map, .wt-nav-bar, .wt-hint-chips { transition: opacity 0.35s var(--wt-ease), visibility 0s linear 0s; }
-.wt-hud.is-clean .wt-id, .wt-hud.is-clean .wt-topbar, .wt-hud.is-clean .wt-exit, .wt-hud.is-clean .wt-nav-map, .wt-hud.is-clean .wt-nav-bar:not(:has(.wt-nav-tour:not([hidden]))),
+.wt-id, .wt-topbar, .wt-exit, .wt-nav-map, .wt-nav-bar, .wt-hint-chips, .wt-seg.wt-eye { transition: opacity 0.35s var(--wt-ease), visibility 0s linear 0s; }
+.wt-hud.is-clean .wt-seg.wt-eye, .wt-hud.is-idle .wt-seg.wt-eye, .wt-hud.is-clean .wt-id, .wt-hud.is-clean .wt-topbar, .wt-hud.is-clean .wt-exit, .wt-hud.is-clean .wt-nav-map, .wt-hud.is-clean .wt-nav-bar:not(:has(.wt-nav-tour:not([hidden]))),
 .wt-hud.is-idle .wt-id, .wt-hud.is-idle .wt-topbar, .wt-hud.is-idle .wt-exit, .wt-hud.is-idle .wt-nav-map, .wt-hud.is-idle .wt-nav-bar:not(:has(.wt-nav-tour:not([hidden]))), .wt-hud.is-idle .wt-hint-chips {
   opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.6s var(--wt-ease), visibility 0s linear 0.6s;
 }
@@ -50,17 +50,25 @@ html[data-labels="full"] .wt-id-share .wt-tool-label { display: inline; }
 .wt-id-icon svg { width: calc(20 * var(--wt-u)); height: calc(20 * var(--wt-u)); }
 .wt-id-text { min-width: 0; display: flex; flex-direction: column; gap: calc(2 * var(--wt-u)); padding-top: 1px; }
 .wt-id-place { font-size: calc(15 * var(--wt-u)); font-weight: 650; line-height: 1.25; letter-spacing: -0.005em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.wt-chip {
-  display: flex; align-items: baseline; gap: calc(7 * var(--wt-u)); font-size: calc(13 * var(--wt-u)); line-height: 1.3; color: var(--wt-glass-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+.wt-chip { display: flex; align-items: baseline; gap: calc(7 * var(--wt-u)); font-size: calc(13 * var(--wt-u)); line-height: 1.3; color: var(--wt-glass-dim); overflow-wrap: anywhere; }
 .wt-chip::before { content: ''; flex: none; align-self: center; width: calc(7 * var(--wt-u)); height: calc(7 * var(--wt-u)); border-radius: 50%; background: var(--wt-accent-on-glass); box-shadow: 0 0 0 calc(3 * var(--wt-u)) rgba(240, 144, 111, 0.22); }
 .wt-id .wt-scene-tag { position: static; max-width: 100%; margin: calc(3 * var(--wt-u)) 0 0; padding: 0; background: none; border-radius: 0; box-shadow: none; font-size: calc(11.5 * var(--wt-u)); font-weight: 500; line-height: 1.35; color: rgba(255, 255, 255, 0.52); white-space: normal; }
 
 /* the bar, top centre: the view control, then the tools */
 .wt-topbar {
-  position: absolute; left: 50%; top: calc(calc(14 * var(--wt-u)) + var(--wt-safe-t)); transform: translateX(-50%); display: flex; align-items: center; gap: calc(8 * var(--wt-u)); z-index: var(--wt-z-nav);
-  max-width: calc(100vw - 2 * (calc(14 * var(--wt-u)) + calc(150 * var(--wt-u)))); pointer-events: none;
+  position: absolute; left: 0; right: 0; top: calc(calc(14 * var(--wt-u)) + var(--wt-safe-t)); display: flex; justify-content: center; align-items: center; gap: calc(8 * var(--wt-u)); z-index: var(--wt-z-nav);
+  pointer-events: none;
 }
+/* the camera toggle (Third person / First person, Walk only): a small pill in the bottom right corner, level with the room strip on a wide screen and just above it on a narrow one */
+.wt-seg.wt-eye {
+  position: fixed; right: calc(calc(14 * var(--wt-u)) + var(--wt-safe-r)); bottom: calc(max(calc(14 * var(--wt-u)) + var(--wt-safe-b), var(--wt-nav-h, 0px) + calc(22 * var(--wt-u)))); z-index: var(--wt-z-nav);
+  transition: opacity 0.35s var(--wt-ease);
+}
+.wt-eye .wt-seg-btn .wt-tool-label { display: inline; }
+.wt-hud:has(.wt-nav-tour:not([hidden])) .wt-seg.wt-eye, .wt-hud:has(.wt-modebar:not([hidden])) .wt-seg.wt-eye { display: none; }
+/* in Furnish and Measure the identity card keeps to two lines, so the mode bar under it never covers it */
+.wt-hud:has(.wt-modebar:not([hidden])) .wt-id .wt-scene-tag { display: none; }
+@media (min-width: 1280px) and (min-height: 640px) { .wt-seg.wt-eye { bottom: calc(calc(14 * var(--wt-u)) + var(--wt-safe-b)); } }
 .wt-seg, .wt-tools {
   display: flex; align-items: center; gap: calc(2 * var(--wt-u)); padding: calc(4 * var(--wt-u)); box-sizing: border-box; background: var(--wt-glass); color: var(--wt-glass-text); border: 1px solid var(--wt-glass-line);
   border-radius: var(--wt-r-panel); box-shadow: var(--wt-glass-shadow); -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur);
@@ -258,7 +266,7 @@ html[data-labels="full"] .wt-tool-label { display: inline !important; }
 
 /* rooms sheet */
 .wt-rooms {
-  position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: calc(16 * var(--wt-u)); box-sizing: border-box;
+  position: fixed; inset: 0; z-index: var(--wt-z-sheet); display: flex; align-items: flex-start; justify-content: center; padding: calc(calc(14 * var(--wt-u)) + calc(52 * var(--wt-u)) + calc(12 * var(--wt-u)) + var(--wt-safe-t)) calc(16 * var(--wt-u)) calc(16 * var(--wt-u)); box-sizing: border-box;
   background: rgba(43, 33, 28, 0.4); pointer-events: auto;
 }
 .wt-rooms-card {
@@ -308,6 +316,7 @@ html[data-labels="full"] .wt-tool-label { display: inline !important; }
 @media (max-width: 760px) {
   .wt-id { max-width: calc(100vw - calc(28 * var(--wt-u)) - var(--wt-safe-l) - var(--wt-safe-r) - calc(118 * var(--wt-u))); padding: calc(8 * var(--wt-u)) calc(12 * var(--wt-u)) calc(8 * var(--wt-u)) calc(8 * var(--wt-u)); }
   .wt-id-icon { display: none; }
+  .wt-id-place { -webkit-line-clamp: 1; }
   .wt-id-share .wt-tool-label { display: none; }
   .wt-id-share { padding: 0 calc(8 * var(--wt-u)); }
   .wt-seg.wt-eye, .wt-seg.wt-views { flex-direction: column; }
@@ -320,11 +329,11 @@ html[data-labels="full"] .wt-tool-label { display: inline !important; }
   .wt-tools.is-labelled .wt-btn { justify-content: flex-start; }
   .wt-seg-btn { padding: 0 calc(11 * var(--wt-u)); }
   .wt-tools .wt-btn, .wt-seg-btn { min-width: calc(44 * var(--wt-u)); }
-  .wt-top { top: calc(calc(14 * var(--wt-u)) + var(--wt-safe-t) + calc(64 * var(--wt-u))); padding-right: calc(calc(76 * var(--wt-u)) + var(--wt-safe-r)); justify-content: flex-start; align-items: flex-start; }
-  .wt-hud:has(.wt-scene-tag) .wt-top { top: calc(calc(14 * var(--wt-u)) + var(--wt-safe-t) + calc(92 * var(--wt-u))); }
+  .wt-top { top: calc(calc(14 * var(--wt-u)) + var(--wt-safe-t) + calc(96 * var(--wt-u))); padding-right: calc(calc(76 * var(--wt-u)) + var(--wt-safe-r)); justify-content: flex-start; align-items: flex-start; }
   .wt-hint { top: calc(calc(14 * var(--wt-u)) + var(--wt-safe-t) + calc(100 * var(--wt-u))); }
   .wt-stack { width: calc(100vw - calc(28 * var(--wt-u)) - calc(60 * var(--wt-u))); }
   .wt-stack, .wt-hint-chips { max-width: calc(100vw - calc(96 * var(--wt-u))); }
+  .wt-hint-chips { bottom: auto; top: 50%; }
   .wt-tool-label { display: none !important; }
   .wt-tools.is-labelled .wt-tool-label, .wt-exit .wt-tool-label { display: inline !important; }
 }
@@ -347,6 +356,9 @@ a.wt-home-link { text-decoration: none; }
 @media (max-width: 760px) { .wt-hud .wt-look-sheet { top: auto; right: 12px; left: 12px; width: auto; bottom: calc(12px + var(--wt-safe-b) + var(--wt-slot-h, 0px)); zoom: 1; max-height: 60vh; } }
 /* the pool's pills and cards (src/outdoor) keep their own sizes; they scale with the screen like every other panel */
 .wto-pill, .wto-card { zoom: var(--wt-z); }
+/* ...and they stand clear of the room strip (the strip's height is measured in screen pixels, the panels are zoomed) */
+.wt-hud .wto-pill.wto-top { top: calc(calc(80 * var(--wt-u)) + var(--wt-safe-t) / var(--wt-z)); }
+.wt-hud .wto-pill:not(.wto-top), .wt-hud .wto-card { bottom: calc((var(--wt-nav-h, 0px) + calc(22 * var(--wt-u)) + var(--wt-safe-b)) / var(--wt-z)); }
 
 /* "Your layout · edited" (layout-chip.ts): a glass pill in the centre column, tappable */
 .wt-layout-chip {
@@ -357,5 +369,5 @@ a.wt-home-link { text-decoration: none; }
 .wt-layout-chip[hidden] { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .wt-id, .wt-topbar, .wt-exit, .wt-nav-map, .wt-nav-bar, .wt-hint-chips { transition: none !important; }
+  .wt-id, .wt-topbar, .wt-exit, .wt-nav-map, .wt-nav-bar, .wt-hint-chips, .wt-seg.wt-eye { transition: none !important; }
 }
