@@ -105,13 +105,8 @@ if (set === 'flat') {
     const r = (y0 + dy) * Math.PI / 180;
     views[name] = { eye: [p0.x, 1.6, p0.z], target: [p0.x + Math.sin(r) * 4, 1.45, p0.z + Math.cos(r) * 4], yaw: y0 + dy, at: { x: p0.x, z: p0.z } };
   }
-} else if (set === 'home') {
-  // the standalone sample home (/?scene=test-sample-3)
-  views.door = await doorView('door-4');
-  views.passage = lookAt([-4.6, 1.6, 0.4], [4.5, 1.5, 0.45]);
-  views.floor = lookAt([-1.6, 1.6, -0.9], [0.9, 0.0, -3.0]);
-  views.corner = lookAt([0.6, 1.6, -1.0], [2.17, 2.3, -3.69]);
 }
+// (the old `home` set, hand-placed views for test-sample-3, hung under software GL and is dropped: a standalone home is captured as `scene`, from its spawn)
 const want = (process.env.VIEWS || Object.keys(views).join(',')).split(',');
 const out = [];
 for (const v of want) {
