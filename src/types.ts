@@ -207,6 +207,8 @@ export interface PropertyFile {
   spawn: { x: number; z: number; yawDeg: number };
   /** true keeps the home out of the gallery: it opens only by its link */
   unlisted?: boolean;
+  /** Shown in the start page's gallery even though the scene is a building's part or a fixture (a flat worth opening on its own). */
+  gallery?: boolean;
   /** what kind of place this scene is. Absent means a home. Buildings set it per space; the catalogue shows only what belongs there. */
   spaceKind?: SpaceKind;
   updatedAt: string; // ISO 8601

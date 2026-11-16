@@ -76,7 +76,7 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     const t = TYPICAL.find((x) => x.slot === f.key)!.type;
     const d = designs[t];
     const plain = (p: PropertyFile, id: string): PropertyFile => withFixedDate({ ...p, id, furniture: empty ? [] : p.furniture });
-    if (!scenes.has(flatScene(t, false))) add(flatScene(t, false), { property: plain(d.property, flatScene(t, false)), designs: empty ? null : d.designs, extras: d.extras, design: empty ? d.designBare : d.design, look: lookOf(f.placement.rotDeg) });
+    if (!scenes.has(flatScene(t, false))) add(flatScene(t, false), { property: { ...plain(d.property, flatScene(t, false)), ...(empty ? {} : { gallery: true }) }, designs: empty ? null : d.designs, extras: d.extras, design: empty ? d.designBare : d.design, look: lookOf(f.placement.rotDeg) });
     if (f.mirrored) {
       mirroredTypes.add(t);
       const id = flatScene(t, true);

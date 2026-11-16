@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { scanScenes } from '../scripts/make-scene-index';
+import { GALLERY_HIDDEN, scanScenes } from '../scripts/make-scene-index';
 import { sceneOrigin } from '../src/buyer/scene-tag';
 import { crowdedExtras, crowdedFurniture, crowdedLayout } from './helpers/crowded-flat';
 import { buildSceneIndex, sceneEntry } from '../src/start/manifest';
@@ -77,27 +77,38 @@ describe('the manifest', () => {
         fs.writeFileSync(path.join(dir, id, 'property.json'), JSON.stringify({ ...(read('test-flat') as object), id }));
       };
       put('test-sample-1bhk');
-      expect(scanScenes(dir, () => {}).scenes.map((s) => s.id)).toEqual(['test-sample-1bhk']);
+      expect(scanScenes(dir, () => {}, []).scenes.map((s) => s.id)).toEqual(['test-sample-1bhk']);
+      // the gallery's hidden list takes the made-up samples off
+      expect(scanScenes(dir, () => {}).scenes).toEqual([]);
       put('test-sample-2bhk');
       fs.mkdirSync(path.join(dir, 'no-property'));
       fs.mkdirSync(path.join(dir, 'bad-json'));
       fs.writeFileSync(path.join(dir, 'bad-json', 'property.json'), '{ nope');
       fs.writeFileSync(path.join(dir, 'index.json'), '{}');
-      const ids = scanScenes(dir, () => {}).scenes.map((s) => s.id);
+      const ids = scanScenes(dir, () => {}, []).scenes.map((s) => s.id);
       expect(ids).toEqual(['test-sample-1bhk', 'test-sample-2bhk']);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 
-  it('lists every scene folder in the repo except developer fixtures (test-* other than test-sample-*) and link-only homes', () => {
+  it('lists the homes of the repo: none of the hidden samples or fixtures, every scene that asks for the gallery', () => {
     const ids = scanScenes(scenesDir, () => {}).scenes.map((s) => s.id);
     for (const d of fs.readdirSync(scenesDir, { withFileTypes: true })) {
       if (!d.isDirectory() || !fs.existsSync(path.join(scenesDir, d.name, 'property.json'))) continue;
+      const p = JSON.parse(fs.readFileSync(path.join(scenesDir, d.name, 'property.json'), 'utf8'));
       const fixture = /^test-/.test(d.name) && !/^test-sample-/.test(d.name);
-      const unlisted = JSON.parse(fs.readFileSync(path.join(scenesDir, d.name, 'property.json'), 'utf8')).unlisted === true;
-      if (fixture || unlisted) expect(ids).not.toContain(d.name); else expect(ids).toContain(d.name);
+      const hidden = GALLERY_HIDDEN.some((re) => re.test(d.name));
+      if (p.gallery === true) expect(ids).toContain(d.name);
+      else if (fixture || hidden || p.unlisted === true) expect(ids).not.toContain(d.name);
+      else expect(ids).toContain(d.name);
     }
+    // the four furnished brochure flats are in, their empty twins are not, and the made-up samples are out
+    expect(ids.filter((id) => /^test-tower-flat-/.test(id))).toHaveLength(4);
+    expect(ids.some((id) => /^test-tower-empty-|^test-sample-/.test(id))).toBe(false);
+  });
+  it('a plan from a published brochure is tagged as that, not as made-up', () => {
+    expect(sceneOrigin({ id: 'test-tower-flat-x', subtitle: 'Sample building · plan follows a published builder brochure, furniture illustrative' })).toBe('brochure');
   });
 });
 
