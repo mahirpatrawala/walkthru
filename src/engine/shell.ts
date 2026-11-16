@@ -3,10 +3,12 @@ import * as THREE from 'three';
 import type { EdgeFrame, Finishes, Layout, RoomTag, Vec2 } from '../types';
 import { computeEdgeFrames, computeTunnels, computeWallPieces, pieceRect } from '../core/layout-geom';
 import { pointInPolygon } from '../core/geometry';
+import { DOOR_POST_M, DOOR_THICKNESS_M, resolveDoors } from '../core/doors';
 
 // ---------------------------------------------------------------- small geometry builder
 
-interface Buf { pos: number[]; nor: number[]; uv: number[] }
+/** `aux` (walls only): per vertex, how far it is from a room corner at each end of its wall piece, as `99 - metres` (0 where that end is no corner), for the corner shading in the look's wall shader (SPEC 16.18) */
+interface Buf { pos: number[]; nor: number[]; uv: number[]; aux?: number[]; auxFn?: ((p: V3) => [number, number]) | null }
 type V3 = [number, number, number];
 
 const newBuf = (): Buf => ({ pos: [], nor: [], uv: [] });
@@ -23,14 +25,18 @@ function addQuad(b: Buf, v: [V3, V3, V3, V3], n: V3, uv?: [number, number][]): v
     b.nor.push(...n);
     const t = uv ? uv[k] : [v[k][0] + v[k][2], v[k][1]];
     b.uv.push(t[0], t[1]);
+    if (b.aux) { const a = b.auxFn ? b.auxFn(v[k]) : [0, 0]; b.aux.push(a[0], a[1]); }
   }
 }
 
-/** Box over a plan rectangle (4 corners in loop order) from y0 to y1. */
-function addBox(b: Buf, c: [Vec2, Vec2, Vec2, Vec2], y0: number, y1: number): void {
+/** Box over a plan rectangle (4 corners in loop order) from y0 to y1. `uvOf` gives each corner its own UV (grain along a frame member); without it the UVs are the world-scale default. */
+function addBox(b: Buf, c: [Vec2, Vec2, Vec2, Vec2], y0: number, y1: number, uvOf?: (p: V3, n: V3) => [number, number]): void {
   const at = (p: Vec2, y: number): V3 => [p.x, y, p.z];
-  addQuad(b, [at(c[0], y1), at(c[1], y1), at(c[2], y1), at(c[3], y1)], [0, 1, 0]);
-  addQuad(b, [at(c[0], y0), at(c[1], y0), at(c[2], y0), at(c[3], y0)], [0, -1, 0]);
+  const uvs = (v: V3[], n: V3): [number, number][] | undefined => (uvOf ? v.map((p) => uvOf(p, n)) : undefined);
+  const top = [at(c[0], y1), at(c[1], y1), at(c[2], y1), at(c[3], y1)] as [V3, V3, V3, V3];
+  const bot = [at(c[0], y0), at(c[1], y0), at(c[2], y0), at(c[3], y0)] as [V3, V3, V3, V3];
+  addQuad(b, top, [0, 1, 0], uvs(top, [0, 1, 0]));
+  addQuad(b, bot, [0, -1, 0], uvs(bot, [0, -1, 0]));
   const cx = (c[0].x + c[1].x + c[2].x + c[3].x) / 4;
   const cz = (c[0].z + c[1].z + c[2].z + c[3].z) / 4;
   for (let i = 0; i < 4; i++) {
@@ -41,7 +47,8 @@ function addBox(b: Buf, c: [Vec2, Vec2, Vec2, Vec2], y0: number, y1: number): vo
     const l = Math.hypot(nx, nz) || 1;
     nx /= l; nz /= l;
     if (nx * ((p.x + q.x) / 2 - cx) + nz * ((p.z + q.z) / 2 - cz) < 0) { nx = -nx; nz = -nz; }
-    addQuad(b, [at(p, y0), at(q, y0), at(q, y1), at(p, y1)], [nx, 0, nz]);
+    const side = [at(p, y0), at(q, y0), at(q, y1), at(p, y1)] as [V3, V3, V3, V3];
+    addQuad(b, side, [nx, 0, nz], uvs(side, [nx, 0, nz]));
   }
 }
 
@@ -50,6 +57,7 @@ function toGeometry(b: Buf): THREE.BufferGeometry {
   g.setAttribute('position', new THREE.Float32BufferAttribute(b.pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(b.nor, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(b.uv, 2));
+  if (b.aux && b.aux.length === (b.pos.length / 3) * 2) g.setAttribute('lkEnd', new THREE.Float32BufferAttribute(b.aux, 2));
   return g;
 }
 
@@ -71,7 +79,8 @@ export interface ShellMaterialSet {
   floor(spec: { color: string; tile: Finishes['tile']; groutColor: string; balcony: boolean }): THREE.Material;
   wall(color: string): THREE.Material;
   ceiling(color: string): THREE.Material;
-  frame(color: string): THREE.Material;
+  /** `grain`: the wood grain shows (a wood finish); false for a painted frame (default true) */
+  frame(color: string, grain?: boolean): THREE.Material;
   railing(color: string): THREE.Material;
   pane(): THREE.Material;
 }
@@ -154,6 +163,18 @@ function partialMaterials(): { floor: THREE.Material; plinth: THREE.Material; gh
 }
 
 // ---------------------------------------------------------------- build
+
+/** Door furniture of the frame (SPEC 16.18). All decor of the frame: none of it changes a hole, a leaf or a collision cell. */
+const STOP_M = 0.01;
+const STOP_W_M = 0.012;
+const ARCHITRAVE_W_M = 0.04;
+const ARCHITRAVE_T_M = 0.008;
+const BEAD_W_M = 0.014;
+const BEAD_T_M = 0.016;
+const WINDOW_FRAME_W_M = 0.04;
+const LINTEL_OVERHANG_M = 0.012;
+const LINTEL_EXTRA_M = 0.006;
+const LINTEL_CAP_M = 0.014;
 
 function polygonFace(room: RoomTag, y: number, up: boolean, uvOf: (p: Vec2) => [number, number]): Buf {
   const b = newBuf();
@@ -306,8 +327,16 @@ export function buildShell(layout: Layout, opts?: ShellOptions): THREE.Group {
       }
     } else {
       let b = wallBufs.get(p.roomId);
-      if (!b) { b = newBuf(); wallBufs.set(p.roomId, b); }
+      if (!b) { b = newBuf(); b.aux = []; wallBufs.set(p.roomId, b); }
+      // a piece that runs past an end of its edge (by the wall's thickness) fills the outside of a room corner: the room face meets the next wall there
+      // (a reflex vertex of the room leaves the piece ending at the edge's end, and has no corner to shade)
+      const startCorner = p.u0 < -1e-6, endCorner = p.u1 > f.length + 1e-6;
+      b.auxFn = (v) => {
+        const u = (v[0] - f.a.x) * f.dir.x + (v[2] - f.a.z) * f.dir.z;
+        return [startCorner ? 99 - Math.min(98, Math.max(0, u)) : 0, endCorner ? 99 - Math.min(98, Math.max(0, f.length - u)) : 0];
+      };
       addBox(b, pieceRect(f, p), p.y0, p.y1);
+      b.auxFn = null;
     }
   }
   for (const [id, b] of ghostBufs) {
@@ -345,24 +374,71 @@ export function buildShell(layout: Layout, opts?: ShellOptions): THREE.Group {
     group.add(m);
   }
 
-  // door frames (linings inside the hole, 0.02 proud on the room side) and window panes
+  // door frames (SPEC 16.18): a lining flush with both wall faces (as wide as the posts the leaf hangs between, so the leaf, its width and its
+  // swing are exactly as before), a 12 mm door stop on the side the leaf closes against, and a small architrave round the hole on both faces
+  // (a flat board with a bead on its inner edge). Window frames: a slim lining and a sill board. Every member carries its own UVs, so the
+  // grain of the wood runs along its length.
   const fr = newBuf();
   const pane = newBuf();
+  const swingIn = new Map(resolveDoors(layout).map((d) => [d.id, d.swing]));
+  const grain = (f: EdgeFrame, vertical: boolean) => (p: V3, n: V3): [number, number] => {
+    const du = p[0] * f.dir.x + p[2] * f.dir.z;
+    const dv = p[0] * f.out.x + p[2] * f.out.z;
+    if (vertical) return [p[1], Math.abs(n[0] * f.dir.x + n[2] * f.dir.z) > 0.5 ? dv : du];
+    return [du, Math.abs(n[1]) > 0.5 ? dv : p[1]];
+  };
+  const sameEdge = new Map<string, typeof tunnels>();
+  for (const t of tunnels) { const k = `${t.roomId}:${t.edge}`; const l = sameEdge.get(k) ?? []; l.push(t); sameEdge.set(k, l); }
   for (const t of tunnels) {
     if (t.openingId === null) continue;
     const f = frameOf.get(`${t.roomId}:${t.edge}`);
     if (!f) continue;
+    const vert = grain(f, true), horiz = grain(f, false);
     if (t.type === 'door') {
-      const w = Math.min(0.05, (t.u1 - t.u0) / 2);
-      const o0 = -0.02;
-      const o1 = Math.max(t.depth, 0.02);
-      addBox(fr, localRect(f, t.u0, t.u0 + w, o0, o1), 0, t.headM);
-      addBox(fr, localRect(f, t.u1 - w, t.u1, o0, o1), 0, t.headM);
-      addBox(fr, localRect(f, t.u0, t.u1, o0, o1), Math.max(0, t.headM - 0.05), t.headM);
+      const w = Math.min(DOOR_POST_M, (t.u1 - t.u0) / 2);
+      const depth = Math.max(t.depth, 0.02);
+      const headLow = Math.max(0, t.headM - 0.05);
+      addBox(fr, localRect(f, t.u0, t.u0 + w, 0, depth), 0, t.headM, vert);
+      addBox(fr, localRect(f, t.u1 - w, t.u1, 0, depth), 0, t.headM, vert);
+      addBox(fr, localRect(f, t.u0 + w, t.u1 - w, 0, depth), headLow, t.headM, horiz);
+      // the stop: on the side opposite the swing, round the leaf's three closed edges
+      const mid = depth / 2, half = DOOR_THICKNESS_M / 2;
+      const o0 = swingIn.get(t.openingId) === 'out' ? mid - half - STOP_M : mid + half;
+      const o1 = o0 + STOP_M;
+      addBox(fr, localRect(f, t.u0 + w - 0.001, t.u0 + w + STOP_W_M, o0, o1), 0, headLow, vert);
+      addBox(fr, localRect(f, t.u1 - w - STOP_W_M, t.u1 - w + 0.001, o0, o1), 0, headLow, vert);
+      addBox(fr, localRect(f, t.u0 + w + STOP_W_M, t.u1 - w - STOP_W_M, o0, o1), headLow - STOP_W_M, headLow, horiz);
+      // the architrave, on the room face and on the far face; a side with less wall than the board is wide gets a narrower one, or none
+      const others = (sameEdge.get(`${t.roomId}:${t.edge}`) ?? []).filter((x) => x !== t);
+      const room0 = Math.max(0, ...others.filter((x) => x.u1 <= t.u0 + 1e-6).map((x) => x.u1));
+      const room1 = Math.min(f.length, ...others.filter((x) => x.u0 >= t.u1 - 1e-6).map((x) => x.u0));
+      const aw0 = Math.min(ARCHITRAVE_W_M, t.u0 - room0 - 0.005), aw1 = Math.min(ARCHITRAVE_W_M, room1 - t.u1 - 0.005);
+      const top = Math.min(t.headM + ARCHITRAVE_W_M, layout.wallHeightM - 0.004);
+      for (const [oa, ob, bo] of [[-ARCHITRAVE_T_M, 0, -BEAD_T_M], [depth, depth + ARCHITRAVE_T_M, depth + BEAD_T_M]] as const) {
+        const ba = Math.min(oa, bo), bb = Math.max(ob, bo);
+        const l = Math.max(aw0, 0), r = Math.max(aw1, 0);
+        if (l > 0.012) { addBox(fr, localRect(f, t.u0 - l, t.u0, oa, ob), 0, top, vert); addBox(fr, localRect(f, t.u0 - BEAD_W_M, t.u0, ba, bb), 0, t.headM, vert); }
+        if (r > 0.012) { addBox(fr, localRect(f, t.u1, t.u1 + r, oa, ob), 0, top, vert); addBox(fr, localRect(f, t.u1, t.u1 + BEAD_W_M, ba, bb), 0, t.headM, vert); }
+        // the head stands a little prouder than the sides and runs past them, with a thin cap on top: a lintel that reads as built, not as an outline
+        const hu0 = t.u0 - (l > 0.012 ? l : 0) - LINTEL_OVERHANG_M, hu1 = t.u1 + (r > 0.012 ? r : 0) + LINTEL_OVERHANG_M;
+        const ho = oa < 0 ? oa - LINTEL_EXTRA_M : oa, hb = oa < 0 ? ob : ob + LINTEL_EXTRA_M;
+        addBox(fr, localRect(f, hu0, hu1, ho, hb), t.headM, top, horiz);
+        addBox(fr, localRect(f, hu0 - 0.004, hu1 + 0.004, oa < 0 ? ho - 0.008 : oa, oa < 0 ? ob : hb + 0.008), top, Math.min(top + LINTEL_CAP_M, layout.wallHeightM - 0.002), horiz);
+        addBox(fr, localRect(f, t.u0, t.u1, ba, bb), t.headM - BEAD_W_M, t.headM, horiz);
+      }
     } else if (t.type === 'window') {
       const c = localRect(f, t.u0, t.u1, t.depth / 2, t.depth / 2);
       const n: V3 = [-f.out.x, 0, -f.out.z];
       addQuad(pane, [[c[0].x, t.sillM, c[0].z], [c[1].x, t.sillM, c[1].z], [c[1].x, t.headM, c[1].z], [c[0].x, t.headM, c[0].z]], n);
+      // a slim lining round the glass, and a sill board that stands 25 mm into the room
+      const depth = Math.max(t.depth, 0.02), w = Math.min(WINDOW_FRAME_W_M, (t.u1 - t.u0) / 2);
+      if (t.headM - t.sillM > 0.3) {
+        addBox(fr, localRect(f, t.u0, t.u0 + w, 0, depth), t.sillM, t.headM, vert);
+        addBox(fr, localRect(f, t.u1 - w, t.u1, 0, depth), t.sillM, t.headM, vert);
+        addBox(fr, localRect(f, t.u0 + w, t.u1 - w, 0, depth), t.headM - w, t.headM, horiz);
+        addBox(fr, localRect(f, t.u0 + w, t.u1 - w, 0, depth), t.sillM, t.sillM + w, horiz);
+        if (t.sillM > 0.3) addBox(fr, localRect(f, t.u0 - 0.02, t.u1 + 0.02, -0.025, 0), t.sillM - 0.022, t.sillM, horiz);
+      }
     }
   }
   if (fr.pos.length > 0) {

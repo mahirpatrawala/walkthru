@@ -255,7 +255,7 @@ describe('what hangs from the ceiling', () => {
   const H = 2.75;
   it('fades slabs, hides the ceiling kit and the signs, filters the merged fixtures mesh, keeps the rest', () => {
     expect(classifyHang({ name: 'ceiling:living' }, H)).toBe('fade');
-    for (const n of ['kit:cove', 'kit:cove-led', 'kit:fan-light', 'kit:fan-blades', 'kit:tube-lens', 'door-labels', 'portal-signs']) expect(classifyHang({ name: n }, H)).toBe('hide');
+    for (const n of ['kit:cove', 'kit:cove-led', 'kit:fan-light', 'kit:fan-blades', 'kit:tube-lens', 'kit:downlight-lens', 'door-labels', 'portal-signs']) expect(classifyHang({ name: n }, H)).toBe('hide');
     expect(classifyHang({ name: 'kit:fixtures' }, H)).toBe('filter');
     expect(classifyHang({ name: 'kit:skirting' }, H)).toBe('keep');
     expect(classifyHang({ name: 'walls:a' }, H)).toBe('keep');

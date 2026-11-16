@@ -80,6 +80,9 @@ export interface Doors {
   };
   /** the active style's door finish (a colour), or null for the default teak laminate */
   setPanelColour(hex: string | null): void;
+  /** the style's door finish (colour and grain) and hardware colour (SPEC 16.18) */
+  setPanelFinish(f: { colour: string; grain: boolean } | null): void;
+  setHandleColour(hex: string | null): void;
   /** for the auto-walk (src/buyer/nav): every leaf and how far it stands open, and a quiet open (no card) that resolves when the leaf stands still */
   route: {
     leaves(): { door: Door; pos: number }[];
@@ -406,6 +409,8 @@ export function createDoors(deps: { ctx: BuyerContext; store: FurnitureStoreImpl
       obstacles: () => [...recs.values()].map((r) => ({ id: r.door.id, ...leafObstacle(r.door, r.pos) })),
     },
     setPanelColour(hex) { for (const r of recs.values()) r.model.setPanelColour(hex); },
+    setPanelFinish(f) { for (const r of recs.values()) r.model.setPanelFinish(f); },
+    setHandleColour(hex) { for (const r of recs.values()) r.model.setHandleColour(hex); },
     route: {
       leaves: () => [...recs.values()].map((r) => ({ door: r.door, pos: r.pos })),
       open: (id) => run(id, (r) => { if (r.pos < r.door.maxPos - 1e-9) open(r); }),

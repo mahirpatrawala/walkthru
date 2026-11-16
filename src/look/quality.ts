@@ -6,6 +6,7 @@ export interface TierConfig {
   tier: Tier;
   /** frames per second the tier must hold (SPEC section 10) */
   fpsTarget: number;
+  /** the largest pixel ratio the tier draws at on a desktop; a phone or tablet is held to PHONE_RATIO_CAP (SPEC 16.18). The resolution governor walks down from here. */
   pixelRatioCap: number;
   /** sun shadow: none, one static 1024 map re-rendered on change, or a 2048 soft map every frame */
   shadow: 'none' | 'static' | 'live';
@@ -19,7 +20,9 @@ export interface TierConfig {
   fullTextures: boolean;
   anisotropy: number;
   bloom: boolean;
-  /** the `postprocessing` + `n8ao` chunks are loaded and the composer renders the frame */
+  /** samples of the post composer's own multisampled buffer (SPEC 16.18): 0 on tiers without a composer; clamped to the GPU's MAX_SAMPLES */
+  msaa: number;
+  /** the `postprocessing` + `n8ao` chunks are loaded and the composer renders the frame: MSAA, ambient occlusion, grade. Medium has it too (a cheap half-resolution AO, no bloom), except on a phone or tablet, which keeps the plain renderer (SPEC 16.18) */
   post: boolean;
   /** hemisphere light intensity (three units), see look.ts */
   hemiIntensity: number;
@@ -39,15 +42,15 @@ export interface TierConfig {
 export const TIERS: Record<Tier, TierConfig> = {
   low: {
     tier: 'low', fpsTarget: 30, pixelRatioCap: 1.0, shadow: 'none', shadowMapSize: 0, hdri: 'backdrop', environment: false,
-    reflection: 'none', fullTextures: false, anisotropy: 4, bloom: false, post: false, hemiIntensity: 1.0, envIntensity: 0, groundColour: '#F4F0EA', skyScale: 0.74, groundScale: 2.4, sunScale: 0.1, interiorLights: 0,
+    reflection: 'none', fullTextures: false, anisotropy: 4, bloom: false, msaa: 0, post: false, hemiIntensity: 1.0, envIntensity: 0, groundColour: '#F4F0EA', skyScale: 0.74, groundScale: 2.4, sunScale: 0.1, interiorLights: 0,
   },
   medium: {
-    tier: 'medium', fpsTarget: 50, pixelRatioCap: 1.5, shadow: 'static', shadowMapSize: 1024, hdri: '1k', environment: true,
-    reflection: 'cube', fullTextures: true, anisotropy: 4, bloom: false, post: false, hemiIntensity: 1.25, envIntensity: 0.12, groundColour: '#D2CCC2', skyScale: 1, groundScale: 2.0, sunScale: 1, interiorLights: 2,
+    tier: 'medium', fpsTarget: 50, pixelRatioCap: 2.0, shadow: 'static', shadowMapSize: 2048, hdri: '1k', environment: true,
+    reflection: 'cube', fullTextures: true, anisotropy: 16, bloom: false, msaa: 4, post: true, hemiIntensity: 1.25, envIntensity: 0.12, groundColour: '#D2CCC2', skyScale: 1, groundScale: 2.0, sunScale: 1, interiorLights: 2,
   },
   high: {
-    tier: 'high', fpsTarget: 55, pixelRatioCap: 2.0, shadow: 'live', shadowMapSize: 2048, hdri: '2k', environment: true,
-    reflection: 'planar', fullTextures: true, anisotropy: 8, bloom: true, post: true, hemiIntensity: 1.25, envIntensity: 0.12, groundColour: '#D2CCC2', skyScale: 1, groundScale: 2.0, sunScale: 1, interiorLights: 4,
+    tier: 'high', fpsTarget: 55, pixelRatioCap: 2.0, shadow: 'live', shadowMapSize: 4096, hdri: '2k', environment: true,
+    reflection: 'planar', fullTextures: true, anisotropy: 16, bloom: true, msaa: 4, post: true, hemiIntensity: 1.25, envIntensity: 0.12, groundColour: '#D2CCC2', skyScale: 1, groundScale: 2.0, sunScale: 1, interiorLights: 4,
   },
 };
 
@@ -59,6 +62,32 @@ export function toneMapperFromQuery(search: string): ToneMapperName {
     const v = new URLSearchParams(search).get('tonemap');
     return v === 'agx' || v === 'aces' || v === 'neutral' ? v : DEFAULT_TONE_MAPPER;
   } catch { return DEFAULT_TONE_MAPPER; }
+}
+
+/** true when the composer runs on this device: the tier asks for it, and on medium only a device with a mouse and keyboard gets it */
+export function postWanted(cfg: Pick<TierConfig, 'post' | 'tier'>, touch: boolean): boolean {
+  return cfg.post && (cfg.tier === 'high' || !touch);
+}
+
+/** Phones and tablets keep the old ceiling unless the governor's measurements say they can afford more (SPEC 16.18). */
+export const PHONE_RATIO_CAP = 1.5;
+/** The most anisotropic filtering any tier asks for; the renderer's own maximum is the other limit. */
+export const MAX_ANISOTROPY = 16;
+
+/** The largest pixel ratio a tier may draw at on this device: the tier's cap, held to the phone cap on a touch device. */
+export function tierPixelCap(cfg: Pick<TierConfig, 'pixelRatioCap'>, touch: boolean): number {
+  return touch ? Math.min(cfg.pixelRatioCap, PHONE_RATIO_CAP) : cfg.pixelRatioCap;
+}
+
+/** Anisotropy to ask for: the tier's request, never above the GPU's maximum or MAX_ANISOTROPY, and at least 1. */
+export function clampAnisotropy(requested: number, gpuMax: number): number {
+  return Math.max(1, Math.min(requested, MAX_ANISOTROPY, Number.isFinite(gpuMax) && gpuMax > 0 ? gpuMax : requested));
+}
+
+/** Samples for the composer's buffer: the tier's request limited to the GPU's MAX_SAMPLES, 0 when fewer than 2 are possible. */
+export function clampSamples(requested: number, gpuMax: number): number {
+  const n = Math.min(requested, Number.isFinite(gpuMax) ? gpuMax : 0);
+  return n >= 2 ? Math.floor(n) : 0;
 }
 
 export const TIER_ORDER: Tier[] = ['low', 'medium', 'high'];

@@ -176,9 +176,9 @@ describe('resolution order and provenance', () => {
   });
   it('a scene with no sheet gets the default pack; an unknown pack id falls back to it', () => {
     setStyle({});
-    expect(getStyle().pack.id).toBe('light-scandinavian');
+    expect(getStyle().pack.id).toBe('clean-contrast'); // SPEC 16.18: the default pack
     setStyle({ packId: 'no-such-pack' });
-    expect(getStyle().pack.id).toBe('light-scandinavian');
+    expect(getStyle().pack.id).toBe('clean-contrast');
   });
   it('Classic resolves to nothing: the old builders run', () => {
     setStyle({ packId: 'classic' });

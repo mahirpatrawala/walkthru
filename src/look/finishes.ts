@@ -336,6 +336,8 @@ const F = (id: string, name: string, colour: string, material: MatKey, kind: Fin
 export const FINISH_LIST: FinishDef[] = [
   F('oak', 'Natural oak', '#CDAB8A', 'wood', 'wood'),
   F('oak-light', 'Light oak', '#D9BC92', 'wood', 'wood'),
+  F('oak-warm', 'Warm oak', '#C08A52', 'wood', 'wood'),
+  F('walnut-deep', 'Deep walnut', '#5A3F2E', 'wood', 'wood'),
   F('ash-white', 'White-washed ash', '#E3D7C4', 'wood', 'wood'),
   F('walnut', 'Walnut', '#7B5B45', 'wood', 'wood'),
   F('teak', 'Teak', '#A9713F', 'wood', 'wood'),
@@ -349,9 +351,11 @@ export const FINISH_LIST: FinishDef[] = [
   F('wall-beige', 'Warm beige paint', '#E9DAC4', 'paint', 'paint'),
   F('wall-cream', 'Cream paint', '#EFE6D6', 'paint', 'paint'),
   F('wall-white', 'Warm white paint', '#F2EFE9', 'paint', 'paint'),
+  F('wall-bright', 'Bright warm white paint', '#F8F6F1', 'paint', 'paint'),
   F('wall-greige', 'Greige paint', '#D3C9BB', 'paint', 'paint'),
   F('wall-stone', 'Stone grey paint', '#CFCCC5', 'paint', 'paint'),
   F('ceiling-white', 'Ceiling white', '#F7F5F0', 'paint', 'paint'),
+  F('ceiling-warm-grey', 'Ceiling warm grey', '#E6E3DD', 'paint', 'paint'),
   F('linen-beige', 'Beige linen', '#CDBBA3', 'weave', 'fabric'),
   F('quilt-beige', 'Beige quilted cotton', '#DACBB5', 'quilt', 'fabric'),
   F('quilt-white', 'White quilted cotton', '#EEEBE4', 'quilt', 'fabric'),
@@ -376,6 +380,8 @@ export const FINISH_LIST: FinishDef[] = [
   F('tile-beige-gloss', 'Glossy beige tile', '#F2E3CA', 'gloss', 'tile'),
   F('tile-ivory-gloss', 'Glossy ivory tile', '#ECE4D6', 'gloss', 'tile'),
   F('tile-grey', 'Soft grey tile', '#C9C6C0', 'gloss', 'tile'),
+  F('tile-stone', 'Light stone tile', '#C9C6BD', 'gloss', 'tile'),
+  F('tile-stone-grey', 'Mid stone-grey tile', '#A9A7A1', 'gloss', 'tile'),
   F('tile-sand', 'Sand tile', '#D8C9AE', 'gloss', 'tile'),
 ];
 export const FINISHES: Record<string, FinishDef> = Object.fromEntries(FINISH_LIST.map((f) => [f.id, f]));

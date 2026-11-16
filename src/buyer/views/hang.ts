@@ -17,7 +17,7 @@ export const CEILING_BAND_M = 0.8;
 /** A piece in the furniture tree that starts this far under the ceiling or higher is hung from it (a pendant, a chandelier). */
 export const HUNG_FROM_M = 0.75;
 
-const HIDE_KIT = new Set(['kit:cove', 'kit:cove-led', 'kit:fan-light', 'kit:fan-blades', 'kit:tube-lens', 'kit:edited-fan-light', 'kit:edited-tube-lens']);
+const HIDE_KIT = new Set(['kit:cove', 'kit:cove-led', 'kit:fan-light', 'kit:fan-blades', 'kit:tube-lens', 'kit:edited-fan-light', 'kit:edited-tube-lens', 'kit:downlight-lens']);
 const FILTER_KIT = new Set(['kit:fixtures', 'kit:edited-fixtures']);
 const HIDE_GROUPS = new Set(['door-labels', 'portal-signs']);
 const HUNG_LIGHTS = new Set(['tube', 'cove', 'fan']);
