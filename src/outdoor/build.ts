@@ -46,10 +46,14 @@ export function buildGround(ctx: BuildCtx): THREE.Group {
   group.name = 'outdoor-ground';
   const byMat = new Map<THREE.Material, THREE.BufferGeometry[]>();
   const kerbs: THREE.BufferGeometry[] = [];
+  const seen = new Map<GroundFinish, number>();
   for (const a of ctx.file.areas) {
     const kind: GroundKind = a.finish;
     const spec = GROUND[kind];
-    const lift = a.finish === 'bed' && a.edgingM ? a.edgingM * 0.7 : FINISH_Y[a.finish];
+    // two areas of one finish that overlap (an island of coloured rubber on a rubber field) must not fight: each later one sits 1.5 mm higher
+    const nth = seen.get(a.finish) ?? 0;
+    seen.set(a.finish, nth + 1);
+    const lift = (a.finish === 'bed' && a.edgingM ? a.edgingM * 0.7 : FINISH_Y[a.finish]) + nth * 0.0015;
     const mat = ctx.mats.ground(kind, { colour: a.colour, stripes: a.stripes });
     const list = byMat.get(mat) ?? [];
     list.push(flatGeometry(a.polygon, a.holes, lift, spec.tile));

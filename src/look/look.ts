@@ -18,7 +18,7 @@ import type { BakedHook } from './baked/hook';
 import { Reflections } from './reflect';
 import { Sky, chooseBackdrop } from './sky';
 import { sunState } from './sun';
-import { outdoorExposure, outdoorSunScale } from '../outdoor/exposure';
+import { outdoorExposure, outdoorHemiBoost, outdoorSunScale } from '../outdoor/exposure';
 import type { SunState } from './sun';
 import { parseLookFile } from './types';
 import type { LookFile, Tier } from './types';
@@ -287,7 +287,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       hemi.groundColor.setRGB(g.hemiGround[0], g.hemiGround[1], g.hemiGround[2]);
       if (!g.night) hemi.groundColor.lerp(tmp.multiply(floorLinear).multiplyScalar(1.4), 0.25);
       hemi.groundColor.multiplyScalar(cfg.groundScale);
-      hemi.intensity = g.hemiIntensity * (cfg.hemiIntensity / HEMI_REFERENCE);
+      hemi.intensity = g.hemiIntensity * (cfg.hemiIntensity / HEMI_REFERENCE) * (outdoor ? outdoorHemiBoost(g) : 1);
       // tiers with no grade pass (low and medium: no post chain) get the sun's warmth through the sky half of the ambient instead
       if (!post && !g.night) hemi.color.lerp(tmp.setRGB(g.sunColour[0], g.sunColour[1], g.sunColour[2]), cfg.shadow === 'none' ? 0.3 : 0.18);
       // a tier with no pooled lights fakes the lamps with a warm lift of the ambient

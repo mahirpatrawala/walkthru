@@ -90,10 +90,13 @@ export function poolFurniture(): FurnitureItem[] {
   for (const [tx, tz] of [[13.9, -4.4], [13.9, 3.9]] as const) { add('pool-table', tx, tz, 0); add('pool-chair', tx - 0.9, tz, 90); add('pool-chair', tx + 0.9, tz, 270); }
   add('pool-table', 25.0, 4.2, 0); add('pool-chair', 24.1, 4.2, 90); add('pool-chair', 25.9, 4.2, 270);
   add('pool-lifeguard-chair', 14.4, -2.2, 90);
-  add('pool-life-ring', 21.8, -7.65, 0); add('pool-shower', 23.2, -7.65, 0); add('pool-shower', 16.3, -1.6, 0);
+  add('pool-life-ring', 21.8, -7.65, 0); add('pool-shower', 23.2, -7.65, 0); add('pool-shower', 14.9, 0.4, 0);
   add('pool-towel-rack', 29.2, 4.5, 180);
+  // lamp posts on the south deck and bollards along the north walkway, lit from the evening
+  for (const [x, z] of [[16.5, 4.5], [22.8, 4.6], [31.5, 3.0]] as const) add('garden-lamp-post', x, z, 0);
+  for (const [x, z] of [[21.0, -6.35], [24.0, -6.35]] as const) add('garden-bollard', x, z, 0);
   add('pool-depth-sign', 18.0, -6.35, 0); add('pool-depth-sign', 26.5, -6.35, 0);
-  add('pool-deck-planter', 30.8, 1.2, 0); add('pool-deck-planter', 31.1, -0.9, 0); add('pool-deck-planter', 13.9, 0.2, 0);
+  add('pool-deck-planter', 31.4, 0.5, 0); add('pool-deck-planter', 31.1, -0.9, 0); add('pool-deck-planter', 13.9, 0.2, 0);
   // the changing-room markers beside the door on the facade
   out.push(piece('pool-sign-1', 'pool-changing-sign', 12.33, -0.5, 90), piece('pool-sign-2', 'pool-changing-sign', 12.33, 4.4, 90));
   return out;
@@ -123,8 +126,9 @@ export function gardenOutdoor(bare: boolean): OutdoorFile {
     areas.push({ id: 'path-4', finish: 'path', polygon: rectPoly(R(8.7, 19.8, 10.3, 24.8)), edgingM: 0.05 });
     areas.push({ id: 'path-west', finish: 'path', polygon: rectPoly(R(-0.6, 16.7, 6.9, 17.9)), edgingM: 0.05 });
     areas.push({ id: 'path-east', finish: 'path', polygon: rectPoly(R(12.1, 16.7, 14.4, 17.9)), edgingM: 0.05 });
-    areas.push({ id: 'play', finish: 'rubber', polygon: rectPoly(R(14.0, 12.2, 25.4, 22.6)), colour: '#B5483A', edgingM: 0.08 });
-    areas.push({ id: 'play-green', finish: 'rubber', polygon: rectPoly(R(15.4, 12.2, 18.6, 12.8)), colour: '#3E7A52' });
+    areas.push({ id: 'play', finish: 'rubber', polygon: rectPoly(R(14.0, 12.2, 25.4, 22.6)), colour: '#4B8A5A', edgingM: 0.08 });
+    // coloured islands of safety surfacing under each piece, a little wider than its fall zone's first metre
+    for (const [id, r, colour] of [['play-swing', R(14.6, 12.9, 19.4, 16.3), '#B5483A'], ['play-slide', R(21.3, 13.9, 23.7, 18.7), '#D9A93A'], ['play-seesaw', R(15.2, 19.1, 18.8, 20.9), '#3F6FA8'], ['play-climber', R(21.5, 18.5, 24.5, 21.5), '#B5483A']] as const) areas.push({ id, finish: 'rubber', polygon: rectPoly(r), colour });
     const bw = rectPoly(R(-3.7, 7.0, -2.6, 25.9)), be = rectPoly(R(28.8, 7.0, 29.7, 25.9)), bs = rectPoly(R(-2.0, 25.2, 29.0, 25.9)), bn1 = rectPoly(R(-3.7, 6.5, 4.4, 7.4)), bn2 = rectPoly(R(15.0, 6.5, 29.7, 7.4));
     for (const [id, polygon] of [['bed-w', bw], ['bed-e', be], ['bed-s', bs], ['bed-n1', bn1], ['bed-n2', bn2]] as const) areas.push({ id, finish: 'bed', polygon, edgingM: 0.15 });
     beds.push(
@@ -163,10 +167,10 @@ export function gardenFurniture(): FurnitureItem[] {
   add('garden-bench-senior', 1.4, 19.2, 180); add('garden-bench-senior', 4.2, 19.2, 180);
   add('garden-pergola', 1.5, 22.4, 0); add('garden-yoga-deck', 2.2, 13.9, 0);
   // the children's play area: swings, a slide, a see-saw and a climbing frame, each with its fall zone clear
-  add('garden-swingset', 17.0, 14.6, 0); add('garden-slide', 22.5, 15.5, 0); add('garden-seesaw', 17.0, 20.0, 0); add('garden-climber', 23.0, 20.4, 0);
+  add('garden-swingset', 17.0, 14.6, 0); add('garden-slide', 22.5, 15.5, 0); add('garden-seesaw', 17.0, 20.0, 0); add('garden-climber', 23.0, 19.8, 0);
   // lamp posts along the entrance and the plaza, bollards along the track
   for (const [x, z] of [[6.0, 6.9], [13.0, 6.9], [7.6, 13.2], [11.4, 13.2], [6.8, 20.4], [12.2, 20.4]] as const) add('garden-lamp-post', x, z, 0);
-  for (const [x, z] of [[2.2, 11.8], [14.0, 11.8], [22.6, 11.8], [26.4, 15.0], [26.4, 20.0], [22.6, 22.8], [14.0, 22.8], [2.2, 22.8], [-0.4, 20.0], [-0.4, 14.5]] as const) add('garden-bollard', x, z, 0);
+  for (const [x, z] of [[2.2, 11.8], [14.0, 11.8], [22.6, 11.8], [26.4, 15.0], [26.4, 20.0], [22.6, 22.8], [14.0, 22.8], [4.6, 22.8], [-0.4, 20.0], [-0.4, 14.5]] as const) add('garden-bollard', x, z, 0);
   add('pool-deck-planter', 5.3, 7.6, 0); add('pool-deck-planter', 13.7, 7.6, 0);
   return out;
 }

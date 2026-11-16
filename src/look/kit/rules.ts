@@ -451,7 +451,11 @@ export interface KitPlan {
   coves: CoveSite[]; skirting: SkirtingRun[]; floors: FloorSpec[];
 }
 
-export function kitPlan(layout: Layout, furniture: FurnitureItem[] = []): KitPlan {
+/** An open-air space (SPEC 19.1) has no fan, tube, switchboard, grill, cove, skirting or tiled floor: the indoor kit plans nothing for it. */
+export const EMPTY_PLAN = (): KitPlan => ({ fans: [], tubes: [], boards: [], bedheads: [], windows: [], railings: [], coves: [], skirting: [], floors: [] });
+
+export function kitPlan(layout: Layout, furniture: FurnitureItem[] = [], outdoor = false): KitPlan {
+  if (outdoor) return EMPTY_PLAN();
   const floors: FloorSpec[] = [];
   for (const r of layout.rooms) {
     if (isPartial(r) || r.polygon.length < 3) continue;

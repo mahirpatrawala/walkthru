@@ -2,6 +2,8 @@
 // walk reads a home (no-cache, and a dev server's index page is "missing").
 import { validateProperty } from '../core/layout-validate';
 import { unverifiedRoomsFromExtras } from '../core/room-trust';
+import { parseOutdoor } from '../outdoor/types';
+import type { OutdoorFile } from '../outdoor/types';
 import type { PropertyFile } from '../types';
 import { BUILDING_ID_RE, parseBuilding } from './parse';
 import type { BuildingFile, BuildingIndex } from './types';
@@ -41,7 +43,7 @@ export async function fetchBuildingIndex(): Promise<BuildingIndex> {
   }
 }
 
-export interface SceneInfo { property: PropertyFile; /** room id -> why its size was not measured */ unverified: Record<string, string> }
+export interface SceneInfo { property: PropertyFile; /** room id -> why its size was not measured */ unverified: Record<string, string>; /** an open-air space's outdoor.json: the map draws its lawn, water and planting (SPEC 19.7) */ outdoor?: OutdoorFile | null }
 const scenes = new Map<string, Promise<SceneInfo>>();
 export function fetchScene(sceneId: string): Promise<SceneInfo> {
   let p = scenes.get(sceneId);
@@ -50,7 +52,9 @@ export function fetchScene(sceneId: string): Promise<SceneInfo> {
       const property = validateProperty(await getJson(`/scenes/${sceneId}/property.json`));
       let unverified: Record<string, string> = {};
       try { unverified = unverifiedRoomsFromExtras(await getJson(`/scenes/${sceneId}/proposal-extras.json`)); } catch { /* optional */ }
-      return { property, unverified };
+      let outdoor: OutdoorFile | null = null;
+      if (property.spaceKind === 'pool' || property.spaceKind === 'garden') { try { outdoor = parseOutdoor(await getJson(`/scenes/${sceneId}/outdoor.json`)); } catch { /* optional */ } }
+      return { property, unverified, outdoor };
     })();
     p.catch(() => scenes.delete(sceneId));
     scenes.set(sceneId, p);

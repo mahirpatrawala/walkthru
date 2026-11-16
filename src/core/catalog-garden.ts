@@ -31,12 +31,12 @@ export const GARDEN_PIECES: MorePiece[] = [
   }),
   garden({
     id: 'garden-lamp-post', name: 'Lamp post', cat: 'decor', w: 0.3, d: 0.3, h: 3.6, s: 3.6,
-    label: '30 cm base, 360 cm, lantern on top (lit from evening)', params: { variant: 'lamp-post' }, pose: 'dims', kw: 'lamp post light pole garden path lantern street light evening night',
+    label: '30 cm base, 360 cm, lantern on top (lit from evening)', places: ['garden', 'pool'], params: { variant: 'lamp-post' }, pose: 'dims', kw: 'lamp post light pole garden path lantern street light evening night',
     note: 'The lantern is lit in the evening and at night. The power and its cable are not on a drawing.',
   }),
   garden({
     id: 'garden-bollard', name: 'Bollard light', cat: 'decor', w: 0.22, d: 0.22, h: 0.85, s: 0.85,
-    label: '22 cm, 85 cm high (lit from evening)', params: { variant: 'bollard' }, pose: 'dims', kw: 'bollard light path lamp low garden track evening night',
+    label: '22 cm, 85 cm high (lit from evening)', places: ['garden', 'pool'], params: { variant: 'bollard' }, pose: 'dims', kw: 'bollard light path lamp low garden track evening night',
   }),
   garden({
     id: 'garden-slide', name: 'Slide, 1.2 m platform', cat: 'amenities', w: 0.8, d: 2.7, h: 1.9, s: 1.2,

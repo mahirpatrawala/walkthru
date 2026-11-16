@@ -32,7 +32,7 @@ export const POOL_PIECES: MorePiece[] = [
   pool({
     id: 'pool-table', name: 'Pool-side table, 90 cm', cat: 'seating', w: 0.9, d: 0.9, h: 0.72, s: 0.72,
     label: '90 cm across, 72 cm high', params: { variant: 'table' }, pose: 'dims', kw: 'table round outdoor patio poolside cafe drinks',
-    zones: [between('chairs', ['front', 'back', 'left', 'right'], 0.7, '70 cm all round for chairs pulled out', 'chairs cannot be pulled out, {obs} is in the way', 'the chairs would be cramped')],
+    note: 'Allow 70 cm all round for the chairs to be pulled out: place the chairs with the table (they are separate pieces) and leave that room beyond them.',
   }),
   pool({
     id: 'pool-shower', name: 'Outdoor shower post', cat: 'amenities', w: 0.4, d: 0.4, h: 2.3, s: 2.3,

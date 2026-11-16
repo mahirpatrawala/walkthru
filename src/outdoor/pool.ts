@@ -145,13 +145,13 @@ export const CHILD: Person = { id: 'child', label: 'Child', heightCm: 120 };
 export const TODDLER: Person = { id: 'toddler', label: 'Toddler', heightCm: 90 };
 
 /** "a 175 cm adult", "a 120 cm child", or the label of a person the walker named */
-const whoOf = (p: Person): string => (p.id === 'adult' || p.id === 'child' || p.id === 'toddler' ? `a ${p.heightCm} cm ${p.id}` : `${p.label} (${p.heightCm} cm)`);
+const whoOf = (p: Person): string => (p.id === 'me' ? `you (${p.heightCm} cm)` : p.id === 'adult' || p.id === 'child' || p.id === 'toddler' ? `a ${p.heightCm} cm ${p.id}` : `${p.label} (${p.heightCm} cm)`);
 
 /** "Water reaches 1.3 m: chest-deep for a 175 cm adult; over a 120 cm child's head." The product's sentence, for any depth and any people. */
 export function depthSentence(depthM: number, people: readonly Person[] = [ADULT, CHILD]): string {
   const parts = people.map((p) => {
     const l = levelAgainst(depthM, p.heightCm);
-    if (l.overHead) return `${l.phrase === 'over their head' ? 'over' : 'up to the top of'} ${whoOf(p)}'s head`;
+    if (l.overHead) return `${l.phrase === 'over their head' ? 'over' : 'up to the top of'} ${p.id === 'me' ? 'your' : `${whoOf(p)}'s`} head`;
     return `${l.phrase} for ${whoOf(p)}`;
   });
   return `Water reaches ${depthM.toFixed(1)} m: ${parts.join('; ')}.`;

@@ -37,6 +37,8 @@ export interface KitOptions {
   store?: KitStore;
   /** starts without the kit (also `?kit=off` in the URL) */
   plain?: boolean;
+  /** an open-air space: the kit plans nothing (SPEC 19.1), whatever the Plain switch says */
+  outdoor?: boolean;
   /** where the fans, tubes and switchboards report themselves (tappable, movable) */
   registry?: FittingRegistry;
 }
@@ -72,7 +74,7 @@ function whenFound(selector: string, fn: (el: HTMLElement) => void, timeoutMs = 
 export function mountKit(o: KitOptions): KitHandle {
   const { layout } = o;
   const furniture = o.store?.pristine?.() ?? o.store?.all() ?? [];
-  const plan = kitPlan(layout, furniture);
+  const plan = kitPlan(layout, furniture, o.outdoor === true);
   const built = buildBuckets(layout, plan);
   const mats: KitMaterials = createKitMaterials(layout.finishes, { wall: o.look ? (c) => o.look!.materials().wall(c) : null });
 

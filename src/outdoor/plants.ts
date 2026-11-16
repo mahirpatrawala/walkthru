@@ -87,9 +87,9 @@ export const allHedges = (f: OutdoorFile): HedgeSeg[] => f.rows.filter((r) => r.
 
 /** the share of a bed's shrubs a tier draws (trees and palms are always all drawn), and how many leaf cards a clump of foliage gets */
 export const VEG_TIER: Record<Tier, { shrubShare: number; cardsPerClump: number; wind: boolean; clumpsPerTree: number }> = {
-  low: { shrubShare: 0.55, cardsPerClump: 5, wind: false, clumpsPerTree: 6 },
-  medium: { shrubShare: 1, cardsPerClump: 9, wind: true, clumpsPerTree: 13 },
-  high: { shrubShare: 1, cardsPerClump: 13, wind: true, clumpsPerTree: 20 },
+  low: { shrubShare: 0.55, cardsPerClump: 7, wind: false, clumpsPerTree: 8 },
+  medium: { shrubShare: 1, cardsPerClump: 16, wind: true, clumpsPerTree: 16 },
+  high: { shrubShare: 1, cardsPerClump: 22, wind: true, clumpsPerTree: 24 },
 };
 const isShrub = (s: SpeciesId): boolean => { const f = speciesOf(s).form; return f === 'shrub' || f === 'bush'; };
 
@@ -128,13 +128,14 @@ export function cardsPerPlant(species: SpeciesId, tier: Tier): number {
   }
 }
 
-export function plantBudget(f: OutdoorFile, tier: Tier): PlantBudget {
+/** `trisOf(species, tier)` is the exact triangle count of one plant (foliage.ts `speciesTriangles`); without it a rough estimate from the card counts is used */
+export function plantBudget(f: OutdoorFile, tier: Tier, trisOf?: (s: SpeciesId, t: Tier) => number): PlantBudget {
   const plants = plantsForTier(f, tier);
   const hedges = allHedges(f);
   const perSpecies: Record<string, number> = {};
   let tri = 0;
-  for (const p of plants) { perSpecies[p.species] = (perSpecies[p.species] ?? 0) + 1; tri += cardsPerPlant(p.species, tier) * 2 + (speciesOf(p.species).trunkR >= 0.1 ? 120 : 0); }
-  for (const h of hedges) { perSpecies[`hedge:${h.species}`] = (perSpecies[`hedge:${h.species}`] ?? 0) + 1; tri += 96; }
+  for (const p of plants) { perSpecies[p.species] = (perSpecies[p.species] ?? 0) + 1; tri += trisOf ? trisOf(p.species, tier) : cardsPerPlant(p.species, tier) * 2 + (speciesOf(p.species).trunkR >= 0.1 ? 120 : 0); }
+  for (const h of hedges) { perSpecies[`hedge:${h.species}`] = (perSpecies[`hedge:${h.species}`] ?? 0) + 1; tri += 752; }
   const species = Object.keys(perSpecies).length;
   return { plants: plants.length, hedgeSegments: hedges.length, drawCalls: species * 2, triangles: tri, perSpecies };
 }

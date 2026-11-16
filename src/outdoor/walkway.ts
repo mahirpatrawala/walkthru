@@ -30,6 +30,8 @@ export interface WalkwayReport {
   requiredM: number;
   sides: WalkwaySide[];
   message: string;
+  /** the pill's words: "Pool walkway clear", "Walkway blocked on the south side" */
+  short: string;
 }
 
 const SIDES: Side[] = ['N', 'E', 'S', 'W'];
@@ -94,17 +96,18 @@ const SIDE_WORD: Record<Side, string> = { N: 'north', E: 'east', S: 'south', W: 
 /** The verdict for all the pools of a space: the worst side of any of them, in words, with the assumption. */
 export function walkwayReport(pools: readonly PoolBasin[], room: Vec2[], obstacles: readonly WalkObstacle[], requiredM = WALKWAY_M): WalkwayReport {
   const sides = pools.filter((p) => !p.kids).flatMap((p) => walkwaySides({ basin: p, others: pools, room, obstacles, requiredM }));
-  if (sides.length === 0) return { verdict: 'clear', requiredM, sides: [], message: 'No pool in this space.' };
+  if (sides.length === 0) return { verdict: 'clear', requiredM, sides: [], message: 'No pool in this space.', short: 'No pool' };
   const rank = { clear: 0, tight: 1, blocked: 2 } as const;
   const bad = sides.filter((s) => s.verdict !== 'clear').sort((a, b) => rank[b.verdict] - rank[a.verdict] || a.clearM - b.clearM);
-  if (bad.length === 0) return { verdict: 'clear', requiredM, sides, message: `The walkway round the pool is clear: ${requiredM.toFixed(1)} m or more on every side (${WALKWAY_ASSUMPTION}).` };
+  if (bad.length === 0) return { verdict: 'clear', requiredM, sides, message: `The walkway round the pool is clear: ${requiredM.toFixed(1)} m or more on every side (${WALKWAY_ASSUMPTION}).`, short: `Pool walkway clear, ${requiredM.toFixed(1)} m (assumed)` };
   const w = bad[0];
   const cm = Math.round(w.clearM * 100);
   const where = `on the ${SIDE_WORD[w.side]} side`;
   const message = w.verdict === 'blocked'
     ? `Walkway blocked ${where}: ${w.by} leaves ${cm} cm, a person cannot get past the water's edge there (${WALKWAY_ASSUMPTION}).`
     : `Walkway tight ${where}: ${w.by} leaves ${cm} cm of ${Math.round(requiredM * 100)} cm (${WALKWAY_ASSUMPTION}).`;
-  return { verdict: w.verdict, requiredM, sides, message: bad.length > 1 ? `${message} ${bad.length - 1} more side${bad.length > 2 ? 's' : ''} short too.` : message };
+  const short = `Walkway ${w.verdict} ${where}`;
+  return { verdict: w.verdict, requiredM, sides, short, message: bad.length > 1 ? `${message} ${bad.length - 1} more side${bad.length > 2 ? 's' : ''} short too.` : message };
 }
 
 /** The spacing a lounger needs beside the next one: a person stepping between them. An assumption, stated by the piece. */

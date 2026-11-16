@@ -411,8 +411,8 @@
       "catalogId": "pool-shower",
       "label": "Outdoor shower post",
       "box": {
-        "cx": 16.3,
-        "cz": -1.6,
+        "cx": 14.9,
+        "cz": 0.4,
         "w": 0.4,
         "d": 0.4,
         "yawDeg": 0
@@ -437,7 +437,87 @@
       "surfaceHeightM": 1.15
     },
     {
-      "id": "pool-depth-sign-24",
+      "id": "garden-lamp-post-24",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "garden-lamp-post",
+      "label": "Lamp post",
+      "box": {
+        "cx": 16.5,
+        "cz": 4.5,
+        "w": 0.3,
+        "d": 0.3,
+        "yawDeg": 0
+      },
+      "heightM": 3.6,
+      "surfaceHeightM": 3.6
+    },
+    {
+      "id": "garden-lamp-post-25",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "garden-lamp-post",
+      "label": "Lamp post",
+      "box": {
+        "cx": 22.8,
+        "cz": 4.6,
+        "w": 0.3,
+        "d": 0.3,
+        "yawDeg": 0
+      },
+      "heightM": 3.6,
+      "surfaceHeightM": 3.6
+    },
+    {
+      "id": "garden-lamp-post-26",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "garden-lamp-post",
+      "label": "Lamp post",
+      "box": {
+        "cx": 31.5,
+        "cz": 3,
+        "w": 0.3,
+        "d": 0.3,
+        "yawDeg": 0
+      },
+      "heightM": 3.6,
+      "surfaceHeightM": 3.6
+    },
+    {
+      "id": "garden-bollard-27",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "garden-bollard",
+      "label": "Bollard light",
+      "box": {
+        "cx": 21,
+        "cz": -6.35,
+        "w": 0.22,
+        "d": 0.22,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "garden-bollard-28",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "garden-bollard",
+      "label": "Bollard light",
+      "box": {
+        "cx": 24,
+        "cz": -6.35,
+        "w": 0.22,
+        "d": 0.22,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "pool-depth-sign-29",
       "source": "virtual",
       "kind": "counter",
       "catalogId": "pool-depth-sign",
@@ -453,7 +533,7 @@
       "surfaceHeightM": 1.1
     },
     {
-      "id": "pool-depth-sign-25",
+      "id": "pool-depth-sign-30",
       "source": "virtual",
       "kind": "counter",
       "catalogId": "pool-depth-sign",
@@ -469,14 +549,14 @@
       "surfaceHeightM": 1.1
     },
     {
-      "id": "pool-deck-planter-26",
+      "id": "pool-deck-planter-31",
       "source": "virtual",
       "kind": "counter",
       "catalogId": "pool-deck-planter",
       "label": "Deck planter",
       "box": {
-        "cx": 30.8,
-        "cz": 1.2,
+        "cx": 31.4,
+        "cz": 0.5,
         "w": 0.8,
         "d": 0.8,
         "yawDeg": 0
@@ -485,7 +565,7 @@
       "surfaceHeightM": 0.6
     },
     {
-      "id": "pool-deck-planter-27",
+      "id": "pool-deck-planter-32",
       "source": "virtual",
       "kind": "counter",
       "catalogId": "pool-deck-planter",
@@ -501,7 +581,7 @@
       "surfaceHeightM": 0.6
     },
     {
-      "id": "pool-deck-planter-28",
+      "id": "pool-deck-planter-33",
       "source": "virtual",
       "kind": "counter",
       "catalogId": "pool-deck-planter",
@@ -529,8 +609,8 @@
         "d": 0.06,
         "yawDeg": 90
       },
-      "heightM": 0.45,
-      "surfaceHeightM": 0.45
+      "heightM": 2.15,
+      "surfaceHeightM": 2.15
     },
     {
       "id": "pool-sign-2",
@@ -545,8 +625,8 @@
         "d": 0.06,
         "yawDeg": 90
       },
-      "heightM": 0.45,
-      "surfaceHeightM": 0.45
+      "heightM": 2.15,
+      "surfaceHeightM": 2.15
     }
   ],
   "spawn": {

@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateBuilding } from '../../src/building/validate';
+import { validateOutdoor } from '../../src/outdoor/validate';
 import { parseBuilding } from '../../src/building/parse';
 import type { BuildingFile, Level, Portal, Space } from '../../src/building/types';
 import type { PropertyFile } from '../../src/types';
@@ -215,6 +216,14 @@ async function main(): Promise<void> {
       for (const e of rep.errors) console.log('  ERROR ', e);
       for (const w of rep.warnings) console.log('  warning', w);
       if (rep.errors.length > 0 && args.includes('--write')) throw new Error(`${bd.id} does not validate; nothing written`);
+    }
+    for (const [id, sc] of built.scenes) {
+      if (!sc.outdoor) continue;
+      const rep = validateOutdoor(sc.outdoor, sc.property.layout);
+      console.log(`${id}: outdoor ${rep.errors.length} errors, ${rep.warnings.length} warnings`);
+      for (const e of rep.errors) console.log('  ERROR ', e);
+      for (const w of rep.warnings) console.log('  warning', w);
+      if (rep.errors.length > 0 && args.includes('--write')) throw new Error(`${id} outdoor.json does not validate; nothing written`);
     }
     if (args.includes('--write')) { writeAll(built); console.log(`wrote ${built.buildings.length} buildings and ${built.scenes.size} scenes`); }
     else if (!args.includes('--check')) { console.error('usage: tsx scripts/building/make-sample-building.ts --write | --check'); process.exit(2); }

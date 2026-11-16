@@ -27,15 +27,15 @@ interface GroundSpec {
 }
 
 export const GROUND: Record<GroundKind, GroundSpec> = {
-  lawn: { tex: 'leafy_grass', mean: 0.2389, tile: 1.6, tint: '#4F9230', roughness: 0.95, normalScale: 0.9, strength: 0.85, noise: 0.2, dry: 0.28 },
-  deck: { tex: 'wood_floor_deck', mean: 0.06, tile: 2.0, tint: '#9B6B45', roughness: 0.62, normalScale: 0.8, strength: 1.0, noise: 0.1, dry: 0 },
+  lawn: { tex: 'leafy_grass', mean: 0.2389, tile: 1.6, tint: '#548C35', roughness: 0.95, normalScale: 0.9, strength: 0.85, noise: 0.2, dry: 0.28 },
+  deck: { tex: 'wood_floor_deck', mean: 0.06, tile: 2.0, tint: '#8F6B4B', roughness: 0.62, normalScale: 0.8, strength: 1.0, noise: 0.1, dry: 0 },
   paving: { tex: 'red_sandstone_pavement', mean: 0.1068, tile: 1.8, tint: '#C9B49A', roughness: 0.88, normalScale: 0.9, strength: 0.9, noise: 0.1, dry: 0 },
   path: { tex: 'interlocking_concrete_pavers', mean: 0.0912, tile: 1.2, tint: '#B6AFA6', roughness: 0.9, normalScale: 0.9, strength: 0.9, noise: 0.08, dry: 0 },
   gravel: { tex: 'gravel_floor_02', mean: 0.3875, tile: 1.1, tint: '#D4CAB6', roughness: 0.97, normalScale: 1.0, strength: 0.9, noise: 0.1, dry: 0 },
   bed: { tex: 'farm_soil', mean: 0.0588, tile: 0.9, tint: '#6A4A33', roughness: 1, normalScale: 1, strength: 0.9, noise: 0.14, dry: 0 },
   'soil-kerb': { tex: null, mean: 1, tile: 1, tint: '#C9C2B5', roughness: 0.92, normalScale: 0, strength: 0, noise: 0.08, dry: 0 },
-  rubber: { tex: 'rubber_tiles', mean: 0.0158, tile: 1.0, tint: '#B5483A', roughness: 0.95, normalScale: 0, strength: 0.45, noise: 0.05, dry: 0 },
-  track: { tex: 'rubber_tiles', mean: 0.0158, tile: 1.0, tint: '#A8453A', roughness: 0.92, normalScale: 0, strength: 0.25, noise: 0.04, dry: 0 },
+  rubber: { tex: 'rubber_tiles', mean: 0.0158, tile: 1.0, tint: '#A8483B', roughness: 0.95, normalScale: 0, strength: 0.45, noise: 0.05, dry: 0 },
+  track: { tex: 'rubber_tiles', mean: 0.0158, tile: 1.0, tint: '#8F4338', roughness: 0.92, normalScale: 0, strength: 0.25, noise: 0.04, dry: 0 },
 };
 
 export interface GroundTweaks { colour?: string; stripes?: boolean }

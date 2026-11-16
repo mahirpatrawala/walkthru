@@ -236,7 +236,7 @@
       "label": "Climbing frame",
       "box": {
         "cx": 23,
-        "cz": 20.4,
+        "cz": 19.8,
         "w": 2,
         "d": 2,
         "yawDeg": 0
@@ -459,7 +459,7 @@
       "catalogId": "garden-bollard",
       "label": "Bollard light",
       "box": {
-        "cx": 2.2,
+        "cx": 4.6,
         "cz": 22.8,
         "w": 0.22,
         "d": 0.22,

@@ -12,3 +12,12 @@ export function outdoorExposure(g: Pick<Grade, 'sunIntensity' | 'night'>): numbe
 
 /** the low tier has no sun shadow, so indoors its sun is turned right down (0.1); outdoors it needs most of its strength to read as sunlight at all */
 export function outdoorSunScale(tierScale: number): number { return Math.max(tierScale, 0.8); }
+
+/**
+ * Dusk and night outdoors are not as dark as the interior grade would leave them: there is a moon and a sky, and the eye has adapted. The hemisphere
+ * (sky and ground bounce) is lifted as the sun goes: 1 in full sun, 1.8 at sunset, 2.2 at night.
+ */
+export function outdoorHemiBoost(g: Pick<Grade, 'sunIntensity' | 'night'>): number {
+  if (g.night) return 2.2;
+  return 1 + 0.8 * (1 - Math.min(1, g.sunIntensity / 5.4));
+}

@@ -343,6 +343,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     outdoor = await om.mountOutdoor({ scene: viewer.scene, layout, file: outdoorFile, look, tier: startTier });
     const o0 = outdoor;
     cleanup.push(() => o0.dispose());
+    // a walker cannot walk on water: the basins stop them at the coping (SPEC 19.3)
+    if (outdoorFile.pools.length) store.setTemporary('pool', (await import('../outdoor/pool')).waterObstacles(outdoorFile.pools));
     look?.refresh(store.grid());
   }
   loading.setProgress(0.3, 'Loading the walker…');
@@ -419,6 +421,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   if (tagText) mountSceneTag(hud.root, tagText);
   if (uploaded) { const up = uploaded; void import('../upload/notes-panel').then((m) => m.mountUploadNote(hud.root, up.data.notes, sceneId, up.source === 'sample')); }
   mountHomeLink(hud.root);
+  // a pool: the depth pill, the walkway verdict and the depth card (SPEC 19.3)
+  outdoor?.attachUi({ host: hud.root, walker: { position: () => character.position, heightCm: () => heightCm }, items: () => store.all(), onItemsChange: (cb) => store.onChange(cb), block: (on) => { extBlock = on; } });
   const partialBadge = mountPartialBadge(hud.root);
   // C11c: the painterly mode is a lazy chunk, fetched only when the buyer taps "Show as a painting"
   type PaintSession = import('../look/painterly/index').PaintingSession;
@@ -608,7 +612,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   design = mountDesign({
     scene: viewer.scene, layout, shell, look, store, tier: startTier, registry: fittingRegistry,
     beforeRestyle: () => { kit?.dispose(); kit = null; },
-    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store, registry: fittingRegistry, ...(host?.bare || outdoorFile || (host && host.space.kind !== 'home') ? { plain: true } : {}) }); }, // a lobby, a corridor or a gym has no flat fittings (window grills, switchboards, fans) by default
+    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store, registry: fittingRegistry, outdoor: !!outdoorFile, ...(host?.bare || outdoorFile || (host && host.space.kind !== 'home') ? { plain: true } : {}) }); }, // a lobby, a corridor or a gym has no flat fittings (window grills, switchboards, fans) by default
   });
   cleanup.push(() => { design?.dispose(); kit?.dispose(); kit = null; });
   // a new style rebuilds the furniture and the openable wardrobes' shutters (the decor and rooms are rebuilt by mountDesign itself)
@@ -776,6 +780,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     }
     people!.people.update(dt);
     people!.ui.update(dt);
+    outdoor?.update(dt);
     // below a 0.7 m boom the character is hidden, above 0.8 m it comes back (SPEC 2.4)
     if (camera.boom < 0.7) character.setVisible(false);
     else if (camera.boom > 0.8) character.setVisible(true);
@@ -921,6 +926,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     },
     /** the CC0 model library (SPEC 16.15): files fetched so far, and a promise for when nothing is loading */
     models: { stats: modelStats, idle: modelsIdle, lived: () => livedIn?.pieces() ?? [] },
+    /** SPEC 19: the open-air parts of this space (null in a room) */
+    outdoor,
     /** open-wardrobe hooks for the acceptance scripts */
     wardrobe: wardrobes.debug,
     /** SPEC 16.8 hooks. `ready` is the current tier's asset promise (a getter, so it follows tier changes). */
