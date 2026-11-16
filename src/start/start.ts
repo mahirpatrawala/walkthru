@@ -12,6 +12,9 @@ import type { SceneEntry, SceneIndex } from './manifest';
 import { renderUploadCard } from '../upload/card';
 import { deleteLocal, loadLocalEntries } from '../upload/local-index';
 import { SAMPLE_UPLOAD_TAG } from '../upload/tag';
+import { fetchBuildingIndex } from '../building/load';
+import { renderBuildingList, renderBuildingPage } from '../building/start-section';
+import type { BuildingIndex } from '../building/types';
 
 function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string, parent?: HTMLElement): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -70,6 +73,8 @@ export async function mountStart(): Promise<void> {
   let index: SceneIndex;
   // the plans this visitor uploaded live in this browser; they never touch the server's list
   const minePromise = loadLocalEntries().catch((): SceneEntry[] => []);
+  // the buildings (public/buildings/index.json): a missing or broken list only means no Buildings section
+  const buildingsPromise = fetchBuildingIndex().catch((): BuildingIndex => ({ version: 1, buildings: [] }));
   try {
     index = await loadIndex();
   } catch (err) {
@@ -85,6 +90,7 @@ export async function mountStart(): Promise<void> {
   }
 
   clearInterval(lineTimer);
+  const buildings = await buildingsPromise;
   let mine = await minePromise;
   const refreshMine = async (): Promise<void> => { mine = await loadLocalEntries().catch((): SceneEntry[] => []); route(); };
   const route = (fresh = false): void => {
@@ -101,8 +107,10 @@ export async function mountStart(): Promise<void> {
     const home = [...mine, ...index.scenes].find((s) => s.id === wanted);
     root.replaceChildren();
     root.scrollTop = 0;
-    if (home) renderPicker(root, home, q.get('room'), go);
-    else renderGallery(root, index, mine, go, () => { void refreshMine(); });
+    const wantedBuilding = q.get('building')?.trim();
+    if (wantedBuilding) void renderBuildingPage(root, wantedBuilding, go);
+    else if (home) renderPicker(root, home, q.get('room'), go);
+    else renderGallery(root, index, mine, buildings, go, () => { void refreshMine(); });
   };
   const go = (url: string): void => { history.pushState(null, '', url); route(); };
   window.addEventListener('popstate', () => route());
@@ -157,11 +165,12 @@ function renderHero(root: HTMLElement): void {
   art.innerHTML = heroSvg(); // generated from numbers in hero-art.ts, no page data in it
 }
 
-function renderGallery(root: HTMLElement, index: SceneIndex, mine: SceneEntry[], go: Go, refreshMine: () => void): void {
+function renderGallery(root: HTMLElement, index: SceneIndex, mine: SceneEntry[], buildings: BuildingIndex, go: Go, refreshMine: () => void): void {
   document.title = 'walkthru · Walk through a flat before you visit it';
   renderHero(root);
   renderUploadCard(root, go);
   if (mine.length > 0) renderUploads(root, mine, go, refreshMine);
+  renderBuildingList(root, buildings, go);
   const section = h('div', 'ws-section', undefined, root);
   section.id = 'homes';
   h('h2', undefined, 'Pick a home', section);

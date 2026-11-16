@@ -60,7 +60,7 @@ export function paintPerson(shared: Parameters<typeof pinDabs>[0], character: { 
   };
   const colour: Record<Role, string> = {
     skin: SKIN_TONES[clampTone(character.tone)],
-    top: matColour('top', '#E8823A'), bottom: matColour('bottom', '#E8E0CC'), wrap: matColour('wrap', '#9A2E4C'), trim: matColour('trim', '#C9A24A'),
+    top: matColour('top', '#B71C6C'), bottom: matColour('bottom', '#E8E0CC'), wrap: matColour('wrap', '#9A2E4C'), trim: matColour('trim', '#C9A24A'),
     shoes: matColour('shoes', '#4B3A2E'), hair: matColour('hair', '#1D1815'),
   };
 

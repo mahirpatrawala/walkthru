@@ -1,0 +1,44 @@
+/* People a viewer adds (src/buyer/people). Uses the buyer tokens (--wt-*). The person card sits in the HUD's bottom slot, above the safe area. */
+.wtp-root {
+  display: flex; justify-content: center; padding: 0 12px calc(12px + var(--wt-safe-b, 0px)); box-sizing: border-box; pointer-events: none;
+  user-select: none; -webkit-user-select: none;
+}
+.wtp-root > * { pointer-events: auto; }
+.wtp-root [hidden], .wtp-card[hidden] { display: none !important; }
+.wtp-card {
+  width: 100%; max-width: 440px; box-sizing: border-box; padding: 12px 14px 12px 16px; background: var(--wt-card, #fff); border-radius: 6px 14px 14px 6px;
+  border-left: 6px solid var(--wt-teal, #1E6B73); box-shadow: var(--wt-shadow, 0 2px 12px rgba(0,0,0,.16));
+}
+.wtp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wtp-title { font-family: var(--wt-display, inherit); font-size: 19px; font-weight: 800; letter-spacing: -0.01em; color: var(--wt-ink, #2B211C); }
+.wtp-x { width: 40px; height: 40px; margin: -6px -6px -6px 0; border: 0; background: none; border-radius: 50%; font-size: 22px; line-height: 1; color: var(--wt-muted, #6B5E55); cursor: pointer; }
+.wtp-lines { margin: 2px 0 10px; font-size: 14px; line-height: 1.4; color: var(--wt-ink, #2B211C); }
+.wtp-line + .wtp-line { color: var(--wt-muted, #6B5E55); font-size: 13px; }
+.wtp-seg { display: flex; gap: 4px; margin: 0 0 8px; padding: 4px; border-radius: 999px; background: #f3f4f7; }
+.wtp-seg-b {
+  flex: 1; min-height: 40px; border: 0; border-radius: 999px; background: transparent; color: var(--wt-ink, #2B211C); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.wtp-seg-b.is-on { background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18); }
+.wtp-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.wtp-b {
+  min-height: 44px; padding: 0 8px; border: 0; border-radius: 999px; background: var(--wt-paper-2, #EFE5D3); color: var(--wt-ink, #2B211C);
+  font-family: var(--wt-display, inherit); font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.wtp-b:hover:not(:disabled) { background: #E6DAC5; }
+.wtp-b:disabled { opacity: 0.45; cursor: default; }
+.wtp-b.is-wide { grid-column: span 2; background: var(--wt-teal, #1E6B73); color: #fff; }
+.wtp-b.is-wide:hover { background: var(--wt-teal-dark, #17545B); }
+.wtp-b.is-danger { background: #FBEAE4; color: var(--wt-bad, #D64545); }
+.wtp-b:focus-visible, .wtp-seg-b:focus-visible, .wtp-x:focus-visible { outline: 3px solid var(--wt-ochre, #E3A33A); outline-offset: 2px; }
+
+/* the "Add a person" line on the walker's sheet, and the quiet way out of the add and change sheets */
+.wt-add-person {
+  width: 100%; min-height: 44px; margin: 0 0 10px; border: 2px solid var(--wt-teal, #1E6B73); border-radius: 999px; background: transparent; color: var(--wt-teal, #1E6B73);
+  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.wt-add-person:hover:not(:disabled) { background: var(--wt-teal-soft, #DCEEEE); }
+.wt-add-person:disabled { opacity: 0.55; cursor: default; }
+.wt-cancel-btn {
+  display: block; width: 100%; min-height: 40px; margin-top: 6px; border: 0; background: none; color: var(--wt-muted, #6B5E55); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px;
+}

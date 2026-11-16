@@ -19,7 +19,7 @@ import type { BuyerContext } from './context';
 import { toneColor } from './overlays';
 import { distanceToBox, wallBetween } from './store';
 import type { FurnitureStoreImpl } from './store';
-import { setSwingProvider } from './wardrobe-hooks';
+import { setSwingProvider, withExtraObstacles } from './wardrobe-hooks';
 import { REPLACED_NAMES, buildWardrobeModel } from './wardrobe-model';
 import type { WardrobeModel } from './wardrobe-model';
 import {
@@ -231,7 +231,7 @@ export function createWardrobes(deps: { ctx: BuyerContext; store: FurnitureStore
   const shutterIn = (rec: Rec, bays: number[] | undefined): Shutter[] => rec.spec.shutters.filter((s) => !bays || bays.includes(s.bay));
 
   /** The grid with everything except this wardrobe and every temporary obstacle, which is what a shutter swings through. */
-  const freeGrid = (rec: Rec) => store.gridWithout([rec.item.id], false);
+  const freeGrid = (rec: Rec) => withExtraObstacles(store.gridWithout([rec.item.id], false));
 
   function refreshObstacles(rec: Rec): void {
     const list: { box: Box; heightM: number }[] = [];

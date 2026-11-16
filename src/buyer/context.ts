@@ -54,7 +54,7 @@ export interface BuyerContext {
    * The one hit-test of a tap, for furniture and fittings alike: the nearest thing under the pointer. A fitting is hit by an oriented box (small things get a
    * generous reach, more on a phone), furniture by its mesh; a wall or floor in front of either hides it. Nothing under the pointer: null.
    */
-  pickAt?(e: PointerEvt): { kind: 'item' | 'fitting'; id: string; dist: number } | null;
+  pickAt?(e: PointerEvt): { kind: 'item' | 'fitting' | 'person'; id: string; dist: number } | null;
   /** ray against the walls and floor only (no furniture): where a wall fitting would go */
   raycastWalls?(e: PointerEvt): { x: number; y: number; z: number } | null;
   /** ray against the ceiling plane of the home */
@@ -141,6 +141,8 @@ export interface ContextDeps {
   modes: ModeManager;
   /** rooms whose size was not measured (drawing import), id -> reason; omitted when every room is measured */
   unverifiedRooms?: UnverifiedRooms;
+  /** more things a ray may hit besides the shell and the furniture: the people a buyer added, so the measure tool can measure against them and a tap can pick them */
+  extraTargets?: () => THREE.Object3D[];
   fittings?: FittingsApi;
 }
 
@@ -154,6 +156,15 @@ export function createBuyerContext(d: ContextDeps): BuyerContext {
   const itemIdOf = (o: THREE.Object3D | null): string | null => {
     while (o) {
       const id = o.userData?.itemId ?? o.userData?.openableFor;
+      if (typeof id === 'string') return id;
+      o = o.parent;
+    }
+    return null;
+  };
+
+  const personIdOf = (o: THREE.Object3D | null): string | null => {
+    while (o) {
+      const id = o.userData?.personId;
       if (typeof id === 'string') return id;
       o = o.parent;
     }
@@ -177,7 +188,7 @@ export function createBuyerContext(d: ContextDeps): BuyerContext {
     mode: () => d.modes.id,
     raycast(e) {
       setRay(e);
-      const hits = raycaster.intersectObjects([d.shell, d.furnitureRoot], true);
+      const hits = raycaster.intersectObjects([d.shell, d.furnitureRoot, ...(d.extraTargets?.() ?? [])], true);
       const h = hits[0];
       if (!h) return null;
       return { point: { x: h.point.x, y: h.point.y, z: h.point.z }, object: h.object };
@@ -196,6 +207,11 @@ export function createBuyerContext(d: ContextDeps): BuyerContext {
       const blocker = first ? first.distance : Infinity;
       const fit = d.fittings?.pick({ origin: { x: raycaster.ray.origin.x, y: raycaster.ray.origin.y, z: raycaster.ray.origin.z }, dir: { x: raycaster.ray.direction.x, y: raycaster.ray.direction.y, z: raycaster.ray.direction.z } }, touch) ?? null;
       // a fitting stands on its wall, floor or piece: it is hit just before the surface it is on
+      // an added person is a body in the room: the nearest of piece, fitting and person wins
+      const extra = d.extraTargets?.() ?? [];
+      const ph = extra.length && d.modes.id === 'walk' ? raycaster.intersectObjects(extra, true)[0] : undefined; // not while furnishing: pieces are edited, people are not
+      const personId = ph ? personIdOf(ph.object) : null;
+      if (personId && ph && ph.distance < blocker && (!fit || ph.distance <= fit.dist)) return { kind: 'person', id: personId, dist: ph.distance };
       if (fit && fit.dist <= blocker + 0.03) return { kind: 'fitting', id: fit.id, dist: fit.dist };
       if (itemId) return { kind: 'item', id: itemId, dist: blocker };
       return null;

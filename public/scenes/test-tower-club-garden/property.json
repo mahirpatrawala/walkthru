@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "test-tower-club-garden",
+  "title": "Garden (placeholder)",
+  "subtitle": "Sample building · made-up layout for demonstration",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "garden",
+        "roomType": "other",
+        "label": "Garden (placeholder)",
+        "polygon": [
+          {
+            "x": 1,
+            "z": 6.3
+          },
+          {
+            "x": 15,
+            "z": 6.3
+          },
+          {
+            "x": 15,
+            "z": 16.3
+          },
+          {
+            "x": 1,
+            "z": 16.3
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-foyer",
+        "roomId": "garden",
+        "edge": 0,
+        "type": "door",
+        "centreM": 8.5,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EDEADF",
+      "floorColor": "#A9B58F",
+      "tile": null,
+      "groutColor": "#B9AE9F",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 9.5,
+    "z": 8,
+    "yawDeg": 180
+  },
+  "unlisted": true,
+  "spaceKind": "garden",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

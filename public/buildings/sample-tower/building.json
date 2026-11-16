@@ -1,0 +1,801 @@
+{
+  "version": 1,
+  "id": "sample-tower",
+  "name": "Sample Tower (made-up)",
+  "subtitle": "Lobby, lifts, four flats a floor and a clubhouse level",
+  "sample": true,
+  "note": "Sample layout for demonstration",
+  "floorToFloorM": 3.1,
+  "flatTypes": {
+    "1bhk": {
+      "name": "1 BHK",
+      "sceneId": "test-tower-flat-1bhk",
+      "mirrorSceneId": "test-tower-flat-1bhk-m"
+    },
+    "2bhk-a": {
+      "name": "2 BHK (A)",
+      "sceneId": "test-tower-flat-2bhk-a"
+    },
+    "2bhk-b": {
+      "name": "2 BHK (B)",
+      "sceneId": "test-tower-flat-2bhk-b",
+      "mirrorSceneId": "test-tower-flat-2bhk-b-m"
+    },
+    "3bhk": {
+      "name": "3 BHK",
+      "sceneId": "test-tower-flat-3bhk"
+    }
+  },
+  "lifts": [
+    {
+      "id": "lift-a",
+      "name": "Lift A",
+      "car": {
+        "widthM": 1.1,
+        "depthM": 1.4,
+        "doorM": 0.9
+      },
+      "serves": [
+        "g",
+        "l1",
+        "l2",
+        "l3"
+      ]
+    },
+    {
+      "id": "lift-b",
+      "name": "Lift B",
+      "car": {
+        "widthM": 1.1,
+        "depthM": 1.4,
+        "doorM": 0.9
+      },
+      "serves": [
+        "g",
+        "l1",
+        "l2",
+        "l3"
+      ]
+    }
+  ],
+  "levels": [
+    {
+      "id": "g",
+      "label": "Ground",
+      "short": "G",
+      "summary": "Entrance lobby, lifts",
+      "floorToFloorM": 4.2,
+      "spaces": [
+        {
+          "id": "lobby",
+          "kind": "lobby",
+          "name": "Entrance lobby",
+          "sceneId": "test-tower-lobby",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "lobbyAnchors": [
+            {
+              "id": "reception",
+              "role": "reception",
+              "at": {
+                "x": 6,
+                "z": 0.95
+              },
+              "yawDeg": 0,
+              "footprint": {
+                "w": 3.2,
+                "d": 0.7
+              },
+              "note": "Along the north wall, facing the street door, clear of the clubhouse door and the opening to the lifts."
+            },
+            {
+              "id": "security",
+              "role": "security",
+              "at": {
+                "x": 7.7,
+                "z": 5.9
+              },
+              "yawDeg": 270,
+              "footprint": {
+                "w": 1.6,
+                "d": 0.6
+              },
+              "note": "By the street door on the lift side, facing across the lobby."
+            },
+            {
+              "id": "seating",
+              "role": "seating",
+              "at": {
+                "x": 2.2,
+                "z": 4.3
+              },
+              "yawDeg": 90,
+              "footprint": {
+                "w": 3.8,
+                "d": 2.6
+              },
+              "note": "The waiting corner in the south-west. The sample puts two sofas, an armchair and a side table here; they can be replaced."
+            },
+            {
+              "id": "letterboxes",
+              "role": "letterboxes",
+              "at": {
+                "x": 0.2,
+                "z": 1.9
+              },
+              "yawDeg": 90,
+              "footprint": {
+                "w": 2.4,
+                "d": 0.3
+              },
+              "note": "The letterbox wall: the west wall north of the seating, a bank of boxes about 2.4 m long."
+            }
+          ],
+          "notes": [
+            "Seating from the catalogue. The reception desk, security desk and letterbox wall are marked positions (lobbyAnchors), left empty for the pieces that come in the next stage."
+          ],
+          "portals": [
+            {
+              "id": "street",
+              "kind": "outside",
+              "opening": "door-street",
+              "label": "The street",
+              "prompt": "To the street",
+              "look": "glass"
+            },
+            {
+              "id": "lift-a",
+              "kind": "lift",
+              "opening": "lift-a",
+              "lift": "lift-a"
+            },
+            {
+              "id": "lift-b",
+              "kind": "lift",
+              "opening": "lift-b",
+              "lift": "lift-b"
+            },
+            {
+              "id": "stairs",
+              "kind": "stairs",
+              "opening": "door-stairs",
+              "label": "Stairs"
+            },
+            {
+              "id": "clubhouse",
+              "kind": "door",
+              "opening": "door-clubhouse",
+              "to": {
+                "space": "clubhouse",
+                "portal": "walkway"
+              },
+              "label": "The clubhouse (level 1)",
+              "prompt": "To the clubhouse",
+              "look": "glass"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "l1",
+      "label": "Level 1",
+      "short": "1",
+      "summary": "Clubhouse: hall, gym, pool, garden",
+      "floorToFloorM": 4.2,
+      "spaces": [
+        {
+          "id": "clubhouse",
+          "kind": "corridor",
+          "name": "Clubhouse foyer",
+          "sceneId": "test-tower-club-foyer",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "portals": [
+            {
+              "id": "lift-a",
+              "kind": "lift",
+              "opening": "lift-a",
+              "lift": "lift-a"
+            },
+            {
+              "id": "lift-b",
+              "kind": "lift",
+              "opening": "lift-b",
+              "lift": "lift-b"
+            },
+            {
+              "id": "stairs",
+              "kind": "stairs",
+              "opening": "door-stairs",
+              "label": "Stairs"
+            },
+            {
+              "id": "walkway",
+              "kind": "door",
+              "opening": "door-walkway",
+              "to": {
+                "space": "lobby",
+                "portal": "clubhouse"
+              },
+              "label": "The ground floor",
+              "prompt": "To the ground floor",
+              "look": "glass"
+            },
+            {
+              "id": "hall",
+              "kind": "door",
+              "opening": "door-hall",
+              "to": {
+                "space": "hall",
+                "portal": "foyer"
+              },
+              "label": "Community hall",
+              "prompt": "Enter the community hall",
+              "look": "plain"
+            },
+            {
+              "id": "gym",
+              "kind": "door",
+              "opening": "door-gym",
+              "to": {
+                "space": "gym",
+                "portal": "foyer"
+              },
+              "label": "Gym",
+              "prompt": "Enter the gym",
+              "look": "plain"
+            },
+            {
+              "id": "pool",
+              "kind": "door",
+              "opening": "door-pool",
+              "to": {
+                "space": "pool",
+                "portal": "foyer"
+              },
+              "label": "Pool area",
+              "prompt": "Enter the pool area",
+              "look": "plain"
+            },
+            {
+              "id": "garden",
+              "kind": "door",
+              "opening": "door-garden",
+              "to": {
+                "space": "garden",
+                "portal": "foyer"
+              },
+              "label": "Garden",
+              "prompt": "Enter the garden",
+              "look": "plain"
+            }
+          ]
+        },
+        {
+          "id": "hall",
+          "kind": "hall",
+          "name": "Community hall",
+          "sceneId": "test-tower-club-hall",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "notes": [
+            "Empty hall, about 12 × 8.4 m."
+          ],
+          "portals": [
+            {
+              "id": "foyer",
+              "kind": "door",
+              "opening": "door-foyer",
+              "to": {
+                "space": "clubhouse",
+                "portal": "hall"
+              },
+              "label": "The clubhouse foyer",
+              "prompt": "To the clubhouse foyer",
+              "look": "plain"
+            }
+          ]
+        },
+        {
+          "id": "gym",
+          "kind": "gym",
+          "name": "Gym",
+          "sceneId": "test-tower-club-gym",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "notes": [
+            "Empty room, about 8 × 12 m. A mirror wall on the long west side comes in the next stage."
+          ],
+          "portals": [
+            {
+              "id": "foyer",
+              "kind": "door",
+              "opening": "door-foyer",
+              "to": {
+                "space": "clubhouse",
+                "portal": "gym"
+              },
+              "label": "The clubhouse foyer",
+              "prompt": "To the clubhouse foyer",
+              "look": "plain"
+            }
+          ]
+        },
+        {
+          "id": "pool",
+          "kind": "pool",
+          "name": "Pool area",
+          "sceneId": "test-tower-club-pool",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "notes": [
+            "A plain room the size of the pool deck, about 16 × 9 m. No water yet."
+          ],
+          "portals": [
+            {
+              "id": "foyer",
+              "kind": "door",
+              "opening": "door-foyer",
+              "to": {
+                "space": "clubhouse",
+                "portal": "pool"
+              },
+              "label": "The clubhouse foyer",
+              "prompt": "To the clubhouse foyer",
+              "look": "plain"
+            }
+          ],
+          "comingNext": true
+        },
+        {
+          "id": "garden",
+          "kind": "garden",
+          "name": "Garden",
+          "sceneId": "test-tower-club-garden",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "notes": [
+            "A plain room the size of the garden, about 14 × 10 m. No planting yet."
+          ],
+          "portals": [
+            {
+              "id": "foyer",
+              "kind": "door",
+              "opening": "door-foyer",
+              "to": {
+                "space": "clubhouse",
+                "portal": "garden"
+              },
+              "label": "The clubhouse foyer",
+              "prompt": "To the clubhouse foyer",
+              "look": "plain"
+            }
+          ],
+          "comingNext": true
+        }
+      ]
+    },
+    {
+      "id": "l2",
+      "label": "Level 2",
+      "short": "2",
+      "summary": "Flats 201 to 204",
+      "spaces": [
+        {
+          "id": "f2-corridor",
+          "kind": "corridor",
+          "name": "Corridor and lift lobby",
+          "sceneId": "test-tower-corridor",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "portals": [
+            {
+              "id": "lift-a",
+              "kind": "lift",
+              "opening": "lift-a",
+              "lift": "lift-a"
+            },
+            {
+              "id": "lift-b",
+              "kind": "lift",
+              "opening": "lift-b",
+              "lift": "lift-b"
+            },
+            {
+              "id": "stairs",
+              "kind": "stairs",
+              "opening": "door-stairs",
+              "label": "Stairs"
+            },
+            {
+              "id": "flat-201",
+              "kind": "door",
+              "opening": "door-ne",
+              "to": {
+                "space": "f2-201",
+                "portal": "main"
+              },
+              "label": "Flat 201",
+              "prompt": "Enter Flat 201",
+              "look": "main",
+              "plate": "201"
+            },
+            {
+              "id": "flat-202",
+              "kind": "door",
+              "opening": "door-se",
+              "to": {
+                "space": "f2-202",
+                "portal": "main"
+              },
+              "label": "Flat 202",
+              "prompt": "Enter Flat 202",
+              "look": "main",
+              "plate": "202"
+            },
+            {
+              "id": "flat-203",
+              "kind": "door",
+              "opening": "door-nw",
+              "to": {
+                "space": "f2-203",
+                "portal": "main"
+              },
+              "label": "Flat 203",
+              "prompt": "Enter Flat 203",
+              "look": "main",
+              "plate": "203"
+            },
+            {
+              "id": "flat-204",
+              "kind": "door",
+              "opening": "door-sw",
+              "to": {
+                "space": "f2-204",
+                "portal": "main"
+              },
+              "label": "Flat 204",
+              "prompt": "Enter Flat 204",
+              "look": "main",
+              "plate": "204"
+            }
+          ]
+        },
+        {
+          "id": "f2-201",
+          "kind": "home",
+          "name": "Flat 201 · 3 BHK",
+          "sceneId": "test-tower-flat-3bhk",
+          "type": "3bhk",
+          "placement": {
+            "x": 4.997306893797185,
+            "z": 6.5277959591481585,
+            "rotDeg": 90
+          },
+          "portals": [
+            {
+              "id": "main",
+              "kind": "door",
+              "opening": "door-8",
+              "to": {
+                "space": "f2-corridor",
+                "portal": "flat-201"
+              },
+              "label": "The corridor",
+              "prompt": "To the corridor",
+              "look": "main",
+              "plate": "201"
+            }
+          ]
+        },
+        {
+          "id": "f2-202",
+          "kind": "home",
+          "name": "Flat 202 · 1 BHK",
+          "sceneId": "test-tower-flat-1bhk-m",
+          "type": "1bhk",
+          "mirrored": true,
+          "placement": {
+            "x": 4.357500059708305,
+            "z": 17.338092947253443,
+            "rotDeg": 90
+          },
+          "portals": [
+            {
+              "id": "main",
+              "kind": "door",
+              "opening": "door-5",
+              "to": {
+                "space": "f2-corridor",
+                "portal": "flat-202"
+              },
+              "label": "The corridor",
+              "prompt": "To the corridor",
+              "look": "main",
+              "plate": "202"
+            }
+          ]
+        },
+        {
+          "id": "f2-203",
+          "kind": "home",
+          "name": "Flat 203 · 2 BHK (A)",
+          "sceneId": "test-tower-flat-2bhk-a",
+          "type": "2bhk-a",
+          "placement": {
+            "x": -4.45749992957482,
+            "z": 5.455000539926382,
+            "rotDeg": 270
+          },
+          "portals": [
+            {
+              "id": "main",
+              "kind": "door",
+              "opening": "door-8",
+              "to": {
+                "space": "f2-corridor",
+                "portal": "flat-203"
+              },
+              "label": "The corridor",
+              "prompt": "To the corridor",
+              "look": "main",
+              "plate": "203"
+            }
+          ]
+        },
+        {
+          "id": "f2-204",
+          "kind": "home",
+          "name": "Flat 204 · 2 BHK (B)",
+          "sceneId": "test-tower-flat-2bhk-b-m",
+          "type": "2bhk-b",
+          "mirrored": true,
+          "placement": {
+            "x": -4.357507962013844,
+            "z": 16.874995391298498,
+            "rotDeg": 270
+          },
+          "portals": [
+            {
+              "id": "main",
+              "kind": "door",
+              "opening": "door-8",
+              "to": {
+                "space": "f2-corridor",
+                "portal": "flat-204"
+              },
+              "label": "The corridor",
+              "prompt": "To the corridor",
+              "look": "main",
+              "plate": "204"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "l3",
+      "label": "Level 3",
+      "short": "3",
+      "summary": "Flats 301 to 304",
+      "spaces": [
+        {
+          "id": "f3-corridor",
+          "kind": "corridor",
+          "name": "Corridor and lift lobby",
+          "sceneId": "test-tower-corridor",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "portals": [
+            {
+              "id": "lift-a",
+              "kind": "lift",
+              "opening": "lift-a",
+              "lift": "lift-a"
+            },
+            {
+              "id": "lift-b",
+              "kind": "lift",
+              "opening": "lift-b",
+              "lift": "lift-b"
+            },
+            {
+              "id": "stairs",
+              "kind": "stairs",
+              "opening": "door-stairs",
+              "label": "Stairs"
+            },
+            {
+              "id": "flat-301",
+              "kind": "door",
+              "opening": "door-ne",
+              "to": {
+                "space": "f3-301",
+                "portal": "main"
+              },
+              "label": "Flat 301",
+              "prompt": "Enter Flat 301",
+              "look": "main",
+              "plate": "301"
+            },
+            {
+              "id": "flat-302",
+              "kind": "door",
+              "opening": "door-se",
+              "to": {
+                "space": "f3-302",
+                "portal": "main"
+              },
+              "label": "Flat 302",
+              "prompt": "Enter Flat 302",
+              "look": "main",
+              "plate": "302"
+            },
+            {
+              "id": "flat-303",
+              "kind": "door",
+              "opening": "door-nw",
+              "to": {
+                "space": "f3-303",
+                "portal": "main"
+              },
+              "label": "Flat 303",
+              "prompt": "Enter Flat 303",
+              "look": "main",
+              "plate": "303"
+            },
+            {
+              "id": "flat-304",
+              "kind": "door",
+              "opening": "door-sw",
+              "to": {
+                "space": "f3-304",
+                "portal": "main"
+              },
+              "label": "Flat 304",
+              "prompt": "Enter Flat 304",
+              "look": "main",
+              "plate": "304"
+            }
+          ]
+        },
+        {
+          "id": "f3-301",
+          "kind": "home",
+          "name": "Flat 301 · 3 BHK",
+          "sceneId": "test-tower-flat-3bhk",
+          "type": "3bhk",
+          "placement": {
+            "x": 4.997306893797185,
+            "z": 6.5277959591481585,
+            "rotDeg": 90
+          },
+          "portals": [
+            {
+              "id": "main",
+              "kind": "door",
+              "opening": "door-8",
+              "to": {
+                "space": "f3-corridor",
+                "portal": "flat-301"
+              },
+              "label": "The corridor",
+              "prompt": "To the corridor",
+              "look": "main",
+              "plate": "301"
+            }
+          ]
+        },
+        {
+          "id": "f3-302",
+          "kind": "home",
+          "name": "Flat 302 · 1 BHK",
+          "sceneId": "test-tower-flat-1bhk-m",
+          "type": "1bhk",
+          "mirrored": true,
+          "placement": {
+            "x": 4.357500059708305,
+            "z": 17.338092947253443,
+            "rotDeg": 90
+          },
+          "portals": [
+            {
+              "id": "main",
+              "kind": "door",
+              "opening": "door-5",
+              "to": {
+                "space": "f3-corridor",
+                "portal": "flat-302"
+              },
+              "label": "The corridor",
+              "prompt": "To the corridor",
+              "look": "main",
+              "plate": "302"
+            }
+          ]
+        },
+        {
+          "id": "f3-303",
+          "kind": "home",
+          "name": "Flat 303 · 2 BHK (A)",
+          "sceneId": "test-tower-flat-2bhk-a",
+          "type": "2bhk-a",
+          "placement": {
+            "x": -4.45749992957482,
+            "z": 5.455000539926382,
+            "rotDeg": 270
+          },
+          "portals": [
+            {
+              "id": "main",
+              "kind": "door",
+              "opening": "door-8",
+              "to": {
+                "space": "f3-corridor",
+                "portal": "flat-303"
+              },
+              "label": "The corridor",
+              "prompt": "To the corridor",
+              "look": "main",
+              "plate": "303"
+            }
+          ]
+        },
+        {
+          "id": "f3-304",
+          "kind": "home",
+          "name": "Flat 304 · 2 BHK (B)",
+          "sceneId": "test-tower-flat-2bhk-b-m",
+          "type": "2bhk-b",
+          "mirrored": true,
+          "placement": {
+            "x": -4.357507962013844,
+            "z": 16.874995391298498,
+            "rotDeg": 270
+          },
+          "portals": [
+            {
+              "id": "main",
+              "kind": "door",
+              "opening": "door-8",
+              "to": {
+                "space": "f3-corridor",
+                "portal": "flat-304"
+              },
+              "label": "The corridor",
+              "prompt": "To the corridor",
+              "look": "main",
+              "plate": "304"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "startSpace": "lobby"
+}

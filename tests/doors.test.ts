@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildSet, vectorPagesOf } from '../scripts/make-drawing-sets';
 import { createDoors, MSG_IN_THE_WAY, MSG_STEP_BACK } from '../src/buyer/doors';
+import { obstaclesOf } from '../src/buyer/people/model';
 import type { Doors } from '../src/buyer/doors';
 import { createFurnitureStore } from '../src/buyer/store';
 import type { FurnitureStoreImpl } from '../src/buyer/store';
@@ -472,6 +473,16 @@ describe('the door controller', () => {
     const p = h.doors.debug.open(doorId);
     h.run(1);
     expect((await p)!.pos).toBeLessThan(60 * DEG);
+  });
+
+  it('a person the buyer added, standing in the swing, stops it too, and a door never overlaps them', async () => {
+    const h = keep(harness(layout, { x: 2.5, z: 4.7 }));
+    h.store.setTemporary('people', obstaclesOf([{ id: 'pe-1', body: 'man', tone: 2, heightCm: 175, x: 0.9, z: 3.5, yawDeg: 0, pose: 'stand' }]));
+    const p = h.doors.debug.open(doorId);
+    h.run(1);
+    const r = (await p)!;
+    expect(r.pos).toBeLessThan(60 * DEG);
+    expect(h.toasts[0]).toBe(MSG_IN_THE_WAY);
   });
 
   it('the pill says Open door / Close door near it, and E swings it', async () => {

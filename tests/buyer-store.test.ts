@@ -186,8 +186,8 @@ describe('height', () => {
   it('a custom height takes the tint of the nearest preset', () => {
     expect(tintForHeightCm(160)).toBe('#1FA3A3');
     expect(tintForHeightCm(167)).toBe('#1FA3A3');
-    expect(tintForHeightCm(168)).toBe('#E8823A');
-    expect(tintForHeightCm(182)).toBe('#E8823A');
+    expect(tintForHeightCm(168)).toBe('#B71C6C');
+    expect(tintForHeightCm(182)).toBe('#B71C6C');
     expect(tintForHeightCm(183)).toBe('#7A5AF0');
     expect(tintForHeightCm(200)).toBe('#7A5AF0');
     expect(nearestPresetIndex(140)).toBe(0);

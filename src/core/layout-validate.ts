@@ -83,7 +83,7 @@ function lerp(a: Vec2, b: Vec2, t: number): Vec2 {
   return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t };
 }
 
-function overlapAreaM2(a: Vec2[], b: Vec2[]): number {
+export function overlapAreaM2(a: Vec2[], b: Vec2[]): number {
   const bb = (p: Vec2[]) => ({
     x0: Math.min(...p.map((q) => q.x)), x1: Math.max(...p.map((q) => q.x)),
     z0: Math.min(...p.map((q) => q.z)), z1: Math.max(...p.map((q) => q.z)),

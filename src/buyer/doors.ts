@@ -25,6 +25,7 @@ import type { BuyerContext } from './context';
 import { setDoorPrompts } from './door-hooks';
 import { buildDoorModel } from './doors-model';
 import type { DoorModel } from './doors-model';
+import type { DoorStyle } from '../building/space-host';
 import { setDoorSwingProvider } from './wardrobe-hooks';
 import type { FurnitureStoreImpl } from './store';
 
@@ -119,7 +120,7 @@ export function doorCard(d: Door, state: DoorState, stopReason: StopReason, swin
   return { title: `${d.roomLabel} door`, tone, headline, lines, footer: 'Door style is illustrative. Width is from the drawing.' };
 }
 
-export function createDoors(deps: { ctx: BuyerContext; store: FurnitureStoreImpl; layout: Layout; parent: THREE.Object3D; frameColor?: string; /** false: every door starts shut (tests) */ startOpen?: boolean }): Doors {
+export function createDoors(deps: { ctx: BuyerContext; store: FurnitureStoreImpl; layout: Layout; parent: THREE.Object3D; frameColor?: string; /** false: every door starts shut (tests) */ startOpen?: boolean; /** a building's doors: opening id -> how the leaf looks */ looks?: ReadonlyMap<string, DoorStyle> }): Doors {
   const { ctx, store, layout, parent } = deps;
   const frameColor = deps.frameColor ?? layout.finishes.frameColor;
   const KEY = 'doors';
@@ -127,7 +128,7 @@ export function createDoors(deps: { ctx: BuyerContext; store: FurnitureStoreImpl
   const label = (id: string | null): string | null => (id ? layout.rooms.find((r) => r.id === id)?.label ?? id : null);
 
   for (const door of resolveDoors(layout)) {
-    const model = buildDoorModel(door, frameColor);
+    const model = buildDoorModel(door, frameColor, deps.looks?.get(door.id));
     parent.add(model.group);
     recs.set(door.id, { door, model, pos: 0, target: 0, intent: 'close', stuck: false, stopReason: null, waiters: [] });
   }
@@ -415,7 +416,7 @@ export function createDoors(deps: { ctx: BuyerContext; store: FurnitureStoreImpl
 }
 
 /** The one line the buyer page needs: builds the doors, hooks them to the frame loop and the prompt system, and exposes them for the acceptance scripts. */
-export function mountDoors(deps: { ctx: BuyerContext; store: FurnitureStoreImpl; layout: Layout; parent?: THREE.Object3D; frameColor?: string }): Doors {
+export function mountDoors(deps: { ctx: BuyerContext; store: FurnitureStoreImpl; layout: Layout; parent?: THREE.Object3D; frameColor?: string; looks?: ReadonlyMap<string, DoorStyle> }): Doors {
   const doors = createDoors({ ...deps, parent: deps.parent ?? deps.ctx.viewer.scene });
   (window as unknown as { __walkthruDoors?: Doors['debug'] }).__walkthruDoors = doors.debug;
   return doors;

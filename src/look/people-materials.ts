@@ -79,7 +79,7 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
     mat.metalness = 0;
     mat.roughness = ROUGHNESS[s.name] ?? 0.8;
     if (s.name === 'skin') { mat.color.copy(skinTone(toneIdx)); skinMats.push(mat); }
-    else if (s.name === 'top') { mat.color.copy(fabricColour('#E8823A')); topMats.push(mat); }
+    else if (s.name === 'top') { mat.color.copy(fabricColour('#B71C6C')); topMats.push(mat); }
     else if (fixed[s.name]) mat.color.set(fixed[s.name]);
     s.castShadow = false;
   }

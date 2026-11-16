@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "id": "test-tower-club-pool",
+  "title": "Pool area (placeholder)",
+  "subtitle": "Sample building · made-up layout for demonstration",
+  "layout": {
+    "wallHeightM": 4.2,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "pool",
+        "roomType": "other",
+        "label": "Pool area (placeholder)",
+        "polygon": [
+          {
+            "x": 12.3,
+            "z": -3
+          },
+          {
+            "x": 28.3,
+            "z": -3
+          },
+          {
+            "x": 28.3,
+            "z": 6
+          },
+          {
+            "x": 12.3,
+            "z": 6
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-foyer",
+        "roomId": "pool",
+        "edge": 3,
+        "type": "door",
+        "centreM": 4,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EDE9DF",
+      "floorColor": "#CFC6B6",
+      "tile": {
+        "wM": 0.6,
+        "lM": 0.6
+      },
+      "groutColor": "#B8AE9C",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 14,
+    "z": 1.5,
+    "yawDeg": 90
+  },
+  "unlisted": true,
+  "spaceKind": "pool",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

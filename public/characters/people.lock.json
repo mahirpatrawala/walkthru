@@ -108,52 +108,52 @@
       "sha256": "998c73bd5a3c72caaa3bbf1248b9bf9a260021664e635c01a911bc2247fea1a0"
     },
     "person-child-low.glb": {
-      "bytes": 113136,
-      "sha256": "ac6b0d8a8eeac754e227a311aec9bed6492963d150d61eb0638c716bda1f86e9"
+      "bytes": 112556,
+      "sha256": "011bb59603acc676e3ac7745bec61fc93c45f9789e363dd94ba172226544cc67"
     },
     "person-child.glb": {
-      "bytes": 158208,
-      "sha256": "d8fe37cb4a9449b9cee6eb47192a2458f53b450e4c1fdb6f56b0deb4bd9e7804"
+      "bytes": 158628,
+      "sha256": "764bff4311be3bc8e28e6aa9c095e551fe650841e3ef96be82b5d216637c7f5a"
     },
     "person-elder-low.glb": {
-      "bytes": 126584,
-      "sha256": "fd8081ce248d4fe48d198e1d44404d17c9b1c4fc0ab5290ad7b200089d69a3f3"
+      "bytes": 127504,
+      "sha256": "9bf305d874573e5f30975e82e9c4c1716898472c722ef43f56999b397c6e34ce"
     },
     "person-elder.glb": {
-      "bytes": 179996,
-      "sha256": "ddfcf9936d494d8ea1285bbc3475f50555211d8daf4d98ec33cf7689c1c18542"
+      "bytes": 181292,
+      "sha256": "5a6607475abbf472c59a91a2d189b3bc1c8337a47d0578aa8167a472577ad879"
     },
     "person-man-low.glb": {
-      "bytes": 114840,
-      "sha256": "fcd53fe27c1065912a9a0e64097bd83aa2075c30c22d6c5df22348eb822fafca"
+      "bytes": 115368,
+      "sha256": "d1c9be38320f2c1112f87a236b010fea19d556d34532b34964e169e94a8b4754"
     },
     "person-man.glb": {
-      "bytes": 172296,
-      "sha256": "bcb59a0dca1842b74bc5970ec600981f45295990223b38e98ca59581d775cc19"
+      "bytes": 172868,
+      "sha256": "80947d32dbbf65e69b002e9ae3eb0d192b778ca9c92538ad351c0ee2aa5d5997"
     },
     "person-woman-low.glb": {
-      "bytes": 137360,
-      "sha256": "2ca805a94a81416197c13e4fa430a40ebc626a2e08c4c41cee3ada2e4ec90381"
+      "bytes": 137256,
+      "sha256": "e8c039fc99893ad40295b382e35151cef0e137e9ffe0993cfa9f894cebf3ee90"
     },
     "person-woman.glb": {
-      "bytes": 198984,
-      "sha256": "f48a848573c42e706920b957ea8c67f931106e6f0973e69dcd2553dcc157d69a"
+      "bytes": 199656,
+      "sha256": "7fb38423c2b620d2f13090963f586d07d6546b845c5a858f998f35283268ee30"
     },
     "thumb-child.jpg": {
-      "bytes": 7310,
-      "sha256": "b8c97fe89e9b1f551e9807712bfe8cd6d12b7d1d71fbd829ab70df97893b39f2"
+      "bytes": 7673,
+      "sha256": "da8f3de8525af9784d703563fd1df8f5556e01cd48773164cbe22842d036129e"
     },
     "thumb-elder.jpg": {
-      "bytes": 8181,
-      "sha256": "d0a1ffe7dcba8a9347b63d8c06ac618d412b0cc17a2ef794503c61d254e1f29e"
+      "bytes": 8140,
+      "sha256": "7100f8f1df62db7ac2ea580afe82906bfe0b22399f9d96bb4a5266e6dc98a8f6"
     },
     "thumb-man.jpg": {
-      "bytes": 7176,
-      "sha256": "4aac9469a3d958f554e129ac8ddfddc08453d3facbf6ae29f34d196c55ec7d5c"
+      "bytes": 7625,
+      "sha256": "c2bc9f8c9719a2f8d33617a489736e9e24ca7d65e7cf2fa66ca2d2d999b77003"
     },
     "thumb-woman.jpg": {
-      "bytes": 8656,
-      "sha256": "b81805a5bfb843f02126501f84d5e8c770d63760b3a75cac0b2f6e0a7953720c"
+      "bytes": 8659,
+      "sha256": "fedaefaa69b15448ca8982be62d263db6939035967b3fff8b0b3b25fc5cfb683"
     }
   }
 }
