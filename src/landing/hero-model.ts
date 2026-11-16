@@ -1,6 +1,7 @@
-// The landing hero's drawing, as data: the featured building's levels stacked on their lift core, each room's wall lines, the pool
-// water, a walk through one flat, and the few facts the labels state. Everything comes from building.json and the scenes behind its
-// spaces; nothing here names a building, a flat or a number. Pure: no DOM, no canvas, no three.
+// The landing hero's building, as plan data: the featured building's levels lined up on their lift core, each room's wall lines, the
+// pool water, a stroll through one flat, where the lifts stand, and the few facts the labels state. Everything comes from
+// building.json and the scenes behind its spaces; nothing here names a building, a flat or a number. hero-building.ts raises this
+// into storeys and walls. Pure: no DOM, no canvas, no three.
 import { polygonArea, pointInPolygon } from '../core/geometry';
 import { carpetAreaM2, computeEdgeFrames } from '../core/layout-geom';
 import { dirToLevel, doorFrame, toLevel } from '../building/geom';
@@ -9,10 +10,13 @@ import type { SceneInfo } from '../building/load';
 import type { BuildingFile, Level, Space } from '../building/types';
 import type { Layout, Vec2 } from '../types';
 
-export interface HeroSeg { a: Vec2; b: Vec2; /** a railing (a balcony's open side), drawn lighter */ rail: boolean }
+export interface HeroSeg { a: Vec2; b: Vec2; /** a railing (a balcony's open side) */ rail: boolean }
 export interface HeroSpace {
   id: string;
   kind: Space['kind'];
+  sceneId: string;
+  /** a space under the sky: a pool deck, a garden */
+  openAir: boolean;
   /** wall and railing lines of every room, on the shared plan */
   segs: HeroSeg[];
   /** room outlines (for the floor fill) */
@@ -43,6 +47,10 @@ export interface HeroModel {
   focus: { levelId: string; bounds: Bounds }[];
   /** where the lift doors stand on the shared plan: the lines of the lift shafts, which run from the lowest floor to the roof */
   core: Vec2[];
+  /** each lift's car on the plan (behind its door), the footprint of its shaft */
+  shafts: Vec2[][];
+  /** the part of the plan the picture is about: the flats floors, the lobby and the pool, with a little room round them */
+  keep: Bounds;
   /** the level the settled picture lights */
   featuredLevelId: string | null;
 }
@@ -77,6 +85,7 @@ type Xf = (p: Vec2) => Vec2;
  * the middle of its lift doors is the origin and turned (in quarter turns) so the doors face south. A level with no lift door keeps
  * its own frame, centred.
  */
+export type PlanMap = (p: Vec2) => Vec2;
 export function levelFrame(level: Level, scenes: ReadonlyMap<string, SceneInfo>): Xf {
   const centres: Vec2[] = [];
   let ox = 0, oz = 0;
@@ -125,9 +134,13 @@ function spaceGeometry(space: Space, scene: SceneInfo, xf: Xf): HeroSpace {
     }
   }
   const water = (scene.outdoor?.pools ?? []).map((b) => [{ x: b.rect.x0, z: b.rect.z0 }, { x: b.rect.x1, z: b.rect.z0 }, { x: b.rect.x1, z: b.rect.z1 }, { x: b.rect.x0, z: b.rect.z1 }].map(at));
-  return { id: space.id, kind: space.kind, segs, floors, water, bounds: all.length ? boundsOf(all) : EMPTY };
+  return { id: space.id, kind: space.kind, sceneId: space.sceneId, openAir: space.outdoor === true || space.kind === 'pool' || space.kind === 'garden', segs, floors, water, bounds: all.length ? boundsOf(all) : EMPTY };
 }
 
+/** How far a point is outside a rectangle on the plan, metres (0 inside). */
+export function outsideBy(p: Vec2, b: Bounds): number {
+  return Math.hypot(Math.max(b.x0 - p.x, 0, p.x - b.x1), Math.max(b.z0 - p.z, 0, p.z - b.z1));
+}
 // ---------------------------------------------------------------- the walk through one flat
 
 /** A point well inside a room: its centroid when that is inside, else the middle of its longest edge pulled inwards. */
@@ -276,7 +289,7 @@ export function buildHeroModel(b: BuildingFile, scenes: ReadonlyMap<string, Scen
   }
 
   // the pool: the longest basin of any open-air space
-  let pool: { level: Level; long: number; short: number; centre: Vec2; bounds: Bounds } | null = null;
+  let pool: { level: Level; long: number; short: number; centre: Vec2; bounds: Bounds; water: Bounds } | null = null;
   for (const level of b.levels) for (const s of level.spaces) {
     const xf = frames.get(level.id)!;
     for (const basin of scenes.get(s.sceneId)?.outdoor?.pools ?? []) {
@@ -284,13 +297,15 @@ export function buildHeroModel(b: BuildingFile, scenes: ReadonlyMap<string, Scen
       const long = Math.max(w, d), short = Math.min(w, d);
       if (pool && long <= pool.long) continue;
       const corners = [{ x: basin.rect.x0, z: basin.rect.z0 }, { x: basin.rect.x1, z: basin.rect.z1 }].map((p) => xf(toLevel(p, s.placement)));
-      pool = { level, long, short, centre: centreOf(boundsOf(corners)), bounds: boundsOf(corners) };
+      // all the water of that space (a lap pool with its shallow end and ledge is one pool to look at)
+      const water = boundsOf((scenes.get(s.sceneId)?.outdoor?.pools ?? []).flatMap((q) => [{ x: q.rect.x0, z: q.rect.z0 }, { x: q.rect.x1, z: q.rect.z1 }].map((p) => xf(toLevel(p, s.placement)))));
+      pool = { level, long, short, centre: centreOf(boundsOf(corners)), bounds: boundsOf(corners), water };
     }
   }
   if (pool) {
     const lap = pool.long >= 20 && pool.long / Math.max(pool.short, 0.1) >= 3;
     facts.push({ id: 'pool', text: `${levelName(pool.level)} · ${metres(pool.long)} m ${lap ? 'lap pool' : 'pool'}`, levelId: pool.level.id, at: pool.centre });
-    focus.push({ levelId: pool.level.id, bounds: pool.bounds });
+    focus.push({ levelId: pool.level.id, bounds: pool.water });
   }
 
   // the lobby and its lifts
@@ -313,50 +328,23 @@ export function buildHeroModel(b: BuildingFile, scenes: ReadonlyMap<string, Scen
     for (const p of s.portals) { if (p.kind !== 'lift') continue; const f = doorFrame(layout, p.opening); if (f) core.push(frames.get(coreLevel.id)!(toLevel(f.centre, s.placement))); }
   }
   if (focus.length === 0) for (const l of levels) focus.push({ levelId: l.id, bounds: l.bounds });
-  return { levels, facts, walk, focus, core, featuredLevelId: featuredLevelId ?? levels[levels.length - 1]?.id ?? null };
+
+  // each lift's car stands behind its door (the doors face +z once the levels are lined up)
+  const shafts = core.map((c, i) => {
+    const car = b.lifts[i]?.car ?? b.lifts[0]?.car ?? { widthM: 1.1, depthM: 1.4 };
+    return [{ x: c.x - car.widthM / 2, z: c.z + 0.2 }, { x: c.x + car.widthM / 2, z: c.z + 0.2 }, { x: c.x + car.widthM / 2, z: c.z + 0.2 + car.depthM }, { x: c.x - car.widthM / 2, z: c.z + 0.2 + car.depthM }];
+  });
+
+  // what the picture keeps whole, with a little room round the water; everything else of a wide level fades away from it
+  const MARGIN = 2.5;
+  const kept = focus.reduce((acc, f) => union(acc, f.bounds), EMPTY);
+  const keep: Bounds = { x0: kept.x0 - MARGIN, z0: kept.z0 - MARGIN, x1: kept.x1 + MARGIN, z1: kept.z1 + MARGIN };
+  return { levels, facts, walk, focus, core, shafts, keep, featuredLevelId: featuredLevelId ?? levels[levels.length - 1]?.id ?? null };
 }
 
 /** The scene ids a building's picture needs, each once. */
 export function heroSceneIds(b: BuildingFile): string[] {
   return [...new Set(b.levels.flatMap((l) => l.spaces.map((s) => s.sceneId)))];
-}
-
-// ---------------------------------------------------------------- the view (an orthographic camera looking down at the stack)
-
-export interface HeroView {
-  /** radians: the turn about the vertical, and how far the camera looks down (0 is a side elevation, PI/2 a plan) */
-  yaw: number; pitch: number;
-  /** pixels per metre, and how much the storey heights are stretched so each floor's plan shows */
-  scale: number; stretch: number;
-  /** where the plan origin at height 0 lands, pixels */
-  cx: number; cy: number;
-}
-
-/** A point of the shared plan at height y (metres) on the screen: x right, y down. */
-export function project(v: HeroView, x: number, y: number, z: number): [number, number] {
-  const c = Math.cos(v.yaw), s = Math.sin(v.yaw);
-  const xr = x * c - z * s, zr = x * s + z * c;
-  return [v.cx + xr * v.scale, v.cy + (zr * Math.sin(v.pitch) - y * v.stretch * Math.cos(v.pitch)) * v.scale];
-}
-
-/** The scale and centre that put the model's focus inside a w x h box with `pad` to spare on every side (same units as w and h). */
-export function fitView(m: HeroModel, w: number, h: number, yaw: number, pitch: number, stretch: number, pad: number): HeroView {
-  const unit: HeroView = { yaw, pitch, stretch, scale: 1, cx: 0, cy: 0 };
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const f of m.focus) {
-    const level = m.levels.find((l) => l.id === f.levelId);
-    if (!level || !Number.isFinite(f.bounds.x0)) continue;
-    for (const [x, z] of [[f.bounds.x0, f.bounds.z0], [f.bounds.x1, f.bounds.z0], [f.bounds.x1, f.bounds.z1], [f.bounds.x0, f.bounds.z1]]) {
-      // a flats floor is drawn with its storey above it (the envelope), so its ceiling must fit too
-      for (const y of level.homes ? [level.y, level.top] : [level.y]) {
-        const [sx, sy] = project(unit, x, y, z);
-        x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy);
-      }
-    }
-  }
-  if (!Number.isFinite(x0)) return { ...unit, cx: w / 2, cy: h / 2 };
-  const scale = Math.max(0.01, Math.min((w - 2 * pad) / Math.max(x1 - x0, 1e-6), (h - 2 * pad) / Math.max(y1 - y0, 1e-6)));
-  return { ...unit, scale, cx: w / 2 - ((x0 + x1) / 2) * scale, cy: h / 2 - ((y0 + y1) / 2) * scale };
 }
 
 /** The point `d` metres along a path (wrapped), for the walker. */

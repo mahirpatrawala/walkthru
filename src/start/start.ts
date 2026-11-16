@@ -82,9 +82,9 @@ export async function mountStart(): Promise<void> {
     root.classList.add('is-landing');
     setLandingTheme(true);
     document.title = LANDING_TITLE;
-    root.appendChild(first.hero);
+    root.append(first.hero, first.story);
     wait = h('p', 'ws-loading', 'Loading the projects…', first.band());
-    root.appendChild(wait.parentElement!);
+    root.append(wait.parentElement!, first.closing);
   } else {
     renderHero(root);
     wait = h('p', 'ws-loading', 'Loading the homes…', root);
@@ -144,9 +144,8 @@ export async function mountStart(): Promise<void> {
     else if (home) renderPicker(root, home, q.get('room'), go);
     else if (page) {
       document.title = LANDING_TITLE;
-      root.appendChild(page.hero);
       const band = page.band();
-      root.appendChild(band);
+      root.append(page.hero, page.story, band, page.closing);
       renderGallery(band, index, mine, buildings, go, () => { void refreshMine(); }, true);
       if (keep !== null) root.scrollTop = keep; else page.settle(root);
     } else renderGallery(root, index, mine, buildings, go, () => { void refreshMine(); });

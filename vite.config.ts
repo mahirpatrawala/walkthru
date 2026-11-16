@@ -94,12 +94,17 @@ function walkthruDevApi(): Plugin {
 }
 
 /**
- * Link previews (Open Graph, Twitter) want the picture's full address. On Vercel the build knows the site's production host
- * (VERCEL_PROJECT_PRODUCTION_URL); `SITE_ORIGIN` overrides it. Anywhere else the token is dropped and the address stays relative.
+ * Link previews (Open Graph, Twitter) want the picture's full address. A Vercel build knows the site's host: VERCEL_PROJECT_PRODUCTION_URL
+ * (set at build time on every deployment, previews too; the shortest production domain, no `https://`), else VERCEL_URL (this deployment's
+ * own address). Both need "Enable access to System Environment Variables" in the project settings.
+ * `SITE_ORIGIN` (with the scheme) overrides both. Anywhere else the token is dropped and the address stays relative.
  */
+export function siteOrigin(env: Record<string, string | undefined>): string {
+  const host = (env.VERCEL_PROJECT_PRODUCTION_URL || env.VERCEL_URL || '').replace(/^https?:\/\//, '');
+  return (env.SITE_ORIGIN || (host ? `https://${host}` : '')).trim().replace(/\/+$/, '');
+}
 function walkthruSiteOrigin(): Plugin {
-  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  const origin = (process.env.SITE_ORIGIN ?? (host ? `https://${host}` : '')).replace(/\/+$/, '');
+  const origin = siteOrigin(process.env);
   return { name: 'walkthru-site-origin', transformIndexHtml: (html) => html.replaceAll('__SITE_ORIGIN__', origin) };
 }
 
