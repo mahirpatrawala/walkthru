@@ -184,12 +184,13 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
     if (!bounds) return;
     const k = mixK;
     const c = boundsCentre(bounds), r = boundsRadius(bounds);
-    const scale = d.outdoor ? 1.25 : 1;
+    // an open-air space has foliage whose far sides only the fill reaches: more of it than in a room
+    const hemiScale = d.outdoor ? 1.9 : 1, sunScale = 1;
     l.hemi.color.lerp(tmpC.set(DOLL_LIGHT.hemiSky), k);
     l.hemi.groundColor.lerp(tmpC.set(DOLL_LIGHT.hemiGround), k);
-    l.hemi.intensity += (DOLL_LIGHT.hemi * scale - l.hemi.intensity) * k;
+    l.hemi.intensity += (DOLL_LIGHT.hemi * hemiScale - l.hemi.intensity) * k;
     // no shadow map (the low tier): the sun would flood every floor the same, so it gives way to the fill
-    const sunI = DOLL_LIGHT.sun * scale * (l.shadows ? 1 : 0.62);
+    const sunI = DOLL_LIGHT.sun * sunScale * (l.shadows ? 1 : 0.62);
     if (k > 0.02) l.sun.visible = true;
     l.sun.color.lerp(tmpC.set(DOLL_LIGHT.sunColour), k);
     l.sun.intensity += (sunI - l.sun.intensity) * k;
