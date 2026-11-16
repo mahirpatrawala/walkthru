@@ -63,7 +63,7 @@ html, body {
 
 /* bottom: card + prompt pill */
 .wt-stack {
-  position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(18px + var(--wt-safe-b) + var(--wt-slot-h, 0px));
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(max(18px + var(--wt-safe-b), var(--wt-nav-h, 0px) + 10px) + var(--wt-slot-h, 0px));
   display: flex; flex-direction: column; align-items: center; gap: 10px; width: calc(100vw - 24px); max-width: 440px; pointer-events: none;
   /* the verdict card has a cut corner (clip-path would clip its own shadow, so the shadow is cast by the stack) */
   filter: drop-shadow(0 2px 7px rgba(70, 38, 20, 0.22));
