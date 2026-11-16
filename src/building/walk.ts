@@ -21,6 +21,7 @@ import { mountBuildingMap } from './map';
 import type { BuildingMap } from './map';
 import { doorLooksFor } from './portal-looks';
 import { mountPortals } from './portals';
+import { mountSigns } from './signs';
 import type { PortalHandle } from './portals';
 import type { PersonSpec } from '../buyer/people/manager';
 import type { MountedSpace, SpaceHost, SpaceSession } from './space-host';
@@ -124,6 +125,8 @@ class BuildingWalk implements BuildingWalkApi {
     m.onDispose(() => { setSpaceContext(null); setCatalogueFilter(null); });
     this.portals = mountPortals(m, loc.space.portals, (p) => { void this.usePortal(p); });
     host.tapClaim = (e) => this.portals?.tap(e) ?? false;
+    const signs = mountSigns(m, loc.space, this.building);
+    m.onDispose(() => signs.dispose());
     m.onDispose(() => { host.tapClaim = null; this.portals?.dispose(); this.portals = null; this.closePanels(); });
     void this.setDownFollowers(m, followers);
     // the "Building map" button, beside the HUD's own

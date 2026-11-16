@@ -92,3 +92,31 @@ describe('the building map', () => {
     expect(plan.svg).not.toContain('<img');
   });
 });
+
+import { signText as _signText } from '../src/building/portal-looks';
+import { signWidthM } from '../src/building/signs';
+describe('signboards over portal doors', () => {
+  const sp = (kind: string) => ({ kind } as never);
+  const door = (label: string, plate?: string) => ({ id: 'd', kind: 'door', opening: 'o', to: { space: 's', portal: 'p' }, label, ...(plate ? { plate } : {}) } as never);
+  it('names where the door leads, without the article', () => {
+    expect(_signText(door('The clubhouse foyer'), sp('gym'))).toBe('Clubhouse foyer');
+    expect(_signText(door('Pool area'), sp('corridor'))).toBe('Pool area');
+  });
+  it('lifts and the way out are named; a numbered flat door, the stairs and a home get none', () => {
+    expect(_signText({ id: 'l', kind: 'lift', opening: 'o', lift: 'a' } as never, sp('lobby'))).toBe('Lift');
+    expect(_signText({ id: 's', kind: 'outside', opening: 'o', label: 'The street' } as never, sp('lobby'))).toBe('Exit');
+    expect(_signText(door('Flat 201', '201'), sp('corridor'))).toBeNull();
+    expect(_signText({ id: 's', kind: 'stairs', opening: 'o', label: 'Stairs' } as never, sp('corridor'))).toBeNull();
+    expect(_signText(door('The corridor'), sp('home'))).toBeNull();
+  });
+  it('a flat door names the flat and its type from the building file', () => {
+    const b = { flatTypes: { t: { name: '2 BHK' } }, levels: [{ spaces: [{ id: 's', type: 't' }] }] } as never;
+    expect(_signText(door('Flat 204', '204'), sp('corridor'), b)).toBe('Flat 204 · 2 BHK');
+    expect(_signText(door('Flat 204', '204'), sp('home'), b)).toBeNull();
+  });
+  it('the board is sized by its words, within limits', () => {
+    expect(signWidthM('Gym')).toBe(0.5);
+    expect(signWidthM('Community hall')).toBeCloseTo(1.25);
+    expect(signWidthM('x'.repeat(40))).toBe(1.8);
+  });
+});

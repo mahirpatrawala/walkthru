@@ -3470,6 +3470,10 @@ The elements, the listeners and the canvas count are identical every time the sa
 - Stairs are not walkable, the street is not modelled, the letterbox wall and the reception and security desks are not drawn (marked as `lobbyAnchors` for stage 2), the pool and the garden were empty rooms in stage 1 and are open-air spaces since stage 3 (section 19). The lift is a ride, not a car you stand in.
 - Furnish, the catalogue and the look are not changed; `catalogueAllowedIn` and `pack` are in place for the stages that need them (18.9).
 
+### 18.12 Signboards over doors (`src/building/signs.ts`, `portal-looks.signText`)
+
+Every shared space (anything but a home) carries a dark board above each portal door, on its own side of the wall, 7 cm over the door head, 20 cm high, sized by its words. The words come from the building file only: a door shows its `label` without the article ("Community hall", "Pool area", "Clubhouse foyer"), a lift "Lift", a street door "Exit". Over a flat's door the board reads the flat and its type from `flatTypes` ("Flat 204 · 2 BHK (B)"); the number plate stays on the leaf. The stairs door keeps its own sign; a door with a plate and no known type gets no board; a door with no wall above its head gets none. Inside a home there are no boards. Boards are fixed (not selectable, not movable) and are freed with the space.
+
 ## 19. Outdoor spaces: the pool area, the garden and other open-air spaces (stage 3, 16 Nov 2026)
 
 A residential project is sold on its clubhouse as much as its flats, and a clubhouse is a pool, a lawn and a play area. Stage 3 makes the open-air space a first-class kind of space: a scene with an `outdoor.json` has no ceiling, a real sky and a sun that casts real shadows from its walls, trees and roofs, a ground that is paving, timber, lawn, gravel or soil instead of a floor, a boundary on each edge, water that reads as water, and planting that moves. The sample tower's pool area and garden (18.8) are finished examples; the empty tower has both bare. Nothing here is built on a drawing: an open-air space is an authored scene, like a lobby.

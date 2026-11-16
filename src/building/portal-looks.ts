@@ -1,5 +1,5 @@
 // How a space's portal doors look and what the prompt in front of each says. Pure.
-import type { DoorLook, Portal, Space } from './types';
+import type { BuildingFile, DoorLook, Portal, Space } from './types';
 import type { DoorStyle } from './space-host';
 
 /** The look a portal asks for, or its kind's own. */
@@ -32,4 +32,19 @@ export function portalPrompt(p: Portal): string {
     case 'stairs': return 'Stairs (not walkable yet)';
     case 'outside': return p.prompt ?? `To ${p.label.toLowerCase()}`;
   }
+}
+
+/** The words on the signboard over a portal door, or null for no board: a home has none inside it, the stairs door carries its own sign.
+ * Over a flat's door the board gives the flat and its type ("Flat 204 · 2 BHK"), read from the building file; a numbered door whose type is unknown keeps only its plate. */
+export function signText(p: Portal, space: Space, b?: BuildingFile): string | null {
+  if (space.kind === 'home') return null;
+  if (p.kind === 'lift') return 'Lift';
+  if (p.kind === 'stairs') return null;
+  if (p.kind === 'outside') return 'Exit';
+  const far = b?.levels.flatMap((l) => l.spaces).find((q) => q.id === p.to.space);
+  const type = far?.type ? b?.flatTypes[far.type]?.name : undefined;
+  if (type) return `${p.label} · ${type}`;
+  if (p.plate) return null;
+  const t = p.label.replace(/^the\s+/i, '').trim();
+  return t ? t[0].toUpperCase() + t.slice(1) : null;
 }
