@@ -12,3 +12,10 @@ export function buildingIndexEntry(b: BuildingFile): BuildingIndexEntry {
     flatTypes: [...counts].map(([name, count]) => ({ name, count })), amenities,
   };
 }
+
+/** the amenities as the start-page card says them: the first few names, then how many more ("A, B, C and 7 more"); the entry itself keeps them all */
+export function amenityLine(names: readonly string[], max = 4): string {
+  if (names.length <= max) return names.join(', ');
+  const more = names.length - max;
+  return `${names.slice(0, max).join(', ')} and ${more} more`;
+}
