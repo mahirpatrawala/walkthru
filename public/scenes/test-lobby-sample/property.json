@@ -263,7 +263,7 @@
     {
       "id": "lobby-13-lobby-bench",
       "source": "virtual",
-      "kind": "sofa",
+      "kind": "counter",
       "catalogId": "lobby-bench",
       "label": "Lift-lobby bench",
       "box": {

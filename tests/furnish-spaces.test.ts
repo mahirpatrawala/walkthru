@@ -105,6 +105,21 @@ describe('a machine in the gym: its zones come back with its verdict', () => {
   });
 });
 
+describe('Surprise me and Change look never offer a piece', () => {
+  it('equipment has no finish to choose, so the look buttons and Surprise me do nothing for it, and a sofa still has them', () => {
+    const t = rig(gymEmpty());
+    t.session.spawn('gym-chest-press'); t.session.moveTo(7.0, 6); const id = t.session.place()!;
+    t.session.select(id);
+    expect(t.session.view().selection!.family).toBeNull();
+    expect(t.session.surprise()).toBeNull();
+    const lobby = rig(propertyOf(SPACES[1], false), { x: 3.5, z: 4 });
+    lobby.session.spawn('sofa-3'); lobby.session.moveTo(3.5, 4.5); const sofa = lobby.session.place()!;
+    lobby.session.select(sofa);
+    expect(lobby.session.view().selection!.family).toBe('sofa');
+    expect(lobby.session.surprise()).not.toBeNull();
+  });
+});
+
 describe('the helpers place ordinary pieces', () => {
   it('Row places the number asked, at the piece\'s own spacing, and each is a piece of its own', () => {
     const t = rig(gymEmpty());
