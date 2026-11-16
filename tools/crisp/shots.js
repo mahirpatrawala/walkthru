@@ -49,9 +49,34 @@ if (set === 'flat') {
   views.zoomwall = lookAt([0.38, 0.4, 8.0], [0.08, 0.1, 8.0]);
   { const d = await doorInfo('door-bedroom-1'); const e = d.u1 - 0.02; const c = { x: d.a.x + d.dir.x * e, z: d.a.z + d.dir.z * e };
     views.zoomdoor = { eye: [c.x + d.out.x * 0.32, 1.0, c.z + d.out.z * 0.32], target: [c.x, 0.95, c.z], yaw: 0, at: { x: c.x + d.out.x * 0.32, z: c.z + d.out.z * 0.32 } }; }
+  // wet rooms looked at from the door side, at the fixtures (read from the store, not guessed)
+  {
+    const items = JSON.parse(await ev(`JSON.stringify(window.__walkthru.store.all().map((i) => ({ id: i.id, cx: i.box.cx, cz: i.box.cz })))`));
+    const at = (id) => items.find((i) => i.id === id);
+    const room = (a, b, ey) => {
+      const A = at(a), B = at(b); if (!A || !B) return null;
+      const fx = (A.cx + B.cx) / 2, fz = (A.cz + B.cz) / 2;
+      return { fx, fz, A, B };
+    };
+    const w = room('wc-1', 'basin-1');
+    if (w) {
+      // toilet-1: x 9.95..12.2, z 6.89..8.41, door on the passage side (+z); stand near the door, look at the fixtures
+      views.wet = lookAt([11.1, 1.55, 8.3], [w.fx, 0.9, w.fz]);
+    }
+    const m = room('wc-master', 'basin-master');
+    if (m) views.wet2 = lookAt([7.35, 1.55, 5.75], [m.fx, 0.9, m.fz - 0.4]);
+  }
 } else if (set === 'club') {
   views.stairs = await doorView('door-stairs');
   views.sign = await signView('door-stairs');
+} else if (set === 'space') {
+  // a shared space (lobby, clubhouse, gym, games, hall, pool deck): the walker's own start and the three other quarter turns, in first person
+  const st0 = JSON.parse(await ev(`JSON.stringify(window.__walkthru.state())`));
+  const p0 = st0.pos, y0 = st0.yawDeg;
+  for (const [name, dy] of [['spawn', 0], ['left', 90], ['right', -90], ['back', 180]]) {
+    const r = (y0 + dy) * Math.PI / 180;
+    views[name] = { eye: [p0.x, 1.6, p0.z], target: [p0.x + Math.sin(r) * 4, 1.45, p0.z + Math.cos(r) * 4], yaw: y0 + dy, at: { x: p0.x, z: p0.z } };
+  }
 } else if (set === 'home') {
   // the standalone sample home (/?scene=test-sample-3)
   views.door = await doorView('door-4');

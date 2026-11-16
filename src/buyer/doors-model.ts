@@ -111,7 +111,7 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   const H = Math.max(0.5, d.topM - DOOR_FLOOR_GAP_M);
   const W = d.panelWidthM;
   // a teak-laminate flush door: lighter than the dark frame so the panel reads as wood, not a black slab
-  const defaultPanel = kind === 'main' ? new THREE.Color('#7B5334') : kind === 'lift' ? new THREE.Color('#D9DDDF') : kind === 'stairs' ? new THREE.Color('#6F8076') : kind === 'glass' ? new THREE.Color('#2B3033') : new THREE.Color(frameColor).lerp(new THREE.Color('#A9794E'), 0.75);
+  const defaultPanel = kind === 'main' ? new THREE.Color('#806750') : kind === 'lift' ? new THREE.Color('#D9DDDF') : kind === 'stairs' ? new THREE.Color('#6F8076') : kind === 'glass' ? new THREE.Color('#2B3033') : new THREE.Color(frameColor).lerp(new THREE.Color('#A9794E'), 0.75);
   const wood = woodLeafMaterial(defaultPanel.clone(), kind === 'lift' ? 0.45 : 0.42);
   const panelMat = wood.mat;
   panelMat.metalness = kind === 'lift' ? 0.3 : kind === 'glass' ? 0.6 : 0;
