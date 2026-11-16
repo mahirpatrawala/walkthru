@@ -17,7 +17,7 @@ function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: s
   return e;
 }
 
-export const KIND_NAME: Record<Space['kind'], string> = { home: 'Flat', lobby: 'Lobby', corridor: 'Corridor', gym: 'Gym', hall: 'Hall', pool: 'Pool', garden: 'Garden', other: 'Space' };
+export const KIND_NAME: Record<Space['kind'], string> = { home: 'Flat', lobby: 'Lobby', corridor: 'Corridor', gym: 'Gym', hall: 'Hall', games: 'Games room', pool: 'Pool', garden: 'Garden', other: 'Space' };
 
 export interface MapOptions {
   building: BuildingFile;

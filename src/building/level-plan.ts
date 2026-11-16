@@ -38,8 +38,41 @@ const n3 = (n: number): string => (Math.round(n * 1000) / 1000).toString();
 
 export interface Rect { x0: number; z0: number; x1: number; z1: number }
 /** `rects` outline the space (a flat's body, or each room of a lobby or corridor), each with the name of its room */
-export interface SpaceBox { spaceId: string; x0: number; z0: number; x1: number; z1: number; rects: (Rect & { label: string })[]; area: SpaceArea }
+/** `poly` is the room's own outline when it is not a rectangle (an L-shaped pool wing, a passage round a lift core): the map outlines and labels that, not its bounding box */
+export interface SpaceBox { spaceId: string; x0: number; z0: number; x1: number; z1: number; rects: (Rect & { label: string; poly?: Vec2[] })[]; area: SpaceArea }
 export interface LevelPlan { svg: string; aspect: number; boxes: SpaceBox[] }
+
+const isRectangle = (poly: Vec2[]): boolean => poly.length === 4 && poly.every((p, i) => { const q = poly[(i + 1) % 4]; return Math.abs(p.x - q.x) < 1e-6 || Math.abs(p.z - q.z) < 1e-6; });
+
+/** a point well inside a polygon (the middle of its widest open spot, found on a grid): where a label of an L-shaped or notched room goes */
+export function labelPoint(poly: Vec2[]): Vec2 {
+  const xs = poly.map((p) => p.x), zs = poly.map((p) => p.z);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
+  const inside = (q: Vec2): boolean => {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) if ((poly[i].z > q.z) !== (poly[j].z > q.z) && q.x < ((poly[j].x - poly[i].x) * (q.z - poly[i].z)) / (poly[j].z - poly[i].z) + poly[i].x) c = !c;
+    return c;
+  };
+  const edgeDist = (q: Vec2): number => {
+    let best = Infinity;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      const dx = b.x - a.x, dz = b.z - a.z, l2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((q.x - a.x) * dx + (q.z - a.z) * dz) / l2));
+      best = Math.min(best, Math.hypot(q.x - (a.x + t * dx), q.z - (a.z + t * dz)));
+    }
+    return best;
+  };
+  let best: Vec2 = { x: (x0 + x1) / 2, z: (z0 + z1) / 2 }, bestD = -1;
+  const N = 48;
+  for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) {
+    const q = { x: x0 + ((x1 - x0) * i) / N, z: z0 + ((z1 - z0) * j) / N };
+    if (!inside(q)) continue;
+    const d = edgeDist(q);
+    if (d > bestD) { bestD = d; best = q; }
+  }
+  return best;
+}
 
 export interface LevelPlanOptions {
   idPrefix: string;
@@ -69,7 +102,10 @@ export function levelPlan(b: BuildingFile, level: Level, scenes: ReadonlyMap<str
       return { x0: Math.min(...xs), z0: Math.min(...zs), x1: Math.max(...xs), z1: Math.max(...zs) };
     };
     const body = placed.filter((r) => r.roomType !== 'balcony');
-    const rects = s.kind === 'home' || body.length <= 1 ? [{ ...rectOf(body.length ? body : placed), label: s.name }] : body.map((r) => ({ ...rectOf([r]), label: r.label }));
+    const polyOf = (rs: RoomTag[]): Vec2[] | undefined => (rs.length === 1 && !isRectangle(rs[0].polygon) ? rs[0].polygon : undefined);
+    const rects = s.kind === 'home' || body.length <= 1
+      ? [{ ...rectOf(body.length ? body : placed), label: s.name, ...(s.kind === 'home' ? {} : { poly: polyOf(body.length ? body : placed) }) }]
+      : body.map((r) => ({ ...rectOf([r]), label: r.label, poly: polyOf([r]) }));
     const all = rectOf(placed);
     boxes.push({ spaceId: s.id, ...all, rects, area: spaceArea(s, sc) });
   }
@@ -99,7 +135,8 @@ export function levelPlan(b: BuildingFile, level: Level, scenes: ReadonlyMap<str
       const single = bx.rects.length === 1;
       const lines = single ? [title, ...(sub ? [sub] : []), ...(space.comingNext ? ['Coming in the next stage'] : [bx.area.text])] : (w >= 3.5 ? [r.label] : []);
       if (lines.length === 0) return '';
-      const cx = (r.x0 + r.x1) / 2, cz = (r.z0 + r.z1) / 2;
+      const c = r.poly ? labelPoint(r.poly) : { x: (r.x0 + r.x1) / 2, z: (r.z0 + r.z1) / 2 };
+      const cx = c.x, cz = c.z;
       // shrink the type to the room, never grow past the level's own scale
       const longest = Math.max(...lines.map((l, i) => l.length * (i === 0 ? 0.6 : 0.52)));
       const f = Math.max(span * 0.011, Math.min(font, (w * 0.9) / longest));
@@ -108,7 +145,9 @@ export function levelPlan(b: BuildingFile, level: Level, scenes: ReadonlyMap<str
     }).join('');
     over.push(
       `<g class="bm-space${on ? ' is-on' : ''}${here ? ' is-here' : ''}${space.comingNext ? ' is-soon' : ''}" data-space="${esc(space.id)}" role="button" tabindex="0" aria-pressed="${on}" aria-label="${esc(aria)}">` +
-      bx.rects.map((r) => `<rect class="bm-hit" x="${n3(r.x0)}" y="${n3(r.z0)}" width="${n3(r.x1 - r.x0)}" height="${n3(r.z1 - r.z0)}"/><rect class="bm-outline" x="${n3(r.x0 - 0.1)}" y="${n3(r.z0 - 0.1)}" width="${n3(r.x1 - r.x0 + 0.2)}" height="${n3(r.z1 - r.z0 + 0.2)}" rx="0.25"/>`).join('') +
+      bx.rects.map((r) => r.poly
+        ? `<polygon class="bm-hit" points="${r.poly.map((p) => `${n3(p.x)},${n3(p.z)}`).join(' ')}"/><polygon class="bm-outline" points="${r.poly.map((p) => `${n3(p.x)},${n3(p.z)}`).join(' ')}" stroke-linejoin="round"/>`
+        : `<rect class="bm-hit" x="${n3(r.x0)}" y="${n3(r.z0)}" width="${n3(r.x1 - r.x0)}" height="${n3(r.z1 - r.z0)}"/><rect class="bm-outline" x="${n3(r.x0 - 0.1)}" y="${n3(r.z0 - 0.1)}" width="${n3(r.x1 - r.x0 + 0.2)}" height="${n3(r.z1 - r.z0 + 0.2)}" rx="0.25"/>`).join('') +
       `${labels}</g>`,
     );
   }

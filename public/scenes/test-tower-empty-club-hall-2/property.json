@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "id": "test-tower-empty-club-hall-2",
+  "title": "Banquet hall 2",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "hall-2",
+        "label": "Banquet hall 2",
+        "roomType": "other",
+        "polygon": [
+          {
+            "x": 70.95,
+            "z": 25.31
+          },
+          {
+            "x": 85.59,
+            "z": 25.31
+          },
+          {
+            "x": 85.59,
+            "z": 33.68
+          },
+          {
+            "x": 78.74,
+            "z": 33.68
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-lounge",
+        "roomId": "hall-2",
+        "edge": 0,
+        "type": "door",
+        "centreM": 13.98,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-deck",
+        "roomId": "hall-2",
+        "edge": 1,
+        "type": "door",
+        "centreM": 4.13,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "window-e1",
+        "roomId": "hall-2",
+        "edge": 1,
+        "type": "window",
+        "centreM": 1.4800000000000004,
+        "widthM": 2,
+        "sillM": 0,
+        "headM": 2.6
+      },
+      {
+        "id": "window-e2",
+        "roomId": "hall-2",
+        "edge": 1,
+        "type": "window",
+        "centreM": 6.930000000000003,
+        "widthM": 2,
+        "sillM": 0,
+        "headM": 2.6
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EFE7D8",
+      "floorColor": "#D2C2A3",
+      "tile": {
+        "wM": 0.8,
+        "lM": 0.8
+      },
+      "groutColor": "#B9A98A",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#F7F4EE",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 81.78,
+    "z": 26.4,
+    "yawDeg": 90
+  },
+  "unlisted": true,
+  "spaceKind": "hall",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

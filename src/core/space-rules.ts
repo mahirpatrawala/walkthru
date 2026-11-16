@@ -296,8 +296,8 @@ export function spaceSummary(layout: Layout, items: FurnitureItem[], baseGrid?: 
   const roomUse = roomCells * cell * cell || roomM2;
   const piecesM2 = m2(piece), withZonesM2 = m2(piece + zone);
   const freeM2 = Math.max(0, Math.round((roomUse - piece * cell * cell) * 10) / 10);
-  const walkway = walkwayReport(layout, items, WALKWAY_MIN_M, base, kind !== 'hall');
-  const seats = items.filter((i) => i.catalogId === 'hall-chair').length;
+  const walkway = walkwayReport(layout, items, WALKWAY_MIN_M, base, kind !== 'hall' && kind !== 'games');
+  const seats = items.reduce((n, i) => n + (i.catalogId === 'hall-chair' ? 1 : i.catalogId === 'hall-banquet-set-4' ? 4 : i.catalogId === 'hall-cafe-set-2' ? 2 : 0), 0);
   const byCategory = [...byCat.entries()].map(([category, count]) => ({ category, label: CAT_LABEL[category] ?? category, count })).sort((a, b) => b.count - a.count);
   const freePct = roomUse > 0 ? Math.round((freeM2 / roomUse) * 100) : 0;
   const lines = [

@@ -1,0 +1,201 @@
+{
+  "version": 1,
+  "seed": 9,
+  "areas": [
+    {
+      "id": "deck",
+      "finish": "deck",
+      "polygon": [
+        {
+          "x": 44.28,
+          "z": 29.44
+        },
+        {
+          "x": 66.98,
+          "z": 29.44
+        },
+        {
+          "x": 66.98,
+          "z": 32.44
+        },
+        {
+          "x": 75.93,
+          "z": 32.44
+        },
+        {
+          "x": 75.93,
+          "z": 36.8
+        },
+        {
+          "x": 66.98,
+          "z": 36.8
+        },
+        {
+          "x": 66.98,
+          "z": 51.91
+        },
+        {
+          "x": 45.44,
+          "z": 51.91
+        },
+        {
+          "x": 45.44,
+          "z": 32.71
+        },
+        {
+          "x": 44.28,
+          "z": 32.71
+        }
+      ],
+      "holes": [
+        [
+          {
+            "x": 49.48,
+            "z": 36.59
+          },
+          {
+            "x": 65.16,
+            "z": 36.59
+          },
+          {
+            "x": 65.16,
+            "z": 49.86
+          },
+          {
+            "x": 49.48,
+            "z": 49.86
+          }
+        ]
+      ]
+    },
+    {
+      "id": "slope",
+      "finish": "bed",
+      "polygon": [
+        {
+          "x": 66.98,
+          "z": 32.44
+        },
+        {
+          "x": 75.93,
+          "z": 32.44
+        },
+        {
+          "x": 75.93,
+          "z": 36.8
+        },
+        {
+          "x": 66.98,
+          "z": 36.8
+        }
+      ],
+      "edgingM": 0.12
+    }
+  ],
+  "pools": [
+    {
+      "id": "aqua",
+      "rect": {
+        "x0": 49.73,
+        "z0": 36.84,
+        "x1": 64.91,
+        "z1": 49.61
+      },
+      "shallowEnd": "S",
+      "profile": [
+        [
+          0,
+          0.3
+        ],
+        [
+          1,
+          0.45
+        ]
+      ],
+      "waterBelowDeckM": 0.1,
+      "copingM": 0.25,
+      "steps": [],
+      "ladders": [],
+      "lanes": 0,
+      "markers": true,
+      "tile": "turquoise",
+      "kids": true
+    }
+  ],
+  "boundary": [
+    {
+      "room": "aqua",
+      "edge": 0,
+      "kind": "facade"
+    },
+    {
+      "room": "aqua",
+      "edge": 1,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "aqua",
+      "edge": 2,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "aqua",
+      "edge": 3,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "aqua",
+      "edge": 4,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "aqua",
+      "edge": 5,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "aqua",
+      "edge": 6,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "aqua",
+      "edge": 7,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "aqua",
+      "edge": 8,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "aqua",
+      "edge": 9,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    }
+  ],
+  "trees": [],
+  "beds": [],
+  "rows": [],
+  "roofs": [],
+  "note": "Aqua play, bare: the timber court and the shallow pool, with nothing placed or planted",
+  "northDeg": -15
+}

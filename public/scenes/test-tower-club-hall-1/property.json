@@ -1,0 +1,214 @@
+{
+  "version": 1,
+  "id": "test-tower-club-hall-1",
+  "title": "Banquet hall 1",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "hall-1",
+        "label": "Banquet hall 1",
+        "roomType": "other",
+        "polygon": [
+          {
+            "x": 77.02,
+            "z": 8.76
+          },
+          {
+            "x": 85.59,
+            "z": 8.76
+          },
+          {
+            "x": 85.59,
+            "z": 17.06
+          },
+          {
+            "x": 77.02,
+            "z": 17.06
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-lounge",
+        "roomId": "hall-1",
+        "edge": 2,
+        "type": "door",
+        "centreM": 0.66,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-deck",
+        "roomId": "hall-1",
+        "edge": 1,
+        "type": "door",
+        "centreM": 4.01,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "window-e1",
+        "roomId": "hall-1",
+        "edge": 1,
+        "type": "window",
+        "centreM": 1.4000000000000004,
+        "widthM": 2,
+        "sillM": 0,
+        "headM": 2.6
+      },
+      {
+        "id": "window-e2",
+        "roomId": "hall-1",
+        "edge": 1,
+        "type": "window",
+        "centreM": 6.74,
+        "widthM": 2,
+        "sillM": 0,
+        "headM": 2.6
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EFE7D8",
+      "floorColor": "#D2C2A3",
+      "tile": {
+        "wM": 0.8,
+        "lM": 0.8
+      },
+      "groutColor": "#B9A98A",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#F7F4EE",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [
+    {
+      "id": "banq-hall-banquet-set-4-1",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-banquet-set-4",
+      "label": "Round banquet table with 4 chairs",
+      "box": {
+        "cx": 79.48,
+        "cz": 10.59,
+        "w": 1.7,
+        "d": 1.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    },
+    {
+      "id": "banq-hall-banquet-set-4-2",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-banquet-set-4",
+      "label": "Round banquet table with 4 chairs",
+      "box": {
+        "cx": 81.58,
+        "cz": 10.59,
+        "w": 1.7,
+        "d": 1.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    },
+    {
+      "id": "banq-hall-banquet-set-4-3",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-banquet-set-4",
+      "label": "Round banquet table with 4 chairs",
+      "box": {
+        "cx": 79.48,
+        "cz": 12.89,
+        "w": 1.7,
+        "d": 1.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    },
+    {
+      "id": "banq-hall-banquet-set-4-4",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-banquet-set-4",
+      "label": "Round banquet table with 4 chairs",
+      "box": {
+        "cx": 81.58,
+        "cz": 12.89,
+        "w": 1.7,
+        "d": 1.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    },
+    {
+      "id": "banq-hall-banquet-set-4-5",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-banquet-set-4",
+      "label": "Round banquet table with 4 chairs",
+      "box": {
+        "cx": 79.48,
+        "cz": 15.19,
+        "w": 1.7,
+        "d": 1.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    },
+    {
+      "id": "banq-hall-banquet-set-4-6",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-banquet-set-4",
+      "label": "Round banquet table with 4 chairs",
+      "box": {
+        "cx": 81.58,
+        "cz": 15.19,
+        "w": 1.7,
+        "d": 1.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    }
+  ],
+  "spawn": {
+    "x": 79.83,
+    "z": 16.47,
+    "yawDeg": 0
+  },
+  "unlisted": true,
+  "spaceKind": "hall",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

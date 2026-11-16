@@ -16,7 +16,7 @@ const FOUR: Side[] = ['front', 'back', 'left', 'right'];
 
 export const GARDEN_PIECES: MorePiece[] = [
   garden({
-    id: 'garden-bench', name: 'Park bench, 3-seat', cat: 'seating', kind: 'sofa', w: 1.8, d: 0.62, h: 0.82, s: 0.45,
+    id: 'garden-bench', places: ['garden', 'pool'], name: 'Park bench, 3-seat', cat: 'seating', kind: 'sofa', w: 1.8, d: 0.62, h: 0.82, s: 0.45,
     label: '180 × 62 cm, seat 45 cm, teak slats on cast-iron ends', params: { variant: 'bench' }, family: 'chair', pose: 'sit', kw: 'bench park bench garden seat wooden slat outdoor three seater', prompt: 'Sit on the bench', up: 'Get up', probe: [0, 0.05],
   }),
   garden({

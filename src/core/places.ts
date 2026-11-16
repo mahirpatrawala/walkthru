@@ -6,7 +6,7 @@ import { CATALOG } from './catalog';
 import { CATEGORIES, categoryOf } from './pieces';
 import type { PieceCategory } from './pieces';
 
-export const SPACE_KINDS: SpaceKind[] = ['home', 'lobby', 'corridor', 'gym', 'hall', 'pool', 'garden', 'other'];
+export const SPACE_KINDS: SpaceKind[] = ['home', 'lobby', 'corridor', 'gym', 'hall', 'games', 'pool', 'garden', 'other'];
 export const isSpaceKind = (v: unknown): v is SpaceKind => typeof v === 'string' && (SPACE_KINDS as string[]).includes(v);
 
 /** The kind of space a scene is: its `spaceKind`, or a home when it names none. `?spaceKind=gym` is the debug override (checks, and a builder trying a catalogue). */
@@ -46,6 +46,7 @@ const CATS: Record<SpaceKind, PieceCategory[] | null> = {
   lobby: ['reception', 'seating', 'tables', 'storage', 'decor', 'amenities'],
   corridor: ['seating', 'tables', 'reception', 'decor', 'amenities'],
   hall: ['seating', 'tables', 'stage', 'games', 'decor', 'amenities'],
+  games: ['games', 'seating', 'tables', 'decor', 'amenities'],
   pool: ['amenities', 'decor', 'seating'],
   garden: ['decor', 'seating', 'amenities'],
   other: null,
@@ -61,6 +62,7 @@ const CAT_IN: Partial<Record<SpaceKind, Record<string, PieceCategory>>> = {
   lobby: { 'planter-pot': 'decor', 'planter-box': 'decor', sideboard: 'storage', 'bookshelf-wide': 'storage', 'office-chair': 'seating', 'bar-stool': 'seating' },
   corridor: { 'planter-pot': 'decor', 'planter-box': 'decor' },
   hall: { 'planter-pot': 'decor', 'planter-box': 'decor', sideboard: 'tables', 'dining-4': 'tables', 'bar-stool': 'seating', 'lobby-notice-board': 'amenities', 'lobby-stanchions': 'amenities' },
+  games: { 'planter-pot': 'decor', 'planter-box': 'decor', 'sofa-3': 'seating', 'sofa-2': 'seating', armchair: 'seating', 'side-table': 'tables', 'coffee-round': 'tables', 'hall-chair': 'seating' },
   pool: { 'planter-pot': 'decor', 'planter-box': 'decor', 'balcony-chair': 'seating', 'balcony-set': 'seating' },
   garden: { 'planter-pot': 'decor', 'planter-box': 'decor', 'balcony-chair': 'seating', 'balcony-set': 'seating' },
 };
@@ -75,6 +77,7 @@ export function trayWords(kind: SpaceKind | undefined): { all: string; title: st
     case 'lobby': return { all: 'All lobby pieces', title: 'Add to the lobby', noun: 'lobby piece', here: 'In this lobby' };
     case 'hall': return { all: 'All hall pieces', title: 'Add to the hall', noun: 'hall piece', here: 'In this hall' };
     case 'corridor': return { all: 'All corridor pieces', title: 'Add to the corridor', noun: 'corridor piece', here: 'In this corridor' };
+    case 'games': return { all: 'All games-room pieces', title: 'Add to the games room', noun: 'games-room piece', here: 'In this games room' };
     case 'pool': return { all: 'All pool-side pieces', title: 'Add pool-side pieces', noun: 'pool-side piece', here: 'In this pool area' };
     case 'garden': return { all: 'All garden pieces', title: 'Add to the garden', noun: 'garden piece', here: 'In this garden' };
     case 'other': return { all: 'All pieces', title: 'Add a piece', noun: 'piece', here: 'In this space' };
@@ -82,7 +85,7 @@ export function trayWords(kind: SpaceKind | undefined): { all: string; title: st
   }
 }
 
-const KIND_WORDS: Record<SpaceKind, string> = { home: 'a home', lobby: 'a lobby', corridor: 'a corridor', gym: 'a gym', hall: 'a hall', pool: 'a pool area', garden: 'a garden', other: 'this space' };
+const KIND_WORDS: Record<SpaceKind, string> = { home: 'a home', lobby: 'a lobby', corridor: 'a corridor', gym: 'a gym', hall: 'a hall', games: 'a games room', pool: 'a pool area', garden: 'a garden', other: 'this space' };
 
 /**
  * The note for a piece that is in a scene it is not offered in (it arrived by a share link or a stored layout, or the scene's kind changed).

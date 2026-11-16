@@ -1,0 +1,285 @@
+{
+  "version": 1,
+  "id": "test-tower-club-aqua",
+  "title": "Aqua play",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
+  "layout": {
+    "wallHeightM": 10.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "aqua",
+        "label": "Aqua play",
+        "roomType": "other",
+        "polygon": [
+          {
+            "x": 44.28,
+            "z": 29.44
+          },
+          {
+            "x": 66.98,
+            "z": 29.44
+          },
+          {
+            "x": 66.98,
+            "z": 32.44
+          },
+          {
+            "x": 75.93,
+            "z": 32.44
+          },
+          {
+            "x": 75.93,
+            "z": 36.8
+          },
+          {
+            "x": 66.98,
+            "z": 36.8
+          },
+          {
+            "x": 66.98,
+            "z": 51.91
+          },
+          {
+            "x": 45.44,
+            "z": 51.91
+          },
+          {
+            "x": 45.44,
+            "z": 32.71
+          },
+          {
+            "x": 44.28,
+            "z": 32.71
+          }
+        ],
+        "edges": [
+          "wall",
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-foyer",
+        "roomId": "aqua",
+        "edge": 0,
+        "type": "door",
+        "centreM": 1.2,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-link",
+        "roomId": "aqua",
+        "edge": 0,
+        "type": "door",
+        "centreM": 19.97,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EFE6D3",
+      "floorColor": "#C9B9A0",
+      "tile": null,
+      "groutColor": "#B9AE9F",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [
+    {
+      "id": "aqua-aqua-tower-1",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "aqua-tower",
+      "label": "Water-play tower with slide",
+      "box": {
+        "cx": 55.88,
+        "cz": 41.47,
+        "w": 2.4,
+        "d": 1.5,
+        "yawDeg": 0
+      },
+      "heightM": 2.5,
+      "surfaceHeightM": 1.2
+    },
+    {
+      "id": "aqua-aqua-sun-2",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "aqua-sun",
+      "label": "Sun spray feature",
+      "box": {
+        "cx": 54.75,
+        "cz": 45.09,
+        "w": 2.1,
+        "d": 2.1,
+        "yawDeg": 0
+      },
+      "heightM": 1.4,
+      "surfaceHeightM": 1.4
+    },
+    {
+      "id": "aqua-aqua-mushroom-3",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "aqua-mushroom",
+      "label": "Water mushroom",
+      "box": {
+        "cx": 58.22,
+        "cz": 45.09,
+        "w": 1.6,
+        "d": 1.6,
+        "yawDeg": 0
+      },
+      "heightM": 2.1,
+      "surfaceHeightM": 2.1
+    },
+    {
+      "id": "aqua-aqua-jets-4",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "aqua-jets",
+      "label": "Ground spray jets, row of nine",
+      "box": {
+        "cx": 56.85,
+        "cz": 48.29,
+        "w": 12,
+        "d": 0.3,
+        "yawDeg": 0
+      },
+      "heightM": 0.12,
+      "surfaceHeightM": 0.12
+    },
+    {
+      "id": "aqua-pool-chair-5",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "pool-chair",
+      "label": "Pool-side chair",
+      "box": {
+        "cx": 46.61,
+        "cz": 39.45,
+        "w": 0.62,
+        "d": 0.64,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "aqua-pool-chair-6",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "pool-chair",
+      "label": "Pool-side chair",
+      "box": {
+        "cx": 46.61,
+        "cz": 42.17,
+        "w": 0.62,
+        "d": 0.64,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "aqua-pool-chair-7",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "pool-chair",
+      "label": "Pool-side chair",
+      "box": {
+        "cx": 46.61,
+        "cz": 44.78,
+        "w": 0.62,
+        "d": 0.64,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "aqua-pool-chair-8",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "pool-chair",
+      "label": "Pool-side chair",
+      "box": {
+        "cx": 46.61,
+        "cz": 47.43,
+        "w": 0.62,
+        "d": 0.64,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "aqua-garden-bench-9",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "garden-bench",
+      "label": "Park bench, 3-seat",
+      "box": {
+        "cx": 47.24,
+        "cz": 30.37,
+        "w": 1.8,
+        "d": 0.62,
+        "yawDeg": 180
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.45
+    },
+    {
+      "id": "aqua-garden-bench-10",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "garden-bench",
+      "label": "Park bench, 3-seat",
+      "box": {
+        "cx": 65.34,
+        "cz": 31.93,
+        "w": 1.8,
+        "d": 0.62,
+        "yawDeg": 270
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.45
+    }
+  ],
+  "spawn": {
+    "x": 46.73,
+    "z": 31.27,
+    "yawDeg": 90
+  },
+  "unlisted": true,
+  "spaceKind": "pool",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

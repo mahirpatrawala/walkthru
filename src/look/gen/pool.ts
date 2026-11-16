@@ -8,7 +8,7 @@ import { cylinderY } from './geo';
 import { CHROME, LEAF, RUBBER, SOIL, bar, disc, post, soft } from './kit';
 import { fitToBox } from './outdoor-fit';
 
-export const POOL_VARIANTS = ['lounger', 'umbrella', 'chair', 'table', 'shower', 'towel', 'lifeguard', 'life-ring', 'depth-sign', 'changing-sign', 'planter'] as const;
+export const POOL_VARIANTS = ['lounger', 'umbrella', 'chair', 'table', 'shower', 'towel', 'lifeguard', 'life-ring', 'depth-sign', 'changing-sign', 'planter', 'aqua-tower', 'aqua-sun', 'aqua-mushroom', 'aqua-jets'] as const;
 export type PoolVariant = (typeof POOL_VARIANTS)[number];
 export interface PoolParams { variant: PoolVariant; canopyM: number; text: string; liftM: number }
 export const POOL_DEFAULTS: PoolParams = { variant: 'lounger', canopyM: 2.5, text: '1.2 m', liftM: 0 };
@@ -35,6 +35,10 @@ export function buildPool(env: GenEnv, size: GenSize, p: PoolParams, _roles: Rol
     case 'depth-sign': depthSign(parts, size, p.text); break;
     case 'changing-sign': changingSign(parts, size, p.liftM); break;
     case 'planter': planter(parts, size); break;
+    case 'aqua-tower': aquaTower(parts, size); break;
+    case 'aqua-sun': aquaSun(parts, size); break;
+    case 'aqua-mushroom': aquaMushroom(parts, size); break;
+    case 'aqua-jets': aquaJets(parts, size); break;
   }
   return fitToBox(parts.done(), size, p.variant === 'changing-sign' ? p.liftM : 0, p.variant === 'umbrella' ? /^umbrella-/ : null);
 }
@@ -238,4 +242,63 @@ function planter(P: Parts, { w, d, h, s }: GenSize): void {
   }
   P.put('fronds', LEAF, new THREE.SphereGeometry(1, 8, 6).scale(0.15, 0.17, 0.15).translate(0, h - 0.17, 0));
   void cylinderY;
+}
+
+// ---------------------------------------------------------------- aqua play (a shallow children's water area)
+
+export const PLAY_RED: MatSpec = { key: 'paint', tint: '#C9372C' };
+export const PLAY_YELLOW: MatSpec = { key: 'paint', tint: '#E3B02A' };
+export const PLAY_BLUE: MatSpec = { key: 'paint', tint: '#2F6FB0' };
+export const PLAY_GREY: MatSpec = { key: 'dark', tint: '#3A3D42' };
+
+/** A water-play tower: four posts, a deck at 1.2 m with a roof of blue panels, a spiral-less straight slide down one end into the water, a spray nozzle on the roof. Slide end at +x. */
+function aquaTower(P: Parts, { w, d, h }: GenSize): void {
+  const deck = 1.2, tw = Math.min(1.6, d), x0 = -w / 2, tx1 = x0 + tw;
+  const z0 = -d / 2, z1 = d / 2;
+  for (const x of [x0 + 0.06, tx1 - 0.06]) for (const z of [z0 + 0.06, z1 - 0.06]) post(P, 'posts', PLAY_GREY, x, z, 0, h - 0.12, 0.05);
+  P.box('deck', PLAY_GREY, x0, tx1, deck - 0.06, deck, z0, z1, { c: 0.01 });
+  P.box('rails', PLAY_RED, x0, tx1, deck, deck + 0.55, z0, z0 + 0.04, { c: 0.004 });
+  P.box('rails', PLAY_RED, x0, tx1, deck, deck + 0.55, z1 - 0.04, z1, { c: 0.004 });
+  P.box('roof', PLAY_BLUE, x0 - 0.0, tx1, h - 0.12, h, z0, z1, { c: 0.02 });
+  // the slide: a sloped chute from the deck's +x edge down to the water, 0.5 m wide
+  const run = w - tw, drop = deck - 0.2, len = Math.hypot(run, drop), ang = Math.atan2(drop, run);
+  const chute = new THREE.BoxGeometry(len, 0.05, 0.5).rotateZ(-ang);
+  chute.translate(tx1 + run / 2, deck - drop / 2 - 0.02, 0);
+  P.put('slide', PLAY_YELLOW, chute);
+  for (const s of [-1, 1]) { const side = new THREE.BoxGeometry(len, 0.14, 0.04).rotateZ(-ang); side.translate(tx1 + run / 2, deck - drop / 2 + 0.04, s * 0.27); P.put('slide-sides', PLAY_YELLOW, side); }
+  post(P, 'nozzle', CHROME, (x0 + tx1) / 2, 0, h - 0.12, h - 0.02, 0.025);
+}
+
+/** A sun-shaped spray feature: a low round pad, a post, a red disc and yellow rays round it. */
+function aquaSun(P: Parts, { w, h }: GenSize): void {
+  const r = w / 2;
+  disc(P, 'pad', PLAY_GREY, 0, 0, 0, 0.06, r * 0.5);
+  post(P, 'post', CHROME, 0, 0, 0.06, h - 0.2, 0.05);
+  disc(P, 'sun', PLAY_RED, 0, 0, h - 0.5, h - 0.2, r * 0.55);
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    const ray = new THREE.BoxGeometry(r * 0.4, 0.04, 0.1).translate(r * 0.55 + r * 0.2 - 0.0, 0, 0).rotateY(-a);
+    ray.translate(0, h - 0.36, 0);
+    P.put('rays', PLAY_YELLOW, ray);
+  }
+  disc(P, 'nozzle', CHROME, 0, 0, h - 0.2, h, 0.06);
+}
+
+/** A water mushroom: a post and a wide yellow dome that rains round its rim. */
+function aquaMushroom(P: Parts, { w, h }: GenSize): void {
+  const r = w / 2;
+  disc(P, 'pad', PLAY_GREY, 0, 0, 0, 0.05, 0.22);
+  post(P, 'stem', PLAY_BLUE, 0, 0, 0.05, h - 0.25, 0.07);
+  const dome = new THREE.SphereGeometry(r, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.3 / r, 1);
+  dome.translate(0, h - 0.32, 0);
+  P.put('dome', PLAY_YELLOW, dome, { double: true });
+  disc(P, 'rim', PLAY_YELLOW, 0, 0, h - 0.34, h - 0.32, r);
+  disc(P, 'cap', CHROME, 0, 0, h - 0.02, h, 0.05);
+}
+
+/** A row of ground spray jets in a stainless bar, nine nozzles along it. */
+function aquaJets(P: Parts, { w, d, h }: GenSize): void {
+  P.box('bar', CHROME, -w / 2, w / 2, 0, h * 0.5, -d / 2, d / 2, { c: 0.004 });
+  const n = 9;
+  for (let i = 0; i < n; i++) { const x = -w / 2 + 0.2 + (i * (w - 0.4)) / (n - 1); post(P, 'jets', WHITE_PAINT, x, 0, h * 0.5, h, 0.045, 0.7); }
 }

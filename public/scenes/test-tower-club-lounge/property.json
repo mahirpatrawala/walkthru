@@ -1,0 +1,212 @@
+{
+  "version": 1,
+  "id": "test-tower-club-lounge",
+  "title": "Banquet lounge",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "lounge",
+        "label": "Banquet lounge",
+        "roomType": "other",
+        "polygon": [
+          {
+            "x": 77.02,
+            "z": 17.06
+          },
+          {
+            "x": 85.59,
+            "z": 17.06
+          },
+          {
+            "x": 85.59,
+            "z": 25.31
+          },
+          {
+            "x": 77.02,
+            "z": 25.31
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-link",
+        "roomId": "lounge",
+        "edge": 3,
+        "type": "door",
+        "centreM": 4.05,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-hall-1",
+        "roomId": "lounge",
+        "edge": 0,
+        "type": "door",
+        "centreM": 7.91,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-hall-2",
+        "roomId": "lounge",
+        "edge": 2,
+        "type": "door",
+        "centreM": 0.66,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-deck",
+        "roomId": "lounge",
+        "edge": 1,
+        "type": "door",
+        "centreM": 4.01,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "window-e1",
+        "roomId": "lounge",
+        "edge": 1,
+        "type": "window",
+        "centreM": 1.5500000000000007,
+        "widthM": 2,
+        "sillM": 0,
+        "headM": 2.6
+      },
+      {
+        "id": "window-e2",
+        "roomId": "lounge",
+        "edge": 1,
+        "type": "window",
+        "centreM": 6.620000000000001,
+        "widthM": 2,
+        "sillM": 0,
+        "headM": 2.6
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EFE7D8",
+      "floorColor": "#D2C2A3",
+      "tile": {
+        "wM": 0.8,
+        "lM": 0.8
+      },
+      "groutColor": "#B9A98A",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#F7F4EE",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [
+    {
+      "id": "banq-hall-cafe-set-2-1",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-cafe-set-2",
+      "label": "Café table with 2 chairs",
+      "box": {
+        "cx": 79.24,
+        "cz": 18.73,
+        "w": 1.6,
+        "d": 0.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    },
+    {
+      "id": "banq-hall-cafe-set-2-2",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-cafe-set-2",
+      "label": "Café table with 2 chairs",
+      "box": {
+        "cx": 82.17,
+        "cz": 18.73,
+        "w": 1.6,
+        "d": 0.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    },
+    {
+      "id": "banq-hall-cafe-set-2-3",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-cafe-set-2",
+      "label": "Café table with 2 chairs",
+      "box": {
+        "cx": 79.24,
+        "cz": 23.68,
+        "w": 1.6,
+        "d": 0.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    },
+    {
+      "id": "banq-hall-cafe-set-2-4",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-cafe-set-2",
+      "label": "Café table with 2 chairs",
+      "box": {
+        "cx": 82.17,
+        "cz": 23.68,
+        "w": 1.6,
+        "d": 0.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    }
+  ],
+  "spawn": {
+    "x": 79.05,
+    "z": 21.26,
+    "yawDeg": 90
+  },
+  "unlisted": true,
+  "spaceKind": "hall",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

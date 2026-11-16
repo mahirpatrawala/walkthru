@@ -594,7 +594,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
   let sumCache: { key: string; v: SpaceSummary | null } | null = null;
   const summaryFor = (): SpaceSummary | null => {
     const k = spaceKind();
-    if (k !== 'gym' && k !== 'hall') return null;
+    if (k !== 'gym' && k !== 'hall' && k !== 'games') return null;
     const items = store.all();
     const key = items.map((i) => `${i.id}:${i.box.cx.toFixed(3)},${i.box.cz.toFixed(3)},${i.box.yawDeg}`).join('|');
     if (sumCache?.key === key) return sumCache.v;
@@ -1623,7 +1623,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     summaryEl.hidden = !sm;
     if (!sm) return;
     summaryEl.dataset.tone = sm.tone;
-    h('div', 'wtf-summary-title', summaryEl, spaceKindOf(ctx.property) === 'hall' ? 'This hall' : 'This gym');
+    h('div', 'wtf-summary-title', summaryEl, spaceKindOf(ctx.property) === 'hall' ? 'This hall' : spaceKindOf(ctx.property) === 'games' ? 'This games room' : 'This gym');
     sm.lines.forEach((line, i) => h('div', `wtf-summary-line${i === sm.lines.length - 1 ? ' is-walkway' : ''}`, summaryEl, line));
     h('div', 'wtf-summary-foot', summaryEl, sm.footer);
   };

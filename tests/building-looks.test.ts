@@ -48,7 +48,7 @@ describe('the building map', () => {
     expect(plan.boxes.map((x) => x.spaceId)).toEqual(lv.spaces.map((s) => s.id));
     expect((plan.svg.match(/class="bm-space/g) ?? []).length).toBe(lv.spaces.length);
     expect(plan.svg).not.toMatch(/class="plan-label/);
-    for (const name of ['Community hall', 'Gym', 'Clubhouse foyer']) expect(plan.svg).toContain(name);
+    for (const name of ['Banquet hall 1', 'Gymnasium', 'Clubhouse foyer', 'Pool area']) expect(plan.svg).toContain(name);
     // a placeholder for a later stage is still labelled as one (no space of the sample is one any more: the pool and the garden are finished)
     expect(plan.svg).not.toMatch(/Coming in the next stage/);
     const lv2 = structuredClone(lv);

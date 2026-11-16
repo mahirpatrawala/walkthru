@@ -17,9 +17,9 @@ export const SPACE_ROWS = SPACE_PIECES.map((p) => p.row);
  * tables go to the hall, sofas, side tables and planters to the lobby; a yoga mat is as good in a studio as in a bedroom.
  */
 export const EXTRA_PLACES: Record<string, SpaceKind[]> = {
-  'sofa-3': ['lobby', 'hall'], 'sofa-2': ['lobby', 'hall'], 'sofa-l': ['lobby'], armchair: ['lobby', 'hall', 'corridor'],
-  'side-table': ['lobby', 'hall', 'corridor'], 'coffee-rect': ['lobby', 'hall'], 'coffee-round': ['lobby', 'hall'],
-  'planter-pot': ['lobby', 'hall', 'corridor', 'pool', 'garden'], 'planter-box': ['lobby', 'hall', 'corridor', 'pool', 'garden'],
+  'sofa-3': ['lobby', 'hall', 'games'], 'sofa-2': ['lobby', 'hall', 'games'], 'sofa-l': ['lobby'], armchair: ['lobby', 'hall', 'corridor', 'games'],
+  'side-table': ['lobby', 'hall', 'corridor', 'games'], 'coffee-rect': ['lobby', 'hall'], 'coffee-round': ['lobby', 'hall', 'games'],
+  'planter-pot': ['lobby', 'hall', 'corridor', 'pool', 'garden', 'games'], 'planter-box': ['lobby', 'hall', 'corridor', 'pool', 'garden', 'games'],
   'balcony-chair': ['pool', 'garden'], 'balcony-set': ['pool', 'garden'],
   sideboard: ['lobby', 'hall'], 'office-chair': ['lobby'], 'bar-stool': ['lobby', 'hall'],
   'dining-4': ['hall'], 'dining-6': ['hall'], 'dining-8': ['hall'], 'dining-round-4': ['hall'],

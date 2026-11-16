@@ -2,7 +2,7 @@
   "version": 1,
   "id": "test-tower-club-foyer",
   "title": "Clubhouse foyer",
-  "subtitle": "Sample building · made-up layout for demonstration",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
   "layout": {
     "wallHeightM": 3.6,
     "wallThicknessM": 0.12,
@@ -10,27 +10,77 @@
     "rooms": [
       {
         "id": "foyer",
-        "roomType": "other",
         "label": "Clubhouse foyer",
+        "roomType": "other",
         "polygon": [
           {
-            "x": 0,
-            "z": 0
+            "x": 36.18,
+            "z": 21.53
           },
           {
-            "x": 12,
-            "z": 0
+            "x": 46.77,
+            "z": 21.53
           },
           {
-            "x": 12,
-            "z": 6
+            "x": 46.77,
+            "z": 29.44
           },
           {
-            "x": 0,
-            "z": 6
+            "x": 44.28,
+            "z": 29.44
+          },
+          {
+            "x": 44.28,
+            "z": 23.4
+          },
+          {
+            "x": 38.43,
+            "z": 23.4
+          },
+          {
+            "x": 38.43,
+            "z": 36.95
+          },
+          {
+            "x": 41.2,
+            "z": 36.95
+          },
+          {
+            "x": 41.2,
+            "z": 32.71
+          },
+          {
+            "x": 45.44,
+            "z": 32.71
+          },
+          {
+            "x": 45.44,
+            "z": 39.64
+          },
+          {
+            "x": 29.09,
+            "z": 39.64
+          },
+          {
+            "x": 29.09,
+            "z": 36.95
+          },
+          {
+            "x": 36.18,
+            "z": 36.95
           }
         ],
         "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall",
+          "wall",
+          "wall",
+          "wall",
+          "wall",
+          "wall",
+          "wall",
           "wall",
           "wall",
           "wall",
@@ -40,86 +90,26 @@
     ],
     "openings": [
       {
-        "id": "door-hall",
-        "roomId": "foyer",
-        "edge": 3,
-        "type": "door",
-        "centreM": 4.5,
-        "widthM": 1.2,
-        "sillM": 0,
-        "headM": 2.1,
-        "leaf": {
-          "hinge": "end",
-          "swing": "out",
-          "kind": "hinged"
-        }
-      },
-      {
-        "id": "door-gym",
+        "id": "door-stairs",
         "roomId": "foyer",
         "edge": 0,
         "type": "door",
-        "centreM": 6,
-        "widthM": 1.2,
-        "sillM": 0,
-        "headM": 2.1,
-        "leaf": {
-          "hinge": "start",
-          "swing": "out",
-          "kind": "hinged"
-        }
-      },
-      {
-        "id": "door-pool",
-        "roomId": "foyer",
-        "edge": 1,
-        "type": "door",
-        "centreM": 2,
-        "widthM": 1.2,
-        "sillM": 0,
-        "headM": 2.1,
-        "leaf": {
-          "hinge": "start",
-          "swing": "out",
-          "kind": "hinged"
-        }
-      },
-      {
-        "id": "door-garden",
-        "roomId": "foyer",
-        "edge": 2,
-        "type": "door",
-        "centreM": 2.5,
-        "widthM": 1.2,
-        "sillM": 0,
-        "headM": 2.1,
-        "leaf": {
-          "hinge": "end",
-          "swing": "out",
-          "kind": "hinged"
-        }
-      },
-      {
-        "id": "door-walkway",
-        "roomId": "foyer",
-        "edge": 3,
-        "type": "door",
-        "centreM": 1.2000000000000002,
+        "centreM": 3.93,
         "widthM": 1,
         "sillM": 0,
         "headM": 2.1,
         "leaf": {
           "hinge": "start",
-          "swing": "in",
+          "swing": "out",
           "kind": "hinged"
         }
       },
       {
         "id": "lift-a",
         "roomId": "foyer",
-        "edge": 2,
+        "edge": 4,
         "type": "door",
-        "centreM": 10,
+        "centreM": 4.37,
         "widthM": 0.9,
         "sillM": 0,
         "headM": 2.1,
@@ -132,9 +122,9 @@
       {
         "id": "lift-b",
         "roomId": "foyer",
-        "edge": 2,
+        "edge": 4,
         "type": "door",
-        "centreM": 8.2,
+        "centreM": 1.45,
         "widthM": 0.9,
         "sillM": 0,
         "headM": 2.1,
@@ -145,12 +135,102 @@
         }
       },
       {
-        "id": "door-stairs",
+        "id": "door-walkway",
+        "roomId": "foyer",
+        "edge": 13,
+        "type": "door",
+        "centreM": 9.57,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-gym",
+        "roomId": "foyer",
+        "edge": 10,
+        "type": "door",
+        "centreM": 10,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-changing-1",
+        "roomId": "foyer",
+        "edge": 13,
+        "type": "door",
+        "centreM": 5.76,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-changing-2",
+        "roomId": "foyer",
+        "edge": 13,
+        "type": "door",
+        "centreM": 2.53,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-games",
+        "roomId": "foyer",
+        "edge": 1,
+        "type": "door",
+        "centreM": 4.87,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-aqua",
         "roomId": "foyer",
         "edge": 2,
         "type": "door",
-        "centreM": 6,
-        "widthM": 1,
+        "centreM": 1.29,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-bridge",
+        "roomId": "foyer",
+        "edge": 11,
+        "type": "door",
+        "centreM": 2.06,
+        "widthM": 1.2,
         "sillM": 0,
         "headM": 2.1,
         "leaf": {
@@ -162,13 +242,13 @@
     ],
     "finishes": {
       "wallColor": "#EFE7D8",
-      "floorColor": "#C9B79C",
+      "floorColor": "#D2C2A3",
       "tile": {
         "wM": 0.8,
         "lM": 0.8
       },
-      "groutColor": "#B3A185",
-      "frameColor": "#4A3528",
+      "groutColor": "#B9A98A",
+      "frameColor": "#A8B0B5",
       "ceilingColor": "#F7F4EE",
       "railingColor": "#3A3A3C",
       "source": "default"
@@ -177,9 +257,9 @@
   },
   "furniture": [],
   "spawn": {
-    "x": 6,
-    "z": 3,
-    "yawDeg": 0
+    "x": 37.31,
+    "z": 31.27,
+    "yawDeg": 180
   },
   "unlisted": true,
   "spaceKind": "corridor",

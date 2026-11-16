@@ -6,7 +6,7 @@ import type { Look } from '../look/look';
 import type { Tier } from '../look/types';
 import { boxGeometry, flatGeometry, mergeAndFree, segmentBox, tube } from './geo';
 import { OutdoorMaterials } from './materials';
-import { markerStations, profileDepth, stepRects, waterLevelY } from './pool';
+import { copingRects, exposureOf, isExposedAt, markerStations, profileDepth, stepRects, waterLevelY } from './pool';
 import type { PoolBasin, Rect, Side } from './types';
 import { makeUnderwater, makeWaterSurface, makeWaterUniforms, syncWaterUniforms } from './water';
 import type { WaterUniforms } from './water';
@@ -139,19 +139,32 @@ export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, 
       into.push(g1, g2);
     };
     const bandTop = 0.0, bandBot = -BAND_M - b.waterBelowDeckM * 0 - 0.0;
-    const edgesOf = (): { a: { x: number; z: number }; c: { x: number; z: number } }[] => [
-      { a: { x: R.x0, z: R.z0 }, c: { x: R.x1, z: R.z0 } }, { a: { x: R.x1, z: R.z0 }, c: { x: R.x1, z: R.z1 } },
-      { a: { x: R.x1, z: R.z1 }, c: { x: R.x0, z: R.z1 } }, { a: { x: R.x0, z: R.z1 }, c: { x: R.x0, z: R.z0 } },
-    ];
-    for (const e of edgesOf()) {
-      wallPanel(e.a, e.c, bandBot, bandTop, bandG);
+    const ex = exposureOf(b, pools);
+    // a side as a run from its start: N and S from x0, E and W from z0 (the order of the steps and the walkway)
+    const SIDE: Record<Side, { a: { x: number; z: number }; dir: { x: number; z: number } }> = {
+      N: { a: { x: R.x0, z: R.z0 }, dir: { x: 1, z: 0 } }, S: { a: { x: R.x0, z: R.z1 }, dir: { x: 1, z: 0 } },
+      W: { a: { x: R.x0, z: R.z0 }, dir: { x: 0, z: 1 } }, E: { a: { x: R.x1, z: R.z0 }, dir: { x: 0, z: 1 } },
+    };
+    const at = (s: Side, t: number): { x: number; z: number } => ({ x: SIDE[s].a.x + SIDE[s].dir.x * t, z: SIDE[s].a.z + SIDE[s].dir.z * t });
+    for (const side of ['N', 'E', 'S', 'W'] as Side[]) for (const [t0, t1] of ex.exposed[side]) {
+      wallPanel(at(side, t0), at(side, t1), bandBot, bandTop, bandG);
       // the lower wall follows the floor: split into short pieces
-      const dx = e.c.x - e.a.x, dz = e.c.z - e.a.z, len = Math.hypot(dx, dz), n = Math.max(1, Math.round(len / 0.5));
+      const len = t1 - t0, n = Math.max(1, Math.round(len / 0.5));
       for (let i = 0; i < n; i++) {
-        const a = { x: e.a.x + (dx * i) / n, z: e.a.z + (dz * i) / n }, c = { x: e.a.x + (dx * (i + 1)) / n, z: e.a.z + (dz * (i + 1)) / n };
+        const a = at(side, t0 + (len * i) / n), c = at(side, t0 + (len * (i + 1)) / n);
         const ua = alongU(b, a), uc = alongU(b, c);
         const yb = Math.min(floorY(profileDepth(b, ua)), floorY(profileDepth(b, uc))) - 0.02;
         wallPanel(a, c, yb, bandBot, wallG);
+      }
+    }
+    // where this basin is shallower than the water it touches, a step wall from its floor down to the other's (a ledge's riser)
+    for (const m of ex.seams) {
+      const len = m.toM - m.fromM, n = Math.max(1, Math.round(len / 0.25));
+      for (let i = 0; i < n; i++) {
+        const a = at(m.side, m.fromM + (len * i) / n), c = at(m.side, m.fromM + (len * (i + 1)) / n);
+        const mid = { x: (a.x + c.x) / 2, z: (a.z + c.z) / 2 };
+        const mine = profileDepth(b, alongU(b, mid)), theirs = profileDepth(m.other, alongU(m.other, mid));
+        if (theirs > mine + 0.01) wallPanel(a, c, floorY(theirs), floorY(mine), wallG);
       }
     }
     void deepest;
@@ -192,17 +205,22 @@ export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, 
     const cm = b.copingM;
     const stone = mats.ground('paving', { colour: '#DDD2BC' });
     const cop: THREE.BufferGeometry[] = [];
-    const E = expand(R, cm);
-    cop.push(boxGeometry(E.x0, E.x1, 0, 0.03, E.z0, R.z0, 1.2), boxGeometry(E.x0, E.x1, 0, 0.03, R.z1, E.z1, 1.2), boxGeometry(E.x0, R.x0, 0, 0.03, R.z0, R.z1, 1.2), boxGeometry(R.x1, E.x1, 0, 0.03, R.z0, R.z1, 1.2));
+    for (const r of copingRects(b, ex)) cop.push(boxGeometry(r.x0, r.x1, 0, 0.03, r.z0, r.z1, 1.2));
     add(cop, stone, `pool:${b.id}:coping`, true);
     if (b.markers) {
       const stations = markerStations(b);
+      // numerals sit in the coping of the long sides (the two that run along the depth axis), where that stretch meets the deck
+      const longSides: Side[] = alongX ? ['N', 'S'] : ['W', 'E'];
       for (const st of stations) {
         const tex = numeralTexture(st.label);
-        for (const sideZ of [R.z0 - cm / 2, R.z1 + cm / 2]) {
-          const p = alongX ? { x: along(st.u), z: sideZ } : { x: R.x0 + (sideZ === R.z0 - cm / 2 ? -cm / 2 : (R.x1 - R.x0) + cm / 2), z: along(st.u) };
-          if (!alongX) break;
-          const plane = new THREE.PlaneGeometry(0.34, 0.13).rotateX(-Math.PI / 2).translate(p.x, 0.032, p.z);
+        for (const side of longSides) {
+          const p = pt(st.u, side === 'N' || side === 'W' ? 0 : 1);
+          const t = alongX ? p.x - R.x0 : p.z - R.z0;
+          if (!isExposedAt(ex, side, t)) continue;
+          const q = alongX ? { x: p.x, z: p.z + (side === 'N' ? -cm / 2 : cm / 2) } : { x: p.x + (side === 'W' ? -cm / 2 : cm / 2), z: p.z };
+          const plane = new THREE.PlaneGeometry(0.34, 0.13).rotateX(-Math.PI / 2);
+          if (!alongX) plane.rotateY(Math.PI / 2);
+          plane.translate(q.x, 0.032, q.z);
           const m = new THREE.MeshStandardMaterial({ map: tex ?? undefined, color: tex ? '#ffffff' : '#1E5F8C', roughness: 0.6 });
           free.push(m, plane); if (tex) free.push(tex);
           const mesh = new THREE.Mesh(plane, m); mesh.name = `pool:${b.id}:numeral`; mesh.userData.outdoor = mesh.name; mesh.receiveShadow = true;
@@ -227,8 +245,12 @@ export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, 
       const u = (i + 0.5) / nl;
       const p = pt(u, 0);
       const q = pt(u, 1);
-      lg.push(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 10).rotateX(Math.PI / 2).translate(p.x, wl - 0.55, p.z + 0.015));
-      lg.push(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 10).rotateX(Math.PI / 2).translate(q.x, wl - 0.55, q.z - 0.015));
+      // lamps are let into the two long walls, on the stretches that meet the deck (the lamp faces are on the z walls of an x-run pool)
+      const sideA: Side = alongX ? 'N' : 'W', sideB: Side = alongX ? 'S' : 'E';
+      if (alongX && isExposedAt(ex, sideA, p.x - R.x0)) lg.push(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 10).rotateX(Math.PI / 2).translate(p.x, wl - 0.55, p.z + 0.015));
+      if (alongX && isExposedAt(ex, sideB, q.x - R.x0)) lg.push(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 10).rotateX(Math.PI / 2).translate(q.x, wl - 0.55, q.z - 0.015));
+      if (!alongX && isExposedAt(ex, sideA, p.z - R.z0)) lg.push(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 10).rotateZ(Math.PI / 2).translate(p.x + 0.015, wl - 0.55, p.z));
+      if (!alongX && isExposedAt(ex, sideB, q.z - R.z0)) lg.push(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 10).rotateZ(Math.PI / 2).translate(q.x - 0.015, wl - 0.55, q.z));
     }
     const lampMesh = add(lg, lampMat, `pool:${b.id}:lights`);
     if (lampMesh) lights.push(lampMesh);

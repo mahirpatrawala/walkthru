@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "seed": 11,
+  "areas": [
+    {
+      "id": "deck",
+      "finish": "deck",
+      "polygon": [
+        {
+          "x": 85.59,
+          "z": 8.61
+        },
+        {
+          "x": 89.02,
+          "z": 8.61
+        },
+        {
+          "x": 89.02,
+          "z": 33.88
+        },
+        {
+          "x": 85.59,
+          "z": 33.88
+        }
+      ]
+    }
+  ],
+  "pools": [],
+  "boundary": [
+    {
+      "room": "deck",
+      "edge": 0,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "deck",
+      "edge": 1,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "deck",
+      "edge": 2,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "deck",
+      "edge": 3,
+      "kind": "facade"
+    }
+  ],
+  "trees": [],
+  "beds": [],
+  "rows": [],
+  "roofs": [],
+  "note": "The banquet deck, bare: timber decking only",
+  "northDeg": -15
+}

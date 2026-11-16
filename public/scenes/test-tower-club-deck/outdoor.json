@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "seed": 11,
+  "areas": [
+    {
+      "id": "deck",
+      "finish": "deck",
+      "polygon": [
+        {
+          "x": 85.59,
+          "z": 8.61
+        },
+        {
+          "x": 89.02,
+          "z": 8.61
+        },
+        {
+          "x": 89.02,
+          "z": 33.88
+        },
+        {
+          "x": 85.59,
+          "z": 33.88
+        }
+      ]
+    },
+    {
+      "id": "bed-south",
+      "finish": "bed",
+      "polygon": [
+        {
+          "x": 85.59,
+          "z": 33.18
+        },
+        {
+          "x": 89.02,
+          "z": 33.18
+        },
+        {
+          "x": 89.02,
+          "z": 33.88
+        },
+        {
+          "x": 85.59,
+          "z": 33.88
+        }
+      ],
+      "edgingM": 0.1
+    }
+  ],
+  "pools": [],
+  "boundary": [
+    {
+      "room": "deck",
+      "edge": 0,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "deck",
+      "edge": 1,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "deck",
+      "edge": 2,
+      "kind": "parapet",
+      "heightM": 1.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "deck",
+      "edge": 3,
+      "kind": "facade"
+    }
+  ],
+  "trees": [],
+  "beds": [
+    {
+      "id": "planting-south",
+      "polygon": [
+        {
+          "x": 85.59,
+          "z": 33.18
+        },
+        {
+          "x": 89.02,
+          "z": 33.18
+        },
+        {
+          "x": 89.02,
+          "z": 33.88
+        },
+        {
+          "x": 85.59,
+          "z": 33.88
+        }
+      ],
+      "species": [
+        {
+          "id": "hibiscus",
+          "weight": 3
+        },
+        {
+          "id": "bougainvillea",
+          "weight": 3
+        },
+        {
+          "id": "croton",
+          "weight": 2
+        }
+      ],
+      "density": 3,
+      "seed": 51,
+      "scale": 1
+    }
+  ],
+  "rows": [
+    {
+      "id": "hedge-east",
+      "from": {
+        "x": 88.71,
+        "z": 9.27
+      },
+      "to": {
+        "x": 88.71,
+        "z": 33.02
+      },
+      "species": "ficus",
+      "style": "hedge",
+      "widthM": 0.6,
+      "heightM": 1
+    }
+  ],
+  "roofs": [],
+  "note": "Sample banquet deck after a published builder brochure, scaled from its one printed dimension",
+  "northDeg": -15
+}
