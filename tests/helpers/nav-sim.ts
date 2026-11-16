@@ -66,12 +66,12 @@ export interface Sim {
   cam: { yawDeg: number };
   statics: Grid;
   /** runs frames until `until()` or `maxS` seconds; calls `each` after every frame */
-  run(until: () => boolean, maxS: number, each?: (live: Grid) => void): Promise<number>;
+  run(until: () => boolean, maxS: number, each?: (live: Grid) => void, fps?: number): Promise<number>;
   jumps: { x: number; z: number; yawDeg: number }[];
   positions: Vec2[];
 }
 
-export function makeSim(scene: string | PropertyFile, startRoom: string, opts: { startOpen?: (d: Door) => boolean; reduced?: boolean } = {}): Sim {
+export function makeSim(scene: string | PropertyFile, startRoom: string, opts: { startOpen?: (d: Door) => boolean; reduced?: boolean; focal?: (roomId: string) => Vec2 | null } = {}): Sim {
   const prop = typeof scene === 'string' ? loadScene(scene) : scene;
   const layout = prop.layout;
   const statics = stampFurniture(rasterizeLayout(layout), prop.furniture);
@@ -90,19 +90,20 @@ export function makeSim(scene: string | PropertyFile, startRoom: string, opts: {
     openDoor: (id) => doors.open(id),
     jump: async (to) => { jumps.push(to); ch.position = { x: to.x, z: to.z }; ch.yawDeg = to.yawDeg; cam.yawDeg = to.yawDeg; },
     reducedMotion: () => !!opts.reduced,
+    ...(opts.focal ? { focal: opts.focal } : {}),
   };
   const driver = new Driver(deps);
   const positions: Vec2[] = [];
   const sim: Sim = {
     driver, layout, doors, ch, cam, statics, jumps, positions,
-    async run(until, maxS, each) {
-      const dt = 1 / 30;
+    async run(until, maxS, each, fps = 30) {
+      const dt = 1 / fps;
       let t = 0;
       while (!until() && t < maxS) {
         doors.update(dt);
         live = doors.stamp(statics);
         driver.update(dt);
-        for (let k = 0; k < 4; k++) await Promise.resolve();
+        for (let k = 0; k < 16; k++) await Promise.resolve();
         positions.push({ x: ch.position.x, z: ch.position.z });
         each?.(live);
         t += dt;

@@ -52,7 +52,9 @@ import { mountLayoutChip, syncHosted } from './layout-chip';
 import { createFittingRegistry } from '../look/fittings';
 import { createFittingsApi } from './fittings-api';
 import { editNote } from './resize';
-import { SHARE_PARAM } from './my-layout';
+import { SHARE_PARAM, shareUrl as layoutShareUrl } from './my-layout';
+import { buildShareUrl, pageShareEnv, parseShare, shareWalk } from './share';
+import { mountPresence, parsePresence } from './presence';
 import { chooseSpawn } from '../core/spawn';
 import { resolveStartRoom } from '../core/start-rooms';
 import { spaceKindOf } from '../core/places';
@@ -136,6 +138,7 @@ setModelsEnabled(params.get('models') !== 'off'); // ?models=off: the generated 
 // through `boot`); with neither, the start page opens instead
 const initialSceneId = (params.get('scene') ?? '').trim();
 const initialRoom = params.get('room');
+const presenceCfg = parsePresence(location.search);
 const debug = params.get('debug') === '1';
 const storage = safeStorage();
 const isTouch = ((): boolean => {
@@ -416,13 +419,16 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     furnish: () => toggleMode('furnish'),
     rooms: () => rooms.toggle(),
     scan: () => setScan(!scanVisible),
+    view: (v) => applyView(v),
+    share: () => { void doShare(); },
   });
   hud.setVisible(false);
   cleanup.push(() => hud.dispose());
+  hud.setPlace(host?.placeText ?? property.title);
   const tagText = host ? host.tagText : sceneTagText(property);
   if (tagText) mountSceneTag(hud.root, tagText);
   if (uploaded) { const up = uploaded; void import('../upload/notes-panel').then((m) => m.mountUploadNote(hud.root, up.data.notes, sceneId, up.source === 'sample')); }
-  mountHomeLink(hud.root);
+  if (!host) mountHomeLink(hud.root);
   // a pool: the depth pill, the walkway verdict and the depth card (SPEC 19.3)
   outdoor?.attachUi({ host: hud.root, walker: { position: () => character.position, heightCm: () => heightCm }, items: () => store.all(), onItemsChange: (cb) => store.onChange(cb), block: (on) => { extBlock = on; } });
   const partialBadge = mountPartialBadge(hud.root);
@@ -551,8 +557,21 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   character.setHeight(heightCm / 100, tintForPerson(person.body, heightCm));
 
   // ---- view (SPEC 16.6.8): see yourself (the follow camera, the default) or look through your own eyes (no body in shot)
-  // `?view=first|third` forces a view for a link or a check; otherwise the saved choice, otherwise DEFAULT_VIEW (src/buyer/person-store.ts: the one place to flip the default)
-  let view: ViewMode = params.get('view') === 'first' || params.get('view') === 'third' ? (params.get('view') as ViewMode) : loadView(storage);
+  // `?cam=first|third` (a shared link) or `?view=first|third` forces a view; otherwise the saved choice, otherwise DEFAULT_VIEW (src/buyer/person-store.ts: the one place to flip the default)
+  const viewParam = params.get('view') === 'first' || params.get('view') === 'third' ? (params.get('view') as ViewMode) : null;
+  let view: ViewMode = parseShare(location.search).cam ?? viewParam ?? loadView(storage);
+  hud.setView(view);
+  hud.bindViews((ctx as unknown as { views?: Parameters<typeof hud.bindViews>[0] }).views);
+  /** SPEC 2.7.5: copies (or hands to the share sheet) a link that reopens this place, this view and this spot */
+  async function doShare(): Promise<void> {
+    const views = (ctx as unknown as { views?: { mode(): 'walk' | 'doll' | 'plan' } }).views;
+    const url = buildShareUrl({
+      href: location.href, at: { x: character.position.x, z: character.position.z, yawDeg: camera.viewYawDeg }, cam: view, view: views?.mode(),
+      withLayout: host || !store.isEdited() ? null : (h) => layoutShareUrl(h, store.layout()),
+    });
+    const r = await shareWalk(url, `${hud.root.querySelector('.wt-id-place')?.textContent || property.title} · walkthru`, pageShareEnv());
+    hud.toast(r === 'copied' ? 'Link copied' : r === 'shared' ? 'Link shared' : 'Could not copy the link. Copy it from the address bar.');
+  }
   const eyeNow = new THREE.Vector3();
   let lastCharState = character.state;
   function applyView(v: ViewMode, announce = true): void {
@@ -561,7 +580,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     camera.firstPerson = v === 'first';
     if (v === 'first') character.setVisible(false);
     picker?.syncView(v);
-    if (announce) hud.hint(v === 'first' ? 'First person · V to see yourself' : 'See yourself · V for first person', 2500);
+    hud.setView(v);
+    if (announce) hud.hint(v === 'first' ? 'First person. Press V to see yourself.' : 'Third person. Press V for first person.', 2500);
   }
 
   let extBlock = false; // a building's own panel (the lift's floor list, the map) is open
@@ -605,7 +625,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
       hud.setVisible(true);
       if (storageGet(storage, HINT_KEY) === null) {
         storageSet(storage, HINT_KEY, '1');
-        hud.hint(isTouch ? 'Left thumb to walk · right thumb to look' : 'WASD to walk · drag to look · E to interact', 4000);
+        hud.showControlsHint(isTouch);
       }
     },
   });
@@ -615,6 +635,12 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   // the mini plan, the room bar and the Tour button (src/buyer/nav); the auto-walk drives the walker from `tick`
   const nav = mountNav({ ctx, layout, store, doors, unverified: unverifiedRooms, water: outdoorFile?.pools.map((p) => p.rect) ?? [], blocked: blocking, posed: () => !!interactions.pose(), getUp: () => interactions.getUp(), resetMotion: () => resetLocomotion(character), storage, parent: hud.root });
   cleanup.push(() => nav.dispose());
+  // a screen nobody holds: the chrome fades after a few seconds, and with ?kiosk=1 or ?idle=<s> the tour starts by itself and loops (src/buyer/presence.ts)
+  const presence = mountPresence({
+    hud, cfg: presenceCfg, free: () => modes.id === 'walk' && !blocking() && !interactions.pose(),
+    startTour: () => nav.startTour({ loop: true }), stopTour: () => nav.debug.stop(), touring: () => nav.debug.driver.busy,
+  });
+  cleanup.push(() => presence.dispose());
   // look-kit: typical Indian-flat fittings (decor only, labelled, 'Plain' removes them). The style's room finishes are applied first (the kit's
   // floors read them), and the kit is taken off and put back whenever the style changes them.
   let kit: KitHandle | null = null;
@@ -653,7 +679,12 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     const room = resolveStartRoom(layout, requestedRoom, unverifiedRooms);
     const smart = room ? chooseSpawn(layout, room.id, g) : null;
     // a building lands the walker just inside the door they came through; otherwise the room's own start
-    const sp = host?.arrival?.(layout, g) ?? smart ?? property.spawn;
+    let sp = host?.arrival?.(layout, g) ?? smart ?? property.spawn;
+    // a shared link names where its sender stood: used only when that spot is free and inside a whole room, else the normal start
+    const sharedAt = !host || host.first ? parseShare(location.search).at : null;
+    const sharedRoom = sharedAt ? roomAt(layout, sharedAt) : null;
+    const usable = sharedAt && sharedRoom && !sharedRoom.partial && circleFree(g, sharedAt.x, sharedAt.z, CHARACTER_RADIUS_M);
+    if (usable) sp = { ...sp, x: sharedAt.x, z: sharedAt.z, yawDeg: sharedAt.yawDeg };
     let at: Vec2 = { x: sp.x, z: sp.z };
     if (!circleFree(g, at.x, at.z, CHARACTER_RADIUS_M)) {
       const free = nearestFree(g, at.x, at.z, CHARACTER_RADIUS_M, 4);
@@ -974,7 +1005,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   loading.setProgress(1, 'Ready');
   booted = true;
   loading.hide();
-  if (!host || host.first) picker.open(true);
+  if ((!host || host.first) && !presenceCfg.kiosk) picker.open(true);
   else hud.setVisible(true); // the walker is already chosen: straight into the space
   return {
     sceneId,

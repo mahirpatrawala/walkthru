@@ -2,7 +2,7 @@
 import './building.css';
 import { BRAND_MARK } from '../brand/mark';
 import { NotFound, fetchBuilding } from './load';
-import { mountBuildingMap } from './map';
+import { firstSentence, mountBuildingMap } from './map';
 import { amenityLine } from './index-entry';
 import { buildingUrl } from './url';
 import type { BuildingIndex, BuildingIndexEntry } from './types';
@@ -34,7 +34,7 @@ export function renderBuildingList(root: HTMLElement, index: BuildingIndex, go: 
   const section = h('div', 'ws-section', undefined, root);
   section.id = 'buildings';
   h('h2', undefined, 'Pick a building', section);
-  h('p', undefined, 'Walk a whole project: lobby, lift, corridor, then any flat and the amenities.', section);
+  h('p', undefined, 'Walk a whole project: the lobby, the lift, the corridor, any flat and the clubhouse.', section);
   const grid = h('div', 'wb-grid', undefined, root);
   grid.dataset.testid = 'buildings';
   for (const b of index.buildings) card(grid, b, go);
@@ -47,12 +47,12 @@ function card(grid: HTMLElement, b: BuildingIndexEntry, go: (url: string) => voi
   const art = h('div', 'wb-art', undefined, a);
   art.innerHTML = towerArt(b.levels); // a fixed drawing from numbers, no page text
   const body = h('div', 'wb-body', undefined, a);
-  h('span', `ws-tag ${b.sample ? 'is-sample' : ''}`, b.sample ? 'Sample building · plans from a published brochure' : 'Building', body);
   h('h3', undefined, b.name, body);
-  if (b.subtitle) h('p', 'wb-meta', b.subtitle, body);
+  if (b.sample) h('p', 'wb-quiet', 'Sample building. Plans follow a published brochure.', body);
+  if (b.subtitle) h('p', 'wb-meta', firstSentence(b.subtitle), body);
   h('p', 'wb-meta', `${b.levels} levels · ${b.flats} flats (${b.flatTypes.map((t) => `${t.name} ×${t.count}`).join(', ')})`, body);
   if (b.amenities.length) h('p', 'wb-meta', `Amenities: ${amenityLine(b.amenities)}`, body);
-  h('span', 'wb-open', 'See the building map', body);
+  h('span', 'wb-open', 'Open the building', body);
   a.addEventListener('click', (e) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
@@ -80,7 +80,7 @@ export async function renderBuildingPage(root: HTMLElement, id: string, go: (url
   }
   document.title = `${b.name} · walkthru`;
   mountBuildingMap(holder, {
-    building: b, actionLabel: 'Start here',
+    building: b, actionLabel: 'Walk in',
     back: { label: '← All homes', href: '/', onClick: () => go('/') },
     // a walk is its own page load: the lazy chunk with three.js
     onAction: (spaceId) => { location.assign(buildingUrl({ building: b.id, space: spaceId })); },

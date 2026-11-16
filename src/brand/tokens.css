@@ -1,0 +1,76 @@
+/* walkthru design tokens (SPEC 2.7). One file, one design language for the start page, the building pages and the walk's chrome.
+
+   SCALE. Every size of the interface is written as `calc(N * var(--wt-u))`. `--wt-z` (a plain number, set by src/brand/scale.ts from the short
+   side of the window, 1 up to 820 px, then short side / 820, at most 3) makes `--wt-u` one CSS pixel on a phone or tablet and larger on a
+   showroom wall, so the chrome reads from two or three metres: 1440 x 900 is 1.1, 1920 x 1080 is 1.32, 3840 x 2160 is 2.63 (a 4K panel run
+   at 200 % reports 1920 x 1080 and gets 1.32). Panels that keep their own px sizes use `zoom: var(--wt-z)`. A hairline of 1 px is the only raw px.
+
+   TWO SURFACES.
+   - Glass: the floating chrome over the 3D view (identity card, view and tool bar, plan, room strip, prompts, cards, toasts). Dark, blurred,
+     white text, the terracotta only as the accent. It reads on a bright scene and a dark one.
+   - Paper: pages and sheets that ask something (start page, building page, height picker, lists): warm cream, ink text.
+   Both share the radius, the shadow and the type scale below. */
+:root {
+  --wt-u: calc(1px * var(--wt-z, 1));
+
+  /* spacing, a 4-step scale */
+  --wt-sp-1: calc(4 * var(--wt-u));
+  --wt-sp-2: calc(8 * var(--wt-u));
+  --wt-sp-3: calc(12 * var(--wt-u));
+  --wt-sp-4: calc(16 * var(--wt-u));
+  --wt-sp-5: calc(24 * var(--wt-u));
+  --wt-sp-6: calc(32 * var(--wt-u));
+  --wt-gutter: calc(14 * var(--wt-u));
+
+  /* radii: one for every panel, one for controls inside a panel, pills for buttons */
+  --wt-r-panel: calc(16 * var(--wt-u));
+  --wt-r-control: calc(11 * var(--wt-u));
+  --wt-r-pill: 999px;
+
+  /* type: the system UI font for the chrome (two weights, 500 and 650), the display face for page headings only */
+  --wt-fs-xs: calc(12 * var(--wt-u));
+  --wt-fs-sm: calc(13.5 * var(--wt-u));
+  --wt-fs-md: calc(15 * var(--wt-u));
+  --wt-fs-lg: calc(18 * var(--wt-u));
+  --wt-fs-xl: calc(24 * var(--wt-u));
+  --wt-fs-2xl: calc(36 * var(--wt-u));
+  --wt-fw: 500;
+  --wt-fw-strong: 650;
+
+  /* controls: touch targets for a standing person at a wall display (never under 44 css px) */
+  --wt-hit: calc(46 * var(--wt-u));
+  --wt-icon: calc(20 * var(--wt-u));
+
+  /* glass */
+  --wt-glass: rgba(26, 21, 19, 0.74);
+  --wt-glass-solid: rgba(26, 21, 19, 0.92);
+  --wt-glass-hover: rgba(255, 255, 255, 0.12);
+  --wt-glass-on: rgba(255, 255, 255, 0.94);
+  --wt-glass-line: rgba(255, 255, 255, 0.14);
+  --wt-glass-text: #fff;
+  --wt-glass-dim: rgba(255, 255, 255, 0.74);
+  --wt-glass-blur: blur(calc(14 * var(--wt-u))) saturate(1.25);
+  --wt-glass-shadow: 0 calc(6 * var(--wt-u)) calc(26 * var(--wt-u)) rgba(10, 6, 4, 0.34);
+  /* the accent on dark glass (the brand terracotta, lifted so it reads) and the same accent as a fill under white text */
+  --wt-accent-on-glass: #F0906F;
+
+  /* layers */
+  --wt-z-nav: 12;
+  --wt-z-sheet: 20;
+  --wt-z-screen: 30;
+  --wt-z-overlay: 40;
+  --wt-z-curtain: 60;
+  --wt-z-toast: 70;
+
+  /* motion */
+  --wt-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --wt-fast: 160ms;
+}
+
+/* a floating glass panel: use on any piece of chrome over the 3D view */
+.wt-glass {
+  background: var(--wt-glass); color: var(--wt-glass-text); border: 1px solid var(--wt-glass-line); border-radius: var(--wt-r-panel); box-shadow: var(--wt-glass-shadow);
+  -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur); font-family: var(--wt-font); font-weight: var(--wt-fw);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .wt-glass { background: var(--wt-glass-solid); } }
+@media (prefers-reduced-transparency: reduce) { .wt-glass { background: var(--wt-glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; } }

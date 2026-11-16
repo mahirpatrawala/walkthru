@@ -145,7 +145,7 @@ describe('the minimap geometry', () => {
 });
 
 describe('tour order', () => {
-  const stop = (id: string, type: RoomTag['roomType'], label = id): TourStop => ({ room: rect(id, 0, 0, 3, 3, type, label), kind: roomKind({ roomType: type, label }), spot: { x: 0, z: 0, yawDeg: 0, roomId: id, how: 'door', clearM: 0.6 } });
+  const stop = (id: string, type: RoomTag['roomType'], label = id): TourStop => ({ room: rect(id, 0, 0, 3, 3, type, label), kind: roomKind({ roomType: type, label }), spot: { x: 0, z: 0, yawDeg: 0, roomId: id, how: 'door', clearM: 0.6 }, vantage: { x: 0, z: 0, yawDeg: 0, focal: { x: 1, z: 1 } } });
   it('classifies passages by name, and puts toilets after the living areas', () => {
     expect(roomKind({ roomType: 'other', label: 'Master bed passage' })).toBe('transit');
     expect(roomKind({ roomType: 'other', label: 'Utility' })).toBe('other');

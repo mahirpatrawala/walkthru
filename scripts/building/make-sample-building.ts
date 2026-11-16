@@ -104,7 +104,7 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     spaces: [{
       id: 'lobby', kind: 'lobby', name: 'Entrance lobby', sceneId: lobbyScene, placement: { x: 0, z: 0, rotDeg: 0 },
       lobbyAnchors: lobby.anchors,
-      notes: empty ? ['Unfurnished. The reception, security, seating and letterbox positions are marked in lobbyAnchors.'] : ['Reception desk, security desk, visitor seating and letterbox banks from the catalogue, on the marked positions (lobbyAnchors).'],
+      notes: empty ? ['Unfurnished. The reception, security, seating and letterbox positions are marked.'] : ['Reception desk, security desk, visitor seating and letterbox banks from the catalogue, on the marked positions.'],
       portals: [
         { id: 'street', kind: 'outside', opening: lobby.street, label: 'The street', prompt: 'To the street', look: 'glass' },
         lift('lift-a', lobby.liftA), lift('lift-b', lobby.liftB), stairs(lobby.stairs),

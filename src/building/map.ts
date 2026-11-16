@@ -17,6 +17,9 @@ function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: s
   return e;
 }
 
+/** The first sentence of a longer line (the page shows it; the whole of it is in the note at the foot). */
+export function firstSentence(t: string): string { const m = /^.*?[.!?](?=\s|$)/.exec(t.trim()); return (m ? m[0] : t).replace(/[.]$/, '') + '.'; }
+
 export const KIND_NAME: Record<Space['kind'], string> = { home: 'Flat', lobby: 'Lobby', corridor: 'Corridor', gym: 'Gym', hall: 'Hall', games: 'Games room', pool: 'Pool', garden: 'Garden', other: 'Space' };
 
 export interface MapOptions {
@@ -58,9 +61,9 @@ export function mountBuildingMap(host: HTMLElement, o: MapOptions): BuildingMap 
   if (o.back.onClick) back.addEventListener('click', (e) => { e.preventDefault(); o.back.onClick!(); });
 
   const head = h('div', 'bm-head', undefined, root);
-  h('span', `ws-tag ${b.sample ? 'is-sample' : ''}`, b.sample ? 'Sample building · plans from a published brochure' : 'Building', head);
   h('h1', undefined, b.name, head);
-  if (b.subtitle) h('p', 'bm-sub-line', b.subtitle, head);
+  if (b.subtitle) h('p', 'bm-sub-line', firstSentence(b.subtitle), head);
+  if (b.sample) h('p', 'bm-quiet', 'Sample building. Plans follow a published brochure.', head);
 
   const body = h('div', 'bm-body', undefined, root);
   const stack = h('nav', 'bm-stack', undefined, body);
@@ -78,7 +81,7 @@ export function mountBuildingMap(host: HTMLElement, o: MapOptions): BuildingMap 
   pickCard.dataset.testid = 'space-card';
   const list = h('div', 'bm-list', undefined, side);
   list.dataset.testid = 'space-list';
-  h('p', 'bm-fine', `${b.note || 'Sample layout for demonstration'}. Areas come from each space's own plan, and anything a drawing does not show is marked not measured.`, root);
+  h('p', 'bm-fine', `${(b.note || 'Sample layout for demonstration').replace(/\.+$/, '')}. Areas come from each space's own plan, and anything a drawing does not show is marked not measured.`, root);
 
   // ---- the stack of levels: top level first, each as tall as its floor to floor height
   const levelButtons = new Map<string, HTMLButtonElement>();
@@ -157,14 +160,15 @@ export function mountBuildingMap(host: HTMLElement, o: MapOptions): BuildingMap 
     h('span', 'bm-kind', KIND_NAME[s.kind], pickCard);
     h('h3', undefined, s.name, pickCard);
     h('p', 'bm-area', s.comingNext ? `${areaOf.get(s.id) ?? ''}` : areaOf.get(s.id) ?? '', pickCard);
-    if (s.comingNext) h('p', 'bm-soon', 'Coming in the next stage. You can walk into it now as an empty room.', pickCard);
-    for (const n of s.notes ?? []) h('p', 'bm-note', n, pickCard);
     const isHere = here?.spaceId === s.id;
+    // the one primary action comes first, the notes after it
     const go = h('button', 'ws-go', isHere ? 'You are here' : o.actionLabel, pickCard);
     go.type = 'button';
     go.dataset.testid = 'map-action';
     go.disabled = isHere;
     go.addEventListener('click', () => o.onAction(s.id));
+    if (s.comingNext) h('p', 'bm-soon', 'Coming in the next stage. You can walk into it now as an empty room.', pickCard);
+    for (const n of s.notes ?? []) h('p', 'bm-note', n, pickCard);
   }
 
   function select(id: string | null, scenes?: Map<string, SceneInfo>): void {
