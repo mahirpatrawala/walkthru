@@ -487,6 +487,23 @@ describe('the manifest, the files and the lock agree', () => {
     }
     expect(licenceText).toContain('CC0');
   });
+  it('the sources looked at for better models are recorded with a URL, the licence wording relied on and the result; nothing unlicensed is shipped', () => {
+    const routes = (lock as unknown as { routes: { read: string; summary: string; sources: { name: string; url: string; licence: string; result: string }[] } }).routes;
+    expect(routes.read).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(routes.sources.length).toBeGreaterThanOrEqual(6);
+    for (const x of routes.sources) {
+      expect(x.url.startsWith('https://'), x.name).toBe(true);
+      expect(x.licence.length, x.name).toBeGreaterThan(2);
+      expect(x.result.length, x.name).toBeGreaterThan(20);
+      expect(licenceText, x.name).toContain(x.name);
+    }
+    // the generators whose stack is not MIT or Apache end to end are recorded as not used, and no shipped file comes from any route but Poly Haven
+    const trellis = routes.sources.find((x) => x.name.startsWith('TRELLIS'))!;
+    expect(trellis.result.startsWith('NOT USED')).toBe(true);
+    expect(trellis.result).toContain('non-commercially');
+    expect(routes.sources.find((x) => x.name.startsWith('Hi3DGen'))!.licence).toContain('commercially');
+    for (const id of allModelIds()) expect(lock.models[id].page.startsWith('https://polyhaven.com/a/')).toBe(true);
+  });
   it('the library and the manifest name the same parts and the same models', () => {
     const lib = new Set([...FURNITURE_MODELS, ...DECOR_MODELS].map((m) => m.id));
     for (const id of lib) expect(modelInfo(id), `${id} is in the library but not shipped`).toBeTruthy();

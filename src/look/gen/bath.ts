@@ -6,7 +6,8 @@ import * as THREE from 'three';
 import { roundedBoxBetween } from '../furniture-parts';
 import { Parts, role, roleOr, shade } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
-import { prism, roundedRectOutline, rod } from './geo';
+import { loft, prism, roundedRectOutline, rod } from './geo';
+import type { LoftSection } from './geo';
 import { CERAMIC, CHROME, GLASS, MIRROR, bar, disc, frontPanel, rsides, zfOf } from './kit';
 
 export const BATH_VARIANTS = [
@@ -45,16 +46,25 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
 
   if (v === 'wc-floor') {
     const hw = w / 2;
-    // the pan: a lower ellipsoid on a plinth, the seat and lid on top, the cistern behind it
-    ell('wc-pan', ceramic, 0, 0.19, d / 2 - 0.28, hw - 0.015, 0.19, 0.28);
-    parts.box('wc-pedestal', ceramic, -0.12, 0.12, 0, 0.1, -d / 2 + 0.2, d / 2 - 0.3, { c: 0.01 });
-    parts.put('wc-seat', ceramic, prism(rr(-hw, hw, -d / 2 + 0.25, d / 2 - 0.03, 0.17), S - 0.025, S, 0.008));
-    parts.put('wc-lid-rim', ceramic, prism(rr(-hw + 0.02, hw - 0.02, -d / 2 + 0.27, d / 2 - 0.05, 0.15), S - 0.045, S - 0.025, 0));
-    parts.put('wc-cistern', ceramic, roundedBoxBetween(-hw, hw, 0.34, H, -d / 2, -d / 2 + 0.2, 0.02, q.seg));
-    parts.put('wc-cistern-lid', ceramic, roundedBoxBetween(-hw - 0.0, hw, H - 0.025, H, -d / 2, -d / 2 + 0.2, 0.01, 1));
-    disc(parts, 'wc-flush', tap, 0, -d / 2 + 0.1, H, H + 0.001, 0.025);
-    box('wc-hinge', tap, -hw + 0.05, -hw + 0.08, S, S + 0.012, -d / 2 + 0.22, -d / 2 + 0.25, 0);
-    box('wc-hinge', tap, hw - 0.08, hw - 0.05, S, S + 0.012, -d / 2 + 0.22, -d / 2 + 0.25, 0);
+    const n = q.tier === 'low' ? 16 : 32;
+    const put = (name: string, sec: LoftSection[]): void => { const l = loft(sec, n); parts.put(name, ceramic, l.body); parts.put(name, ceramic, l.cap); };
+    // the pan: one lofted body, a narrow foot widening to the rim; the seat and lid are a second, flatter loft on top, the cistern stands on the back
+    const zf = d / 2 - 0.36;
+    put('wc-pan', [
+      { y: 0, w: 0.2, d: 0.34, zc: zf - 0.02, p: 2.4 },
+      { y: 0.12, w: 0.3, d: 0.5, zc: zf + 0.04, p: 2.4 },
+      { y: 0.28, w: Math.min(w, 0.37), d: 0.62, zc: zf + 0.05, p: 2.6 },
+      { y: S - 0.03, w: Math.min(w, 0.38), d: Math.min(d - 0.06, 0.66), zc: zf + 0.03, p: 2.8 },
+    ]);
+    put('wc-seat', [
+      { y: S - 0.03, w: Math.min(w, 0.38), d: Math.min(d - 0.06, 0.66), zc: zf + 0.03, p: 2.8 },
+      { y: S - 0.012, w: Math.min(w, 0.385), d: Math.min(d - 0.055, 0.665), zc: zf + 0.03, p: 2.8 },
+      { y: S, w: Math.min(w, 0.34), d: Math.min(d - 0.1, 0.6), zc: zf + 0.03, p: 3 },
+    ]);
+    parts.put('wc-cistern', ceramic, roundedBoxBetween(-hw + 0.01, hw - 0.01, S - 0.04, H - 0.022, -d / 2, -d / 2 + 0.2, 0.025, q.seg));
+    parts.put('wc-cistern-lid', ceramic, roundedBoxBetween(-hw, hw, H - 0.026, H - 0.004, -d / 2, -d / 2 + 0.205, 0.008, 1));
+    for (const x of [-0.035, 0.035]) box('wc-flush', tap, x - 0.025, x + 0.025, H - 0.006, H, -d / 2 + 0.085, -d / 2 + 0.115, 0.002);
+    for (const sx of [-1, 1]) disc(parts, 'wc-hinge', tap, sx * (hw - 0.07), -d / 2 + 0.215, S, S + 0.014, 0.011);
   } else if (v === 'wc-wall') {
     const hw = w / 2;
     const bz = d / 2 - 0.27;
@@ -78,15 +88,31 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
     bar(parts, 'hf-hose', tap, [0, H - 0.05, -d / 2 + 0.05], [0, H - 0.05, -d / 2 + 0.01], 0.006);
   } else if (v === 'basin-wall' || v === 'basin-pedestal') {
     const y0 = v === 'basin-wall' ? lift : 0.7;
-    // the bowl: an outer rounded tray, a darker recess, a back splash with the tap
-    parts.put('basin-bowl', ceramic, prism(rr(-w / 2, w / 2, -d / 2, d / 2, 0.14), y0, S, 0.012));
-    parts.put('basin-recess', shade(ceramic, 0.82), prism(rr(-w / 2 + 0.06, w / 2 - 0.06, -d / 2 + 0.09, d / 2 - 0.05, 0.12), S - 0.0005, S + 0.0005, 0));
-    box('basin-splash', ceramic, -w / 2, w / 2, S, S + 0.04, -d / 2, -d / 2 + 0.025, 0.004);
-    faucet(0, S + 0.04, -d / 2 + 0.07, 0.06, 0.1);
-    disc(parts, 'basin-drain', tap, 0, 0.02, S, S + 0.0015, 0.02);
+    // the bowl: one lofted body from a narrow base to the rim, a darker recess, a low back splash and a deck-mounted tap
+    const put = (name: string, sec: LoftSection[]): void => { const l = loft(sec, q.tier === 'low' ? 16 : 32); parts.put(name, ceramic, l.body); parts.put(name, ceramic, l.cap); };
+    put('basin-bowl', [
+      { y: y0, w: w * 0.5, d: d * 0.45, zc: -d * 0.1, p: 2.6 },
+      { y: y0 + (S - y0) * 0.45, w: w * 0.88, d: d * 0.86, zc: -d * 0.02, p: 3 },
+      { y: S - 0.012, w, d, zc: 0, p: 3.3 },
+      { y: S, w: w * 0.985, d: d * 0.985, zc: 0, p: 3.4 },
+    ]);
+    parts.put('basin-recess', shade(ceramic, 0.82), prism(rr(-w / 2 + 0.07, w / 2 - 0.07, -d / 2 + 0.1, d / 2 - 0.06, 0.13), S + 0.0004, S + 0.0014, 0));
+    box('basin-splash', ceramic, -w / 2 + 0.01, w / 2 - 0.01, S - 0.01, S + 0.035, -d / 2, -d / 2 + 0.03, 0.01);
+    const tz = -d / 2 + 0.075;
+    parts.put('tap-base', tap, new THREE.CylinderGeometry(0.03, 0.034, 0.022, 16).translate(0, S + 0.011, tz));
+    bar(parts, 'tap', tap, [0, S + 0.01, tz], [0, S + 0.115, tz], 0.012);
+    bar(parts, 'tap', tap, [0, S + 0.115, tz], [0, S + 0.115, tz + 0.1], 0.0095);
+    bar(parts, 'tap', tap, [0, S + 0.115, tz + 0.1], [0, S + 0.09, tz + 0.1], 0.008);
+    parts.put('tap-lever', tap, new THREE.BoxGeometry(0.06, 0.01, 0.012).translate(0, S + 0.07, tz - 0.02));
+    disc(parts, 'basin-drain', tap, 0, 0.02, S + 0.0014, S + 0.0024, 0.02);
     if (v === 'basin-pedestal') {
-      parts.put('basin-pedestal', ceramic, roundedBoxBetween(-0.09, 0.09, 0.04, 0.72, -d / 2 + 0.05, -d / 2 + 0.2, 0.03, q.seg));
-      parts.put('basin-foot', ceramic, roundedBoxBetween(-0.12, 0.12, 0, 0.05, -d / 2 + 0.03, -d / 2 + 0.24, 0.02, 1));
+      const zp = -d / 2 + 0.12;
+      put('basin-pedestal', [
+        { y: 0, w: 0.22, d: 0.24, zc: zp, p: 3 },
+        { y: 0.045, w: 0.14, d: 0.14, zc: zp, p: 3 },
+        { y: 0.5, w: 0.11, d: 0.12, zc: zp, p: 3 },
+        { y: y0 + 0.03, w: 0.2, d: 0.2, zc: zp, p: 3 },
+      ]);
     }
   } else if (v === 'vanity-60') {
     const cabH = 0.78, leg = 0.08;

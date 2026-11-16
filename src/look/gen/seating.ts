@@ -1,10 +1,11 @@
 // Seating generators: sofa (2, 3 seats or an L with a chaise), window seat / storage bench (rectangular or with a curved end),
 // and the dining set (a table with chairs tucked in). Footprint and heights are exactly the item's.
 import * as THREE from 'three';
-import { puffedCushion, roundedBoxBetween } from '../furniture-parts';
+import { roundedBoxBetween } from '../furniture-parts';
+import { softCushion } from './soft';
 import { Parts, boxGeo, role } from './core';
 import type { GenEnv, GenSize, Roles } from './core';
-import { prism, roundedRectOutline, rod } from './geo';
+import { prism, roundedRectOutline, rod, taperedLeg } from './geo';
 
 // ---------------------------------------------------------------- sofa
 
@@ -49,7 +50,7 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
     for (const sx of xs) for (const sz of [-1, 1]) {
       const x = sx * (w / 2 - 0.08), z = sz * (d / 2 - 0.08);
       if (p.legs === 'metal') parts.put('sofa-legs', legM, rod({ x, y: 0, z }, { x, y: legH + 0.01, z }, 0.012, q.sides));
-      else parts.box('sofa-legs', legM, x - 0.022, x + 0.022, 0, legH + 0.01, z - 0.022, z + 0.022, { c: 0.004 });
+      else parts.put('sofa-legs', legM, taperedLeg(x, z, legH + 0.01, 0.027, 0.016, q.sides));
     }
   }
   // frame, arms and back
@@ -77,19 +78,19 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
   const cw = (inner1 - inner0) / n;
   const seatH = S + 0.03 - frameTop;
   const cd = sd - 0.2;
-  // sofa cushions are fewer than a bed's pillows but there are many of them: a coarser grid than the bed's
-  const grid = q.tier === 'high' ? 8 : q.tier === 'medium' ? 5 : 0;
-  const cush = (cwid: number, ch: number, cdep: number, puff: number): THREE.BufferGeometry =>
-    grid > 0 ? puffedCushion(cwid, ch, cdep, puff, grid) : roundedBoxBetween(-cwid / 2, cwid / 2, -ch / 2, ch / 2, -cdep / 2, cdep / 2, Math.min(0.04, ch / 2.5), 1);
+  // one welded soft pad per cushion (src/look/gen/soft.ts): plump, rounded, no creases; the lowest tier draws a plain rounded box
+  const cush = (cwid: number, ch: number, cdep: number, puff: number, rad?: number): THREE.BufferGeometry =>
+    q.tier === 'low' ? roundedBoxBetween(-cwid / 2, cwid / 2, -ch / 2, ch / 2, -cdep / 2, cdep / 2, Math.min(0.04, ch / 2.5), 1)
+      : softCushion(cwid, ch, cdep, { r: rad ?? Math.min(0.055, ch / 2.6), puff, seg: q.tier === 'high' && n <= 3 && chaise === 'none' ? 3 : 2 });
   for (let i = 0; i < n; i++) {
     const x = inner0 + cw * (i + 0.5);
-    const g = cush(cw - 0.006, seatH, cd, 0.03);
+    const g = cush(cw - 0.01, seatH, cd, 0.014);
     g.translate(x, frameTop + seatH / 2, zb1 - cd / 2);
     parts.put('sofa-seat', fab, g, { grain: 'x' });
   }
   if (chaise !== 'none') {
     const cx = chaise === 'left' ? -w / 2 + cwChaise / 2 : w / 2 - cwChaise / 2;
-    const g = cush(cwChaise - 0.006, seatH, d - 0.2, 0.03);
+    const g = cush(cwChaise - 0.01, seatH, d - 0.2, 0.014);
     g.translate(cx, frameTop + seatH / 2, d / 2 - (d - 0.2) / 2);
     parts.put('sofa-seat', fab, g, { grain: 'x' });
   }
@@ -99,8 +100,8 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
   for (let i = 0; i < backCount; i++) {
     const isChaise = i === n;
     const x = isChaise ? (chaise === 'left' ? -w / 2 + cwChaise / 2 : w / 2 - cwChaise / 2) : inner0 + cw * (i + 0.5);
-    const wid = isChaise ? cwChaise - 0.006 : cw - 0.006;
-    const g = cush(wid, len, 0.16, 0.02);
+    const wid = isChaise ? cwChaise - 0.01 : cw - 0.01;
+    const g = cush(wid, len, 0.17, 0.016, 0.06);
     g.rotateX(-lean);
     g.computeBoundingBox();
     g.translate(x, H - g.boundingBox!.max.y, zb0 + 0.2 + 0.07);
@@ -111,7 +112,7 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
   for (let i = 0; i < nA; i++) {
     const side = i % 2 === 0 ? -1 : 1;
     const x = side * ((inner1 - inner0) / 2 - 0.26) + (inner0 + inner1) / 2;
-    const g = cush(0.4, 0.4, 0.13, 0.025);
+    const g = cush(0.42, 0.42, 0.14, 0.035, 0.07);
     g.rotateX(-0.34);
     g.rotateY(side * 0.2);
     g.translate(x, S + 0.18, zb0 + 0.2 + 0.2);

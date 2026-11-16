@@ -58,7 +58,8 @@ async function main(): Promise<void> {
   const lockPath = path.join(OUT, 'models.lock.json');
   let prev: Lock | null = null;
   try { prev = JSON.parse(fs.readFileSync(lockPath, 'utf8')) as Lock; } catch { /* first run */ }
-  const lock: Lock = { generatedBy: 'scripts/fetch-look-models.ts', licence: 'CC0 1.0 (Poly Haven)', licenceUrl: LICENCE_URL, models: {} };
+  const routes = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/look-model-routes.json'), 'utf8')) as { read: string; summary: string; sources: { name: string; url: string; licence: string; result: string }[] };
+  const lock: Lock & { routes: unknown } = { generatedBy: 'scripts/fetch-look-models.ts', licence: 'CC0 1.0 (Poly Haven)', licenceUrl: LICENCE_URL, models: {}, routes };
 
   for (const id of MODEL_IDS) {
     const files = await getJson<{ gltf: { '1k': { gltf: ApiFile & { include: Record<string, ApiFile> } } } }>(`${API}/files/${id}`);
@@ -98,7 +99,8 @@ async function main(): Promise<void> {
     `Licence read on the official page on ${LICENCE_VERIFIED}: "Our assets are all licensed as CC0".\n\n` +
     `Source models and their authors:\n${lines.join('\n')}\n\n` +
     `The GLB files here are our own optimised conversions (decimated, textures resized to WebP, meshopt-compressed) by tools/optimise-look-models.mjs.\n` +
-    `models.lock.json records every source file's URL, size, MD5 (checked against the Poly Haven API) and SHA-256, and the SHA-256 of every output.\n`);
+    `models.lock.json records every source file's URL, size, MD5 (checked against the Poly Haven API) and SHA-256, and the SHA-256 of every output.\n` +
+    `\n${routes.summary}\nRead on ${routes.read}:\n${routes.sources.map((x) => `  ${x.name}\n    ${x.url}\n    licence: ${x.licence}\n    result: ${x.result}\n`).join('')}`);
   console.log(`done: ${Object.keys(lock.models).length} models, raw cache ${cache}`);
 }
 
