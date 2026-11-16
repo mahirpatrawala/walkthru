@@ -1,0 +1,174 @@
+{
+ "generated": "2026-11-16",
+ "licence": "CC0 1.0 (Poly Haven), https://polyhaven.com/license, read 16 Nov 2026",
+ "files": [
+  {
+   "path": "1k/oak_wood_planks/oak_wood_planks_diff_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_wood_planks/oak_wood_planks_diff_1k.jpg",
+   "size": 696814,
+   "md5": "e9e25ac7abcc482f73214fda23e2de25",
+   "sha256": "f715ed3e4346e94f971ef8dd61221ff6cc774886c20f65381e01e1dc0bb0a634"
+  },
+  {
+   "path": "1k/oak_wood_planks/oak_wood_planks_nor_gl_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_wood_planks/oak_wood_planks_nor_gl_1k.jpg",
+   "size": 392213,
+   "md5": "6a71c23551887b77b29623bb871aefbf",
+   "sha256": "b4272cb2818f8f33f2620a2dc093c962f34920e9d485a4e132eb6d69de1ba950"
+  },
+  {
+   "path": "1k/oak_wood_planks/oak_wood_planks_rough_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_wood_planks/oak_wood_planks_rough_1k.jpg",
+   "size": 845590,
+   "md5": "3609ef0a3155ae90b69395431bf8cec1",
+   "sha256": "10ced559145df3c537bf1ccef6dc767ef6c47e134c21a9650bab261fa95ecacf"
+  },
+  {
+   "path": "2k/oak_wood_planks/oak_wood_planks_diff_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/oak_wood_planks/oak_wood_planks_diff_2k.jpg",
+   "size": 2736142,
+   "md5": "740160778f1c4b78bac74d96fe3c06ea",
+   "sha256": "ec3d2deb1fe21150ede5f987b48c691b3c7dbffe4183850a9b8717e904917a46"
+  },
+  {
+   "path": "2k/oak_wood_planks/oak_wood_planks_nor_gl_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/oak_wood_planks/oak_wood_planks_nor_gl_2k.jpg",
+   "size": 2125233,
+   "md5": "7291b28d1aa5e0002d93b4d419268e98",
+   "sha256": "340a51d81e5ec2ead28a1c864637375becb00a1e11861e47a72dde4c03950968"
+  },
+  {
+   "path": "2k/oak_wood_planks/oak_wood_planks_rough_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/oak_wood_planks/oak_wood_planks_rough_2k.jpg",
+   "size": 3396426,
+   "md5": "d7533fb12d5c296917ff6fb169bb282b",
+   "sha256": "18b2a97f44b18e1a794652dbb2ec4bbdfc35869e2f028e4bbb85441258da1018"
+  },
+  {
+   "path": "1k/grey_plaster/grey_plaster_diff_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_plaster/grey_plaster_diff_1k.jpg",
+   "size": 704079,
+   "md5": "42d2ffe5338fcc0065e28076cbe15eba",
+   "sha256": "dcf34c5f3801cc43189f0edae3c430b602c827956e9d6ce4b89a85e53e952da9"
+  },
+  {
+   "path": "1k/grey_plaster/grey_plaster_nor_gl_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_plaster/grey_plaster_nor_gl_1k.jpg",
+   "size": 355288,
+   "md5": "add2064b193d083c892aead5eaf461d2",
+   "sha256": "85fe18209cb354b582003892898ee0cd6fe6b853644e01983718fc011140c0c2"
+  },
+  {
+   "path": "1k/grey_plaster/grey_plaster_rough_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_plaster/grey_plaster_rough_1k.jpg",
+   "size": 635335,
+   "md5": "b97159bbbb4817965892ec7ab6efe46f",
+   "sha256": "67566b1b5ee25502596916303c246b08d47725b8a697283cfdc1494e6f659aa2"
+  },
+  {
+   "path": "2k/grey_plaster/grey_plaster_diff_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/grey_plaster/grey_plaster_diff_2k.jpg",
+   "size": 3216521,
+   "md5": "42190a8b8a5b2749c0d7e3a7354abfc8",
+   "sha256": "2cd3a4fb2723d93da0eccf9b23aced757acabc35f94b0a97fc8986fe7e4242b5"
+  },
+  {
+   "path": "2k/grey_plaster/grey_plaster_nor_gl_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/grey_plaster/grey_plaster_nor_gl_2k.jpg",
+   "size": 1237098,
+   "md5": "0e39fd7528254ef19b8bad195d52514e",
+   "sha256": "8edc6d8b8258f85ed741551f30bfee9807f3fcbfe14678f5c283435c66590e2f"
+  },
+  {
+   "path": "2k/grey_plaster/grey_plaster_rough_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/grey_plaster/grey_plaster_rough_2k.jpg",
+   "size": 2736400,
+   "md5": "1069c5716725c851374e13d08d320cc1",
+   "sha256": "5b67dd0ab5d0236e073c9f138f3f822f1cf2ae51a1046da0637a657aca69511e"
+  },
+  {
+   "path": "1k/painted_plaster_wall/painted_plaster_wall_diff_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_diff_1k.jpg",
+   "size": 686726,
+   "md5": "15ba8c1f63a5ab412b1eabe31728540a",
+   "sha256": "440310f05af089f2c93353167573403cbc3f805948203237b5d26431eeb9e19c"
+  },
+  {
+   "path": "1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.jpg",
+   "size": 900461,
+   "md5": "43fff290583dbdfc9bfa088a2750e840",
+   "sha256": "8eb01647d126eb5341e2c325821ad48c8ca11349dbef53447c95422c5d91cc9d"
+  },
+  {
+   "path": "1k/painted_plaster_wall/painted_plaster_wall_rough_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_rough_1k.jpg",
+   "size": 354762,
+   "md5": "e076a6360329a2bc18c7397dc50c074a",
+   "sha256": "e0564c297b22ab1cf4ef02a82157b84ce3b92eb4fd49d9c64b7256a8b300af82"
+  },
+  {
+   "path": "2k/painted_plaster_wall/painted_plaster_wall_diff_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_diff_2k.jpg",
+   "size": 3132937,
+   "md5": "32f4f4e5ded7d20e55e337004d0d9691",
+   "sha256": "6fd812ed8dd5be1873c29aeef38ce9bf1fb30a22c6d4b3a12db725e98c26a1be"
+  },
+  {
+   "path": "2k/painted_plaster_wall/painted_plaster_wall_nor_gl_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_nor_gl_2k.jpg",
+   "size": 4048392,
+   "md5": "18faf9f7949aefdb3ae7cef7195cba04",
+   "sha256": "2d601a46ed5ce2af866741c53cafa3cba472620c272e633b6484d4de16a80eb1"
+  },
+  {
+   "path": "2k/painted_plaster_wall/painted_plaster_wall_rough_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_rough_2k.jpg",
+   "size": 1595466,
+   "md5": "7cdd5fbbe56f7becb757fc5b52d11d28",
+   "sha256": "35aad595469533cc3b7cc209cc6c7e065d660211f02c867f4492d3b371b1fee1"
+  },
+  {
+   "path": "1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+   "size": 641756,
+   "md5": "39a99df4e328d62d74f3122722a64a95",
+   "sha256": "c14681f72f59f17bff568cae7a837641443b607b899f0c279cd64a5638f877a7"
+  },
+  {
+   "path": "1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+   "size": 484844,
+   "md5": "d05406f5fdaf51f0d7b115b35d9af1b7",
+   "sha256": "1297acf7b4476d5ccd83cc8b27be96aa6110f7a9c3a40be0bd767bf81b17db01"
+  },
+  {
+   "path": "1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+   "size": 865194,
+   "md5": "a19b44176a078b9ae93314133848c9aa",
+   "sha256": "ca2af5649b628ef05f196793d68cdca874c12ceb6e9ae566976546d9dd5a2604"
+  },
+  {
+   "path": "2k/oak_veneer_01/oak_veneer_01_diff_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/oak_veneer_01/oak_veneer_01_diff_2k.jpg",
+   "size": 2831117,
+   "md5": "0ad13b8daf8dc00318a437f56e54c484",
+   "sha256": "0718c2e1a209afe6138ccb41d70e1a18cd825d1e73db33ad7cf80806fa9ce5a4"
+  },
+  {
+   "path": "2k/oak_veneer_01/oak_veneer_01_nor_gl_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/oak_veneer_01/oak_veneer_01_nor_gl_2k.jpg",
+   "size": 2429019,
+   "md5": "a6b8dd99a4407aa5dd24d5eee25492d3",
+   "sha256": "e74a9d3ddcd86473a21815a28464f4dac4ceb8f86e7f170226dede8ed70d8eb9"
+  },
+  {
+   "path": "2k/oak_veneer_01/oak_veneer_01_rough_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/oak_veneer_01/oak_veneer_01_rough_2k.jpg",
+   "size": 3968436,
+   "md5": "cacab0148320161ceced18ae909e3ada",
+   "sha256": "5c81718ee172299c44e0754fadbe652758b6feed05a8fd88be6efff5aa70ca1e"
+  }
+ ]
+}

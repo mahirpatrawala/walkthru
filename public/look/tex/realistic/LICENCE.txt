@@ -1,0 +1,2 @@
+Textures in this folder are from Poly Haven (https://polyhaven.com), licensed CC0 1.0 (public domain): https://polyhaven.com/license, read 16 Nov 2026. No credit is required.
+Sets: oak_wood_planks, grey_plaster, painted_plaster_wall, oak_veneer_01. Source URL, size, MD5 and SHA-256 of every file are in realistic.lock.json; the MD5 is the one the Poly Haven API gives, checked on download.
