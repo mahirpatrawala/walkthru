@@ -19,7 +19,7 @@ import {
   CURTAIN_DEFAULTS, PANELLING_DEFAULTS, RUG_DEFAULTS, SLAT_WALL_DEFAULTS, buildAc, buildBowlLights, buildCeilingBand, buildCurtain, buildDownlights,
   buildPanelling, buildRug, buildSlatWall,
 } from './gen/decor';
-import { getStyle, matOf, onStyleChange, roomFinishIds, sheetInForce } from './style';
+import { getStyle, matOf, onStyleChange, roomFinishIds, sheetInForce, trimColours } from './style';
 import type { StyleState } from './style';
 import type { SheetFixture } from './design-sheet';
 import { finishDef } from './finishes';
@@ -430,6 +430,19 @@ export function applyRoomFinishes(layout: Layout, shell: THREE.Object3D, look: L
         if (m && !(mesh.material as THREE.Material).userData?.partialLook) mesh.material = m;
       }
     });
+  }
+  // ceilings: the pack's ceiling finish (a light warm grey, one step darker than the walls) where nothing was sampled
+  if (lm) {
+    const ceilId = sampled ? undefined : (layout.rooms.map((r) => roomFinishIds(r.id, st).ceiling?.[0]).find((x) => !!x));
+    const want = (ceilId ? finishDef(ceilId)?.colour : undefined) ?? fin.ceilingColor;
+    shell.traverse((c) => { if (c.name.startsWith('ceiling:') && (c as THREE.Mesh).isMesh) (c as THREE.Mesh).material = lm.ceiling(want); });
+  }
+  // door and window frames, architraves: the pack's frame finish where nothing was sampled (a pack that names none leaves the layout's colour)
+  const frames = shell.getObjectByName('frames') as THREE.Mesh | undefined;
+  if (frames && lm) {
+    const trim = trimColours(st);
+    const want = !sampled && trim.frame ? trim.frame : fin.frameColor;
+    frames.material = lm.frame(want, !sampled && trim.frame ? trim.frameGrain : true);
   }
   return changed;
 }

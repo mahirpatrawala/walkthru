@@ -14,9 +14,9 @@ const TURN_RAD_S = 6;
 const DEADZONE = 0.05;
 /** A push of this size (joystick) already means full walking speed. */
 const FULL_PUSH = 0.85;
-/** Speed changes at these rates, m/s^2, times height / 1.75: a start takes a third of a second, a stop a fifth. */
-const ACCEL_MPS2 = 4.2;
-const DECEL_MPS2 = 7;
+/** Speed changes at these rates, m/s^2, times height / 1.75: a start takes a quarter of a second to walking pace (SPEC 16.18, was a third), a stop a sixth. */
+const ACCEL_MPS2 = 5.8;
+const DECEL_MPS2 = 8.5;
 /** The body walks only where it faces: full speed within this angle of the heading it wants, none beyond the other. */
 const FACE_FULL_DEG = 30;
 const FACE_NONE_DEG = 90;

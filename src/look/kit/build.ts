@@ -115,6 +115,16 @@ class Wall {
     this.out = [f.out.x, 0, f.out.z];
   }
   pt(u: number, o: number, y: number): V3 { return [this.f.a.x + this.dir[0] * u + this.out[0] * o, y, this.f.a.z + this.dir[2] * u + this.out[2] * o]; }
+  /** an extruded section: consecutive (o, y) points along u0..u1, each segment a quad facing away from the section's inside */
+  profile(acc: Acc, u0: number, u1: number, pts: [number, number][]): void {
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const [oa, ya] = pts[i], [ob, yb] = pts[i + 1];
+      const eo = ob - oa, ey = yb - ya, l = Math.hypot(eo, ey) || 1;
+      const no = -ey / l, ny = eo / l;
+      const n: V3 = [this.out[0] * no, ny, this.out[2] * no];
+      acc.quad([this.pt(u0, oa, ya), this.pt(u1, oa, ya), this.pt(u1, ob, yb), this.pt(u0, ob, yb)], n);
+    }
+  }
   /** a box from u0..u1, o0..o1, y0..y1 in the wall's frame */
   box(acc: Acc, u0: number, u1: number, o0: number, o1: number, y0: number, y1: number): void {
     acc.box(this.pt((u0 + u1) / 2, (o0 + o1) / 2, (y0 + y1) / 2), this.dir, UP, this.out, Math.abs(u1 - u0) / 2, Math.abs(y1 - y0) / 2, Math.abs(o1 - o0) / 2);
@@ -130,11 +140,13 @@ export interface KitBuckets {
   tubeLens: Acc;
   fanLight: Acc;
   cove: Acc; coveLed: Acc;
+  /** the glass of a recessed downlight (the bezel is in `fixtures`): glows in the evening (walkthruLight 'lamp') */
+  downlightLens: Acc;
 }
 /** paints of the fixtures mesh (sRGB) */
 export const PAINT = { tube: '#D3D1CB', plate: '#E3E0DA', bezel: '#B9B6AE', rocker: '#EFEDE8', socket: '#2A2A2A', fan: '#DCD8CE' } as const;
 export const newBuckets = (): KitBuckets => ({
-  skirting: new Acc(), grill: new Acc(), meshFrame: new Acc(), meshVeil: new Acc(), railing: new Acc(), fixtures: new Acc(), tubeLens: new Acc(), fanLight: new Acc(), cove: new Acc(), coveLed: new Acc(),
+  skirting: new Acc(), grill: new Acc(), meshFrame: new Acc(), meshVeil: new Acc(), railing: new Acc(), fixtures: new Acc(), tubeLens: new Acc(), fanLight: new Acc(), cove: new Acc(), coveLed: new Acc(), downlightLens: new Acc(),
 });
 
 const wallsOf = (layout: Layout): Map<string, Wall> => new Map(computeEdgeFrames(layout).map((f) => [`${f.roomId}:${f.edge}`, new Wall(f)]));
@@ -144,9 +156,15 @@ const wallsOf = (layout: Layout): Map<string, Wall> => new Map(computeEdgeFrames
 export function addSkirting(b: KitBuckets, walls: Map<string, Wall>, runs: SkirtingRun[]): void {
   for (const r of runs) {
     const w = walls.get(`${r.roomId}:${r.edge}`);
-    if (w) w.box(b.skirting, r.u0, r.u1, -SKIRTING_T_M, 0, 0, SKIRTING_H_M);
+    if (w) w.profile(b.skirting, r.u0, r.u1, SKIRTING_PROFILE);
   }
 }
+
+/** The skirting's section, (o, y) from the floor up, o negative into the room: a 14 mm board, a bevel in, a 10 mm lip, a bevel back to the wall (SPEC 16.18). The bevels catch the light. */
+const SKIRTING_PROFILE: [number, number][] = [
+  [-SKIRTING_T_M, 0], [-SKIRTING_T_M, SKIRTING_H_M * 0.72], [-SKIRTING_T_M + 0.004, SKIRTING_H_M * 0.8],
+  [-SKIRTING_T_M + 0.004, SKIRTING_H_M * 0.94], [-0.005, SKIRTING_H_M], [0, SKIRTING_H_M],
+];
 
 /** MS grill: a flat frame, round-ish square bars every ~11 cm, one or two cross bars. Sits just behind the mesh shutter, inside the hole. */
 export function addWindow(b: KitBuckets, walls: Map<string, Wall>, s: WindowSite): void {
@@ -295,6 +313,20 @@ export function addCove(b: KitBuckets, s: CoveSite): void {
   }
 }
 
+/** A recessed downlight seen from below: a white bezel ring 5 cm in radius, a recess and a small glass disc (112 triangles). */
+export function addDownlight(b: KitBuckets, x: number, y: number, z: number, radiusM = 0.05): void {
+  const sides = 16, ro = radiusM, ri = radiusM * 0.68, yb = y - 0.004, yr = y - 0.012;
+  b.fixtures.tint('#F3F1EC');
+  for (let i = 0; i < sides; i++) {
+    const a0 = (i / sides) * Math.PI * 2, a1 = ((i + 1) / sides) * Math.PI * 2, am = (a0 + a1) / 2;
+    const p = (a: number, r: number, yy: number): V3 => [x + Math.cos(a) * r, yy, z + Math.sin(a) * r];
+    b.fixtures.quad([p(a0, ro, yb), p(a1, ro, yb), p(a1, ri, yb), p(a0, ri, yb)], [0, -1, 0]);
+    b.fixtures.quad([p(a0, ro, yb), p(a1, ro, yb), p(a1, ro, y), p(a0, ro, y)], [Math.cos(am), 0, Math.sin(am)]);
+    b.fixtures.quad([p(a0, ri, yb), p(a1, ri, yb), p(a1, ri, yr), p(a0, ri, yr)], [-Math.cos(am), 0, -Math.sin(am)]);
+    b.downlightLens.tri([x, yr, z], p(a0, ri, yr), p(a1, ri, yr), [0, -1, 0]);
+  }
+}
+
 // ---------------------------------------------------------------- the whole kit
 
 /** where one fitting's vertices sit in the merged buckets, so an edit can take it out of the static meshes without rebuilding them */
@@ -314,6 +346,7 @@ export function buildBuckets(layout: Layout, plan: KitPlan): BuiltKit {
   const b = newBuckets();
   const walls = wallsOf(layout);
   addSkirting(b, walls, plan.skirting);
+  for (const d of plan.downlights) addDownlight(b, d.x, d.y, d.z);
   for (const s of plan.windows) addWindow(b, walls, s);
   for (const p of plan.railings) addRailing(b, walls, p);
   const ranges = new Map<string, VertexRange[]>();

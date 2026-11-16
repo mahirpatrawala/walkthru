@@ -6,6 +6,7 @@ import type { Viewer } from '../engine/viewer';
 export type { ToneMapperName } from './quality';
 import type { Rgb } from './grade';
 import type { ToneMapperName } from './quality';
+import { clampSamples } from './quality';
 
 /** what the high tier grades with (per preset, from grade.ts) */
 export interface PostGrade {
@@ -21,7 +22,12 @@ export interface PostGrade {
   bloom: number;
 }
 
+/** How the frame is smoothed and sharpened (SPEC 16.18). `msaa` is the composer's own multisampled buffer; `smaa` stays as a switch for comparisons. */
+export interface PostOptions { exposure: number; bloom: boolean; mapper: ToneMapperName; msaa?: number; /** the cost of the ambient occlusion: `cheap` (medium) is half resolution with fewer samples */ ao?: 'full' | 'cheap'; smaa?: boolean; sharpen?: number }
+
 export interface PostChain {
+  /** samples the composer's buffer really has (0 = none, the frame is not multisampled) */
+  readonly samples: number;
   render(dt: number): void;
   setExposure(e: number): void;
   setGrade(g: PostGrade): void;
@@ -34,27 +40,40 @@ export interface PostChain {
   dispose(): void;
 }
 
-export async function createPostChain(viewer: Viewer, init: { exposure: number; bloom: boolean; mapper: ToneMapperName }): Promise<PostChain> {
+/** the strength of the screen-space occlusion before any scaling (a bake that has corner shade asks for less) */
+const AO_BASE = 0.95;
+
+export async function createPostChain(viewer: Viewer, init: PostOptions): Promise<PostChain> {
   const [pp, n8] = await Promise.all([import('postprocessing'), import('n8ao')]);
   const { renderer, scene, camera } = viewer;
   const size = renderer.getSize(new THREE.Vector2());
 
-  const composer = new pp.EffectComposer(renderer, { frameBufferType: THREE.HalfFloatType, multisampling: 0 });
+  // Real MSAA on the composer's own buffer: the renderer's `antialias` only covers its default framebuffer, which the composer never draws to.
+  // SMAA on top of 4 samples only softened the frame, so it is off unless asked for (`?aa=smaa`).
+  const gl = renderer.getContext() as WebGL2RenderingContext;
+  let maxSamples = 0;
+  try { maxSamples = Number(gl.getParameter(gl.MAX_SAMPLES)) || 0; } catch { /* WebGL1 or a lost context: no multisampling */ }
+  const samples = clampSamples(init.msaa ?? 4, maxSamples);
+  const composer = new pp.EffectComposer(renderer, { frameBufferType: THREE.HalfFloatType, multisampling: samples });
   composer.setSize(size.x, size.y, false);
   const renderPass = new pp.RenderPass(scene, camera);
   composer.addPass(renderPass);
 
   // screen-space AO for wall-to-wall corners and furniture detail: half resolution, radius 0.6 m, intensity 1.6
   const ao = new n8.N8AOPostPass(scene, camera, size.x, size.y);
-  ao.configuration.aoRadius = 0.6;
-  ao.configuration.distanceFalloff = 0.3;
-  ao.configuration.intensity = 1.6;
+  ao.configuration.aoRadius = 0.35;
+  ao.configuration.distanceFalloff = 0.5;
+  ao.configuration.intensity = AO_BASE;
   ao.configuration.halfRes = true;
   // N8AO's defaults (16 samples, 8 denoise samples) cost about 8 ms at 2880 x 1800 on an M2; these keep it near 3 ms
-  ao.configuration.aoSamples = 6;
-  ao.configuration.denoiseSamples = 4;
-  ao.configuration.denoiseRadius = 8;
+  ao.configuration.aoSamples = init.ao === 'cheap' ? 6 : 10;
+  ao.configuration.denoiseSamples = init.ao === 'cheap' ? 5 : 6;
+  ao.configuration.denoiseRadius = 5;
   ao.configuration.gammaCorrection = false;
+  // `?ao=off` for comparisons
+  let aoOff = false;
+  try { aoOff = new URLSearchParams(location.search).get('ao') === 'off'; } catch { /* no location */ }
+  if (aoOff) ao.enabled = false;
   composer.addPass(ao);
 
   // before tone mapping: exposure and the preset's white balance
@@ -94,11 +113,37 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   const modeOf = (m: ToneMapperName): number => (m === 'aces' ? pp.ToneMappingMode.ACES_FILMIC : m === 'neutral' ? pp.ToneMappingMode.NEUTRAL : pp.ToneMappingMode.AGX);
   const tone = new pp.ToneMappingEffect({ mode: modeOf(init.mapper) });
   composer.addPass(new pp.EffectPass(camera, exposure, bloom, tone, grade));
-  composer.addPass(new pp.EffectPass(camera, new pp.SMAAEffect()));
+  if (init.smaa || samples === 0) composer.addPass(new pp.EffectPass(camera, new pp.SMAAEffect()));
+  // Contrast-adaptive sharpening (the idea of AMD's CAS): each pixel is pushed away from the mean of its four neighbours, by less where the
+  // neighbourhood already spans a wide range, and never past the neighbourhood's own min and max, so it cannot ring on a dark edge against a
+  // bright wall. One extra full-screen pass, nine texture reads.
+  const sharpenAmount = init.sharpen ?? 0;
+  let sharpen: InstanceType<typeof pp.Effect> | null = null;
+  if (sharpenAmount > 0) {
+    class SharpenEffect extends pp.Effect {
+      constructor(a: number) {
+        super('SharpenEffect', `uniform float amount;
+void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+  vec2 t = texelSize;
+  vec3 c = inputColor.rgb;
+  vec3 n = texture2D(inputBuffer, uv + vec2(0.0, -t.y)).rgb, s = texture2D(inputBuffer, uv + vec2(0.0, t.y)).rgb;
+  vec3 e = texture2D(inputBuffer, uv + vec2(t.x, 0.0)).rgb, w = texture2D(inputBuffer, uv + vec2(-t.x, 0.0)).rgb;
+  vec3 mn = min(min(min(n, s), min(e, w)), c), mx = max(max(max(n, s), max(e, w)), c);
+  vec3 amp = sqrt(clamp(min(mn, 1.0 - mx) / max(mx, vec3(1e-3)), 0.0, 1.0));
+  vec3 k = -amp * amount;
+  vec3 r = (c + (n + s + e + w) * k) / (1.0 + 4.0 * k);
+  outputColor = vec4(clamp(r, mn, mx), inputColor.a);
+}`, { attributes: pp.EffectAttribute.CONVOLUTION, uniforms: new Map<string, THREE.Uniform>([['amount', new THREE.Uniform(a)]]) });
+      }
+    }
+    sharpen = new SharpenEffect(sharpenAmount * 0.125);
+    composer.addPass(new pp.EffectPass(camera, sharpen));
+  }
 
   const off = viewer.onResize((w, h) => composer.setSize(w, h, false));
   let graded = false;
   return {
+    samples,
     render: (dt) => composer.render(dt),
     setExposure: (e) => { exposure.exposure = e; },
     setGrade: (g) => {
@@ -114,8 +159,8 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
       if (!on) { exposure.setWb([1, 1, 1]); grade.set(1, 1, [1, 1, 1], [1, 1, 1]); bloom.intensity = 0; }
       else if (!graded) bloom.intensity = init.bloom ? 0.35 : 0;
     },
-    setAO: (on) => { ao.enabled = on; },
-    setAoStrength: (k) => { ao.configuration.intensity = 1.6 * k; },
+    setAO: (on) => { ao.enabled = on && !aoOff; },
+    setAoStrength: (k) => { ao.configuration.intensity = AO_BASE * k; },
     dispose() { off(); composer.dispose(); },
   };
 }
