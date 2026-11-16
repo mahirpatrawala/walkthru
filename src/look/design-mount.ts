@@ -431,6 +431,12 @@ export function applyRoomFinishes(layout: Layout, shell: THREE.Object3D, look: L
       }
     });
   }
+  // ceilings: the pack's ceiling finish (a light warm grey, one step darker than the walls) where nothing was sampled
+  if (lm) {
+    const ceilId = sampled ? undefined : (layout.rooms.map((r) => roomFinishIds(r.id, st).ceiling?.[0]).find((x) => !!x));
+    const want = (ceilId ? finishDef(ceilId)?.colour : undefined) ?? fin.ceilingColor;
+    shell.traverse((c) => { if (c.name.startsWith('ceiling:') && (c as THREE.Mesh).isMesh) (c as THREE.Mesh).material = lm.ceiling(want); });
+  }
   // door and window frames, architraves: the pack's frame finish where nothing was sampled (a pack that names none leaves the layout's colour)
   const frames = shell.getObjectByName('frames') as THREE.Mesh | undefined;
   if (frames && lm) {

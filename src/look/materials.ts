@@ -446,7 +446,8 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
     pane() {
       if (!paneMat) {
         // an unlit veil: lit glass reflects the environment (and the sun) as a bright smear that hides the view
-        paneMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.06, depthWrite: false, side: THREE.DoubleSide });
+        // frosted, bright glass (SPEC 16.18): the window glows with daylight and does not pretend to show a real view
+        paneMat = new THREE.MeshBasicMaterial({ color: '#F7FAFD', transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide });
         paneMat.userData.shared = true;
         paneMat.visible = shared.plain.value < 0.5;
       }

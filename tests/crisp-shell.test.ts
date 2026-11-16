@@ -134,6 +134,8 @@ describe('packs: the default, its charcoal sibling, trim and tiles', () => {
   });
   it('the door finish says whether the grain shows', () => {
     setStyle({ packId: 'clean-contrast' });
+    expect(doorPanelFinish()).toEqual({ colour: '#F1EFEA', grain: false });
+    setStyle({ packId: 'clean-contrast-dark' });
     expect(doorPanelFinish()).toEqual({ colour: '#C08A52', grain: true });
     setStyle({ packId: 'walnut-white' });
     expect(doorPanelFinish()?.grain).toBeDefined();

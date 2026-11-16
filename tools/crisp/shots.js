@@ -36,6 +36,11 @@ if (set === 'flat') {
   views.floor = lookAt([1.0, 1.6, 6.0], [2.9, 0.0, 9.0]);
   views.corner = lookAt([2.4, 1.6, 7.0], [0.08, 2.3, 5.18]);
   views.toilet = lookAt([7.4, 1.6, 5.55], [7.4, 0.8, 3.9]);
+  // the first-impression set (SPEC 16.18): six views a buyer sees in their first minute
+  views.entry = lookAt([1.3, 1.6, 5.7], [2.4, 1.3, 9.6]);
+  views.deck = lookAt([2.0, 1.6, 6.6], [1.9, 1.3, 10.7]);
+  views.master = lookAt([8.6, 1.6, 6.2], [11.0, 1.1, 4.2]);
+  views.kitchen = lookAt([4.4, 1.6, 4.5], [5.8, 1.0, 2.2]);
   // the zoom test (30 cm from the surface): a floor with joints, a wall with its skirting, a door's edge with its frame
   views.zoomfloor = lookAt([1.4, 0.32, 7.5], [1.55, 0.0, 7.6]);
   views.zoomfloor2 = lookAt([7.3, 0.34, 7.85], [7.55, 0.0, 8.0]);

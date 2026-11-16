@@ -355,6 +355,7 @@ export const FINISH_LIST: FinishDef[] = [
   F('wall-greige', 'Greige paint', '#D3C9BB', 'paint', 'paint'),
   F('wall-stone', 'Stone grey paint', '#CFCCC5', 'paint', 'paint'),
   F('ceiling-white', 'Ceiling white', '#F7F5F0', 'paint', 'paint'),
+  F('ceiling-warm-grey', 'Ceiling warm grey', '#E6E3DD', 'paint', 'paint'),
   F('linen-beige', 'Beige linen', '#CDBBA3', 'weave', 'fabric'),
   F('quilt-beige', 'Beige quilted cotton', '#DACBB5', 'quilt', 'fabric'),
   F('quilt-white', 'White quilted cotton', '#EEEBE4', 'quilt', 'fabric'),
@@ -379,7 +380,7 @@ export const FINISH_LIST: FinishDef[] = [
   F('tile-beige-gloss', 'Glossy beige tile', '#F2E3CA', 'gloss', 'tile'),
   F('tile-ivory-gloss', 'Glossy ivory tile', '#ECE4D6', 'gloss', 'tile'),
   F('tile-grey', 'Soft grey tile', '#C9C6C0', 'gloss', 'tile'),
-  F('tile-stone', 'Light stone tile', '#B6B3AA', 'gloss', 'tile'),
+  F('tile-stone', 'Light stone tile', '#C9C6BD', 'gloss', 'tile'),
   F('tile-stone-grey', 'Mid stone-grey tile', '#A9A7A1', 'gloss', 'tile'),
   F('tile-sand', 'Sand tile', '#D8C9AE', 'gloss', 'tile'),
 ];

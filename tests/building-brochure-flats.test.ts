@@ -131,7 +131,7 @@ describe('the four brochure flats', () => {
         }
         expect(sheet.fixtures.length).toBeGreaterThanOrEqual(3); // an AC point for the living room and every bedroom
         expect(sheet.fixtures.every((f) => f.kind === 'ac')).toBe(true);
-        expect(sheet.items.decor?.roles?.door).toBe('oak-warm');
+        expect(sheet.items.decor?.roles?.door).toBe('white-laminate');
         expect(json(a.sceneId, 'look.json')).toMatchObject({ version: 1 });
       });
 

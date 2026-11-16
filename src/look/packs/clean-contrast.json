@@ -1,7 +1,7 @@
 {
   "id": "clean-contrast",
   "name": "Clean Contrast",
-  "blurb": "Bright warm-white walls, light stone floor with hairline joints, slim white frames and skirting with a built architrave, small dark handles, warm wood doors, pale oak and white furniture.",
+  "blurb": "Bright warm-white walls, a light warm-grey ceiling, pale stone tile with hairline joints, white leaf doors in slim white frames with a built architrave, small dark handles, pale oak and white furniture.",
   "roles": {
     "case": "oak-light",
     "flute": "oak-light",
@@ -25,7 +25,7 @@
     "rug": "shag-ivory",
     "curtainSheer": "sheer-white",
     "curtainDrape": "drape-sage",
-    "door": "oak-warm",
+    "door": "white-laminate",
     "wallPanel": "wall-bright",
     "chain": "steel",
     "swingWood": "oak-light",
@@ -93,7 +93,7 @@
   "room": {
     "wall": "wall-bright",
     "floor": "tile-stone",
-    "ceiling": "ceiling-white"
+    "ceiling": "ceiling-warm-grey"
   },
   "decor": {
     "rug": true,

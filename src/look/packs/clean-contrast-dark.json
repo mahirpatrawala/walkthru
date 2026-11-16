@@ -1,7 +1,7 @@
 {
   "id": "clean-contrast-dark",
   "name": "Clean Contrast, charcoal",
-  "blurb": "The same bright walls and light stone floor, with charcoal skirting and deep walnut frames and handles as strong accents, warm wood doors.",
+  "blurb": "The same bright walls and pale floor, with charcoal skirting, deep walnut frames and warm oak doors as strong accents.",
   "roles": {
     "case": "oak-light",
     "flute": "oak-light",
@@ -93,7 +93,7 @@
   "room": {
     "wall": "wall-bright",
     "floor": "tile-stone",
-    "ceiling": "ceiling-white"
+    "ceiling": "ceiling-warm-grey"
   },
   "decor": {
     "rug": true,
