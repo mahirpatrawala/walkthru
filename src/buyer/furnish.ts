@@ -10,14 +10,19 @@ import { withSwingNote } from './wardrobe-hooks';
 import { CATALOG, catalogItem, itemFromCatalog, setCatalogCeiling, specFor } from '../core/catalog';
 import { roomAt } from '../core/layout-geom';
 import { categoryOf } from '../core/pieces';
-import { mountCatalogPicker, catalogIcon } from './catalog-tray';
+import { allowedIn, categoryIn, notHereNote, rowsFor, spaceKindOf, trayWords } from '../core/places';
+import { mountCatalogPicker, catalogIcon, offeredIn } from './catalog-tray';
 import { pointInBox, sideEdge } from '../core/geometry';
 import { circleFree, nearestFree } from '../core/grid-query';
 import { checkPlacement, snapToWalls } from '../core/placement';
+import { fillBoxes, rowBoxes, rowGapM, seatingPlan, snapToNeighbour } from '../core/space-layout';
+import type { SeatingOptions } from '../core/space-layout';
+import { spaceSummary } from '../core/space-rules';
+import type { SpaceSummary } from '../core/space-rules';
 import type { PointerEvt } from '../engine/controls';
 import { buildFurnitureMesh, setFurnitureTint } from '../engine/furniture';
 import { CHARACTER_RADIUS_M } from '../types';
-import type { Box, CatalogItem, FurnitureItem, FurnitureKind, Grid, PlacementResult, Side, Tone, Vec2, Vec3, ZoneReading } from '../types';
+import type { Box, CatalogItem, FurnitureItem, FurnitureKind, Grid, PlacementResult, Side, SpaceKind, Tone, Vec2, Vec3, ZoneReading } from '../types';
 import { FAMILY_SLOTS, BED_STYLES, describeFinish, finishFamily, sanitizeFinish, surpriseFinish, swatch, withPick } from '../look/finishes';
 import type { Finish, FinishFamily, FinishSlotKey } from '../look/finishes';
 import { boxAxes } from '../core/geometry';
@@ -147,14 +152,22 @@ export function replacementBox(old: Box, spec: CatalogItem): Box {
   return { cx: back.x + a.x * (spec.footprint.d / 2), cz: back.z + a.z * (spec.footprint.d / 2), w: spec.footprint.w, d: spec.footprint.d, yawDeg: old.yawDeg };
 }
 
-/** Catalogue pieces in the order a Replace list shows them: the same family first (a bed for a bed), then everything else. */
-export function replacementChoices(item: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }): { same: CatalogItem[]; other: CatalogItem[] } {
+/**
+ * Catalogue pieces in the order a Replace list shows them, from what the space offers (a gym replaces a treadmill with a rower, not a sofa; a
+ * home is as before): in a home the same family first (a bed for a bed), in a shared space the same tray category first (cardio for cardio).
+ */
+export function replacementChoices(item: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }, spaceKind?: SpaceKind): { same: CatalogItem[]; other: CatalogItem[] } {
+  const rows = rowsFor(spaceKind, CATALOG).filter((c) => offeredIn(c, spaceKind));
+  if (spaceKind && spaceKind !== 'home' && spaceKind !== 'other') {
+    const mine = item.catalogId ? categoryIn(item.catalogId, spaceKind) : null;
+    return { same: rows.filter((c) => mine && categoryIn(c.id, spaceKind) === mine), other: rows.filter((c) => !mine || categoryIn(c.id, spaceKind) !== mine) };
+  }
   const fam = (c: CatalogItem): string => familyKey({ kind: c.kind, label: c.name, catalogId: c.id, box: c.footprint });
   const mine = familyKey(item);
   // the rest of the catalogue is long now: pieces of the same tray category come first
   const cat = item.catalogId ? categoryOf(item.catalogId) : null;
   const near = (c: CatalogItem): number => (cat && categoryOf(c.id) === cat ? 0 : 1);
-  return { same: CATALOG.filter((c) => fam(c) === mine), other: CATALOG.filter((c) => fam(c) !== mine).sort((a, b) => near(a) - near(b)) };
+  return { same: rows.filter((c) => fam(c) === mine), other: rows.filter((c) => fam(c) !== mine).sort((a, b) => near(a) - near(b)) };
 }
 function familyKey(i: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }): string {
   return finishFamily(i) ?? `${i.kind}`;
@@ -177,6 +190,8 @@ export interface FurnishSelection {
   sizeText: string;
   /** true for a piece that came with the home, false for one the viewer placed */
   home: boolean;
+  /** a piece the builder staged in a shared space (a virtual piece of the scene's own file, SPEC 16.17): it came with the space, but it is not drawn, so it is checked like any piece */
+  staged: boolean;
   /** a fixed built-in of a real drawing: hiding it needs the explicit note */
   builtIn: boolean;
   family: FinishFamily | null;
@@ -235,14 +250,29 @@ export interface FurnishView {
   /** the fitting being looked at (phase 'fitting') */
   fitting: FittingSelection | null;
   /** every piece in the home right now, for the tray list */
-  pieces: Array<{ id: string; label: string; home: boolean }>;
+  pieces: Array<{ id: string; label: string; home: boolean; /** a piece this kind of space does not offer: kept, and flagged */ notHere?: boolean }>;
   /** originals and fittings removed in this layout, with an Undo each */
   removed: Array<{ id: string; label: string; builtIn: boolean; fitting?: boolean }>;
   /** true when this layout differs from the home as drawn (the chip shows) */
   edited: boolean;
+  /** a shared space (a gym, a hall, a lobby): its stations, floor used against free and whether the walkway is clear (SPEC 16.17); null in a home */
+  summary: SpaceSummary | null;
 }
 
 export interface FurnishUi { render(view: FurnishView): void }
+
+/** What a helper that places several pieces at once did: how many it asked for, how many it put down, and why it stopped. */
+export interface PlaceReport {
+  requested: number;
+  placed: number;
+  /** ids of the new pieces */
+  ids: string[];
+  /** seating: the seat count and the plan in words */
+  seats?: number;
+  words?: string;
+  /** one sentence for the toast: "Placed 6 of 6 treadmills, 50 cm apart." */
+  message: string;
+}
 
 export interface FurnishVerdict {
   id: string;
@@ -341,6 +371,15 @@ export interface FurnishSession {
   backFittingPlace(): boolean;
   removeFitting(id?: string): boolean;
   restoreFitting(id: string): boolean;
+  // ---- layout helpers for a shared space (SPEC 16.17). Each places ordinary pieces, so move, remove, My layout and the share link work on them.
+  /** `count` more of the selected piece beside it, along its width at its own spacing (right of it for `dir` 1, left for -1), stopping at the first wall or piece in the way */
+  placeRow(count: number, dir?: 1 | -1): PlaceReport | null;
+  /** a block of seats: `rows` x `cols` of `catalogId` with optional aisles, its front row centred 1.8 m ahead of the walker (or at `centre`), facing the walker (or turned `yawDeg`). Reports the seat count. */
+  placeGrid(catalogId: string, rows: number, cols: number, opts?: Omit<SeatingOptions, 'rows' | 'cols'> & { centre?: Vec2; yawDeg?: number }): PlaceReport | null;
+  /** one more of the selected piece beside it (a row of one, the side with room) */
+  duplicateSelected(): PlaceReport | null;
+  /** `catalogId` (flooring tiles) laid over the rectangle in whole pieces */
+  fillArea(catalogId: string, rect: { x0: number; z0: number; x1: number; z1: number }): PlaceReport | null;
   /** back to the home as drawn */
   resetLayout(): void;
   /** the layout as a link a buyer can send */
@@ -411,6 +450,8 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
   let disposed = false;
 
   const ceilingM = (): number => ctx.property.layout.wallHeightM;
+  /** what kind of space this is (a home when the scene says nothing): the tray and the Replace list offer only what belongs there */
+  const spaceKind = (): SpaceKind => spaceKindOf(ctx.property);
   // a ceiling-height piece (a loft unit) is made to fit this home's ceiling
   setCatalogCeiling(ceilingM());
   const getItem = (id: string): FurnitureItem | undefined => (store.get ? store.get(id) : store.all().find((i) => i.id === id));
@@ -451,7 +492,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     const r = check(s);
     return {
       id: s.id, catalogId: s.item.catalogId ?? null, name: s.spec.name, box: copyBox(s.box),
-      verdict: r.verdict, reason: r.reason, tone: r.tone, message: withSwingNote(r.message, s.box, s.id),
+      verdict: r.verdict, reason: r.reason, tone: r.tone, message: [withSwingNote(r.message, s.box, s.id), notHereNote(s.item.catalogId, s.spec.name, spaceKind())].filter(Boolean).join(' '),
       clearanceM: { ...r.clearanceM }, canPlace: r.verdict !== 'blocked',
       lines: clearanceLines(s.box, r.clearanceM).map((l) => ({ side: l.side, cm: l.cm })),
     };
@@ -493,7 +534,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     const edit = d ? editNote(d, item) : null;
     const dd = d ? sizeValues(d) : null, cc = sizeValues(item);
     return {
-      id: item.id, name: pieceName(item), sizeText: sizeText(item), home: isHome(item.id), builtIn: builtIn(item), family,
+      id: item.id, name: pieceName(item), sizeText: sizeText(item), home: isHome(item.id), staged: isHome(item.id) && item.source === 'virtual' && spaceKind() !== 'home', builtIn: builtIn(item), family,
       finish: item.finish ? { ...item.finish } : null, finishText: family ? describeFinish(family, item.finish) : '',
       edit, sizes: sizesOf(item),
       canBackSize: !!dd && (Math.abs(dd.w - cc.w) > 0.0005 || Math.abs(dd.d - cc.d) > 0.0005 || Math.abs(dd.h - cc.h) > 0.0005),
@@ -545,13 +586,26 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
       const name = pieceName(i);
       const n = (seen.get(name) ?? 0) + 1;
       seen.set(name, n);
-      return { id: i.id, label: (count.get(name) ?? 0) > 1 ? `${name} ${n}` : name, home: isHome(i.id) };
+      return { id: i.id, label: (count.get(name) ?? 0) > 1 ? `${name} ${n}` : name, home: isHome(i.id), ...(i.catalogId && !allowedIn(i.catalogId, spaceKind()) ? { notHere: true } : {}) };
     });
   };
   const removedList = (): FurnishView['removed'] => [...(store.hiddenOriginals ? store.hiddenOriginals().map((i) => ({ id: i.id, label: pieceName(i), builtIn: builtIn(i) })) : []), ...removedFittings()];
-  const extras = (): Pick<FurnishView, 'pieces' | 'removed' | 'edited'> => ({ pieces: piecesList(), removed: removedList(), edited: store.isEdited ? store.isEdited() : false });
+  /** the gym or hall summary (stations, floor used, walkway): worked out when the pieces change, not on every frame of a drag */
+  let sumCache: { key: string; v: SpaceSummary | null } | null = null;
+  const summaryFor = (): SpaceSummary | null => {
+    const k = spaceKind();
+    if (k !== 'gym' && k !== 'hall') return null;
+    const items = store.all();
+    const key = items.map((i) => `${i.id}:${i.box.cx.toFixed(3)},${i.box.cz.toFixed(3)},${i.box.yawDeg}`).join('|');
+    if (sumCache?.key === key) return sumCache.v;
+    let v: SpaceSummary | null = null;
+    try { v = spaceSummary(ctx.property.layout, items, undefined, k); } catch (err) { console.warn('[walkthru] space summary failed', err); }
+    sumCache = { key, v };
+    return v;
+  };
+  const extras = (): Pick<FurnishView, 'pieces' | 'removed' | 'edited' | 'summary'> => ({ pieces: piecesList(), removed: removedList(), edited: store.isEdited ? store.isEdited() : false, summary: summaryFor() });
 
-  const computeView = (): FurnishView => {
+  const computeViewBase = (): FurnishView => {
     const bc = buyerCount();
     const ex = extras();
     const rec = fitRec();
@@ -579,13 +633,21 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     if (sel.home) {
       const note = sel.builtIn ? ` ${BUILT_IN_NOTE}.` : '';
       // a piece as drawn is not checked (it is the record); one the viewer moved or resized gets the same live verdict as any placed piece
-      if (!sel.edit) return { phase: 'selected', message: realItemNote() + note, tone: null, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, fitting: null, ...ex };
+      if (!sel.edit && !sel.staged) return { phase: 'selected', message: realItemNote() + note, tone: null, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, fitting: null, ...ex };
       const r = check(s);
       const editNoteText = sel.builtIn ? ` ${BUILT_IN_EDIT_NOTE}.` : '';
       return { phase: 'selected', message: withSwingNote(r.message, s.box, s.id) + editNoteText, tone: r.tone, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, fitting: null, ...ex };
     }
     const r = check(s);
     return { phase: 'selected', message: withSwingNote(r.message, s.box, s.id), tone: r.tone, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, fitting: null, ...ex };
+  };
+
+  /** the view, with the note of a piece this space does not offer (it came with a share link or a stored layout): kept as it is, and said so */
+  const computeView = (): FurnishView => {
+    const v = computeViewBase();
+    const sel = v.selection ? getItem(v.selection.id) : work ? work.item : undefined;
+    const note = sel ? notHereNote(sel.catalogId, pieceName(sel), spaceKind()) : null;
+    return note && (v.phase === 'selected' || v.phase === 'edit') ? { ...v, message: `${v.message} ${note}` } : v;
   };
 
   /** Redraws the outline, the clearance lines and the tint, then pushes the view to the UI when it changed. */
@@ -695,6 +757,35 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     return w;
   };
 
+  /** puts down pieces of `catalogId` at the boxes, skipping a box that is blocked (a wall, a piece) and, for a row, stopping there */
+  const placeBoxes = (catalogId: string, boxes: Box[], stopAtBlock: boolean, finish: Finish | undefined): { ids: string[]; skippedBy: string | null } => {
+    const spec = catalogItem(catalogId);
+    const ids: string[] = [];
+    let skippedBy: string | null = null;
+    for (const box of boxes) {
+      const item = itemFromCatalog(catalogId, box, 'virtual');
+      const r = check({ id: item.id, spec, box });
+      if (r.verdict === 'blocked') {
+        skippedBy ??= r.reason === 'outside' ? 'the edge of the room' : r.reason === 'collides' ? 'another piece or a wall' : 'no room';
+        if (stopAtBlock) break;
+        continue;
+      }
+      if (finish) item.finish = { ...finish };
+      store.add(item);
+      ids.push(item.id);
+    }
+    return { ids, skippedBy };
+  };
+  const finishPlacing = (ids: string[]): void => {
+    flushStore();
+    if (ids.length > 0) { selectedId = ids[ids.length - 1]; selectedFit = null; }
+    touch();
+    flush();
+  };
+  /** "3 chest presses": the name before any comma, pluralised */
+  const plural = (n: number, name: string): string => { const w = name.split(',')[0].toLowerCase(); return `${n} ${n === 1 ? w : /(s|x|ch|sh)$/.test(w) ? `${w}es` : `${w}s`}`; };
+  const spacingWords = (gap: number): string => `${Math.round(gap * 100)} cm apart`;
+
   const session: FurnishSession = {
     spawn(catalogId) {
       let spec: CatalogItem;
@@ -717,6 +808,12 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     release() {
       if (!work) return null;
       work.box = snapToWalls(gridWithout(work.item.id), work.box);
+      // in a shared space a piece also lines up with its neighbour at its own spacing (a row of machines, a row of chairs)
+      if (spaceKind() !== 'home' && work.item.catalogId) {
+        const others = store.all().filter((i) => i.id !== work!.item.id && !(work!.replaces && i.id === work!.replaces) && i.heightM >= 0.06).map((i) => i.box);
+        const nb = snapToNeighbour(work.box, others, rowGapM(work.item.catalogId));
+        if (nb !== work.box && check({ id: work.item.id, spec: work.spec, box: nb }).verdict !== 'blocked') work.box = nb;
+      }
       syncMesh(work);
       touch();
       flush();
@@ -1050,6 +1147,50 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
       if (ok) { flushStore(); selectedId = id; touch(); flush(); }
       return ok;
     },
+    placeRow(count, dir = 1) {
+      const n = Math.max(1, Math.min(40, Math.floor(count)));
+      const sel = selectedId ? getItem(selectedId) : undefined;
+      if (!sel || !sel.catalogId) return null;
+      const spec = catalogItem(sel.catalogId);
+      const gap = rowGapM(sel.catalogId);
+      const { ids, skippedBy } = placeBoxes(sel.catalogId, rowBoxes(spec, sel.box, n, dir, gap), true, sel.finish);
+      finishPlacing(ids);
+      const message = ids.length === n
+        ? `Placed ${plural(n, spec.name)}, ${spacingWords(gap)}.`
+        : ids.length === 0 ? `No room for another ${spec.name.split(',')[0].toLowerCase()} on that side: ${skippedBy ?? 'no room'} is in the way.` : `Placed ${ids.length} of ${plural(n, spec.name)}, ${spacingWords(gap)}: ${skippedBy ?? 'no room'} stopped the row.`;
+      ctx.hud.toast(message);
+      return { requested: n, placed: ids.length, ids, message };
+    },
+    duplicateSelected() {
+      const sel = selectedId ? getItem(selectedId) : undefined;
+      if (!sel) return null;
+      let r = session.placeRow(1, 1);
+      if (r && r.placed === 0) r = session.placeRow(1, -1);
+      return r;
+    },
+    placeGrid(catalogId, rows, cols, opts = {}) {
+      let spec: CatalogItem;
+      try { spec = catalogItem(catalogId); } catch { return null; }
+      const plan = seatingPlan(spec, { rows, cols, seatGapM: opts.seatGapM, rowPitchM: opts.rowPitchM, aisleEvery: opts.aisleEvery, aisleM: opts.aisleM });
+      const yaw = opts.yawDeg ?? rotateYaw(ctx.character.yawDeg, 180);
+      const centre = opts.centre ?? { x: ctx.character.position.x + Math.sin((ctx.character.yawDeg * Math.PI) / 180) * (SPAWN_DISTANCE_M + 0.5), z: ctx.character.position.z + Math.cos((ctx.character.yawDeg * Math.PI) / 180) * (SPAWN_DISTANCE_M + 0.5) };
+      // the front row is nearest the walker's far side: the block's front row is at the centre, its rows run back toward the walker
+      const boxes = plan.place(centre, yaw);
+      const { ids, skippedBy } = placeBoxes(catalogId, boxes, false, undefined);
+      finishPlacing(ids);
+      const message = ids.length === plan.seats ? `Placed ${plan.words}` : `Placed ${ids.length} of ${plan.seats} seats; ${skippedBy ?? 'no room'} was in the way of the rest. ${plan.words}`;
+      ctx.hud.toast(message);
+      return { requested: plan.seats, placed: ids.length, ids, seats: ids.length, words: plan.words, message };
+    },
+    fillArea(catalogId, rect) {
+      let spec: CatalogItem;
+      try { spec = catalogItem(catalogId); } catch { return null; }
+      const boxes = fillBoxes(spec, rect);
+      const { ids, skippedBy } = placeBoxes(catalogId, boxes, false, undefined);
+      finishPlacing(ids);
+      const message = ids.length === boxes.length ? `Laid ${plural(ids.length, spec.name)} over the area.` : `Laid ${ids.length} of ${plural(boxes.length, spec.name)}; ${skippedBy ?? 'no room'} was in the way of the rest.`;
+      return { requested: boxes.length, placed: ids.length, ids, message };
+    },
     resetLayout() {
       discardWork();
       selectedId = null;
@@ -1196,6 +1337,11 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   bReplace.dataset.act = 'replace';
   const bLook = btn('Change look', 'is-ghost', () => setPanel(panelOpen === 'look' ? null : 'look'));
   bLook.dataset.act = 'look';
+  // layout helpers of a shared space (SPEC 16.17): one more beside it, a row of it, a block of seats
+  const bDup = btn('Duplicate', 'is-ghost', () => { session.duplicateSelected(); });
+  bDup.dataset.act = 'duplicate';
+  const bRow = btn('Row…', 'is-ghost', () => setPanel(panelOpen === 'row' ? null : 'row'));
+  bRow.dataset.act = 'row';
   // Remove asks twice for a built-in of a real drawing: hiding it needs its note read (BUILT_IN_NOTE sits in the bar above)
   let removeArmed = false;
   let removeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1228,13 +1374,14 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   bRemove.dataset.act = 'remove';
 
   // ---- the panels under the bar: Replace and Change look
-  let panelOpen: 'replace' | 'look' | 'size' | null = null;
+  let panelOpen: 'replace' | 'look' | 'size' | 'row' | null = null;
+  const rowState = { count: 4, rows: 4, cols: 8, aisleEvery: 0 };
   const panel = h('div', 'wtf-panel', root);
   panel.dataset.ui = '1';
   panel.dataset.testid = 'furnish-panel';
   panel.hidden = true;
 
-  const setPanel = (p: 'replace' | 'look' | 'size' | null): void => {
+  const setPanel = (p: 'replace' | 'look' | 'size' | 'row' | null): void => {
     panelOpen = p;
     disarmRemove();
     renderPanel();
@@ -1243,6 +1390,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
     bReplace.classList.toggle('is-on', p === 'replace');
     bLook.classList.toggle('is-on', p === 'look');
     bSize.classList.toggle('is-on', p === 'size');
+    bRow.classList.toggle('is-on', p === 'row');
   };
 
   const specCard = (parent: HTMLElement, spec: CatalogItem, onPick: () => void): void => {
@@ -1319,6 +1467,56 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       }
       return;
     }
+    // Row: more of the selected piece along its width at its own spacing, and for a seat a block of rows with aisles
+    if (panelOpen === 'row' && v?.phase === 'selected' && sel) {
+      panel.hidden = false;
+      const topR = h('div', 'wtf-panel-head', panel);
+      h('div', 'wtf-panel-title', topR, `Row · ${sel.name}`);
+      const doneR = h('button', 'wtf-link is-strong', topR, 'Done');
+      doneR.type = 'button'; doneR.dataset.ui = '1'; doneR.dataset.act = 'panel-close';
+      doneR.addEventListener('click', (e) => { e.stopPropagation(); setPanel(null); });
+      const item = ctx.furniture.all().find((i) => i.id === sel.id);
+      const cid = item?.catalogId;
+      const gapCm = cid ? Math.round(rowGapM(cid) * 100) : 5;
+      const stepRow = (parent: HTMLElement, label: string, key: keyof typeof rowState, min: number, max: number): void => {
+        const rowEl = h('div', 'wtf-step', parent);
+        h('div', 'wtf-step-label', rowEl, label);
+        const minus = h('button', 'wtf-step-btn', rowEl, '−');
+        minus.type = 'button'; minus.dataset.ui = '1'; minus.dataset.step = `${key}-`; minus.setAttribute('aria-label', `${label} fewer`); minus.disabled = rowState[key] <= min;
+        minus.addEventListener('click', (e) => { e.stopPropagation(); rowState[key] = Math.max(min, rowState[key] - 1); renderPanel(); });
+        const val = h('div', 'wtf-step-val', rowEl, key === 'aisleEvery' && rowState[key] === 0 ? 'none' : String(rowState[key]));
+        val.dataset.stepValue = key;
+        const plus = h('button', 'wtf-step-btn', rowEl, '+');
+        plus.type = 'button'; plus.dataset.ui = '1'; plus.dataset.step = `${key}+`; plus.setAttribute('aria-label', `${label} more`); plus.disabled = rowState[key] >= max;
+        plus.addEventListener('click', (e) => { e.stopPropagation(); rowState[key] = Math.min(max, rowState[key] + 1); renderPanel(); });
+      };
+      h('div', 'wtf-sub', panel, `Along its width, ${gapCm} cm apart`);
+      const steps = h('div', 'wtf-steps', panel);
+      stepRow(steps, 'How many more', 'count', 1, 20);
+      const tools = h('div', 'wtf-panel-tools', panel);
+      for (const [label, dir, act] of [['Place to its right', 1, 'row-right'], ['Place to its left', -1, 'row-left']] as const) {
+        const b = h('button', 'wtf-chipbtn', tools, label);
+        b.type = 'button'; b.dataset.ui = '1'; b.dataset.act = act;
+        b.addEventListener('click', (e) => { e.stopPropagation(); session.placeRow(rowState.count, dir); });
+      }
+      if (cid && categoryOf(cid) === 'seating' && item && item.box.w < 0.7) {
+        h('div', 'wtf-sub', panel, 'A block of seats in front of you');
+        const gs = h('div', 'wtf-steps', panel);
+        stepRow(gs, 'Rows', 'rows', 1, 20);
+        stepRow(gs, 'Seats a row', 'cols', 1, 24);
+        stepRow(gs, 'Aisle after every', 'aisleEvery', 0, 24);
+        const spec = catalogItem(cid);
+        const plan = seatingPlan(spec, { rows: rowState.rows, cols: rowState.cols, aisleEvery: rowState.aisleEvery });
+        const words = h('div', 'wtf-panel-note', panel, plan.words);
+        words.dataset.testid = 'seat-plan';
+        const tg = h('div', 'wtf-panel-tools', panel);
+        const bg = h('button', 'wtf-chipbtn', tg, `Place ${plan.seats} seats`);
+        bg.type = 'button'; bg.dataset.ui = '1'; bg.dataset.act = 'place-grid';
+        bg.addEventListener('click', (e) => { e.stopPropagation(); session.placeGrid(cid, rowState.rows, rowState.cols, { aisleEvery: rowState.aisleEvery }); });
+      }
+      h('div', 'wtf-panel-note', panel, 'Each one is a piece of its own: move, resize or remove any of them. Spacing is the piece\'s own use zone (typical guidance, check your consultant).');
+      return;
+    }
     const show = !!panelOpen && !!sel && v?.phase === 'selected' && panelOpen !== 'size';
     panel.hidden = !show;
     if (!show || !sel) return;
@@ -1330,7 +1528,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       x.addEventListener('click', (e) => { e.stopPropagation(); setPanel(null); });
       const item = ctx.furniture.all().find((i) => i.id === sel.id);
       if (!item) return;
-      const { same, other } = replacementChoices(item);
+      const { same, other } = replacementChoices(item, spaceKindOf(ctx.property));
       h('div', 'wtf-panel-note', panel, 'It lands at the same spot, squared to the wall, and the fit check runs. A replacement shows its own catalogue size.');
       if (sel.builtIn) h('div', 'wtf-panel-note is-strong', panel, `${BUILT_IN_NOTE}.`);
       if (same.length > 0) {
@@ -1390,7 +1588,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   const tray = h('div', 'wtf-tray', root);
   tray.dataset.ui = '1';
   const head = h('div', 'wtf-head', tray);
-  const titleEl = h('div', 'wtf-title', head, 'Add furniture');
+  const titleEl = h('div', 'wtf-title', head, trayWords(spaceKindOf(ctx.property)).title);
   const headRight = h('div', 'wtf-head-right', head);
   const clearBtn = h('button', 'wtf-link', headRight, 'Clear all');
   clearBtn.type = 'button';
@@ -1415,9 +1613,24 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   const resetBtn = h('button', 'wtf-link', mineBtns, RESET_LABEL);
   resetBtn.type = 'button'; resetBtn.dataset.ui = '1'; resetBtn.dataset.act = 'reset';
 
+  // the summary of a gym or a hall: stations, floor used against free, whether the walkway is clear (SPEC 16.17)
+  const summaryEl = h('div', 'wtf-summary', tray);
+  summaryEl.dataset.ui = '1';
+  summaryEl.dataset.testid = 'space-summary';
+  summaryEl.hidden = true;
+  const renderSummary = (sm: FurnishView['summary']): void => {
+    summaryEl.textContent = '';
+    summaryEl.hidden = !sm;
+    if (!sm) return;
+    summaryEl.dataset.tone = sm.tone;
+    h('div', 'wtf-summary-title', summaryEl, spaceKindOf(ctx.property) === 'hall' ? 'This hall' : 'This gym');
+    sm.lines.forEach((line, i) => h('div', `wtf-summary-line${i === sm.lines.length - 1 ? ' is-walkway' : ''}`, summaryEl, line));
+    h('div', 'wtf-summary-foot', summaryEl, sm.footer);
+  };
+
   // the pieces in this home, as chips, and the originals removed from it
   const piecesWrap = h('div', 'wtf-pieces-wrap', tray);
-  h('div', 'wtf-sub', piecesWrap, 'In this home');
+  h('div', 'wtf-sub', piecesWrap, trayWords(spaceKindOf(ctx.property)).here);
   const pieces = h('div', 'wtf-pieces', piecesWrap);
   pieces.dataset.ui = '1';
   pieces.dataset.testid = 'furnish-pieces';
@@ -1425,11 +1638,11 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
   removedWrap.dataset.ui = '1';
   removedWrap.dataset.testid = 'furnish-removed';
 
-  const addLabel = h('div', 'wtf-sub', tray, 'Add furniture');
+  const addLabel = h('div', 'wtf-sub', tray, trayWords(spaceKindOf(ctx.property)).title);
   const cards = h('div', 'wtf-cards', tray);
   cards.dataset.ui = '1';
   // a category selector and a search box over the catalogue (src/buyer/catalog-tray.ts) fill the card row
-  const picker = mountCatalogPicker(tray, cards, (parent, spec) => specCard(parent, spec, () => { session.spawn(spec.id); }));
+  const picker = mountCatalogPicker(tray, cards, (parent, spec) => specCard(parent, spec, () => { session.spawn(spec.id); }), spaceKindOf(ctx.property));
 
   const renderPieces = (v: FurnishView): void => {
     pieces.textContent = '';
@@ -1437,6 +1650,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       const b = h('button', `wtf-piece${v.selection?.id === p.id ? ' is-on' : ''}`, pieces, p.label);
       b.type = 'button'; b.dataset.ui = '1'; b.dataset.itemId = p.id;
       if (!p.home) b.classList.add('is-mine');
+      if (p.notHere) { b.classList.add('is-flagged'); b.title = 'This piece is not usually put in this kind of space. It stays in your layout.'; }
       b.addEventListener('click', (e) => { e.stopPropagation(); session.select(v.selection?.id === p.id ? null : p.id); b.blur(); });
     }
     piecesWrap.hidden = v.pieces.length === 0;
@@ -1554,7 +1768,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       if (fit && selId === lastSelId && fit.id === lastFitId && fit.at !== lastFitAt && !fit.moving && active) focusFitting(fit.id);
       lastFitId = fit?.id ?? null; lastFitAt = fit?.at ?? '';
       barName.textContent = v.selection
-        ? `${v.selection.name} · ${v.selection.sizeText}${v.selection.home ? (v.selection.edit ? ' · in your layout' : ' · as drawn') : ''}${v.selection.finishText ? ` · ${v.selection.finishText}` : ''}`
+        ? `${v.selection.name} · ${v.selection.sizeText}${v.selection.home && !v.selection.staged ? (v.selection.edit ? ' · in your layout' : ' · as drawn') : ''}${v.selection.finishText ? ` · ${v.selection.finishText}` : ''}`
         : fit ? `${fit.name} · ${fit.sizeText}${fit.edit ? ' · in your layout' : ''}` : '';
       barName.hidden = !v.selection && !fit;
       const note = v.selection?.edit ?? fit?.edit ?? null;
@@ -1578,6 +1792,8 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       bTurn.hidden = !((sel && v.canRotate) || (fitIdle && fit!.canTurn));
       bSize.hidden = !((sel && !!v.selection?.sizes) || (fitIdle && !!fit!.resize));
       bReplace.hidden = !sel;
+      // the layout helpers of a shared space: any placed or home piece of the catalogue, never in a home
+      bDup.hidden = bRow.hidden = !(sel && spaceKindOf(ctx.property) !== 'home' && !!ctx.furniture.all().find((i) => i.id === v.selection!.id)?.catalogId);
       bLook.hidden = !sel || !v.selection?.family;
       bRemove.hidden = !((sel && v.canRemove) || fitIdle);
       if (v.selection && !removeArmed) setLabel(bRemove, removeLabel(v.selection));
@@ -1585,6 +1801,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       bReplace.classList.toggle('is-on', panelOpen === 'replace');
       bLook.classList.toggle('is-on', panelOpen === 'look');
       bSize.classList.toggle('is-on', panelOpen === 'size');
+      bRow.classList.toggle('is-on', panelOpen === 'row');
       actions.hidden = !(showEdit || sel || fitIdle);
       bPlace.disabled = !v.canPlace;
       clearBtn.hidden = v.buyerCount === 0;
@@ -1597,12 +1814,13 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       cards.classList.toggle('is-editing', showEdit);
       tray.classList.toggle('is-editing', showEdit);
       tray.classList.toggle('is-selected', selected);
-      titleEl.textContent = 'Add furniture';
+      titleEl.textContent = trayWords(spaceKindOf(ctx.property)).title;
       addLabel.hidden = showEdit || selected;
       cards.hidden = selected;
       picker.setHidden(selected);
       piecesWrap.classList.toggle('is-quiet', showEdit);
       renderPieces(v);
+      renderSummary(v.summary);
       renderRemoved(v);
       removedWrap.classList.toggle('is-quiet', showEdit);
       renderPanel();
@@ -1736,7 +1954,16 @@ function installDebug(ctx: BuyerContext, mode: FurnishMode): void {
     /** switch to furnish mode */
     open: () => { ctx.setMode('furnish'); return ctx.mode(); },
     close: () => { ctx.setMode('walk'); return ctx.mode(); },
+    /** the whole catalogue; `catalogueHere()` is what this space's tray offers (SPEC 16.17) */
     catalogue: () => CATALOG.map((c) => ({ id: c.id, label: cardLabel(c) })),
+    catalogueHere: () => rowsFor(spaceKindOf(ctx.property)).filter((c) => offeredIn(c, spaceKindOf(ctx.property))).map((c) => ({ id: c.id, label: cardLabel(c) })),
+    spaceKind: () => spaceKindOf(ctx.property),
+    /** layout helpers of a shared space: placeRow(3, 1) beside the selected piece, placeGrid('hall-chair', 4, 8, { aisleEvery: 4 }), duplicate(), fillArea('gym-floor-2x2', { x0, z0, x1, z1 }), summary() */
+    placeRow: (count: number, dir?: 1 | -1) => s.placeRow(count, dir),
+    placeGrid: (catalogId: string, rows: number, cols: number, opts?: Parameters<FurnishSession['placeGrid']>[3]) => s.placeGrid(catalogId, rows, cols, opts),
+    duplicate: () => s.duplicateSelected(),
+    fillArea: (catalogId: string, rect: { x0: number; z0: number; x1: number; z1: number }) => s.fillArea(catalogId, rect),
+    summary: () => s.view().summary,
     spawn: (catalogId: string) => s.spawn(catalogId),
     moveTo: (cx: number, cz: number) => s.moveTo(cx, cz),
     /** what letting go of a drag does: square up to the wall */

@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "test-hall-empty",
+  "title": "Test hall, empty",
+  "subtitle": "Test scene. Made-up room, not a real space.",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "hall",
+        "roomType": "other",
+        "label": "Community hall",
+        "polygon": [
+          {
+            "x": 0,
+            "z": 0
+          },
+          {
+            "x": 12,
+            "z": 0
+          },
+          {
+            "x": 12,
+            "z": 8.4
+          },
+          {
+            "x": 0,
+            "z": 8.4
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ],
+        "floorColor": "#B48D5C",
+        "wallColor": "#EFEAE0"
+      }
+    ],
+    "openings": [
+      {
+        "id": "hall-door",
+        "roomId": "hall",
+        "edge": 1,
+        "type": "door",
+        "centreM": 6.2,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EFEAE0",
+      "floorColor": "#B48D5C",
+      "tile": {
+        "wM": 0.9,
+        "lM": 0.9
+      },
+      "groutColor": "#A47F52",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 11,
+    "z": 6.2,
+    "yawDeg": 270
+  },
+  "spaceKind": "hall",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

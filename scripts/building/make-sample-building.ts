@@ -17,6 +17,7 @@ import type { FlatDesign } from './flats';
 import { composeTypicalFloor, mirrorId } from './plate';
 import type { Plate } from './plate';
 import { LIFT_CAR, UPDATED_AT, clubhouseScenes, corridorScene, groundLobbyScene } from './spaces';
+import { bareCopy, furnishScene } from './furnish-spaces';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -75,12 +76,18 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
   add(corridorScene_, { property: corridor.property });
   // the ground lobby
   const lobbyScene = empty ? 'test-tower-empty-lobby' : 'test-tower-lobby';
-  const lobby = groundLobbyScene(lobbyScene, !empty);
-  add(lobbyScene, { property: lobby.property });
-  // the clubhouse level: foyer, hall and gym are bare in both; the pool area and the garden are finished in the sample and bare in the empty tower
+  const lobby = groundLobbyScene(lobbyScene, false);
+  // stage 2: the full tower's lobby is furnished from the shared-space catalogue ON the building's marked positions (furnish-spaces.ts)
+  add(lobbyScene, { property: empty ? lobby.property : furnishScene(lobby.property, 'lobby', 'entrance-lobby', { anchors: lobby.anchors }) });
+  // the clubhouse level
   const ids = { foyer: 'test-tower-club-foyer', hall: 'test-tower-club-hall', gym: 'test-tower-club-gym', pool: 'test-tower-club-pool', garden: 'test-tower-club-garden', poolBare: 'test-tower-empty-club-pool', gardenBare: 'test-tower-empty-club-garden' };
   const club = clubhouseScenes(ids);
-  for (const k of ['foyer', 'hall', 'gym'] as const) add(ids[k], { property: club[k] });
+  add(ids.foyer, { property: club.foyer });
+  // stage 2: the full tower's hall and gym are furnished in their own bounds, the empty twin keeps bare copies under their own ids (furnish-spaces.ts)
+  const roomScene = { hall: empty ? 'test-tower-empty-club-hall' : ids.hall, gym: empty ? 'test-tower-empty-club-gym' : ids.gym };
+  if (empty) { add(roomScene.hall, { property: bareCopy(club.hall, roomScene.hall) }); add(roomScene.gym, { property: bareCopy(club.gym, roomScene.gym) }); }
+  else { scenes.set(ids.hall, { property: furnishScene(club.hall, 'hall', 'hall') }); scenes.set(ids.gym, { property: furnishScene(club.gym, 'gym', 'gym') }); }
+  // stage 3: the pool area and the garden are open-air spaces, finished in the sample and bare in the empty tower (SPEC 19.8)
   const poolScene = empty ? ids.poolBare : ids.pool, gardenScene = empty ? ids.gardenBare : ids.garden;
   add(poolScene, { property: empty ? club.poolBare : club.pool, outdoor: empty ? club.outdoor.poolBare : club.outdoor.pool });
   add(gardenScene, { property: empty ? club.gardenBare : club.garden, outdoor: empty ? club.outdoor.gardenBare : club.outdoor.garden });
@@ -93,7 +100,7 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     spaces: [{
       id: 'lobby', kind: 'lobby', name: 'Entrance lobby', sceneId: lobbyScene, placement: { x: 0, z: 0, rotDeg: 0 },
       lobbyAnchors: lobby.anchors,
-      notes: empty ? ['Unfurnished. The reception, security, seating and letterbox positions are marked in lobbyAnchors.'] : ['Seating from the catalogue. The reception desk, security desk and letterbox wall are marked positions (lobbyAnchors), left empty for the pieces that come in the next stage.'],
+      notes: empty ? ['Unfurnished. The reception, security, seating and letterbox positions are marked in lobbyAnchors.'] : ['Reception desk, security desk, visitor seating and letterbox banks from the catalogue, on the marked positions (lobbyAnchors).'],
       portals: [
         { id: 'street', kind: 'outside', opening: lobby.street, label: 'The street', prompt: 'To the street', look: 'glass' },
         lift('lift-a', lobby.liftA), lift('lift-b', lobby.liftB), stairs(lobby.stairs),
@@ -115,8 +122,8 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
           { id: 'garden', kind: 'door', opening: club.doors.garden, to: { space: 'garden', portal: 'foyer' }, label: 'Garden', prompt: 'Enter the garden', look: 'plain' },
         ],
       },
-      amenity('hall', ids.hall, 'hall', 'Community hall', 'clubhouse', 'hall', ['Empty hall, about 12 × 8.4 m.']),
-      amenity('gym', ids.gym, 'gym', 'Gym', 'clubhouse', 'gym', ['Empty room, about 8 × 12 m. A mirror wall on the long west side comes in the next stage.']),
+      amenity('hall', roomScene.hall, 'hall', 'Community hall', 'clubhouse', 'hall', empty ? ['Empty hall, about 12 × 8.4 m.'] : ['Hall of about 12 × 8.4 m with a stage, a podium, a screen, 60 chairs and tables (sample layout).']),
+      amenity('gym', roomScene.gym, 'gym', 'Gym', 'clubhouse', 'gym', empty ? ['Empty room, about 8 × 12 m.'] : ['Gym of about 8 × 12 m with a mirror wall, cardio, strength and free-weight equipment (sample layout).']),
       { ...amenity('pool', poolScene, 'pool', 'Pool area', 'clubhouse', 'pool', empty
         ? ['The pool area, bare: the deck, an 11 × 4.5 m pool and a children\'s pool, a covered verandah left out. Nothing placed or planted.']
         : ['Open air, about 20 × 14 m: an 11 × 4.5 m pool (1.2 to 1.7 m deep) with steps, a children\'s pool, a covered verandah, loungers, parasols and planting. Water, sky and sun are drawn; the surroundings beyond the walls are not.']), outdoor: true },

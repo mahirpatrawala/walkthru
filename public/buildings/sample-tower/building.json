@@ -82,14 +82,14 @@
               "role": "reception",
               "at": {
                 "x": 6,
-                "z": 0.95
+                "z": 1.2
               },
               "yawDeg": 0,
               "footprint": {
                 "w": 3.2,
-                "d": 0.7
+                "d": 0.8
               },
-              "note": "Along the north wall, facing the street door, clear of the clubhouse door and the opening to the lifts."
+              "note": "Along the north wall, facing the street door, clear of the clubhouse door and the opening to the lifts. 0.8 m of floor behind it for the staff."
             },
             {
               "id": "security",
@@ -101,7 +101,7 @@
               "yawDeg": 270,
               "footprint": {
                 "w": 1.6,
-                "d": 0.6
+                "d": 0.75
               },
               "note": "By the street door on the lift side, facing across the lobby."
             },
@@ -109,15 +109,15 @@
               "id": "seating",
               "role": "seating",
               "at": {
-                "x": 2.2,
-                "z": 4.3
+                "x": 1.35,
+                "z": 4.6
               },
               "yawDeg": 90,
               "footprint": {
-                "w": 3.8,
+                "w": 2.8,
                 "d": 2.6
               },
-              "note": "The waiting corner in the south-west. The sample puts two sofas, an armchair and a side table here; they can be replaced."
+              "note": "The waiting corner in the south-west, against the west wall. The sample puts a visitor seating set here (a 3-seater, two armchairs and a table); it can be replaced."
             },
             {
               "id": "letterboxes",
@@ -135,7 +135,7 @@
             }
           ],
           "notes": [
-            "Seating from the catalogue. The reception desk, security desk and letterbox wall are marked positions (lobbyAnchors), left empty for the pieces that come in the next stage."
+            "Reception desk, security desk, visitor seating and letterbox banks from the catalogue, on the marked positions (lobbyAnchors)."
           ],
           "portals": [
             {
@@ -289,7 +289,7 @@
             "rotDeg": 0
           },
           "notes": [
-            "Empty hall, about 12 × 8.4 m."
+            "Hall of about 12 × 8.4 m with a stage, a podium, a screen, 60 chairs and tables (sample layout)."
           ],
           "portals": [
             {
@@ -317,7 +317,7 @@
             "rotDeg": 0
           },
           "notes": [
-            "Empty room, about 8 × 12 m. A mirror wall on the long west side comes in the next stage."
+            "Gym of about 8 × 12 m with a mirror wall, cardio, strength and free-weight equipment (sample layout)."
           ],
           "portals": [
             {

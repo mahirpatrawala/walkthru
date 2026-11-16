@@ -94,9 +94,9 @@ export interface LobbyOut { property: PropertyFile; street: string; clubhouse: s
 
 /** The positions the ground lobby leaves marked and empty for a later stage's pieces: where its reception desk, security desk, seating and letterbox wall go. */
 export const LOBBY_ANCHORS: LobbyAnchor[] = [
-  { id: 'reception', role: 'reception', at: { x: 6.0, z: 0.95 }, yawDeg: 0, footprint: { w: 3.2, d: 0.7 }, note: 'Along the north wall, facing the street door, clear of the clubhouse door and the opening to the lifts.' },
-  { id: 'security', role: 'security', at: { x: 7.7, z: 5.9 }, yawDeg: 270, footprint: { w: 1.6, d: 0.6 }, note: 'By the street door on the lift side, facing across the lobby.' },
-  { id: 'seating', role: 'seating', at: { x: 2.2, z: 4.3 }, yawDeg: 90, footprint: { w: 3.8, d: 2.6 }, note: 'The waiting corner in the south-west. The sample puts two sofas, an armchair and a side table here; they can be replaced.' },
+  { id: 'reception', role: 'reception', at: { x: 6.0, z: 1.2 }, yawDeg: 0, footprint: { w: 3.2, d: 0.8 }, note: 'Along the north wall, facing the street door, clear of the clubhouse door and the opening to the lifts. 0.8 m of floor behind it for the staff.' },
+  { id: 'security', role: 'security', at: { x: 7.7, z: 5.9 }, yawDeg: 270, footprint: { w: 1.6, d: 0.75 }, note: 'By the street door on the lift side, facing across the lobby.' },
+  { id: 'seating', role: 'seating', at: { x: 1.35, z: 4.6 }, yawDeg: 90, footprint: { w: 2.8, d: 2.6 }, note: 'The waiting corner in the south-west, against the west wall. The sample puts a visitor seating set here (a 3-seater, two armchairs and a table); it can be replaced.' },
   { id: 'letterboxes', role: 'letterboxes', at: { x: 0.2, z: 1.9 }, yawDeg: 90, footprint: { w: 2.4, d: 0.3 }, note: 'The letterbox wall: the west wall north of the seating, a bank of boxes about 2.4 m long.' },
 ];
 

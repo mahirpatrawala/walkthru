@@ -1,5 +1,5 @@
 // Placement check and wall snap (SPEC 4.5). Pure.
-import { GRID_VOID } from '../types';
+import { GRID_VOID, GRID_WALL_CM } from '../types';
 import type { AccessRule, Box, CatalogItem, Grid, PlacementResult, RoomType, Side, Tone } from '../types';
 import { evaluatePiece } from './clearance';
 import { pieceRule } from './pieces';
@@ -19,7 +19,7 @@ const THREE_RAYS = [-0.8, 0, 0.8];
 type Overlap = 'none' | 'outside' | 'collides';
 
 /** 4.5 step 2: cells whose centre lies inside the box shrunk by 0.03 m. Void (or beyond the grid) beats obstacle. */
-function overlap(grid: Grid, box: Box, floorCm = 0): Overlap {
+function overlap(grid: Grid, box: Box, floorCm = 0, flat = false): Overlap {
   const c = grid.cellM;
   const corners = boxCorners(box);
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -40,7 +40,8 @@ function overlap(grid: Grid, box: Box, floorCm = 0): Overlap {
       const v = grid.cells[j * grid.nx + i];
       if (v === GRID_VOID) return 'outside';
       // a wall-hung piece (a basin, a geyser) clears whatever stands lower than its underside
-      if (v !== 0 && !(floorCm > 0 && v < floorCm)) hit = 'collides';
+      // a flat piece (a mat, rubber flooring) lies under a machine or a bench: only a wall stops it
+      if (v !== 0 && !(floorCm > 0 && v < floorCm) && !(flat && v < GRID_WALL_CM)) hit = 'collides';
     }
   }
   return hit;
@@ -90,7 +91,7 @@ export function checkPlacement(grid: Grid, spec: CatalogItem, box: Box, ceilingM
   if (spec.heightM > ceilingM - 0.02 && !rule?.fullHeight) {
     verdict = 'blocked'; reason = 'too-tall';
   } else {
-    const o = overlap(grid, box, rule?.mountY ? Math.round(rule.mountY * 100) : 0);
+    const o = overlap(grid, box, rule?.mountY ? Math.round(rule.mountY * 100) : 0, spec.heightM < 0.06);
     if (o === 'outside') { verdict = 'blocked'; reason = 'outside'; }
     else if (o === 'collides') { verdict = 'blocked'; reason = 'collides'; }
     else if (spec.access.every((r) => accessHolds(r, clearanceM))) { verdict = 'fits'; reason = 'ok'; }

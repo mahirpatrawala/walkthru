@@ -2,7 +2,7 @@
 // counter, plus the plain "See dimensions" card for dining tables and wardrobes. The poses run in the 'pose' mode.
 import { checkFor } from '../core/checks';
 import { circleFree, nearestFree } from '../core/grid-query';
-import { liePose, seatPose, standPose } from '../core/poses';
+import { liePose, seatPose, standPose, treadmillPose } from '../core/poses';
 import { CHARACTER_RADIUS_M } from '../types';
 import type { FurnitureItem, Vec2 } from '../types';
 import type { BuyerContext, BuyerMode } from './context';
@@ -13,6 +13,8 @@ import { toneColor } from './overlays';
 import { actionFor as kindAction, nearestInteractable } from './store';
 import { pieceAction, pieceSeatPose } from './piece-actions';
 import { createSwingMotion } from './swing-motion';
+import { createMachineMotion } from './machine-motion';
+import type { MachineMotion } from '../look/gen/cardio';
 import { pieceRule } from '../core/pieces';
 import type { PoseAction } from './store';
 
@@ -76,6 +78,8 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
   const seats = extras.seats;
   // a swing rocks under a seated walker (src/buyer/swing-motion.ts)
   const swing = createSwingMotion({ ridePose: (o) => ctx.character.ride(o), meshOf: (id) => ctx.furniture.mesh(id) });
+  // a walker on a treadmill runs its belt (src/buyer/machine-motion.ts)
+  const machine = createMachineMotion({ meshOf: (id) => ctx.furniture.mesh(id) });
   const cardOf = (item: FurnitureItem, H: number) => {
     let card = seats?.card(item, H) ?? checkFor(item, H, ctx.property.layout.wallHeightM);
     const edited = extras.editNote?.(item) ?? null;
@@ -147,6 +151,12 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
         if (clear) { heading = b.yawDeg + 180 + delta; break; }
       }
       ctx.camera.focusOn({ x: b.cx, y: 0.7, z: b.cz }, dist, 20, heading);
+    } else if (a.action === 'walk') {
+      // three-quarters from behind: the walker faces the console at the back of the machine
+      ctx.camera.focusOn({ x: b.cx, y: 1.0, z: b.cz }, 2.8, 14, b.yawDeg + 180 + 32);
+    } else if (a.action === 'sit' && pieceRule(a.item.catalogId)?.seat?.face === -1) {
+      // a bike or a rower is ridden facing the back: from the side, a little behind
+      ctx.camera.focusOn({ x: b.cx, y: 0.9, z: b.cz }, 2.6, 14, b.yawDeg + 180 + 70);
     } else if (a.action === 'sit') {
       // from the front: the sofa's front (+a) is where the camera goes, so it looks back along -a
       ctx.camera.focusOn({ x: b.cx, y: 0.7, z: b.cz }, 2.4, 20, b.yawDeg + 180);
@@ -158,6 +168,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     const c = ctx.character;
     if (a.action === 'lie') await c.lie(liePose(item, H, a.approach));
     else if (a.action === 'sit') await c.sit(seats?.pose(item, H) ?? pieceSeatPose(item, H, a.approach) ?? seatPose(item, H, a.approach));
+    else if (a.action === 'walk') await c.walkOn(treadmillPose(item.box, item.surfaceHeightM), (ctx.furniture.mesh(item.id)?.userData.motion as MachineMotion | undefined)?.speedMps ?? 1.0);
     else await c.standAt(standPose(item, H, a.approach));
   }
 
@@ -192,6 +203,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     const a = active;
     if (!a) return;
     swing.stop();
+    machine.stop();
     active = null;
     gen++;
     ctx.camera.releaseFocus();
@@ -256,6 +268,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
     mode,
     update(dt) {
       swing.update(dt, active && active.ready && pieceRule(active.item.catalogId)?.pose === 'swing' ? active.item : null);
+      machine.update(dt, active && active.ready && active.action === 'walk' ? active.item : null);
       promptClock += dt;
       if (promptClock < 0.08) return;
       promptClock = 0;
@@ -280,6 +293,7 @@ export function createInteractions(ctx: BuyerContext, extras: InteractionExtras 
       const a = active;
       hideDims();
       swing.stop();
+      machine.stop();
       if (a) {
         active = null;
         gen++;

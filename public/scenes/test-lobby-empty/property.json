@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "test-lobby-empty",
+  "title": "Test lobby, empty",
+  "subtitle": "Test scene. Made-up room, not a real space.",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "lobby",
+        "roomType": "other",
+        "label": "Entrance lobby",
+        "polygon": [
+          {
+            "x": 0,
+            "z": 0
+          },
+          {
+            "x": 7,
+            "z": 0
+          },
+          {
+            "x": 7,
+            "z": 9
+          },
+          {
+            "x": 0,
+            "z": 9
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ],
+        "floorColor": "#CBC3B6",
+        "wallColor": "#EDE6DA"
+      }
+    ],
+    "openings": [
+      {
+        "id": "lobby-door",
+        "roomId": "lobby",
+        "edge": 2,
+        "type": "door",
+        "centreM": 3.5,
+        "widthM": 1.6,
+        "sillM": 0,
+        "headM": 2.1
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EDE6DA",
+      "floorColor": "#CBC3B6",
+      "tile": {
+        "wM": 0.8,
+        "lM": 0.8
+      },
+      "groutColor": "#B4AB9C",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 3.5,
+    "z": 8.2,
+    "yawDeg": 180
+  },
+  "spaceKind": "lobby",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

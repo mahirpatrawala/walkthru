@@ -24,7 +24,10 @@ export const contextOf = (buildingId: string, s: Space): SpaceContext => ({ buil
 export type CatalogueFilter = (spaceKind: SpaceKind, item: { id: string; kind: FurnitureKind }) => boolean;
 let filter: CatalogueFilter = () => true;
 /** Installs the rule for which pieces a kind of space allows (a gym takes equipment, not beds). The default allows every piece anywhere. */
-export const setCatalogueFilter = (f: CatalogueFilter | null): void => { filter = f ?? (() => true); };
+let installed = false;
+export const setCatalogueFilter = (f: CatalogueFilter | null): void => { filter = f ?? (() => true); installed = f !== null; };
+/** debug: is a rule installed (it is while a space of a building is up, and gone when it is torn down) */
+export const catalogueFilterInstalled = (): boolean => installed;
 /** Is this catalogue piece allowed where the walker is? Outside a building every piece is. */
 export function catalogueAllowedIn(item: { id: string; kind: FurnitureKind }, kind: SpaceKind | null = current?.kind ?? null): boolean {
   return kind === null ? true : filter(kind, item);

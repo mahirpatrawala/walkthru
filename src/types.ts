@@ -242,7 +242,7 @@ export interface ZoneReading {
 // ---------- poses ----------
 export interface LiePose { feet: Vec2; yawDeg: number; surfaceY: number }
 export interface SeatPose { root: Vec2; rootY: number; yawDeg: number }
-export interface StandPose { root: Vec2; yawDeg: number }
+export interface StandPose { root: Vec2; yawDeg: number; /** the floor the walker stands on, when it is not the room's (a treadmill's belt) */ rootY?: number }
 
 // ---------- character constants ----------
 export const CHARACTER_URL = '/characters/mannequin.glb';

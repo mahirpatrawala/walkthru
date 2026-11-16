@@ -126,9 +126,10 @@ export const SHARE_PARAM = 'my';
 const VERSION = 2;
 /** fittings a person may sit on: the drawing's chairs (`seat:`) and fixed fittings (`fx-`) */
 const SEAT_HOST_RE = /^(seat:|fx-)/;
-const MAX_ADDED = 60;
+/** a hall's seating is a piece per chair (SPEC 16.17): a block of 72 seats and the pieces round it fit in a link */
+const MAX_ADDED = 220;
 const MAX_MOVED = 60;
-const MAX_CODE_CHARS = 8000;
+const MAX_CODE_CHARS = 12000;
 
 interface Wire {
   /** removed original ids */ r?: string[];

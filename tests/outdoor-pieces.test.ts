@@ -3,7 +3,10 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { CATALOG, itemFromCatalog } from '../src/core/catalog';
-import { OUTDOOR_PIECES } from '../src/core/catalog-outdoor';
+import { GARDEN_PIECES } from '../src/core/catalog-garden';
+import { POOL_PIECES } from '../src/core/catalog-pool';
+
+const OUTDOOR_PIECES = [...POOL_PIECES, ...GARDEN_PIECES];
 import { PIECE_RULES, pieceRule } from '../src/core/pieces';
 import { checkPlacement } from '../src/core/placement';
 import { createGrid } from '../src/core/grid-codec';

@@ -1,0 +1,287 @@
+{
+  "version": 1,
+  "id": "test-lobby-sample",
+  "title": "Test lobby, furnished",
+  "subtitle": "Made-up sample layout for demonstration.",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "lobby",
+        "roomType": "other",
+        "label": "Entrance lobby",
+        "polygon": [
+          {
+            "x": 0,
+            "z": 0
+          },
+          {
+            "x": 7,
+            "z": 0
+          },
+          {
+            "x": 7,
+            "z": 9
+          },
+          {
+            "x": 0,
+            "z": 9
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ],
+        "floorColor": "#CBC3B6",
+        "wallColor": "#EDE6DA"
+      }
+    ],
+    "openings": [
+      {
+        "id": "lobby-door",
+        "roomId": "lobby",
+        "edge": 2,
+        "type": "door",
+        "centreM": 3.5,
+        "widthM": 1.6,
+        "sillM": 0,
+        "headM": 2.1
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EDE6DA",
+      "floorColor": "#CBC3B6",
+      "tile": {
+        "wM": 0.8,
+        "lM": 0.8
+      },
+      "groutColor": "#B4AB9C",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [
+    {
+      "id": "lobby-1-lobby-desk",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-desk",
+      "label": "Reception desk, straight",
+      "box": {
+        "cx": 3.5,
+        "cz": 1.7,
+        "w": 2.4,
+        "d": 0.8,
+        "yawDeg": 0
+      },
+      "heightM": 1.15,
+      "surfaceHeightM": 1.05
+    },
+    {
+      "id": "lobby-2-lobby-security-desk",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-security-desk",
+      "label": "Security desk",
+      "box": {
+        "cx": 1.4,
+        "cz": 0.405,
+        "w": 1.6,
+        "d": 0.75,
+        "yawDeg": 0
+      },
+      "heightM": 1.45,
+      "surfaceHeightM": 0.76
+    },
+    {
+      "id": "lobby-3-lobby-art-panel",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-art-panel",
+      "label": "Wall art panel, 180 × 100",
+      "box": {
+        "cx": 0.03,
+        "cz": 2.4,
+        "w": 1.8,
+        "d": 0.04,
+        "yawDeg": 90
+      },
+      "heightM": 2.2,
+      "surfaceHeightM": 2.2
+    },
+    {
+      "id": "lobby-4-lobby-letterboxes",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-letterboxes",
+      "label": "Letterbox bank, 30 boxes",
+      "box": {
+        "cx": 6.895,
+        "cz": 3.6,
+        "w": 1.2,
+        "d": 0.15,
+        "yawDeg": 270
+      },
+      "heightM": 2,
+      "surfaceHeightM": 2
+    },
+    {
+      "id": "lobby-5-lobby-directory",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-directory",
+      "label": "Name directory board",
+      "box": {
+        "cx": 6.945,
+        "cz": 5.2,
+        "w": 0.9,
+        "d": 0.05,
+        "yawDeg": 270
+      },
+      "heightM": 2.1,
+      "surfaceHeightM": 2.1
+    },
+    {
+      "id": "lobby-6-lobby-notice-board",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-notice-board",
+      "label": "Notice board, 120 × 90",
+      "box": {
+        "cx": 6.95,
+        "cz": 7,
+        "w": 1.2,
+        "d": 0.04,
+        "yawDeg": 270
+      },
+      "heightM": 2,
+      "surfaceHeightM": 2
+    },
+    {
+      "id": "lobby-7-lobby-planter-large",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-planter-large",
+      "label": "Planter, large round",
+      "box": {
+        "cx": 6.45,
+        "cz": 0.6,
+        "w": 0.8,
+        "d": 0.8,
+        "yawDeg": 0
+      },
+      "heightM": 1.5,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "lobby-8-lobby-planter-large",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-planter-large",
+      "label": "Planter, large round",
+      "box": {
+        "cx": 0.55,
+        "cz": 8.4,
+        "w": 0.8,
+        "d": 0.8,
+        "yawDeg": 0
+      },
+      "heightM": 1.5,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "lobby-9-lobby-planter-trough",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-planter-trough",
+      "label": "Planter, long trough",
+      "box": {
+        "cx": 5.6,
+        "cz": 8.7,
+        "w": 1.5,
+        "d": 0.45,
+        "yawDeg": 180
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.45
+    },
+    {
+      "id": "lobby-10-sofa-3",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "sofa-3",
+      "label": "3-seat sofa",
+      "box": {
+        "cx": 0.48,
+        "cz": 4.7,
+        "w": 2.1,
+        "d": 0.9,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "lobby-11-armchair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "armchair",
+      "label": "Armchair",
+      "box": {
+        "cx": 2.25,
+        "cz": 3.6,
+        "w": 0.8,
+        "d": 0.85,
+        "yawDeg": 180
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "lobby-12-side-table",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "side-table",
+      "label": "Side table",
+      "box": {
+        "cx": 0.5,
+        "cz": 2.8,
+        "w": 0.45,
+        "d": 0.45,
+        "yawDeg": 0
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "lobby-13-lobby-bench",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-bench",
+      "label": "Lift-lobby bench",
+      "box": {
+        "cx": 0.255,
+        "cz": 7,
+        "w": 1.5,
+        "d": 0.45,
+        "yawDeg": 90
+      },
+      "heightM": 0.45,
+      "surfaceHeightM": 0.45
+    }
+  ],
+  "spawn": {
+    "x": 3.5,
+    "z": 8.2,
+    "yawDeg": 180
+  },
+  "spaceKind": "lobby",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

@@ -33,7 +33,7 @@ describe('prompts and poses', () => {
     for (const c of CATALOG.slice(14)) {
       const a = pieceAction({ catalogId: c.id })!;
       expect(a, c.id).not.toBeNull();
-      expect(['lie', 'sit', 'stand', 'dims']).toContain(a.action);
+      expect(['lie', 'sit', 'stand', 'dims', 'walk']).toContain(a.action);
       expect(a.prompt.length).toBeGreaterThan(3);
     }
     expect(pieceAction({ catalogId: 'swing-2' })).toEqual({ action: 'sit', prompt: 'Sit on the swing', upPrompt: 'Get up' });
@@ -113,12 +113,13 @@ describe('cards', () => {
 
 describe('the tray: category selector and search', () => {
   it('every category has pieces, the counts add up, and the order is the catalogue\'s', () => {
-    const counts = categoryCounts();
+    // a space of kind `other` offers everything (SPEC 16.17: a home offers its own pieces only, tested in tests/places.test.ts)
+    const counts = categoryCounts(CATALOG, 'other');
     expect(counts.all).toBe(CATALOG.length);
     let sum = 0;
     for (const c of CATEGORIES) { expect(counts[c.id], c.id).toBeGreaterThan(0); sum += counts[c.id]; }
     expect(sum).toBe(CATALOG.length);
-    expect(filterCatalog('all', '').map((c) => c.id)).toEqual(CATALOG.map((c) => c.id));
+    expect(filterCatalog('all', '', CATALOG, 'other').map((c) => c.id)).toEqual(CATALOG.map((c) => c.id));
   });
   it('a category narrows to its pieces', () => {
     expect(filterCatalog('swing', '').map((c) => c.id)).toEqual(['swing-2', 'swing-3', 'swing-2-frame', 'swing-3-frame', 'hang-chair', 'hang-chair-stand']);
