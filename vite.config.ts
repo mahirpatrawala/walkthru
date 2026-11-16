@@ -94,6 +94,16 @@ function walkthruDevApi(): Plugin {
 }
 
 /**
+ * Link previews (Open Graph, Twitter) want the picture's full address. On Vercel the build knows the site's production host
+ * (VERCEL_PROJECT_PRODUCTION_URL); `SITE_ORIGIN` overrides it. Anywhere else the token is dropped and the address stays relative.
+ */
+function walkthruSiteOrigin(): Plugin {
+  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const origin = (process.env.SITE_ORIGIN ?? (host ? `https://${host}` : '')).replace(/\/+$/, '');
+  return { name: 'walkthru-site-origin', transformIndexHtml: (html) => html.replaceAll('__SITE_ORIGIN__', origin) };
+}
+
+/**
  * The start page's list of homes (public/scenes/index.json). Dev: answered fresh from the folders on every request, so a new
  * scene folder shows up without a restart. Build: written into public/scenes before the public folder is copied, so a plain
  * `vite build` has it too (`npm run make:room` writes the same file).
@@ -133,7 +143,7 @@ function browserShims(): Plugin {
 
 export default defineConfig({
   // media API first: the scene API answers 404 for /api/scenes/... routes it does not know
-  plugins: [walkthruSceneIndex(), walkthruMediaApi(), walkthruUnderstandApi(), walkthruPhotoApi(), walkthruDevApi()],
+  plugins: [walkthruSiteOrigin(), walkthruSceneIndex(), walkthruMediaApi(), walkthruUnderstandApi(), walkthruPhotoApi(), walkthruDevApi()],
   // the plan reader runs in a module Web Worker that loads pdf.js lazily (src/upload/reader.worker.ts); es format allows its code splitting
   worker: { format: 'es', plugins: () => [browserShims()] },
   build: {
