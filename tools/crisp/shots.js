@@ -9,7 +9,7 @@ await ev('window.__walkthru.start()');
 await ev('window.__walkthru.look.ready');
 await ev('window.__walkthru.models.idle()');
 await sleep(2000);
-await ev("(() => { const g = window.__walkthru.ctx.viewer.scene.getObjectByName('debug-grid'); if (g) g.visible = false; })()");
+await ev("(() => { const g = window.__walkthru.ctx.viewer.scene.getObjectByName('debug-grid'); if (g) { g.visible = false; g.removeFromParent(); } })()");
 if (!process.env.HUD) await ev("document.querySelectorAll('body > *:not(#app)').forEach((e) => { e.style.display = 'none'; })");
 const doorInfo = async (id) => JSON.parse(await ev(`(()=>{const d=window.__walkthruDoors.door(${JSON.stringify(id)}); return JSON.stringify({a:d.edgeA,dir:d.dir,out:d.out,u0:d.u0,u1:d.u1})})()`));
 const doorView = async (id, dist = 1.0) => {
@@ -37,10 +37,12 @@ if (set === 'flat') {
   views.corner = lookAt([2.4, 1.6, 7.0], [0.08, 2.3, 5.18]);
   views.toilet = lookAt([7.4, 1.6, 5.55], [7.4, 0.8, 3.9]);
   // the first-impression set (SPEC 16.18): six views a buyer sees in their first minute
-  views.entry = lookAt([1.3, 1.6, 5.7], [2.4, 1.3, 9.6]);
-  views.deck = lookAt([2.0, 1.6, 6.6], [1.9, 1.3, 10.7]);
-  views.master = lookAt([8.6, 1.6, 6.2], [11.0, 1.1, 4.2]);
-  views.kitchen = lookAt([4.4, 1.6, 4.5], [5.8, 1.0, 2.2]);
+  // third person: the walker stands 1.2 m ahead of the first-person eye, so the follow camera sits about where the eye was
+  const ahead = (v) => { const r = v.yaw * Math.PI / 180; v.at = { x: v.eye[0] + Math.sin(r) * 1.2, z: v.eye[2] + Math.cos(r) * 1.2 }; return v; };
+  views.entry = ahead(lookAt([1.3, 1.6, 5.7], [2.4, 1.3, 9.6]));
+  views.deck = ahead(lookAt([2.0, 1.6, 6.6], [1.9, 1.3, 10.7]));
+  views.master = ahead(lookAt([8.6, 1.6, 6.2], [11.0, 1.1, 4.2]));
+  views.kitchen = ahead(lookAt([4.4, 1.6, 4.5], [5.8, 1.0, 2.2]));
   // the zoom test (30 cm from the surface): a floor with joints, a wall with its skirting, a door's edge with its frame
   views.zoomfloor = lookAt([1.4, 0.32, 7.5], [1.55, 0.0, 7.6]);
   views.zoomfloor2 = lookAt([7.3, 0.34, 7.85], [7.55, 0.0, 8.0]);
@@ -77,7 +79,7 @@ for (const v of want) {
     // the page itself hides or shows the body in its own tick (camera.fade); nothing is forced here
   }
   await sleep(waitMs);
-  await ev("(() => { const g = window.__walkthru.ctx.viewer.scene.getObjectByName('debug-grid'); if (g) g.visible = false; })()");
+  await ev("(() => { const g = window.__walkthru.ctx.viewer.scene.getObjectByName('debug-grid'); if (g) { g.visible = false; g.removeFromParent(); } })()");
   await ev('window.__walkthru.look.instance.debug.renderNow()');
   await shot(`${name}-${v}`);
   out.push(v);
