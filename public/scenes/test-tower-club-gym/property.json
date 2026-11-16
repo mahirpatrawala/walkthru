@@ -1,8 +1,8 @@
 {
   "version": 1,
   "id": "test-tower-club-gym",
-  "title": "Gym",
-  "subtitle": "Sample building · made-up layout for demonstration",
+  "title": "Gymnasium",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
   "layout": {
     "wallHeightM": 3.6,
     "wallThicknessM": 0.12,
@@ -10,24 +10,24 @@
     "rooms": [
       {
         "id": "gym",
+        "label": "Gymnasium",
         "roomType": "other",
-        "label": "Gym",
         "polygon": [
           {
-            "x": 2,
-            "z": -12.3
+            "x": 29.52,
+            "z": 39.64
           },
           {
-            "x": 10,
-            "z": -12.3
+            "x": 45.44,
+            "z": 39.64
           },
           {
-            "x": 10,
-            "z": -0.3
+            "x": 45.44,
+            "z": 49.1
           },
           {
-            "x": 2,
-            "z": -0.3
+            "x": 29.52,
+            "z": 49.1
           }
         ],
         "edges": [
@@ -42,9 +42,9 @@
       {
         "id": "door-foyer",
         "roomId": "gym",
-        "edge": 2,
+        "edge": 0,
         "type": "door",
-        "centreM": 4,
+        "centreM": 5.92,
         "widthM": 1.2,
         "sillM": 0,
         "headM": 2.1,
@@ -53,26 +53,6 @@
           "swing": "in",
           "kind": "hinged"
         }
-      },
-      {
-        "id": "window-e1",
-        "roomId": "gym",
-        "edge": 1,
-        "type": "window",
-        "centreM": 6.000000000000001,
-        "widthM": 2.4,
-        "sillM": 0.9,
-        "headM": 2.6
-      },
-      {
-        "id": "window-e2",
-        "roomId": "gym",
-        "edge": 1,
-        "type": "window",
-        "centreM": 1.8000000000000007,
-        "widthM": 2.4,
-        "sillM": 0.9,
-        "headM": 2.6
       }
     ],
     "finishes": {
@@ -81,7 +61,7 @@
       "tile": null,
       "groutColor": "#B9AE9F",
       "frameColor": "#4A3528",
-      "ceilingColor": "#FAFAF8",
+      "ceilingColor": "#F7F4EE",
       "railingColor": "#3A3A3C",
       "source": "default"
     },
@@ -89,206 +69,14 @@
   },
   "furniture": [
     {
-      "id": "gym-1-gym-mirror",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-mirror",
-      "label": "Mirror panel, 120 × 200",
-      "box": {
-        "cx": 2.015,
-        "cz": -11.7,
-        "w": 1.2,
-        "d": 0.03,
-        "yawDeg": 90
-      },
-      "heightM": 2.3,
-      "surfaceHeightM": 2.3
-    },
-    {
-      "id": "gym-2-gym-mirror",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-mirror",
-      "label": "Mirror panel, 120 × 200",
-      "box": {
-        "cx": 2.015,
-        "cz": -10.5,
-        "w": 1.2,
-        "d": 0.03,
-        "yawDeg": 90
-      },
-      "heightM": 2.3,
-      "surfaceHeightM": 2.3
-    },
-    {
-      "id": "gym-3-gym-mirror",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-mirror",
-      "label": "Mirror panel, 120 × 200",
-      "box": {
-        "cx": 2.015,
-        "cz": -9.3,
-        "w": 1.2,
-        "d": 0.03,
-        "yawDeg": 90
-      },
-      "heightM": 2.3,
-      "surfaceHeightM": 2.3
-    },
-    {
-      "id": "gym-4-gym-mirror",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-mirror",
-      "label": "Mirror panel, 120 × 200",
-      "box": {
-        "cx": 2.015,
-        "cz": -8.1,
-        "w": 1.2,
-        "d": 0.03,
-        "yawDeg": 90
-      },
-      "heightM": 2.3,
-      "surfaceHeightM": 2.3
-    },
-    {
-      "id": "gym-5-gym-mirror",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-mirror",
-      "label": "Mirror panel, 120 × 200",
-      "box": {
-        "cx": 2.015,
-        "cz": -6.9,
-        "w": 1.2,
-        "d": 0.03,
-        "yawDeg": 90
-      },
-      "heightM": 2.3,
-      "surfaceHeightM": 2.3
-    },
-    {
-      "id": "gym-6-gym-mirror",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-mirror",
-      "label": "Mirror panel, 120 × 200",
-      "box": {
-        "cx": 2.015,
-        "cz": -5.7,
-        "w": 1.2,
-        "d": 0.03,
-        "yawDeg": 90
-      },
-      "heightM": 2.3,
-      "surfaceHeightM": 2.3
-    },
-    {
-      "id": "gym-7-gym-mirror",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-mirror",
-      "label": "Mirror panel, 120 × 200",
-      "box": {
-        "cx": 2.015,
-        "cz": -4.5,
-        "w": 1.2,
-        "d": 0.03,
-        "yawDeg": 90
-      },
-      "heightM": 2.3,
-      "surfaceHeightM": 2.3
-    },
-    {
-      "id": "gym-8-gym-mirror",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-mirror",
-      "label": "Mirror panel, 120 × 200",
-      "box": {
-        "cx": 2.015,
-        "cz": -3.3,
-        "w": 1.2,
-        "d": 0.03,
-        "yawDeg": 90
-      },
-      "heightM": 2.3,
-      "surfaceHeightM": 2.3
-    },
-    {
-      "id": "gym-9-gym-mirror",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-mirror",
-      "label": "Mirror panel, 120 × 200",
-      "box": {
-        "cx": 2.015,
-        "cz": -2.1,
-        "w": 1.2,
-        "d": 0.03,
-        "yawDeg": 90
-      },
-      "heightM": 2.3,
-      "surfaceHeightM": 2.3
-    },
-    {
-      "id": "gym-10-gym-mirror",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-mirror",
-      "label": "Mirror panel, 120 × 200",
-      "box": {
-        "cx": 2.015,
-        "cz": -0.9,
-        "w": 1.2,
-        "d": 0.03,
-        "yawDeg": 90
-      },
-      "heightM": 2.3,
-      "surfaceHeightM": 2.3
-    },
-    {
-      "id": "gym-11-gym-floor-4x2",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-floor-4x2",
-      "label": "Rubber flooring, 4 × 2 m",
-      "box": {
-        "cx": 5,
-        "cz": -1.3,
-        "w": 4,
-        "d": 2,
-        "yawDeg": 0
-      },
-      "heightM": 0.015,
-      "surfaceHeightM": 0.015
-    },
-    {
-      "id": "gym-12-gym-floor-2x2",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-floor-2x2",
-      "label": "Rubber flooring, 2 × 2 m",
-      "box": {
-        "cx": 7.5,
-        "cz": -1.3,
-        "w": 2,
-        "d": 2,
-        "yawDeg": 0
-      },
-      "heightM": 0.015,
-      "surfaceHeightM": 0.015
-    },
-    {
-      "id": "gym-13-gym-treadmill",
+      "id": "gym-gym-treadmill-1",
       "source": "virtual",
       "kind": "counter",
       "catalogId": "gym-treadmill",
       "label": "Treadmill, commercial",
       "box": {
-        "cx": 3.11,
-        "cz": -8.65,
+        "cx": 30.58,
+        "cz": 40.73,
         "w": 0.9,
         "d": 2.1,
         "yawDeg": 90
@@ -297,14 +85,14 @@
       "surfaceHeightM": 0.22
     },
     {
-      "id": "gym-14-gym-treadmill",
+      "id": "gym-gym-treadmill-2",
       "source": "virtual",
       "kind": "counter",
       "catalogId": "gym-treadmill",
       "label": "Treadmill, commercial",
       "box": {
-        "cx": 3.11,
-        "cz": -7.21,
+        "cx": 30.58,
+        "cz": 42.18,
         "w": 0.9,
         "d": 2.1,
         "yawDeg": 90
@@ -313,14 +101,14 @@
       "surfaceHeightM": 0.22
     },
     {
-      "id": "gym-15-gym-treadmill",
+      "id": "gym-gym-treadmill-3",
       "source": "virtual",
       "kind": "counter",
       "catalogId": "gym-treadmill",
       "label": "Treadmill, commercial",
       "box": {
-        "cx": 3.11,
-        "cz": -5.77,
+        "cx": 30.58,
+        "cz": 43.63,
         "w": 0.9,
         "d": 2.1,
         "yawDeg": 90
@@ -329,94 +117,126 @@
       "surfaceHeightM": 0.22
     },
     {
-      "id": "gym-16-gym-cross",
+      "id": "gym-gym-treadmill-4",
       "source": "virtual",
       "kind": "counter",
-      "catalogId": "gym-cross",
-      "label": "Cross trainer (elliptical)",
+      "catalogId": "gym-treadmill",
+      "label": "Treadmill, commercial",
       "box": {
-        "cx": 2.955,
-        "cz": -4.405,
-        "w": 0.75,
-        "d": 1.85,
+        "cx": 30.58,
+        "cz": 45.08,
+        "w": 0.9,
+        "d": 2.1,
         "yawDeg": 90
-      },
-      "heightM": 1.7,
-      "surfaceHeightM": 0.2
-    },
-    {
-      "id": "gym-17-gym-upright-bike",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-upright-bike",
-      "label": "Upright bike",
-      "box": {
-        "cx": 2.655,
-        "cz": -3.19,
-        "w": 0.6,
-        "d": 1.25,
-        "yawDeg": 90
-      },
-      "heightM": 1.35,
-      "surfaceHeightM": 0.8
-    },
-    {
-      "id": "gym-18-gym-chest-press",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-chest-press",
-      "label": "Chest press",
-      "box": {
-        "cx": 9.295,
-        "cz": -11.355,
-        "w": 1.05,
-        "d": 1.35,
-        "yawDeg": 270
       },
       "heightM": 1.5,
-      "surfaceHeightM": 0.48
+      "surfaceHeightM": 0.22
     },
     {
-      "id": "gym-19-gym-shoulder-press",
+      "id": "gym-gym-treadmill-5",
       "source": "virtual",
       "kind": "counter",
-      "catalogId": "gym-shoulder-press",
-      "label": "Shoulder press",
+      "catalogId": "gym-treadmill",
+      "label": "Treadmill, commercial",
       "box": {
-        "cx": 9.32,
-        "cz": -9.865,
-        "w": 1.05,
-        "d": 1.3,
-        "yawDeg": 270
+        "cx": 30.58,
+        "cz": 46.53,
+        "w": 0.9,
+        "d": 2.1,
+        "yawDeg": 90
       },
-      "heightM": 1.65,
-      "surfaceHeightM": 0.48
+      "heightM": 1.5,
+      "surfaceHeightM": 0.22
     },
     {
-      "id": "gym-20-gym-pec-fly",
+      "id": "gym-gym-treadmill-6",
       "source": "virtual",
       "kind": "counter",
-      "catalogId": "gym-pec-fly",
-      "label": "Pec fly / rear delt",
+      "catalogId": "gym-treadmill",
+      "label": "Treadmill, commercial",
       "box": {
-        "cx": 9.42,
-        "cz": -8.3,
-        "w": 1.2,
-        "d": 1.1,
-        "yawDeg": 270
+        "cx": 30.58,
+        "cz": 47.98,
+        "w": 0.9,
+        "d": 2.1,
+        "yawDeg": 90
       },
-      "heightM": 1.55,
-      "surfaceHeightM": 0.48
+      "heightM": 1.5,
+      "surfaceHeightM": 0.22
     },
     {
-      "id": "gym-21-gym-lat-pulldown",
+      "id": "gym-gym-spin-bike-7",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-spin-bike",
+      "label": "Spin bike",
+      "box": {
+        "cx": 34.66,
+        "cz": 48.01,
+        "w": 0.52,
+        "d": 1.2,
+        "yawDeg": 180
+      },
+      "heightM": 1.15,
+      "surfaceHeightM": 0.95
+    },
+    {
+      "id": "gym-gym-spin-bike-8",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-spin-bike",
+      "label": "Spin bike",
+      "box": {
+        "cx": 36.09,
+        "cz": 48.01,
+        "w": 0.52,
+        "d": 1.2,
+        "yawDeg": 180
+      },
+      "heightM": 1.15,
+      "surfaceHeightM": 0.95
+    },
+    {
+      "id": "gym-gym-spin-bike-9",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-spin-bike",
+      "label": "Spin bike",
+      "box": {
+        "cx": 37.51,
+        "cz": 48.01,
+        "w": 0.52,
+        "d": 1.2,
+        "yawDeg": 180
+      },
+      "heightM": 1.15,
+      "surfaceHeightM": 0.95
+    },
+    {
+      "id": "gym-gym-spin-bike-10",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-spin-bike",
+      "label": "Spin bike",
+      "box": {
+        "cx": 38.94,
+        "cz": 48.01,
+        "w": 0.52,
+        "d": 1.2,
+        "yawDeg": 180
+      },
+      "heightM": 1.15,
+      "surfaceHeightM": 0.95
+    },
+    {
+      "id": "gym-gym-lat-pulldown-11",
       "source": "virtual",
       "kind": "counter",
       "catalogId": "gym-lat-pulldown",
       "label": "Lat pulldown",
       "box": {
-        "cx": 9.27,
-        "cz": -6.66,
+        "cx": 39.76,
+        "cz": 41.59,
         "w": 1.2,
         "d": 1.4,
         "yawDeg": 270
@@ -425,14 +245,14 @@
       "surfaceHeightM": 0.5
     },
     {
-      "id": "gym-22-gym-seated-row",
+      "id": "gym-gym-seated-row-12",
       "source": "virtual",
       "kind": "counter",
       "catalogId": "gym-seated-row",
       "label": "Seated row",
       "box": {
-        "cx": 9.22,
-        "cz": -5.17,
+        "cx": 39.76,
+        "cz": 43.34,
         "w": 0.9,
         "d": 1.5,
         "yawDeg": 270
@@ -441,94 +261,142 @@
       "surfaceHeightM": 0.45
     },
     {
-      "id": "gym-23-gym-leg-extension",
+      "id": "gym-gym-chest-press-13",
       "source": "virtual",
       "kind": "counter",
-      "catalogId": "gym-leg-extension",
-      "label": "Leg extension",
+      "catalogId": "gym-chest-press",
+      "label": "Chest press",
       "box": {
-        "cx": 9.345,
-        "cz": -3.88,
-        "w": 0.8,
-        "d": 1.25,
+        "cx": 39.76,
+        "cz": 44.74,
+        "w": 1.05,
+        "d": 1.35,
         "yawDeg": 270
       },
-      "heightM": 1.2,
+      "heightM": 1.5,
       "surfaceHeightM": 0.48
     },
     {
-      "id": "gym-24-gym-power-rack",
+      "id": "gym-gym-shoulder-press-14",
       "source": "virtual",
       "kind": "counter",
-      "catalogId": "gym-power-rack",
-      "label": "Power rack",
+      "catalogId": "gym-shoulder-press",
+      "label": "Shoulder press",
       "box": {
-        "cx": 4,
-        "cz": -1.13,
-        "w": 2.2,
-        "d": 1.6,
-        "yawDeg": 180
+        "cx": 39.76,
+        "cz": 46.38,
+        "w": 1.05,
+        "d": 1.3,
+        "yawDeg": 270
       },
-      "heightM": 2.3,
-      "surfaceHeightM": 1.3
+      "heightM": 1.65,
+      "surfaceHeightM": 0.48
     },
     {
-      "id": "gym-25-gym-bench-press",
+      "id": "gym-yoga-mat-15",
       "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-bench-press",
-      "label": "Olympic bench press",
+      "kind": "bed",
+      "catalogId": "yoga-mat",
+      "label": "Yoga mat",
       "box": {
-        "cx": 8.4,
-        "cz": -1.13,
-        "w": 2.2,
-        "d": 1.6,
+        "cx": 42.13,
+        "cz": 43.26,
+        "w": 0.61,
+        "d": 1.83,
         "yawDeg": 0
       },
-      "heightM": 1.35,
-      "surfaceHeightM": 0.43
+      "heightM": 0.005,
+      "surfaceHeightM": 0.005
     },
     {
-      "id": "gym-26-gym-wall-bars",
+      "id": "gym-yoga-mat-16",
       "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-wall-bars",
-      "label": "Wall bars (Swedish ladder)",
+      "kind": "bed",
+      "catalogId": "yoga-mat",
+      "label": "Yoga mat",
       "box": {
-        "cx": 3,
-        "cz": -12.21,
-        "w": 0.9,
-        "d": 0.12,
+        "cx": 43.11,
+        "cz": 43.26,
+        "w": 0.61,
+        "d": 1.83,
         "yawDeg": 0
       },
-      "heightM": 2.3,
-      "surfaceHeightM": 2.3
+      "heightM": 0.005,
+      "surfaceHeightM": 0.005
     },
     {
-      "id": "gym-27-gym-kettlebell-rack",
+      "id": "gym-yoga-mat-17",
       "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-kettlebell-rack",
-      "label": "Kettlebell rack, 8 bells",
+      "kind": "bed",
+      "catalogId": "yoga-mat",
+      "label": "Yoga mat",
       "box": {
-        "cx": 4.2,
-        "cz": -12.02,
-        "w": 1.2,
-        "d": 0.5,
+        "cx": 44.04,
+        "cz": 43.26,
+        "w": 0.61,
+        "d": 1.83,
         "yawDeg": 0
       },
-      "heightM": 0.89,
-      "surfaceHeightM": 0.64
+      "heightM": 0.005,
+      "surfaceHeightM": 0.005
     },
     {
-      "id": "gym-28-gym-dumbbell-rack",
+      "id": "gym-yoga-mat-18",
+      "source": "virtual",
+      "kind": "bed",
+      "catalogId": "yoga-mat",
+      "label": "Yoga mat",
+      "box": {
+        "cx": 42.13,
+        "cz": 45.37,
+        "w": 0.61,
+        "d": 1.83,
+        "yawDeg": 0
+      },
+      "heightM": 0.005,
+      "surfaceHeightM": 0.005
+    },
+    {
+      "id": "gym-yoga-mat-19",
+      "source": "virtual",
+      "kind": "bed",
+      "catalogId": "yoga-mat",
+      "label": "Yoga mat",
+      "box": {
+        "cx": 43.11,
+        "cz": 45.37,
+        "w": 0.61,
+        "d": 1.83,
+        "yawDeg": 0
+      },
+      "heightM": 0.005,
+      "surfaceHeightM": 0.005
+    },
+    {
+      "id": "gym-yoga-mat-20",
+      "source": "virtual",
+      "kind": "bed",
+      "catalogId": "yoga-mat",
+      "label": "Yoga mat",
+      "box": {
+        "cx": 44.04,
+        "cz": 45.37,
+        "w": 0.61,
+        "d": 1.83,
+        "yawDeg": 0
+      },
+      "heightM": 0.005,
+      "surfaceHeightM": 0.005
+    },
+    {
+      "id": "gym-gym-dumbbell-rack-21",
       "source": "virtual",
       "kind": "counter",
       "catalogId": "gym-dumbbell-rack",
       "label": "Dumbbell rack, 10 pairs",
       "box": {
-        "cx": 6.5,
-        "cz": -11.95,
+        "cx": 34.77,
+        "cz": 44.35,
         "w": 2.4,
         "d": 0.64,
         "yawDeg": 0
@@ -537,193 +405,25 @@
       "surfaceHeightM": 0.64
     },
     {
-      "id": "gym-29-gym-bench-flat",
+      "id": "gym-gym-locker-bench-22",
       "source": "virtual",
       "kind": "counter",
-      "catalogId": "gym-bench-flat",
-      "label": "Flat bench",
+      "catalogId": "gym-locker-bench",
+      "label": "Changing-room bench",
       "box": {
-        "cx": 5.5,
-        "cz": -9.8,
-        "w": 0.56,
-        "d": 1.3,
+        "cx": 42.6,
+        "cz": 48.17,
+        "w": 1.5,
+        "d": 0.35,
         "yawDeg": 0
       },
       "heightM": 0.45,
       "surfaceHeightM": 0.45
-    },
-    {
-      "id": "gym-30-gym-bench-adjustable",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-bench-adjustable",
-      "label": "Adjustable bench",
-      "box": {
-        "cx": 6.9,
-        "cz": -9.7,
-        "w": 0.6,
-        "d": 1.45,
-        "yawDeg": 0
-      },
-      "heightM": 1.15,
-      "surfaceHeightM": 0.47
-    },
-    {
-      "id": "gym-31-yoga-mat",
-      "source": "virtual",
-      "kind": "bed",
-      "catalogId": "yoga-mat",
-      "label": "Yoga mat",
-      "box": {
-        "cx": 6.35,
-        "cz": -8.1,
-        "w": 0.61,
-        "d": 1.83,
-        "yawDeg": 0
-      },
-      "heightM": 0.005,
-      "surfaceHeightM": 0.005,
-      "inner": {
-        "w": 0.61,
-        "d": 1.83
-      }
-    },
-    {
-      "id": "gym-32-yoga-mat",
-      "source": "virtual",
-      "kind": "bed",
-      "catalogId": "yoga-mat",
-      "label": "Yoga mat",
-      "box": {
-        "cx": 7.05,
-        "cz": -8.1,
-        "w": 0.61,
-        "d": 1.83,
-        "yawDeg": 0
-      },
-      "heightM": 0.005,
-      "surfaceHeightM": 0.005,
-      "inner": {
-        "w": 0.61,
-        "d": 1.83
-      }
-    },
-    {
-      "id": "gym-33-gym-plyo-box",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-plyo-box",
-      "label": "3-in-1 plyo box",
-      "box": {
-        "cx": 7.15,
-        "cz": -6.65,
-        "w": 0.76,
-        "d": 0.61,
-        "yawDeg": 180
-      },
-      "heightM": 0.61,
-      "surfaceHeightM": 0.61
-    },
-    {
-      "id": "gym-34-gym-heavy-bag",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-heavy-bag",
-      "label": "Punching bag, hung",
-      "box": {
-        "cx": 6.9,
-        "cz": -4.9,
-        "w": 0.38,
-        "d": 0.38,
-        "yawDeg": 0
-      },
-      "heightM": 1.65,
-      "surfaceHeightM": 1.65
-    },
-    {
-      "id": "gym-35-gym-towel-station",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-towel-station",
-      "label": "Towel and sanitiser station",
-      "box": {
-        "cx": 9.77,
-        "cz": -2.75,
-        "w": 0.6,
-        "d": 0.4,
-        "yawDeg": 270
-      },
-      "heightM": 1,
-      "surfaceHeightM": 0.9
-    },
-    {
-      "id": "gym-36-gym-water",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-water",
-      "label": "Water dispenser",
-      "box": {
-        "cx": 9.78,
-        "cz": -2.1,
-        "w": 0.34,
-        "d": 0.38,
-        "yawDeg": 270
-      },
-      "heightM": 1.1,
-      "surfaceHeightM": 0.95
-    },
-    {
-      "id": "gym-37-gym-scale",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-scale",
-      "label": "Digital weighing scale",
-      "box": {
-        "cx": 9,
-        "cz": -3.5,
-        "w": 0.32,
-        "d": 0.32,
-        "yawDeg": 0
-      },
-      "heightM": 0.04,
-      "surfaceHeightM": 0.04
-    },
-    {
-      "id": "gym-38-gym-wall-fan",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-wall-fan",
-      "label": "Wall fan, 65 cm",
-      "box": {
-        "cx": 2.18,
-        "cz": -1.3,
-        "w": 0.65,
-        "d": 0.3,
-        "yawDeg": 90
-      },
-      "heightM": 2.45,
-      "surfaceHeightM": 2.45
-    },
-    {
-      "id": "gym-39-gym-wall-fan",
-      "source": "virtual",
-      "kind": "counter",
-      "catalogId": "gym-wall-fan",
-      "label": "Wall fan, 65 cm",
-      "box": {
-        "cx": 9.82,
-        "cz": -3.3,
-        "w": 0.65,
-        "d": 0.3,
-        "yawDeg": 270
-      },
-      "heightM": 2.45,
-      "surfaceHeightM": 2.45
     }
   ],
   "spawn": {
-    "x": 6,
-    "z": -2,
+    "x": 35.44,
+    "z": 41.39,
     "yawDeg": 180
   },
   "unlisted": true,

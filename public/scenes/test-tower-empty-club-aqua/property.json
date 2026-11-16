@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "id": "test-tower-empty-club-aqua",
+  "title": "Aqua play",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
+  "layout": {
+    "wallHeightM": 10.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "aqua",
+        "label": "Aqua play",
+        "roomType": "other",
+        "polygon": [
+          {
+            "x": 44.28,
+            "z": 29.44
+          },
+          {
+            "x": 66.98,
+            "z": 29.44
+          },
+          {
+            "x": 66.98,
+            "z": 32.44
+          },
+          {
+            "x": 75.93,
+            "z": 32.44
+          },
+          {
+            "x": 75.93,
+            "z": 36.8
+          },
+          {
+            "x": 66.98,
+            "z": 36.8
+          },
+          {
+            "x": 66.98,
+            "z": 51.91
+          },
+          {
+            "x": 45.44,
+            "z": 51.91
+          },
+          {
+            "x": 45.44,
+            "z": 32.71
+          },
+          {
+            "x": 44.28,
+            "z": 32.71
+          }
+        ],
+        "edges": [
+          "wall",
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-foyer",
+        "roomId": "aqua",
+        "edge": 0,
+        "type": "door",
+        "centreM": 1.2,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-link",
+        "roomId": "aqua",
+        "edge": 0,
+        "type": "door",
+        "centreM": 19.97,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EFE6D3",
+      "floorColor": "#C9B9A0",
+      "tile": null,
+      "groutColor": "#B9AE9F",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 46.73,
+    "z": 31.27,
+    "yawDeg": 90
+  },
+  "unlisted": true,
+  "spaceKind": "pool",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

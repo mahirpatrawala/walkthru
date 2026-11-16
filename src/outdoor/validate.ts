@@ -4,7 +4,7 @@ import { pointInPolygon } from '../core/geometry';
 import type { Layout, Vec2 } from '../types';
 import { rectD, rectW } from './types';
 import type { OutdoorFile, PoolBasin, Rect } from './types';
-import { basinLengthM, basinWidthM, shallowestM } from './pool';
+import { basinLengthM, basinWidthM, exposureOf, shallowestM } from './pool';
 
 export interface OutdoorReport { errors: string[]; warnings: string[] }
 
@@ -37,7 +37,11 @@ export function validateOutdoor(file: OutdoorFile, layout: Layout): OutdoorRepor
   file.pools.forEach((b: PoolBasin, i) => {
     const out = grow(b.rect, b.copingM);
     if (!rectPts(out).every((p) => inside(room, p))) errors.push(`pool "${b.id}" and its coping are not inside the room`);
-    for (const o of file.pools.slice(i + 1)) if (overlap(out, grow(o.rect, o.copingM))) errors.push(`pools "${b.id}" and "${o.id}" overlap`);
+    for (const o of file.pools.slice(i + 1)) {
+      // two basins that touch along an edge are one body of water (an L-shaped pool drawn as rectangles): only their water must not overlap
+      const joined = exposureOf(b, [b, o]).seams.length > 0;
+      if (joined ? overlap(b.rect, o.rect) : overlap(out, grow(o.rect, o.copingM))) errors.push(`pools "${b.id}" and "${o.id}" overlap`);
+    }
     const lengthByEdge = (e: string): number => (e === 'N' || e === 'S' ? rectW(b.rect) : rectD(b.rect));
     for (const s of b.steps) {
       if (s.fromM + s.widthM > lengthByEdge(s.edge) + 1e-6) errors.push(`pool "${b.id}": steps on edge ${s.edge} run past the end of the edge`);

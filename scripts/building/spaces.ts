@@ -1,14 +1,12 @@
 // The sample tower's own spaces, authored as ordinary scenes: the typical floor's corridor and lift lobby (drawn from where the flats'
-// doors fell), the ground lobby, and the clubhouse level (foyer, hall, gym, pool, garden). Sizes are ordinary Indian apartment sizes:
-// corridor 1.8 m, lift car 1.1 x 1.4 m with a 0.9 m door, main doors 1.0 m. The pool area and the garden are open-air spaces (outdoor-spaces.ts).
+// doors fell), and the ground lobby (the clubhouse level is drawn after a brochure plan in podium-level.ts). Sizes are ordinary Indian apartment sizes:
+// corridor 1.8 m, lift car 1.1 x 1.4 m with a 0.9 m door, main doors 1.0 m.
 import { catalogItem } from '../../src/core/catalog';
 import type { DoorLeaf, FurnitureItem, Opening, PropertyFile, RoomTag, SpaceKind } from '../../src/types';
 import type { LobbyAnchor } from '../../src/building/types';
 import { finishes, openingAt, rectRoom, sceneFile, windowAt } from './scene-kit';
 import type { Rect, Side } from './scene-kit';
 import type { Plate } from './plate';
-import type { OutdoorFile } from '../../src/outdoor/types';
-import { GARDEN_DOOR_AT, GARDEN_FACADE_EDGE, POOL_DOOR_AT, POOL_FACADE_EDGE, gardenProperty, gardenRoom, poolProperty, poolRoom } from './outdoor-spaces';
 
 export const UPDATED_AT = '2026-11-16T00:00:00.000Z';
 export const SAMPLE_SUBTITLE = 'Sample building · made-up layout for demonstration';
@@ -127,43 +125,4 @@ export function groundLobbyScene(id: string, furnished: boolean): LobbyOut {
     finishes: finishes({ ...WARM, frameColor: '#A8B0B5' }), spawn: { x: 4.5, z: 5.6, yawDeg: 0 }, updatedAt: UPDATED_AT, spaceKind: 'lobby',
   });
   return { property, street: 'door-street', clubhouse: 'door-clubhouse', liftA: 'lift-a', liftB: 'lift-b', stairs: 'door-stairs', anchors: LOBBY_ANCHORS };
-}
-
-// ---------------------------------------------------------------- the clubhouse level (plan frame, one scene per space)
-
-export interface ClubhouseOut {
-  foyer: PropertyFile; hall: PropertyFile; gym: PropertyFile; pool: PropertyFile; garden: PropertyFile;
-  /** the empty tower's own pool area and garden: the deck, the basins, the lawn and the boundaries, nothing placed or planted */
-  poolBare: PropertyFile; gardenBare: PropertyFile;
-  /** each open-air scene's outdoor.json (SPEC 19.2), by scene key */
-  outdoor: { pool: OutdoorFile; garden: OutdoorFile; poolBare: OutdoorFile; gardenBare: OutdoorFile };
-  doors: { hall: string; gym: string; pool: string; garden: string; walkway: string };
-}
-
-export function clubhouseScenes(ids: { foyer: string; hall: string; gym: string; pool: string; garden: string; poolBare: string; gardenBare: string }): ClubhouseOut {
-  const foyerR: Rect = { x0: 0, z0: 0, x1: 12, z1: 6 };
-  const foyerRoom = rectRoom('foyer', 'Clubhouse foyer', 'other', foyerR);
-  const hallRoom = rectRoom('hall', 'Community hall', 'other', { x0: -12.3, z0: -5.4, x1: -0.3, z1: 3.0 });
-  const gymRoom = rectRoom('gym', 'Gym', 'other', { x0: 2, z0: -12.3, x1: 10, z1: -0.3 });
-  const poolR = poolRoom();
-  const gardenR = gardenRoom();
-  const hall = doorPair({ room: foyerRoom, side: 'W', at: 1.5, id: 'door-hall' }, { room: hallRoom, id: 'door-foyer' }, 1.2);
-  const gym = doorPair({ room: foyerRoom, side: 'N', at: 6, id: 'door-gym' }, { room: gymRoom, id: 'door-foyer' }, 1.2);
-  const pool = doorPair({ room: foyerRoom, side: 'E', at: POOL_DOOR_AT, id: 'door-pool' }, { room: poolR, id: 'door-foyer' }, 1.2);
-  const garden = doorPair({ room: foyerRoom, side: 'S', at: GARDEN_DOOR_AT, id: 'door-garden' }, { room: gardenR, id: 'door-foyer' }, 1.2);
-  const foyerOpenings: Opening[] = [
-    hall.a, gym.a, pool.a, garden.a,
-    openingAt(foyerRoom, 'W', 4.8, { id: 'door-walkway', widthM: MAIN_DOOR_M, leaf: { hinge: 'start', swing: 'in', kind: 'hinged' } }),
-    openingAt(foyerRoom, 'S', 2.0, { id: 'lift-a', widthM: LIFT_DOOR_M, leaf: OUT }),
-    openingAt(foyerRoom, 'S', 3.8, { id: 'lift-b', widthM: LIFT_DOOR_M, leaf: OUT }),
-    openingAt(foyerRoom, 'S', 6.0, { id: 'door-stairs', widthM: 1.0, leaf: OUT }),
-  ];
-  const mk = (id: string, title: string, h: number, rooms: RoomTag[], openings: Opening[], fin: ReturnType<typeof finishes>, spawn: { x: number; z: number; yawDeg: number }, spaceKind: SpaceKind): PropertyFile =>
-    sceneFile({ id, title, subtitle: SAMPLE_SUBTITLE, wallHeightM: h, rooms, openings, finishes: fin, spawn, updatedAt: UPDATED_AT, spaceKind });
-  const foyer = mk(ids.foyer, 'Clubhouse foyer', 3.6, [foyerRoom], foyerOpenings, finishes({ ...WARM }), { x: 6, z: 3, yawDeg: 0 }, 'corridor');
-  const hallScene = mk(ids.hall, 'Community hall', 3.6, [hallRoom], [hall.b, windowAt(hallRoom, 'W', -1.2, 'window-w1', 2.4, 0.0, 2.6), windowAt(hallRoom, 'N', -6.3, 'window-n1', 2.4, 0.9, 2.6), windowAt(hallRoom, 'N', -2.5, 'window-n2', 2.4, 0.9, 2.6)], finishes({ floorColor: '#B79F7C', tile: null, wallColor: '#EFE8DA' }), { x: -6.3, z: -1.2, yawDeg: 90 }, 'hall');
-  const gymScene = mk(ids.gym, 'Gym', 3.6, [gymRoom], [gym.b, windowAt(gymRoom, 'E', -6.3, 'window-e1', 2.4, 0.9, 2.6), windowAt(gymRoom, 'E', -10.5, 'window-e2', 2.4, 0.9, 2.6)], finishes({ floorColor: '#6E6A66', tile: null, wallColor: '#ECE9E2' }), { x: 6, z: -2, yawDeg: 180 }, 'gym');
-  const poolFull = poolProperty(ids.pool, pool.b, false), poolEmpty = poolProperty(ids.poolBare, pool.b, true);
-  const gardenFull = gardenProperty(ids.garden, garden.b, false), gardenEmpty = gardenProperty(ids.gardenBare, garden.b, true);
-  return { foyer, hall: hallScene, gym: gymScene, pool: poolFull.property, garden: gardenFull.property, poolBare: poolEmpty.property, gardenBare: gardenEmpty.property, outdoor: { pool: poolFull.outdoor, garden: gardenFull.outdoor, poolBare: poolEmpty.outdoor, gardenBare: gardenEmpty.outdoor }, doors: { hall: 'door-hall', gym: 'door-gym', pool: 'door-pool', garden: 'door-garden', walkway: 'door-walkway' } };
 }

@@ -4,7 +4,7 @@
   "name": "Sample Tower, empty (made-up)",
   "subtitle": "The same tower with every room unfurnished: where a builder starts",
   "sample": true,
-  "note": "Sample layout for demonstration",
+  "note": "Sample layout for demonstration. The clubhouse level follows the amenity plan of a published builder brochure, scaled from its one printed dimension (the 25 m lap pool); sizes are not measured.",
   "floorToFloorM": 3.1,
   "flatTypes": {
     "1bhk": {
@@ -184,7 +184,7 @@
       "id": "l1",
       "label": "Level 1",
       "short": "1",
-      "summary": "Clubhouse: hall, gym, pool area, garden",
+      "summary": "Clubhouse: games, gym, banquet halls, pools",
       "floorToFloorM": 4.2,
       "spaces": [
         {
@@ -229,15 +229,15 @@
               "look": "glass"
             },
             {
-              "id": "hall",
+              "id": "games",
               "kind": "door",
-              "opening": "door-hall",
+              "opening": "door-games",
               "to": {
-                "space": "hall",
+                "space": "games",
                 "portal": "foyer"
               },
-              "label": "Community hall",
-              "prompt": "Enter the community hall",
+              "label": "Indoor games area",
+              "prompt": "Enter the indoor games area",
               "look": "plain"
             },
             {
@@ -248,49 +248,73 @@
                 "space": "gym",
                 "portal": "foyer"
               },
-              "label": "Gym",
-              "prompt": "Enter the gym",
+              "label": "Gymnasium",
+              "prompt": "Enter the gymnasium",
               "look": "plain"
+            },
+            {
+              "id": "changing-1",
+              "kind": "door",
+              "opening": "door-changing-1",
+              "to": {
+                "space": "changing-1",
+                "portal": "foyer"
+              },
+              "label": "Changing room 1",
+              "prompt": "Enter changing room 1",
+              "look": "plain"
+            },
+            {
+              "id": "changing-2",
+              "kind": "door",
+              "opening": "door-changing-2",
+              "to": {
+                "space": "changing-2",
+                "portal": "foyer"
+              },
+              "label": "Changing room 2",
+              "prompt": "Enter changing room 2",
+              "look": "plain"
+            },
+            {
+              "id": "aqua",
+              "kind": "door",
+              "opening": "door-aqua",
+              "to": {
+                "space": "aqua",
+                "portal": "foyer"
+              },
+              "label": "Aqua play and deck",
+              "prompt": "Go out to the aqua-play deck",
+              "look": "glass"
             },
             {
               "id": "pool",
               "kind": "door",
-              "opening": "door-pool",
+              "opening": "door-bridge",
               "to": {
                 "space": "pool",
                 "portal": "foyer"
               },
-              "label": "Pool area",
-              "prompt": "Enter the pool area",
-              "look": "plain"
-            },
-            {
-              "id": "garden",
-              "kind": "door",
-              "opening": "door-garden",
-              "to": {
-                "space": "garden",
-                "portal": "foyer"
-              },
-              "label": "Garden",
-              "prompt": "Enter the garden",
-              "look": "plain"
+              "label": "Pool area, by the bridge",
+              "prompt": "Cross the bridge to the pool area",
+              "look": "glass"
             }
+          ],
+          "notes": [
+            "The lift lobby and the passages of the amenity level, after the plan of a published builder brochure. Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
           ]
         },
         {
-          "id": "hall",
-          "kind": "hall",
-          "name": "Community hall",
-          "sceneId": "test-tower-empty-club-hall",
+          "id": "games",
+          "kind": "games",
+          "name": "Indoor games area",
+          "sceneId": "test-tower-empty-club-games",
           "placement": {
             "x": 0,
             "z": 0,
             "rotDeg": 0
           },
-          "notes": [
-            "Empty hall, about 12 × 8.4 m."
-          ],
           "portals": [
             {
               "id": "foyer",
@@ -298,27 +322,99 @@
               "opening": "door-foyer",
               "to": {
                 "space": "clubhouse",
-                "portal": "hall"
+                "portal": "games"
               },
               "label": "The clubhouse foyer",
               "prompt": "To the clubhouse foyer",
               "look": "plain"
+            },
+            {
+              "id": "link",
+              "kind": "door",
+              "opening": "door-link",
+              "to": {
+                "space": "link",
+                "portal": "games"
+              },
+              "label": "The link passage",
+              "prompt": "To the link passage",
+              "look": "plain"
             }
+          ],
+          "notes": [
+            "Empty. Item 7 of the plan: cards, carrom, chess, table tennis, foosball and a pool table go here.",
+            "Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
+          ]
+        },
+        {
+          "id": "link",
+          "kind": "corridor",
+          "name": "Link passage",
+          "sceneId": "test-tower-club-link",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "portals": [
+            {
+              "id": "games",
+              "kind": "door",
+              "opening": "door-games",
+              "to": {
+                "space": "games",
+                "portal": "link"
+              },
+              "label": "Indoor games area",
+              "prompt": "To the indoor games area",
+              "look": "plain"
+            },
+            {
+              "id": "lounge",
+              "kind": "door",
+              "opening": "door-lounge",
+              "to": {
+                "space": "lounge",
+                "portal": "link"
+              },
+              "label": "Banquet lounge",
+              "prompt": "Enter the banquet lounge",
+              "look": "plain"
+            },
+            {
+              "id": "aqua",
+              "kind": "door",
+              "opening": "door-aqua",
+              "to": {
+                "space": "aqua",
+                "portal": "link"
+              },
+              "label": "Aqua play and deck",
+              "prompt": "Go out to the aqua-play deck",
+              "look": "glass"
+            },
+            {
+              "id": "stairs",
+              "kind": "stairs",
+              "opening": "door-stairs",
+              "label": "Stairs"
+            }
+          ],
+          "notes": [
+            "The passage east of the games area that leads to the banquet rooms, with the second stair core.",
+            "Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
           ]
         },
         {
           "id": "gym",
           "kind": "gym",
-          "name": "Gym",
+          "name": "Gymnasium",
           "sceneId": "test-tower-empty-club-gym",
           "placement": {
             "x": 0,
             "z": 0,
             "rotDeg": 0
           },
-          "notes": [
-            "Empty room, about 8 × 12 m."
-          ],
           "portals": [
             {
               "id": "foyer",
@@ -332,7 +428,312 @@
               "prompt": "To the clubhouse foyer",
               "look": "plain"
             }
+          ],
+          "notes": [
+            "Empty. Item 6 of the plan, about 16 x 9.5 m.",
+            "Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
           ]
+        },
+        {
+          "id": "changing-1",
+          "kind": "gym",
+          "name": "Changing room 1",
+          "sceneId": "test-tower-empty-club-changing-1",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "portals": [
+            {
+              "id": "foyer",
+              "kind": "door",
+              "opening": "door-foyer",
+              "to": {
+                "space": "clubhouse",
+                "portal": "changing-1"
+              },
+              "label": "The clubhouse foyer",
+              "prompt": "To the clubhouse foyer",
+              "look": "plain"
+            }
+          ],
+          "notes": [
+            "Empty changing room of the gymnasium.",
+            "Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
+          ]
+        },
+        {
+          "id": "changing-2",
+          "kind": "gym",
+          "name": "Changing room 2",
+          "sceneId": "test-tower-empty-club-changing-2",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "portals": [
+            {
+              "id": "foyer",
+              "kind": "door",
+              "opening": "door-foyer",
+              "to": {
+                "space": "clubhouse",
+                "portal": "changing-2"
+              },
+              "label": "The clubhouse foyer",
+              "prompt": "To the clubhouse foyer",
+              "look": "plain"
+            }
+          ],
+          "notes": [
+            "Empty changing room of the gymnasium.",
+            "Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
+          ]
+        },
+        {
+          "id": "hall-1",
+          "kind": "hall",
+          "name": "Banquet hall 1",
+          "sceneId": "test-tower-empty-club-hall-1",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "portals": [
+            {
+              "id": "lounge",
+              "kind": "door",
+              "opening": "door-lounge",
+              "to": {
+                "space": "lounge",
+                "portal": "hall-1"
+              },
+              "label": "The banquet lounge",
+              "prompt": "To the banquet lounge",
+              "look": "plain"
+            },
+            {
+              "id": "deck",
+              "kind": "door",
+              "opening": "door-deck",
+              "to": {
+                "space": "deck",
+                "portal": "hall-1"
+              },
+              "label": "The banquet deck",
+              "prompt": "Go out to the deck",
+              "look": "glass"
+            }
+          ],
+          "notes": [
+            "Empty. One of the two banquet halls of item 3.",
+            "Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
+          ]
+        },
+        {
+          "id": "lounge",
+          "kind": "hall",
+          "name": "Banquet lounge",
+          "sceneId": "test-tower-empty-club-lounge",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "portals": [
+            {
+              "id": "link",
+              "kind": "door",
+              "opening": "door-link",
+              "to": {
+                "space": "link",
+                "portal": "lounge"
+              },
+              "label": "The link passage",
+              "prompt": "To the link passage",
+              "look": "plain"
+            },
+            {
+              "id": "hall-1",
+              "kind": "door",
+              "opening": "door-hall-1",
+              "to": {
+                "space": "hall-1",
+                "portal": "lounge"
+              },
+              "label": "Banquet hall 1",
+              "prompt": "Enter banquet hall 1",
+              "look": "plain"
+            },
+            {
+              "id": "hall-2",
+              "kind": "door",
+              "opening": "door-hall-2",
+              "to": {
+                "space": "hall-2",
+                "portal": "lounge"
+              },
+              "label": "Banquet hall 2",
+              "prompt": "Enter banquet hall 2",
+              "look": "plain"
+            },
+            {
+              "id": "deck",
+              "kind": "door",
+              "opening": "door-deck",
+              "to": {
+                "space": "deck",
+                "portal": "lounge"
+              },
+              "label": "The banquet deck",
+              "prompt": "Go out to the deck",
+              "look": "glass"
+            }
+          ],
+          "notes": [
+            "Empty. The room between the two banquet halls of item 3.",
+            "Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
+          ]
+        },
+        {
+          "id": "hall-2",
+          "kind": "hall",
+          "name": "Banquet hall 2",
+          "sceneId": "test-tower-empty-club-hall-2",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "portals": [
+            {
+              "id": "lounge",
+              "kind": "door",
+              "opening": "door-lounge",
+              "to": {
+                "space": "lounge",
+                "portal": "hall-2"
+              },
+              "label": "The banquet lounge",
+              "prompt": "To the banquet lounge",
+              "look": "plain"
+            },
+            {
+              "id": "deck",
+              "kind": "door",
+              "opening": "door-deck",
+              "to": {
+                "space": "deck",
+                "portal": "hall-2"
+              },
+              "label": "The banquet deck",
+              "prompt": "Go out to the deck",
+              "look": "glass"
+            }
+          ],
+          "notes": [
+            "Empty. The second banquet hall of item 3, one corner cut on the diagonal the plan draws.",
+            "Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
+          ]
+        },
+        {
+          "id": "deck",
+          "kind": "garden",
+          "name": "Banquet deck",
+          "sceneId": "test-tower-empty-club-deck",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "portals": [
+            {
+              "id": "hall-1",
+              "kind": "door",
+              "opening": "door-hall-1",
+              "to": {
+                "space": "hall-1",
+                "portal": "deck"
+              },
+              "label": "Banquet hall 1",
+              "prompt": "Enter banquet hall 1",
+              "look": "glass"
+            },
+            {
+              "id": "lounge",
+              "kind": "door",
+              "opening": "door-lounge",
+              "to": {
+                "space": "lounge",
+                "portal": "deck"
+              },
+              "label": "Banquet lounge",
+              "prompt": "Enter the banquet lounge",
+              "look": "glass"
+            },
+            {
+              "id": "hall-2",
+              "kind": "door",
+              "opening": "door-hall-2",
+              "to": {
+                "space": "hall-2",
+                "portal": "deck"
+              },
+              "label": "Banquet hall 2",
+              "prompt": "Enter banquet hall 2",
+              "look": "glass"
+            }
+          ],
+          "notes": [
+            "Open air. The outdoor deck of item 3, bare timber decking.",
+            "Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
+          ],
+          "outdoor": true
+        },
+        {
+          "id": "aqua",
+          "kind": "pool",
+          "name": "Aqua play",
+          "sceneId": "test-tower-empty-club-aqua",
+          "placement": {
+            "x": 0,
+            "z": 0,
+            "rotDeg": 0
+          },
+          "portals": [
+            {
+              "id": "foyer",
+              "kind": "door",
+              "opening": "door-foyer",
+              "to": {
+                "space": "clubhouse",
+                "portal": "aqua"
+              },
+              "label": "The clubhouse foyer",
+              "prompt": "To the clubhouse foyer",
+              "look": "glass"
+            },
+            {
+              "id": "link",
+              "kind": "door",
+              "opening": "door-link",
+              "to": {
+                "space": "link",
+                "portal": "aqua"
+              },
+              "label": "The link passage",
+              "prompt": "To the link passage",
+              "look": "glass"
+            }
+          ],
+          "notes": [
+            "Open air. Item 4 of the plan: the shallow play pool and its deck, bare.",
+            "Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
+          ],
+          "outdoor": true
         },
         {
           "id": "pool",
@@ -344,9 +745,6 @@
             "z": 0,
             "rotDeg": 0
           },
-          "notes": [
-            "The pool area, bare: the deck, an 11 × 4.5 m pool and a children's pool, a covered verandah left out. Nothing placed or planted."
-          ],
           "portals": [
             {
               "id": "foyer",
@@ -356,39 +754,14 @@
                 "space": "clubhouse",
                 "portal": "pool"
               },
-              "label": "The clubhouse foyer",
+              "label": "The clubhouse foyer (by the bridge)",
               "prompt": "To the clubhouse foyer",
-              "look": "plain"
+              "look": "glass"
             }
           ],
-          "outdoor": true
-        },
-        {
-          "id": "garden",
-          "kind": "garden",
-          "name": "Garden",
-          "sceneId": "test-tower-empty-club-garden",
-          "placement": {
-            "x": 0,
-            "z": 0,
-            "rotDeg": 0
-          },
           "notes": [
-            "The garden, bare: a plain lawn, a paved entrance and a path, about 34 × 20 m. Nothing placed or planted."
-          ],
-          "portals": [
-            {
-              "id": "foyer",
-              "kind": "door",
-              "opening": "door-foyer",
-              "to": {
-                "space": "clubhouse",
-                "portal": "garden"
-              },
-              "label": "The clubhouse foyer",
-              "prompt": "To the clubhouse foyer",
-              "look": "plain"
-            }
+            "Open air. Items 1, 2 and 5 of the plan: the 25 m lap pool, the shallow pool and the lawns, bare.",
+            "Scaled from the one printed dimension of the plan (the 25 m lap pool), not measured."
           ],
           "outdoor": true
         }

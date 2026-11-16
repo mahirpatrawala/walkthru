@@ -5,7 +5,7 @@
 // the kind of place, as the scene itself carries it (`PropertyFile.spaceKind`, src/types.ts): a flat is a `home`
 import type { SpaceKind } from '../types';
 export type { SpaceKind };
-export const SPACE_KINDS: readonly SpaceKind[] = ['home', 'lobby', 'corridor', 'gym', 'hall', 'pool', 'garden', 'other'];
+export const SPACE_KINDS: readonly SpaceKind[] = ['home', 'lobby', 'corridor', 'gym', 'hall', 'games', 'pool', 'garden', 'other'];
 
 /** Where a space's own scene frame sits on its level's plan: turned about the scene origin (clockwise on the plan), then moved. */
 export interface Placement { x: number; z: number; rotDeg: 0 | 90 | 180 | 270 }

@@ -1,5 +1,5 @@
-// Stage 2 in the Sample Tower (SPEC 16.17, 18.8): the full tower's gym, community hall and lobby are furnished from the shared-space catalogue in their
-// own bounds, the lobby's pieces stand on the building's marked positions, nothing is blocked, the walkway is open, the empty twin stays bare.
+// Stage 2 in the Sample Tower (SPEC 16.17, 18.8, 20): the full tower's gym, games area, banquet rooms, changing rooms and lobby are furnished from the shared-space
+// catalogue, the lobby's pieces stand on the building's marked positions, nothing is blocked, the walkway is open, the empty twin stays bare.
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -19,8 +19,8 @@ const building = (id: string) => parseBuilding(JSON.parse(fs.readFileSync(path.j
 describe('the full Sample Tower is furnished where the catalogue has pieces', () => {
   const full = building('sample-tower');
   const space = (id: string) => full.levels.flatMap((l) => l.spaces).find((s) => s.id === id)!;
-  it('the gym, hall and lobby open scenes with pieces, of the right kind', () => {
-    for (const [id, kind, min] of [['gym', 'gym', 30], ['hall', 'hall', 60], ['lobby', 'lobby', 8]] as const) {
+  it('the gym, games area, banquet rooms, changing rooms and lobby open scenes with pieces, of the right kind', () => {
+    for (const [id, kind, min] of [['gym', 'gym', 20], ['games', 'games', 8], ['hall-1', 'hall', 6], ['hall-2', 'hall', 5], ['lounge', 'hall', 4], ['changing-1', 'gym', 3], ['changing-2', 'gym', 4], ['lobby', 'lobby', 8]] as const) {
       const p = scene(space(id).sceneId);
       expect(p.spaceKind, id).toBe(kind);
       expect(p.furniture.length, id).toBeGreaterThanOrEqual(min);
@@ -28,7 +28,7 @@ describe('the full Sample Tower is furnished where the catalogue has pieces', ()
     }
   });
   it('every piece fits or is tight: none is blocked, none stands in a doorway, and the walkway is open', () => {
-    for (const id of ['gym', 'hall', 'lobby']) {
+    for (const id of ['gym', 'games', 'hall-1', 'hall-2', 'lounge', 'changing-1', 'changing-2', 'lobby']) {
       const p = scene(space(id).sceneId);
       const base = rasterizeLayout(p.layout);
       for (const it of p.furniture) {
@@ -40,13 +40,15 @@ describe('the full Sample Tower is furnished where the catalogue has pieces', ()
       expect(s.walkway.clear, `${id}: ${s.walkway.message}`).toBe(true);
     }
   });
-  it('the gym is a gym: 20 stations, a mirror wall, an open walkway from the door; the hall has 60 seats', () => {
+  it('the gym is a gym: 15 stations along the walls as the plan draws them; the first banquet hall has 24 seats, the second 20, the lounge 8', () => {
     const g = scene(space('gym').sceneId);
     const s = spaceSummary(g.layout, g.furniture, undefined, 'gym');
-    expect(s.stations.total).toBeGreaterThanOrEqual(18);
-    expect(g.furniture.filter((i) => i.catalogId === 'gym-mirror')).toHaveLength(10);
-    const h = scene(space('hall').sceneId);
-    expect(spaceSummary(h.layout, h.furniture, undefined, 'hall').seats).toBe(60);
+    expect(s.stations.total).toBeGreaterThanOrEqual(15);
+    expect(g.furniture.filter((i) => i.catalogId === 'gym-treadmill')).toHaveLength(6);
+    for (const [id, seats] of [['hall-1', 24], ['hall-2', 20], ['lounge', 8]] as const) {
+      const h = scene(space(id).sceneId);
+      expect(spaceSummary(h.layout, h.furniture, undefined, 'hall').seats, id).toBe(seats);
+    }
   });
   it('the lobby\'s reception, security, seating and letterboxes stand on their anchors', () => {
     const lobby = space('lobby');
@@ -68,9 +70,9 @@ describe('the full Sample Tower is furnished where the catalogue has pieces', ()
 
 describe('the empty twin stays bare', () => {
   const empty = building('sample-tower-empty');
-  it('its gym, hall and lobby are unfurnished, under their own scene ids, and still say what kind of space they are', () => {
+  it('its gym, games area, banquet rooms, changing rooms, open-air spaces and lobby are unfurnished, under their own scene ids, and still say what kind of space they are', () => {
     const spaces = empty.levels.flatMap((l) => l.spaces);
-    for (const [id, kind] of [['gym', 'gym'], ['hall', 'hall'], ['lobby', 'lobby']] as const) {
+    for (const [id, kind] of [['gym', 'gym'], ['games', 'games'], ['hall-1', 'hall'], ['hall-2', 'hall'], ['lounge', 'hall'], ['changing-1', 'gym'], ['changing-2', 'gym'], ['deck', 'garden'], ['aqua', 'pool'], ['pool', 'pool'], ['lobby', 'lobby']] as const) {
       const s = spaces.find((x) => x.id === id)!;
       const p = scene(s.sceneId);
       expect(p.furniture, id).toEqual([]);

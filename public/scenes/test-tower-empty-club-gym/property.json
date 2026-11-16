@@ -1,8 +1,8 @@
 {
   "version": 1,
   "id": "test-tower-empty-club-gym",
-  "title": "Gym",
-  "subtitle": "Sample building · made-up layout for demonstration",
+  "title": "Gymnasium",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
   "layout": {
     "wallHeightM": 3.6,
     "wallThicknessM": 0.12,
@@ -10,24 +10,24 @@
     "rooms": [
       {
         "id": "gym",
+        "label": "Gymnasium",
         "roomType": "other",
-        "label": "Gym",
         "polygon": [
           {
-            "x": 2,
-            "z": -12.3
+            "x": 29.52,
+            "z": 39.64
           },
           {
-            "x": 10,
-            "z": -12.3
+            "x": 45.44,
+            "z": 39.64
           },
           {
-            "x": 10,
-            "z": -0.3
+            "x": 45.44,
+            "z": 49.1
           },
           {
-            "x": 2,
-            "z": -0.3
+            "x": 29.52,
+            "z": 49.1
           }
         ],
         "edges": [
@@ -42,9 +42,9 @@
       {
         "id": "door-foyer",
         "roomId": "gym",
-        "edge": 2,
+        "edge": 0,
         "type": "door",
-        "centreM": 4,
+        "centreM": 5.92,
         "widthM": 1.2,
         "sillM": 0,
         "headM": 2.1,
@@ -53,26 +53,6 @@
           "swing": "in",
           "kind": "hinged"
         }
-      },
-      {
-        "id": "window-e1",
-        "roomId": "gym",
-        "edge": 1,
-        "type": "window",
-        "centreM": 6.000000000000001,
-        "widthM": 2.4,
-        "sillM": 0.9,
-        "headM": 2.6
-      },
-      {
-        "id": "window-e2",
-        "roomId": "gym",
-        "edge": 1,
-        "type": "window",
-        "centreM": 1.8000000000000007,
-        "widthM": 2.4,
-        "sillM": 0.9,
-        "headM": 2.6
       }
     ],
     "finishes": {
@@ -81,7 +61,7 @@
       "tile": null,
       "groutColor": "#B9AE9F",
       "frameColor": "#4A3528",
-      "ceilingColor": "#FAFAF8",
+      "ceilingColor": "#F7F4EE",
       "railingColor": "#3A3A3C",
       "source": "default"
     },
@@ -89,8 +69,8 @@
   },
   "furniture": [],
   "spawn": {
-    "x": 6,
-    "z": -2,
+    "x": 35.44,
+    "z": 41.39,
     "yawDeg": 180
   },
   "unlisted": true,

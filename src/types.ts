@@ -195,7 +195,7 @@ export interface LevelResult {
 
 // ---------- property.json ----------
 /** The kind of place a scene is: a flat (home) or a shared space of a building. */
-export type SpaceKind = 'home' | 'lobby' | 'corridor' | 'gym' | 'hall' | 'pool' | 'garden' | 'other';
+export type SpaceKind = 'home' | 'lobby' | 'corridor' | 'gym' | 'hall' | 'games' | 'pool' | 'garden' | 'other';
 export interface PropertyFile {
   version: 1;
   id: string;

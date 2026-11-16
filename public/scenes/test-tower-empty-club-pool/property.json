@@ -1,8 +1,8 @@
 {
   "version": 1,
   "id": "test-tower-empty-club-pool",
-  "title": "Pool area (bare)",
-  "subtitle": "Sample building · made-up layout for demonstration",
+  "title": "Pool area",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
   "layout": {
     "wallHeightM": 10.6,
     "wallThicknessM": 0.12,
@@ -10,31 +10,61 @@
     "rooms": [
       {
         "id": "pool",
-        "roomType": "other",
         "label": "Pool area",
+        "roomType": "other",
         "polygon": [
           {
-            "x": 12.3,
-            "z": -8
+            "x": 0,
+            "z": 0
           },
           {
-            "x": 32.3,
-            "z": -8
+            "x": 17.13,
+            "z": 0
           },
           {
-            "x": 32.3,
-            "z": 6
+            "x": 17.13,
+            "z": 35.94
           },
           {
-            "x": 12.3,
-            "z": 6
+            "x": 29.09,
+            "z": 35.94
+          },
+          {
+            "x": 29.09,
+            "z": 38.28
+          },
+          {
+            "x": 17.13,
+            "z": 38.28
+          },
+          {
+            "x": 17.13,
+            "z": 43.69
+          },
+          {
+            "x": 4.95,
+            "z": 43.69
+          },
+          {
+            "x": 4.95,
+            "z": 22.12
+          },
+          {
+            "x": 0,
+            "z": 22.12
           }
         ],
         "edges": [
-          "wall",
+          "railing",
+          "railing",
           "railing",
           "wall",
-          "wall"
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing",
+          "railing"
         ]
       }
     ],
@@ -44,7 +74,7 @@
         "roomId": "pool",
         "edge": 3,
         "type": "door",
-        "centreM": 4,
+        "centreM": 1.64,
         "widthM": 1.2,
         "sillM": 0,
         "headM": 2.1,
@@ -69,9 +99,9 @@
   },
   "furniture": [],
   "spawn": {
-    "x": 14,
-    "z": 2,
-    "yawDeg": 90
+    "x": 27.65,
+    "z": 37.11,
+    "yawDeg": 270
   },
   "unlisted": true,
   "spaceKind": "pool",

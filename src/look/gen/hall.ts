@@ -4,9 +4,9 @@ import * as THREE from 'three';
 import { Parts, role, roleOr } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { CHROME, SOIL, soft } from './kit';
-import { ACCENT_BLUE, CONSOLE, FRAME, FRAME_GREY, IRON, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, WOOD_ASH, cylY, pad, slab, tube } from './gymkit';
+import { ACCENT_BLUE, ACCENT_RED, CONSOLE, FRAME, FRAME_GREY, IRON, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, WOOD_ASH, cylY, cylZ, pad, slab, tube } from './gymkit';
 
-export const HALL_VARIANTS = ['chair', 'table-rect', 'table-round', 'stage', 'podium', 'screen', 'speaker', 'carrom', 'tt', 'pool'] as const;
+export const HALL_VARIANTS = ['chair', 'table-rect', 'table-round', 'stage', 'podium', 'screen', 'speaker', 'carrom', 'tt', 'pool', 'foosball', 'chess-set', 'card-set', 'carrom-set', 'banquet-set', 'cafe-set'] as const;
 export type HallVariant = (typeof HALL_VARIANTS)[number];
 export interface HallParams { variant: HallVariant; liftM: number }
 export const HALL_DEFAULTS: HallParams = { variant: 'chair', liftM: 0 };
@@ -160,8 +160,103 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
       }
       void SOIL; void SHROUD; void SCREEN_GLASS;
     },
+    foosball: () => {
+      // a foosball table: a cabinet 140 x 76 cm on four legs, a green field, eight rods running across (the handles stand out past the sides: the footprint is 120 cm across with them)
+      const bodyZ = 0.38;
+      parts.box('foos-cabinet', wood, -x1, x1, S - 0.2, S + 0.03, -bodyZ, bodyZ, { c: 0.008 });
+      slab(parts, 'foos-field', { key: 'weave', tint: '#2F7A3E' }, -x1 + 0.06, x1 - 0.06, S + 0.0, S + 0.001, -bodyZ + 0.06, bodyZ - 0.06);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) slab(parts, 'foos-legs', WOOD_ASH, sx * (x1 - 0.1) - 0.04, sx * (x1 - 0.1) + 0.04, 0, S - 0.2, sz * (bodyZ - 0.06) - 0.04, sz * (bodyZ - 0.06) + 0.04);
+      for (let i = 0; i < 8; i++) {
+        const x = -0.55 + i * (1.1 / 7);
+        tube(parts, 'foos-rods', CHROME, [x, S + 0.08, -z1 + 0.14], [x, S + 0.08, z1 - 0.14], 0.008);
+        for (const sz of [-1, 1]) cylZ(parts, 'foos-handles', IRON, Math.min(sz * (z1 - 0.12), sz * z1), Math.max(sz * (z1 - 0.12), sz * z1), x, S + 0.08, 0.017, 8);
+        const men = i % 4 === 0 ? 1 : i % 4 === 3 ? 3 : i % 4 === 1 ? 2 : 3;
+        for (let m = 0; m < men; m++) {
+          const mz = (m - (men - 1) / 2) * 0.17;
+          parts.box('foos-men', i < 4 ? ACCENT_RED : ACCENT_BLUE, x - 0.012, x + 0.012, S + 0.02, S + 0.1, mz - 0.025, mz + 0.025, { c: 0.002 });
+        }
+      }
+      cylY(parts, 'foos-ball', { key: 'laminate', tint: '#F4F2EC' }, 0, 0, S + 0.001, S + 0.037, 0.018, 8);
+    },
+    'chess-set': () => {
+      // a chess table: a 60 cm square top with the 8 x 8 board let in, a four-tube frame, and a chair at each end facing it
+      const board = 0.46, sq = board / 8, t = 0.3;
+      slab(parts, 'chess-top', wood, -t, t, S - 0.035, S, -t, t);
+      slab(parts, 'chess-light', { key: 'laminate', tint: '#E8D9B5' }, -board / 2, board / 2, S, S + 0.0006, -board / 2, board / 2);
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if ((r + c) % 2 === 1) slab(parts, 'chess-dark', { key: 'laminate', tint: '#6B4A2B' }, -board / 2 + c * sq, -board / 2 + (c + 1) * sq, S, S + 0.0012, -board / 2 + r * sq, -board / 2 + (r + 1) * sq);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) tube(parts, 'chess-legs', FRAME_GREY, [sx * (t - 0.04), 0, sz * (t - 0.04)], [sx * (t - 0.04), S - 0.035, sz * (t - 0.04)], 0.016);
+      for (let c = 0; c < 8; c++) for (const sz of [-1, 1]) cylY(parts, 'chess-men', sz < 0 ? { key: 'laminate', tint: '#2A1D12' } : { key: 'laminate', tint: '#F1E6CC' }, -board / 2 + (c + 0.5) * sq, sz * (board / 2 - sq * 0.5), S, S + 0.03, 0.017, 8);
+      const c0 = z1 - 0.26;
+      chairAt(parts, roles, 0, c0, 0, 0.82);
+      chairAt(parts, roles, 0, -c0, Math.PI, 0.82);
+    },
+    'card-set': () => {
+      // a square folding card table (green baize on a steel apron, four folding legs) with a chair on each side, set in under the top
+      const t = 0.425, c0 = x1 - 0.26;
+      slab(parts, 'card-top', { key: 'laminate', tint: '#3B3F45' }, -t, t, S - 0.04, S, -t, t);
+      slab(parts, 'card-baize', { key: 'weave', tint: '#2C6B4B' }, -t + 0.03, t - 0.03, S, S + 0.0008, -t + 0.03, t - 0.03);
+      slab(parts, 'card-apron', FRAME, -t + 0.05, t - 0.05, S - 0.07, S - 0.04, -t + 0.05, t - 0.05);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) tube(parts, 'card-legs', FRAME_GREY, [sx * (t - 0.06), 0, sz * (t - 0.06)], [sx * (t - 0.06), S - 0.07, sz * (t - 0.06)], 0.013);
+      for (let i = 0; i < 4; i++) { const a = (i * Math.PI) / 2; chairAt(parts, roles, c0 * Math.sin(a), c0 * Math.cos(a), a, 0.82); }
+    },
+    'carrom-set': () => {
+      // a carrom board in its wooden frame (85 cm, the playing surface 74 cm, four pockets, the circles) on a four-leg stand, and a round stool at each side
+      const t = 0.425, bt = S, c0 = x1 - 0.17;
+      parts.box('carrom-frame', WOOD_ASH, -t, t, bt - 0.05, bt, -t, t, { c: 0.006 });
+      slab(parts, 'carrom-surface', { key: 'laminate', tint: '#D9B97A' }, -0.37, 0.37, bt, bt + 0.0005, -0.37, 0.37);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        cylY(parts, 'carrom-pockets', IRON, sx * 0.345, sz * 0.345, bt - 0.0005, bt + 0.0015, 0.032, 12);
+        slab(parts, 'carrom-legs', WOOD_ASH, sx * (t - 0.05) - 0.03, sx * (t - 0.05) + 0.03, 0, bt - 0.05, sz * (t - 0.05) - 0.03, sz * (t - 0.05) + 0.03);
+      }
+      parts.put('carrom-circle', { key: 'laminate', tint: '#8A5A33' }, new THREE.RingGeometry(0.1, 0.103, 28).rotateX(-Math.PI / 2).translate(0, bt + 0.0016, 0));
+      for (let i = 0; i < 6; i++) { const a = (i * Math.PI) / 3; cylY(parts, 'carrom-coins', i % 2 ? IRON : { key: 'laminate', tint: '#F1E8D0' }, Math.cos(a) * 0.04, Math.sin(a) * 0.04, bt + 0.0005, bt + 0.007, 0.016, 10); }
+      cylY(parts, 'carrom-coins', { key: 'paint', tint: '#B3322B' }, 0, 0, bt + 0.0005, bt + 0.007, 0.016, 10);
+      for (let i = 0; i < 4; i++) {
+        const a = (i * Math.PI) / 2, sx = c0 * Math.sin(a), sz = c0 * Math.cos(a);
+        cylY(parts, 'stool-seat', roleOr(roles, { key: 'weave', tint: '#2F4A66' }, 'hallChair'), sx, sz, 0.41, 0.46, 0.17, seg);
+        for (let k = 0; k < 3; k++) { const b = (k * 2 * Math.PI) / 3 + a; tube(parts, 'stool-legs', FRAME_GREY, [sx + Math.cos(b) * 0.13, 0, sz + Math.sin(b) * 0.13], [sx + Math.cos(b) * 0.11, 0.41, sz + Math.sin(b) * 0.11], 0.011); }
+      }
+    },
+    'banquet-set': () => {
+      // a 120 cm round banquet table with four stacking chairs set in at the diagonals, each facing the table (the symbol a plan draws)
+      const tr = 0.6;
+      cylY(parts, 'table-top', roleOr(roles, { key: 'laminate', tint: '#E9E6DF' }, 'top'), 0, 0, 0.7, S, tr, seg * 2);
+      cylY(parts, 'table-apron', FRAME, 0, 0, 0.67, 0.7, tr - 0.08, 16);
+      tube(parts, 'table-legs', FRAME_GREY, [0, 0, 0], [0, 0.67, 0], 0.03);
+      cylY(parts, 'table-legs', FRAME_GREY, 0, 0, 0, 0.02, 0.28, 12);
+      const R = (w / 2 - 0.346) / Math.SQRT1_2 + 0.0184;
+      for (let i = 0; i < 4; i++) chairAt(parts, roles, R * Math.sin((i * Math.PI) / 2 + Math.PI / 4), R * Math.cos((i * Math.PI) / 2 + Math.PI / 4), (i * Math.PI) / 2 + Math.PI / 4, H);
+    },
+    'cafe-set': () => {
+      // a 70 cm round café table with two chairs at its two ends (along x), each facing it
+      cylY(parts, 'table-top', roleOr(roles, { key: 'laminate', tint: '#E9E6DF' }, 'top'), 0, 0, S - 0.03, S, 0.35, seg);
+      tube(parts, 'table-legs', FRAME_GREY, [0, 0, 0], [0, S - 0.03, 0], 0.025);
+      cylY(parts, 'table-legs', FRAME_GREY, 0, 0, 0, 0.02, 0.22, 12);
+      const cx = w / 2 - 0.26;
+      for (const sgn of [-1, 1]) chairAt(parts, roles, sgn * cx, 0, sgn > 0 ? Math.PI / 2 : -Math.PI / 2, H, true);
+    },
   };
   build[v]();
   void H; void d; void soft;
   return parts.done();
+}
+
+/** A stacking chair at (x, z) turned `a` radians about the vertical, its back at -z before the turn (so the seat faces the point it is turned towards), `plain` for the café sets */
+function chairAt(parts: Parts, roles: Roles, x: number, z: number, a: number, H: number, plain = false): void {
+  // a chair faces +z in its own frame; `a` is the bearing from the table's centre to the chair, so the chair is turned to face back at the table
+  const yaw = a + Math.PI;
+  const seatM: MatSpec = roleOr(roles, { key: 'weave', tint: '#2F4A66' }, 'hallChair');
+  const S = 0.46;
+  const place = (g: THREE.BufferGeometry): THREE.BufferGeometry => { g.rotateY(yaw); g.translate(x, 0, z); return g; };
+  const box = (name: string, mat: MatSpec, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number): void => {
+    parts.put(name, mat, place(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)));
+  };
+  box('chair-seat', seatM, -0.23, 0.23, S - 0.05, S, -0.21, 0.26);
+  box('chair-back', seatM, -0.2, 0.2, H - 0.24, H, -0.26, -0.22);
+  for (const sx of [-1, 1]) {
+    box('chair-legs', FRAME_GREY, sx * 0.2 - 0.011, sx * 0.2 + 0.011, 0, S - 0.05, 0.22, 0.24);
+    box('chair-legs', FRAME_GREY, sx * 0.2 - 0.011, sx * 0.2 + 0.011, 0, S - 0.05, -0.24, -0.22);
+    box('chair-back-posts', FRAME_GREY, sx * 0.2 - 0.011, sx * 0.2 + 0.011, S - 0.05, H - 0.04, -0.26, -0.24);
+  }
+  void plain;
 }

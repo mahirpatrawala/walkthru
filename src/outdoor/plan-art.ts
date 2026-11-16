@@ -14,6 +14,15 @@ const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/"/g, '&quot
 
 export const PLAN_COLOUR: Record<GroundArea['finish'], string> = { lawn: '#A5C985', paving: '#DCD1BA', deck: '#B88C62', gravel: '#DDD4C2', bed: '#8F7357', path: '#C6C0B6', rubber: '#4B8A5A', track: '#BE6247' };
 
+/** a basin's coping, drawn under every basin's water so two basins that touch show one body of water */
+function poolCoping(b: PoolBasin, at: (p: Vec2) => Vec2): string {
+  const R = b.rect;
+  const cor = [{ x: R.x0, z: R.z0 }, { x: R.x1, z: R.z1 }].map(at);
+  const x0 = Math.min(cor[0].x, cor[1].x), x1 = Math.max(cor[0].x, cor[1].x), z0 = Math.min(cor[0].z, cor[1].z), z1 = Math.max(cor[0].z, cor[1].z);
+  const cm = b.copingM;
+  return `<rect class="bm-coping" x="${n3(x0 - cm)}" y="${n3(z0 - cm)}" width="${n3(x1 - x0 + 2 * cm)}" height="${n3(z1 - z0 + 2 * cm)}" fill="#EFE7D6" stroke="#CDBFA6" stroke-width="0.05"/>`;
+}
+
 function poolArt(b: PoolBasin, idPrefix: string, at: (p: Vec2) => Vec2): string {
   const R = b.rect;
   const cor = [{ x: R.x0, z: R.z0 }, { x: R.x1, z: R.z0 }, { x: R.x1, z: R.z1 }, { x: R.x0, z: R.z1 }].map(at);
@@ -24,10 +33,8 @@ function poolArt(b: PoolBasin, idPrefix: string, at: (p: Vec2) => Vec2): string 
   const gid = `${idPrefix}-w-${b.id}`;
   const shallow = '#8FD3E6', deep = b.kids ? '#5FC2CF' : '#2F86B5';
   const ga = alongX ? (flip ? [1, 0, 0, 0] : [0, 0, 1, 0]) : (flip ? [0, 1, 0, 0] : [0, 0, 0, 1]);
-  const cm = b.copingM;
   const out = [
     `<linearGradient id="${gid}" x1="${ga[0]}" y1="${ga[1]}" x2="${ga[2] || (alongX ? 1 : 0)}" y2="${ga[3] || (alongX ? 0 : 1)}"><stop offset="0" stop-color="${shallow}"/><stop offset="0.35" stop-color="${shallow}"/><stop offset="0.8" stop-color="${deep}"/><stop offset="1" stop-color="${deep}"/></linearGradient>`,
-    `<rect class="bm-coping" x="${n3(x0 - cm)}" y="${n3(z0 - cm)}" width="${n3(x1 - x0 + 2 * cm)}" height="${n3(z1 - z0 + 2 * cm)}" fill="#EFE7D6" stroke="#CDBFA6" stroke-width="0.05"/>`,
     `<rect class="bm-water" x="${n3(x0)}" y="${n3(z0)}" width="${n3(x1 - x0)}" height="${n3(z1 - z0)}" fill="url(#${gid})"/>`,
   ];
   for (const s of stepRects(b)) {
@@ -48,6 +55,7 @@ export function outdoorPlanArt(file: OutdoorFile, idPrefix: string, at: (p: Vec2
     const fill = a.colour && (a.finish === 'rubber' || a.finish === 'track') ? a.colour : PLAN_COLOUR[a.finish];
     out.push(`<path class="bm-ground bm-${a.finish}" d="${d}" fill="${esc(fill)}" fill-rule="evenodd"${a.finish === 'bed' || a.edgingM ? ` stroke="#6E5B47" stroke-width="0.06"` : ''}/>`);
   }
+  for (const b of file.pools) out.push(poolCoping(b, at));
   for (const b of file.pools) out.push(poolArt(b, idPrefix, at));
   for (const r of file.roofs) {
     const a = at({ x: r.rect.x0, z: r.rect.z0 }), c = at({ x: r.rect.x1, z: r.rect.z1 });
