@@ -60,7 +60,7 @@ function groundShadowTexture(layout: Layout, rect: { x0: number; z0: number; x1:
   return t;
 }
 
-export function createStage(o: { scene: THREE.Scene; layout: Layout; bounds: Bounds; keyAzimuth: number; ground: boolean; /** the soft shadow of the building on the ground (not for an open-air space, whose rooms are the whole site) */ shadow?: boolean }): Stage {
+export function createStage(o: { scene: THREE.Scene; layout: Layout; bounds: Bounds; keyAzimuth: number; ground: boolean; /** the soft shadow of the building on the ground (not for an open-air space, whose rooms are the whole site) */ shadow?: boolean; /** the colour the far edge fades into (the scene's backdrop) */ backdrop: string }): Stage {
   const { layout, bounds } = o;
   const group = new THREE.Group();
   group.name = 'dollhouse-stage';
@@ -81,13 +81,15 @@ export function createStage(o: { scene: THREE.Scene; layout: Layout; bounds: Bou
     const radius = Math.max(60, span * 6);
     const geo = new THREE.CircleGeometry(radius, 64);
     geo.rotateX(-Math.PI / 2);
-    const mat = new THREE.MeshBasicMaterial({ color: GROUND_COLOUR, transparent: true, depthWrite: true });
+    // opaque, drawn first and writing no depth: whatever lies below the floor (a pool's basin) is drawn over it and stays visible; the far edge fades into the backdrop colour
+    const mat = new THREE.MeshBasicMaterial({ color: GROUND_COLOUR, depthWrite: false });
     const uniforms = {
       uCentre: { value: new THREE.Vector2(cx, cz) },
       uFade: { value: new THREE.Vector2(radius * 0.38, radius * 0.98) },
       uShadow: { value: shadowTex },
       uRect: { value: new THREE.Vector4(rect.x0, rect.z0, rect.x1 - rect.x0, rect.z1 - rect.z0) },
       uHasShadow: { value: shadowTex ? 1 : 0 },
+      uBg: { value: new THREE.Color(o.backdrop) },
     };
     mat.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, uniforms);
@@ -96,7 +98,7 @@ export function createStage(o: { scene: THREE.Scene; layout: Layout; bounds: Bou
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
       sh.fragmentShader = sh.fragmentShader
         .replace('#include <common>', `#include <common>
-varying vec3 vGW; uniform vec2 uCentre; uniform vec2 uFade; uniform sampler2D uShadow; uniform vec4 uRect; uniform float uHasShadow;
+varying vec3 vGW; uniform vec2 uCentre; uniform vec2 uFade; uniform sampler2D uShadow; uniform vec4 uRect; uniform float uHasShadow; uniform vec3 uBg;
 float wtLine(vec2 p, float w) { vec2 q = abs(fract(p - 0.5) - 0.5) / max(fwidth(p), vec2(1e-5)); return 1.0 - min(min(q.x, q.y) / w, 1.0); }`)
         .replace('#include <color_fragment>', `#include <color_fragment>
 {
@@ -111,7 +113,7 @@ float wtLine(vec2 p, float w) { vec2 q = abs(fract(p - 0.5) - 0.5) / max(fwidth(
     float s = (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) ? 0.0 : texture2D(uShadow, uv).r;
     diffuseColor.rgb *= 1.0 - 0.34 * s;
   }
-  diffuseColor.a *= fade;
+  diffuseColor.rgb = mix(uBg, diffuseColor.rgb, fade);
 }`);
     };
     mat.customProgramCacheKey = () => 'dollhouse-ground';
@@ -119,7 +121,7 @@ float wtLine(vec2 p, float w) { vec2 q = abs(fract(p - 0.5) - 0.5) / max(fwidth(
     mesh.name = 'dollhouse-ground';
     mesh.position.set(cx, GROUND_Y, cz);
     mesh.raycast = () => {};
-    mesh.renderOrder = -1;
+    mesh.renderOrder = -10;
     group.add(mesh);
     disposables.push(geo, mat);
     if (shadowTex) disposables.push(shadowTex);

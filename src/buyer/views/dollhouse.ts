@@ -42,7 +42,7 @@ const DEG = Math.PI / 180;
 
 /** The doll house's own light (three's units: a hemisphere of intensity pi lights a white surface at its own colour). A soft key with shadows, a restrained fill. */
 export const DOLL_LIGHT = {
-  hemi: 0.9, hemiSky: '#f6f8ff', hemiGround: '#cfc8bc',
+  hemi: 1.0, hemiSky: '#f6f8ff', hemiGround: '#cfc8bc',
   sun: 3.1, sunColour: '#fff1df', elevationDeg: 52, azimuthOffsetDeg: 30,
   env: 0.1, hour: 12, exposure: 0.76,
 };
@@ -146,6 +146,7 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
   let charWasVisible = true;
   let lightsSaved: { hemiC: THREE.Color; hemiG: THREE.Color; hemiI: number; sunC: THREE.Color; sunI: number; sunPos: THREE.Vector3; tgt: THREE.Vector3; visible: boolean; env: number } | null = null;
   let sweepClock = 0;
+  let keyClock = 0;
   let hoverClock = 0;
   let occludeClock = 0;
   let hoverEvt: PointerEvt | null = null;
@@ -164,7 +165,9 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
   const proj = new THREE.Vector3();
   const caster = new THREE.Raycaster();
 
-  const keyAzimuth = (): number => (limits ? home.theta : 0) + DOLL_LIGHT.azimuthOffsetDeg * DEG;
+  /** the bearing the key light follows: the camera's, a little after it, so the faces the viewer looks at are the lit ones from whichever side they orbit to */
+  let keyBase = 0;
+  const keyAzimuth = (): number => keyBase + DOLL_LIGHT.azimuthOffsetDeg * DEG;
   const itemOf = (id: string | null): FurnitureItem | null => (id ? ctx.furniture.all().find((i) => i.id === id) ?? null : null);
 
   // ---------------------------------------------------------------- light
@@ -282,9 +285,10 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
     frame();
     goal = { ...home };
     cur = { ...home };
+    keyBase = home.theta;
     hanger = hasRoof ? createHanger({ scene: viewer.scene, wallH: layout.wallHeightM, furnitureRoot: d.furnitureRoot, renderer: viewer.renderer }) : null;
     wallCut = createWallCut({ scene: viewer.scene, shell: d.shell, layout, skipEdges: d.skipEdges, furnitureRoot: d.furnitureRoot, renderer: viewer.renderer });
-    stage = createStage({ scene: viewer.scene, layout, bounds, keyAzimuth: keyAzimuth(), ground: true, shadow: !d.outdoor });
+    stage = createStage({ scene: viewer.scene, layout, bounds, keyAzimuth: keyAzimuth(), ground: true, shadow: !d.outdoor, backdrop: DOLL_BACKDROP });
     marker = createMarker(viewer.scene);
     outline = createOutline(viewer.scene);
     mixK = 0;
@@ -552,6 +556,9 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
       sweepClock += dt;
       if (sweepClock > 0.5) { sweepClock = 0; hanger?.sweep(); }
       applyCamera(dt, flight);
+      // the key swings round with the camera (at most four times a second: on the one-shot shadow map of the medium tier each swing is one shadow pass)
+      keyClock += dt;
+      if (keyClock > 0.25 && Math.abs(Math.atan2(Math.sin(cur.theta - keyBase), Math.cos(cur.theta - keyBase))) > 0.12) { keyClock = 0; keyBase = cur.theta; const k = mixK; mixK = -1; setMix(k); }
       // the walls that stand between the camera and the rooms come down once the ceiling is going, and follow the camera as it orbits
       wallCut?.update(dt, smootherstep((flight.raw - 0.4) / 0.6), { x: Math.sin(cur.theta), z: Math.cos(cur.theta) });
       // the body stays out of the picture once the flight is under way; the marker says where it stands
