@@ -7,7 +7,7 @@ import type { MatSpec, Parts } from './core';
 import { CHROME, RUBBER } from './kit';
 
 // dark-grey painted steel, not black metal (SPEC 16.20): under the plain sky a high-metalness black reads as a flat silhouette
-export const FRAME: MatSpec = { key: 'laminate', tint: '#5A5F67' };
+export const FRAME: MatSpec = { key: 'laminate', tint: '#6C727A' };
 export const FRAME_GREY: MatSpec = { key: 'metal', tint: '#A3A9B0' };
 export const SHROUD: MatSpec = { key: 'laminate', tint: '#C7CBD0' };
 export const SHROUD_LIGHT: MatSpec = { key: 'laminate', tint: '#EDEFF1' };
@@ -17,7 +17,7 @@ export const PAD_GREY: MatSpec = { key: 'dark', tint: '#6C7C90' };
 export const ACCENT_RED: MatSpec = { key: 'paint', tint: '#B3322B' };
 export const ACCENT_BLUE: MatSpec = { key: 'paint', tint: '#2F5F9E' };
 export const STACK_STEEL: MatSpec = { key: 'metal', tint: '#B2B7BD' };
-export const IRON: MatSpec = { key: 'laminate', tint: '#484B51' };
+export const IRON: MatSpec = { key: 'laminate', tint: '#6F747B' };
 export const SCREEN_GLASS: MatSpec = { key: 'granite', tint: '#24374A' };
 export const WOOD_ASH: MatSpec = { key: 'wood', tint: '#C8A06B' };
 export { CHROME, RUBBER };
