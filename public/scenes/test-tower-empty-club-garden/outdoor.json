@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "seed": 9,
+  "areas": [
+    {
+      "id": "lawn",
+      "finish": "lawn",
+      "polygon": [
+        {
+          "x": -4,
+          "z": 6.3
+        },
+        {
+          "x": 30,
+          "z": 6.3
+        },
+        {
+          "x": 30,
+          "z": 26.3
+        },
+        {
+          "x": -4,
+          "z": 26.3
+        }
+      ],
+      "stripes": false
+    },
+    {
+      "id": "plaza-a",
+      "finish": "paving",
+      "polygon": [
+        {
+          "x": 5,
+          "z": 6.3
+        },
+        {
+          "x": 14,
+          "z": 6.3
+        },
+        {
+          "x": 14,
+          "z": 9
+        },
+        {
+          "x": 5,
+          "z": 9
+        }
+      ]
+    },
+    {
+      "id": "path-1",
+      "finish": "path",
+      "polygon": [
+        {
+          "x": 8.4,
+          "z": 9
+        },
+        {
+          "x": 10.6,
+          "z": 9
+        },
+        {
+          "x": 10.6,
+          "z": 13.2
+        },
+        {
+          "x": 8.4,
+          "z": 13.2
+        }
+      ],
+      "edgingM": 0.05
+    }
+  ],
+  "pools": [],
+  "boundary": [
+    {
+      "room": "garden",
+      "edge": 0,
+      "kind": "facade"
+    },
+    {
+      "room": "garden",
+      "edge": 1,
+      "kind": "compound",
+      "heightM": 2.1,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "garden",
+      "edge": 2,
+      "kind": "hedge",
+      "heightM": 2
+    },
+    {
+      "room": "garden",
+      "edge": 3,
+      "kind": "compound",
+      "heightM": 2.1,
+      "colour": "#E9DCC2"
+    }
+  ],
+  "trees": [],
+  "beds": [],
+  "rows": [],
+  "roofs": [],
+  "note": "The garden, bare: a plain lawn, a paved entrance and a path",
+  "northDeg": 0
+}

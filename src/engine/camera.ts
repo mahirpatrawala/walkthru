@@ -58,6 +58,8 @@ export class FollowCamera {
   /** the longest boom and the steepest look-down the player can ask for: an open-air space (SPEC 19.5) allows more of both */
   private boomMax = BOOM_MAX_M;
   private pitchMax = PITCH_MAX_DEG;
+  /** an open-air space: the boom stops at the edge of the space instead of passing into nothing (through a doorway, over a railing) */
+  private blockVoid = false;
 
   private readonly camera: THREE.PerspectiveCamera;
   private readonly getGrid: () => Grid;
@@ -94,6 +96,7 @@ export class FollowCamera {
   setOpenAir(on: boolean): void {
     this.boomMax = on ? 6.5 : BOOM_MAX_M;
     this.pitchMax = on ? 72 : PITCH_MAX_DEG;
+    this.blockVoid = on;
     if (on) { this.distance = 3.8; this.pitchDeg = 22; this.haveBoom = false; }
   }
 
@@ -238,7 +241,7 @@ export class FollowCamera {
     const pr = pitch * DEG;
     const dir: Vec3 = { x: -Math.sin(yr) * Math.cos(pr), y: Math.sin(pr), z: -Math.cos(yr) * Math.cos(pr) };
     // While focused, the pivot sits on the furniture itself, so low furniture must not block the boom.
-    const free = boomDistance(this.getGrid(), pivot, dir, wanted, this.ceilingM, s > 0);
+    const free = boomDistance(this.getGrid(), pivot, dir, wanted, this.ceilingM, s > 0, this.blockVoid);
     if (!this.haveBoom || free < this.boomLen) {
       this.boomLen = free; // shorten instantly
       this.haveBoom = true;

@@ -11,6 +11,7 @@ import { validateBuilding } from '../../src/building/validate';
 import { parseBuilding } from '../../src/building/parse';
 import type { BuildingFile, Level, Portal, Space } from '../../src/building/types';
 import type { PropertyFile } from '../../src/types';
+import type { OutdoorFile } from '../../src/outdoor/types';
 import { FLATS, readFlat } from './flats';
 import type { FlatDesign } from './flats';
 import { composeTypicalFloor, mirrorId } from './plate';
@@ -19,7 +20,7 @@ import { LIFT_CAR, UPDATED_AT, clubhouseScenes, corridorScene, groundLobbyScene 
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
-export interface SceneBundle { property: PropertyFile; designs?: unknown | null; extras?: unknown | null; design?: unknown | null }
+export interface SceneBundle { property: PropertyFile; designs?: unknown | null; extras?: unknown | null; design?: unknown | null; /** an open-air space's outdoor.json (SPEC 19.2) */ outdoor?: OutdoorFile | null }
 export interface Built { buildings: BuildingFile[]; scenes: Map<string, SceneBundle> }
 
 /** Which flat sits where on the typical floor: east side from the north end, then west side from the north end. */
@@ -76,10 +77,13 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
   const lobbyScene = empty ? 'test-tower-empty-lobby' : 'test-tower-lobby';
   const lobby = groundLobbyScene(lobbyScene, !empty);
   add(lobbyScene, { property: lobby.property });
-  // the clubhouse level (bare in both)
-  const ids = { foyer: 'test-tower-club-foyer', hall: 'test-tower-club-hall', gym: 'test-tower-club-gym', pool: 'test-tower-club-pool', garden: 'test-tower-club-garden' };
+  // the clubhouse level: foyer, hall and gym are bare in both; the pool area and the garden are finished in the sample and bare in the empty tower
+  const ids = { foyer: 'test-tower-club-foyer', hall: 'test-tower-club-hall', gym: 'test-tower-club-gym', pool: 'test-tower-club-pool', garden: 'test-tower-club-garden', poolBare: 'test-tower-empty-club-pool', gardenBare: 'test-tower-empty-club-garden' };
   const club = clubhouseScenes(ids);
-  for (const [k, v] of Object.entries(club)) if (k !== 'doors') add(ids[k as keyof typeof ids], { property: v as PropertyFile });
+  for (const k of ['foyer', 'hall', 'gym'] as const) add(ids[k], { property: club[k] });
+  const poolScene = empty ? ids.poolBare : ids.pool, gardenScene = empty ? ids.gardenBare : ids.garden;
+  add(poolScene, { property: empty ? club.poolBare : club.pool, outdoor: empty ? club.outdoor.poolBare : club.outdoor.pool });
+  add(gardenScene, { property: empty ? club.gardenBare : club.garden, outdoor: empty ? club.outdoor.gardenBare : club.outdoor.garden });
 
   // ---- the building
   const lift = (id: string, opening: string): Portal => ({ id, kind: 'lift', opening, lift: id });
@@ -98,7 +102,7 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     }],
   };
   const clubhouse: Level = {
-    id: 'l1', label: 'Level 1', short: '1', summary: 'Clubhouse: hall, gym, pool, garden', floorToFloorM: 4.2,
+    id: 'l1', label: 'Level 1', short: '1', summary: 'Clubhouse: hall, gym, pool area, garden', floorToFloorM: 4.2,
     spaces: [
       {
         id: 'clubhouse', kind: 'corridor', name: 'Clubhouse foyer', sceneId: ids.foyer, placement: { x: 0, z: 0, rotDeg: 0 },
@@ -113,8 +117,12 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
       },
       amenity('hall', ids.hall, 'hall', 'Community hall', 'clubhouse', 'hall', ['Empty hall, about 12 × 8.4 m.']),
       amenity('gym', ids.gym, 'gym', 'Gym', 'clubhouse', 'gym', ['Empty room, about 8 × 12 m. A mirror wall on the long west side comes in the next stage.']),
-      { ...amenity('pool', ids.pool, 'pool', 'Pool area', 'clubhouse', 'pool', ['A plain room the size of the pool deck, about 16 × 9 m. No water yet.']), comingNext: true },
-      { ...amenity('garden', ids.garden, 'garden', 'Garden', 'clubhouse', 'garden', ['A plain room the size of the garden, about 14 × 10 m. No planting yet.']), comingNext: true },
+      { ...amenity('pool', poolScene, 'pool', 'Pool area', 'clubhouse', 'pool', empty
+        ? ['The pool area, bare: the deck, an 11 × 4.5 m pool and a children\'s pool, a covered verandah left out. Nothing placed or planted.']
+        : ['Open air, about 20 × 14 m: an 11 × 4.5 m pool (1.2 to 1.7 m deep) with steps, a children\'s pool, a covered verandah, loungers, parasols and planting. Water, sky and sun are drawn; the surroundings beyond the walls are not.']), outdoor: true },
+      { ...amenity('garden', gardenScene, 'garden', 'Garden', 'clubhouse', 'garden', empty
+        ? ['The garden, bare: a plain lawn, a paved entrance and a path, about 34 × 20 m. Nothing placed or planted.']
+        : ['Open air, about 34 × 20 m: lawn with a jogging track round it, a paved plaza with a water feature, a children\'s play area, benches, a pergola and Indian garden planting. The sky is a plain graded sky, not the real view.']), outdoor: true },
     ],
   };
   const typical = (n: number): Level => {
@@ -179,6 +187,7 @@ export function writeAll(b: Built, root = ROOT): void {
     if (s.designs) writeIf(path.join(dir, 'designs.json'), json(s.designs));
     if (s.extras) writeIf(path.join(dir, 'proposal-extras.json'), json(s.extras));
     if (s.design) writeIf(path.join(dir, 'design.json'), json(s.design));
+    if (s.outdoor) writeIf(path.join(dir, 'outdoor.json'), json(s.outdoor));
   }
   for (const bd of b.buildings) writeIf(path.join(root, 'public', 'buildings', bd.id, 'building.json'), json(bd));
 }

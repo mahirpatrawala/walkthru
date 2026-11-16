@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "seed": 7,
+  "areas": [
+    {
+      "id": "deck",
+      "finish": "paving",
+      "polygon": [
+        {
+          "x": 12.3,
+          "z": -8
+        },
+        {
+          "x": 32.3,
+          "z": -8
+        },
+        {
+          "x": 32.3,
+          "z": 6
+        },
+        {
+          "x": 12.3,
+          "z": 6
+        }
+      ],
+      "holes": [
+        [
+          {
+            "x": 16.7,
+            "z": -5.3
+          },
+          {
+            "x": 28.3,
+            "z": -5.3
+          },
+          {
+            "x": 28.3,
+            "z": -0.2
+          },
+          {
+            "x": 16.7,
+            "z": -0.2
+          }
+        ],
+        [
+          {
+            "x": 29.15,
+            "z": -5.05
+          },
+          {
+            "x": 31.65,
+            "z": -5.05
+          },
+          {
+            "x": 31.65,
+            "z": -2.35
+          },
+          {
+            "x": 29.15,
+            "z": -2.35
+          }
+        ]
+      ]
+    }
+  ],
+  "pools": [
+    {
+      "id": "main",
+      "rect": {
+        "x0": 17,
+        "z0": -5,
+        "x1": 28,
+        "z1": -0.5
+      },
+      "shallowEnd": "W",
+      "profile": [
+        [
+          0,
+          1.2
+        ],
+        [
+          0.4,
+          1.2
+        ],
+        [
+          0.75,
+          1.7
+        ],
+        [
+          1,
+          1.7
+        ]
+      ],
+      "waterBelowDeckM": 0.12,
+      "copingM": 0.3,
+      "steps": [
+        {
+          "edge": "W",
+          "fromM": 0.45,
+          "widthM": 3.6,
+          "count": 3
+        }
+      ],
+      "ladders": [
+        {
+          "edge": "S",
+          "atM": 6.2
+        },
+        {
+          "edge": "S",
+          "atM": 9.2
+        }
+      ],
+      "lanes": 0,
+      "markers": true,
+      "tile": "blue"
+    },
+    {
+      "id": "kids",
+      "rect": {
+        "x0": 29.4,
+        "z0": -4.8,
+        "x1": 31.4,
+        "z1": -2.6
+      },
+      "shallowEnd": "W",
+      "profile": [
+        [
+          0,
+          0.45
+        ],
+        [
+          1,
+          0.6
+        ]
+      ],
+      "waterBelowDeckM": 0.1,
+      "copingM": 0.25,
+      "steps": [
+        {
+          "edge": "W",
+          "fromM": 0.5,
+          "widthM": 1.2,
+          "count": 1
+        }
+      ],
+      "ladders": [],
+      "lanes": 0,
+      "markers": true,
+      "kids": true,
+      "tile": "turquoise"
+    }
+  ],
+  "boundary": [
+    {
+      "room": "pool",
+      "edge": 0,
+      "kind": "compound",
+      "heightM": 2.2,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "pool",
+      "edge": 1,
+      "kind": "glass",
+      "heightM": 1.1
+    },
+    {
+      "room": "pool",
+      "edge": 2,
+      "kind": "compound",
+      "heightM": 2.2,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "pool",
+      "edge": 3,
+      "kind": "facade"
+    }
+  ],
+  "trees": [],
+  "beds": [],
+  "rows": [],
+  "roofs": [],
+  "note": "The pool area, bare: deck, pool, no furniture or planting",
+  "northDeg": 0
+}

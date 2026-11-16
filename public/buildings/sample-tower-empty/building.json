@@ -184,7 +184,7 @@
       "id": "l1",
       "label": "Level 1",
       "short": "1",
-      "summary": "Clubhouse: hall, gym, pool, garden",
+      "summary": "Clubhouse: hall, gym, pool area, garden",
       "floorToFloorM": 4.2,
       "spaces": [
         {
@@ -338,14 +338,14 @@
           "id": "pool",
           "kind": "pool",
           "name": "Pool area",
-          "sceneId": "test-tower-club-pool",
+          "sceneId": "test-tower-empty-club-pool",
           "placement": {
             "x": 0,
             "z": 0,
             "rotDeg": 0
           },
           "notes": [
-            "A plain room the size of the pool deck, about 16 × 9 m. No water yet."
+            "The pool area, bare: the deck, an 11 × 4.5 m pool and a children's pool, a covered verandah left out. Nothing placed or planted."
           ],
           "portals": [
             {
@@ -361,20 +361,20 @@
               "look": "plain"
             }
           ],
-          "comingNext": true
+          "outdoor": true
         },
         {
           "id": "garden",
           "kind": "garden",
           "name": "Garden",
-          "sceneId": "test-tower-club-garden",
+          "sceneId": "test-tower-empty-club-garden",
           "placement": {
             "x": 0,
             "z": 0,
             "rotDeg": 0
           },
           "notes": [
-            "A plain room the size of the garden, about 14 × 10 m. No planting yet."
+            "The garden, bare: a plain lawn, a paved entrance and a path, about 34 × 20 m. Nothing placed or planted."
           ],
           "portals": [
             {
@@ -390,7 +390,7 @@
               "look": "plain"
             }
           ],
-          "comingNext": true
+          "outdoor": true
         }
       ]
     },

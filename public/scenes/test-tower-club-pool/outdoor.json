@@ -1,0 +1,471 @@
+{
+  "version": 1,
+  "seed": 7,
+  "areas": [
+    {
+      "id": "deck",
+      "finish": "paving",
+      "polygon": [
+        {
+          "x": 12.3,
+          "z": -8
+        },
+        {
+          "x": 32.3,
+          "z": -8
+        },
+        {
+          "x": 32.3,
+          "z": 6
+        },
+        {
+          "x": 12.3,
+          "z": 6
+        }
+      ],
+      "holes": [
+        [
+          {
+            "x": 16.7,
+            "z": -5.3
+          },
+          {
+            "x": 28.3,
+            "z": -5.3
+          },
+          {
+            "x": 28.3,
+            "z": -0.2
+          },
+          {
+            "x": 16.7,
+            "z": -0.2
+          }
+        ],
+        [
+          {
+            "x": 29.15,
+            "z": -5.05
+          },
+          {
+            "x": 31.65,
+            "z": -5.05
+          },
+          {
+            "x": 31.65,
+            "z": -2.35
+          },
+          {
+            "x": 29.15,
+            "z": -2.35
+          }
+        ]
+      ]
+    },
+    {
+      "id": "sun-deck",
+      "finish": "deck",
+      "polygon": [
+        {
+          "x": 15.4,
+          "z": 0.3
+        },
+        {
+          "x": 31,
+          "z": 0.3
+        },
+        {
+          "x": 31,
+          "z": 3.7
+        },
+        {
+          "x": 15.4,
+          "z": 3.7
+        }
+      ]
+    },
+    {
+      "id": "bed-n1",
+      "finish": "bed",
+      "polygon": [
+        {
+          "x": 12.9,
+          "z": -7.9
+        },
+        {
+          "x": 20.6,
+          "z": -7.9
+        },
+        {
+          "x": 20.6,
+          "z": -6.95
+        },
+        {
+          "x": 12.9,
+          "z": -6.95
+        }
+      ],
+      "edgingM": 0.15
+    },
+    {
+      "id": "bed-n2",
+      "finish": "bed",
+      "polygon": [
+        {
+          "x": 24.6,
+          "z": -7.9
+        },
+        {
+          "x": 31.8,
+          "z": -7.9
+        },
+        {
+          "x": 31.8,
+          "z": -6.95
+        },
+        {
+          "x": 24.6,
+          "z": -6.95
+        }
+      ],
+      "edgingM": 0.15
+    },
+    {
+      "id": "bed-s",
+      "finish": "bed",
+      "polygon": [
+        {
+          "x": 12.9,
+          "z": 5
+        },
+        {
+          "x": 31.8,
+          "z": 5
+        },
+        {
+          "x": 31.8,
+          "z": 5.9
+        },
+        {
+          "x": 12.9,
+          "z": 5.9
+        }
+      ],
+      "edgingM": 0.15
+    }
+  ],
+  "pools": [
+    {
+      "id": "main",
+      "rect": {
+        "x0": 17,
+        "z0": -5,
+        "x1": 28,
+        "z1": -0.5
+      },
+      "shallowEnd": "W",
+      "profile": [
+        [
+          0,
+          1.2
+        ],
+        [
+          0.4,
+          1.2
+        ],
+        [
+          0.75,
+          1.7
+        ],
+        [
+          1,
+          1.7
+        ]
+      ],
+      "waterBelowDeckM": 0.12,
+      "copingM": 0.3,
+      "steps": [
+        {
+          "edge": "W",
+          "fromM": 0.45,
+          "widthM": 3.6,
+          "count": 3
+        }
+      ],
+      "ladders": [
+        {
+          "edge": "S",
+          "atM": 6.2
+        },
+        {
+          "edge": "S",
+          "atM": 9.2
+        }
+      ],
+      "lanes": 0,
+      "markers": true,
+      "tile": "blue"
+    },
+    {
+      "id": "kids",
+      "rect": {
+        "x0": 29.4,
+        "z0": -4.8,
+        "x1": 31.4,
+        "z1": -2.6
+      },
+      "shallowEnd": "W",
+      "profile": [
+        [
+          0,
+          0.45
+        ],
+        [
+          1,
+          0.6
+        ]
+      ],
+      "waterBelowDeckM": 0.1,
+      "copingM": 0.25,
+      "steps": [
+        {
+          "edge": "W",
+          "fromM": 0.5,
+          "widthM": 1.2,
+          "count": 1
+        }
+      ],
+      "ladders": [],
+      "lanes": 0,
+      "markers": true,
+      "kids": true,
+      "tile": "turquoise"
+    }
+  ],
+  "boundary": [
+    {
+      "room": "pool",
+      "edge": 0,
+      "kind": "compound",
+      "heightM": 2.2,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "pool",
+      "edge": 1,
+      "kind": "glass",
+      "heightM": 1.1
+    },
+    {
+      "room": "pool",
+      "edge": 2,
+      "kind": "compound",
+      "heightM": 2.2,
+      "colour": "#E9DCC2"
+    },
+    {
+      "room": "pool",
+      "edge": 3,
+      "kind": "facade"
+    }
+  ],
+  "trees": [
+    {
+      "species": "royal-palm",
+      "x": 15.6,
+      "z": -7.4,
+      "scale": 1
+    },
+    {
+      "species": "royal-palm",
+      "x": 19.4,
+      "z": -7.4,
+      "scale": 0.95
+    },
+    {
+      "species": "royal-palm",
+      "x": 27.2,
+      "z": -7.4,
+      "scale": 1.05
+    },
+    {
+      "species": "royal-palm",
+      "x": 30.8,
+      "z": -7.4,
+      "scale": 0.92
+    },
+    {
+      "species": "frangipani",
+      "x": 16.6,
+      "z": 5.45,
+      "scale": 1
+    },
+    {
+      "species": "frangipani",
+      "x": 23,
+      "z": 5.45,
+      "scale": 1.1
+    },
+    {
+      "species": "frangipani",
+      "x": 29.4,
+      "z": 5.45,
+      "scale": 0.95
+    }
+  ],
+  "beds": [
+    {
+      "id": "planting-n1",
+      "polygon": [
+        {
+          "x": 12.9,
+          "z": -7.9
+        },
+        {
+          "x": 20.6,
+          "z": -7.9
+        },
+        {
+          "x": 20.6,
+          "z": -6.95
+        },
+        {
+          "x": 12.9,
+          "z": -6.95
+        }
+      ],
+      "species": [
+        {
+          "id": "hibiscus",
+          "weight": 3
+        },
+        {
+          "id": "croton",
+          "weight": 3
+        },
+        {
+          "id": "bougainvillea",
+          "weight": 2
+        }
+      ],
+      "density": 2.6,
+      "seed": 11,
+      "scale": 1
+    },
+    {
+      "id": "planting-n2",
+      "polygon": [
+        {
+          "x": 24.6,
+          "z": -7.9
+        },
+        {
+          "x": 31.8,
+          "z": -7.9
+        },
+        {
+          "x": 31.8,
+          "z": -6.95
+        },
+        {
+          "x": 24.6,
+          "z": -6.95
+        }
+      ],
+      "species": [
+        {
+          "id": "hibiscus",
+          "weight": 3
+        },
+        {
+          "id": "croton",
+          "weight": 3
+        },
+        {
+          "id": "bougainvillea",
+          "weight": 2
+        }
+      ],
+      "density": 2.6,
+      "seed": 12,
+      "scale": 1
+    },
+    {
+      "id": "planting-s",
+      "polygon": [
+        {
+          "x": 12.9,
+          "z": 5
+        },
+        {
+          "x": 31.8,
+          "z": 5
+        },
+        {
+          "x": 31.8,
+          "z": 5.9
+        },
+        {
+          "x": 12.9,
+          "z": 5.9
+        }
+      ],
+      "species": [
+        {
+          "id": "croton",
+          "weight": 4
+        },
+        {
+          "id": "hibiscus",
+          "weight": 2
+        },
+        {
+          "id": "areca-palm",
+          "weight": 1
+        }
+      ],
+      "density": 2.2,
+      "seed": 13,
+      "scale": 1
+    }
+  ],
+  "rows": [],
+  "roofs": [
+    {
+      "id": "verandah",
+      "rect": {
+        "x0": 12.3,
+        "z0": -8,
+        "x1": 15.9,
+        "z1": 6
+      },
+      "heightM": 3.6,
+      "kind": "slab",
+      "columns": [
+        {
+          "x": 15.5,
+          "z": -7.4
+        },
+        {
+          "x": 15.5,
+          "z": -3.8
+        },
+        {
+          "x": 15.5,
+          "z": 0
+        },
+        {
+          "x": 15.5,
+          "z": 4.2
+        },
+        {
+          "x": 15.5,
+          "z": 5.6
+        }
+      ],
+      "thicknessM": 0.22
+    }
+  ],
+  "note": "Sample pool area for demonstration",
+  "northDeg": 0
+}
