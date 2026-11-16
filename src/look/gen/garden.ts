@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { Parts } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { CHROME, GLASS, RUBBER, bar, disc, post } from './kit';
+import { fitToBox } from './outdoor-fit';
 import { NAVY, SIGN_RED, TEAK, WHITE_PAINT } from './pool';
 
 export const GARDEN_VARIANTS = ['bench', 'senior-bench', 'pergola', 'lamp-post', 'bollard', 'slide', 'swingset', 'seesaw', 'climber', 'rubber-mat', 'track', 'yoga-deck', 'fountain'] as const;
@@ -36,7 +37,7 @@ export function buildGarden(env: GenEnv, size: GenSize, p: GardenParams, _roles:
     case 'yoga-deck': yogaDeck(parts, size); break;
     case 'fountain': fountain(parts, size); break;
   }
-  const g = parts.done();
+  const g = fitToBox(parts.done(), size, 0, null);
   // the lit parts follow the time of day (SPEC 16.12): off in daylight, on from the evening
   g.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.userData.walkthruPart === 'glow') o.userData.walkthruLight = 'lamp'; });
   return g;

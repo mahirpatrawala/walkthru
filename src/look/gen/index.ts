@@ -188,7 +188,7 @@ export const GENERATORS: Record<LookKind, GenSpec> = {
   },
   pool: {
     defaults: POOL_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildPool(e, s, p as unknown as PoolParams, r),
-    enums: enumsOf(['variant', POOL_VARIANTS]), ranges: { canopyM: [1.5, 4] },
+    enums: enumsOf(['variant', POOL_VARIANTS]), ranges: { canopyM: [1.5, 4], liftM: [0, 2.6] },
   },
   garden: {
     defaults: GARDEN_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildGarden(e, s, p as unknown as GardenParams, r),

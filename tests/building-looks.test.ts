@@ -49,7 +49,11 @@ describe('the building map', () => {
     expect((plan.svg.match(/class="bm-space/g) ?? []).length).toBe(lv.spaces.length);
     expect(plan.svg).not.toMatch(/class="plan-label/);
     for (const name of ['Community hall', 'Gym', 'Clubhouse foyer']) expect(plan.svg).toContain(name);
-    expect(plan.svg).toMatch(/Coming in the next stage/);
+    // a placeholder for a later stage is still labelled as one (no space of the sample is one any more: the pool and the garden are finished)
+    expect(plan.svg).not.toMatch(/Coming in the next stage/);
+    const lv2 = structuredClone(lv);
+    lv2.spaces.find((s) => s.id === 'gym')!.comingNext = true;
+    expect(levelPlan(b, lv2, scenes([...new Set(lv2.spaces.map((s) => s.sceneId))]), { idPrefix: 't' }).svg).toMatch(/Coming in the next stage/);
   });
   it('a flat states its carpet area from its own rooms: every flat of the tower has one, and one with a room not measured has none', () => {
     const extras = (id: string): Record<string, string> => {
@@ -71,7 +75,7 @@ describe('the building map', () => {
     // a balcony the drawing does not confirm never takes the number away
     const balcony = p.layout.rooms.find((r) => r.roomType === 'balcony')!;
     expect(spaceArea(s, { property: p, unverified: { [balcony.id]: 'size not confirmed yet' } }).measured).toBe(true);
-    const soon = spaceArea(space('pool'), { property: readScene('test-tower-club-pool')!, unverified: {} });
+    const soon = spaceArea({ ...space('pool'), comingNext: true }, { property: readScene('test-tower-club-pool')!, unverified: {} });
     expect(soon.measured).toBe(false);
     expect(soon.text).toMatch(/placeholder/);
   });

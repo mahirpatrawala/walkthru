@@ -34,7 +34,7 @@ describe('building.json', () => {
     expect(new Set(types).size).toBe(4);
     const l3 = b.levels.find((l) => l.id === 'l3')!.spaces.filter((s) => s.kind === 'home');
     expect(l3.map((s) => s.sceneId).sort()).toEqual(b.levels.find((l) => l.id === 'l2')!.spaces.filter((s) => s.kind === 'home').map((s) => s.sceneId).sort());
-    expect(b.levels.flatMap((l) => l.spaces).filter((s) => s.kind === 'pool' || s.kind === 'garden').every((s) => s.comingNext)).toBe(true);
+    expect(b.levels.flatMap((l) => l.spaces).filter((s) => s.kind === 'pool' || s.kind === 'garden').every((s) => s.outdoor === true && !s.comingNext)).toBe(true);
   });
 
   it('rejects things that are not a building, with a message that says where', () => {

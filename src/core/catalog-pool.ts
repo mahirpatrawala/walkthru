@@ -61,8 +61,8 @@ export const POOL_PIECES: MorePiece[] = [
     note: 'A plate on a post at the side of the pool. The numeral is the depth you choose; the model does not read it from the pool.',
   }),
   pool({
-    id: 'pool-changing-sign', name: 'Changing-room door marker', cat: 'amenities', w: 0.45, d: 0.06, h: 0.45, s: 0.45,
-    label: '45 × 45 cm plate, its lower edge at 1.7 m, on a wall', params: { variant: 'changing-sign' }, pose: 'dims', kw: 'changing room sign door marker plate men women pool wall',
+    id: 'pool-changing-sign', name: 'Changing-room door marker', cat: 'amenities', w: 0.45, d: 0.06, h: 2.15, s: 2.15,
+    label: '45 × 45 cm plate, its lower edge at 1.7 m, on a wall', params: { variant: 'changing-sign', liftM: 1.7 }, pose: 'dims', kw: 'changing room sign door marker plate men women pool wall',
     mountY: 1.7, wall: true, note: 'A plate on the wall beside a changing-room door. The doors themselves are not modelled in this space.',
   }),
   pool({

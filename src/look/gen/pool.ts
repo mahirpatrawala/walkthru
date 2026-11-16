@@ -6,11 +6,12 @@ import { Parts } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { cylinderY } from './geo';
 import { CHROME, LEAF, RUBBER, SOIL, bar, disc, post, soft } from './kit';
+import { fitToBox } from './outdoor-fit';
 
 export const POOL_VARIANTS = ['lounger', 'umbrella', 'chair', 'table', 'shower', 'towel', 'lifeguard', 'life-ring', 'depth-sign', 'changing-sign', 'planter'] as const;
 export type PoolVariant = (typeof POOL_VARIANTS)[number];
-export interface PoolParams { variant: PoolVariant; canopyM: number; text: string }
-export const POOL_DEFAULTS: PoolParams = { variant: 'lounger', canopyM: 2.5, text: '1.2 m' };
+export interface PoolParams { variant: PoolVariant; canopyM: number; text: string; liftM: number }
+export const POOL_DEFAULTS: PoolParams = { variant: 'lounger', canopyM: 2.5, text: '1.2 m', liftM: 0 };
 
 export const TEAK: MatSpec = { key: 'wood', tint: '#A66F3A' };
 export const RESIN: MatSpec = { key: 'laminate', tint: '#F1EFE9' };
@@ -32,10 +33,10 @@ export function buildPool(env: GenEnv, size: GenSize, p: PoolParams, _roles: Rol
     case 'lifeguard': lifeguard(parts, size); break;
     case 'life-ring': lifeRing(parts, size); break;
     case 'depth-sign': depthSign(parts, size, p.text); break;
-    case 'changing-sign': changingSign(parts, size); break;
+    case 'changing-sign': changingSign(parts, size, p.liftM); break;
     case 'planter': planter(parts, size); break;
   }
-  return parts.done();
+  return fitToBox(parts.done(), size, p.variant === 'changing-sign' ? p.liftM : 0, p.variant === 'umbrella' ? /^umbrella-/ : null);
 }
 
 /** A resin sun lounger: a frame on four legs, slatted base, a back that rises at 40 degrees, a navy cushion over both. Head at -z, feet at +z. */
@@ -81,13 +82,13 @@ function umbrella(P: Parts, { w, d, h }: GenSize, canopyM: number): void {
   post(P, 'pole', CHROME, 0, 0, 0.16, topY, 0.022);
   const cone = new THREE.ConeGeometry(r, topY - rimY + 0.02, 8, 1, true);
   cone.translate(0, rimY + (topY - rimY) / 2, 0);
-  P.put('canopy', { key: 'cotton', tint: '#D9C7A4' }, cone, { double: true, noShadow: false });
+  P.put('umbrella-canopy', { key: 'cotton', tint: '#D9C7A4' }, cone, { double: true, noShadow: false });
   // a valance round the rim
   const rim = new THREE.CylinderGeometry(r, r, 0.16, 8, 1, true);
   rim.translate(0, rimY - 0.07, 0);
-  P.put('canopy', { key: 'cotton', tint: '#D9C7A4' }, rim, { double: true });
-  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; bar(P, 'ribs', CHROME, [0, topY - 0.02, 0], [Math.sin(a) * r * 0.97, rimY - 0.02, Math.cos(a) * r * 0.97], 0.008); }
-  const cap = new THREE.SphereGeometry(0.035, 8, 6); cap.translate(0, topY + 0.01, 0); P.put('pole', CHROME, cap);
+  P.put('umbrella-canopy', { key: 'cotton', tint: '#D9C7A4' }, rim, { double: true });
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; bar(P, 'umbrella-ribs', CHROME, [0, topY - 0.02, 0], [Math.sin(a) * r * 0.97, rimY - 0.02, Math.cos(a) * r * 0.97], 0.008); }
+  const cap = new THREE.SphereGeometry(0.035, 8, 6); cap.translate(0, topY + 0.01, 0); P.put('umbrella-cap', CHROME, cap);
 }
 
 function chair(P: Parts, { w, d, h, s }: GenSize): void {
@@ -194,16 +195,16 @@ function signTexture(text: string): THREE.Texture | null {
   return t;
 }
 
-function changingSign(P: Parts, { w, d, h }: GenSize): void {
-  const t = d - 0.01;
-  P.box('plate', POOL_BLUE, -w / 2, w / 2, 0, h, -d / 2, -d / 2 + t, { c: 0.006 });
+function changingSign(P: Parts, { w, d, h }: GenSize, lift: number): void {
+  const t = d - 0.01, ph = h - lift;
+  P.box('plate', POOL_BLUE, -w / 2, w / 2, lift, h, -d / 2, -d / 2 + t, { c: 0.006 });
   const zf = -d / 2 + t;
   // two simple figures in white: a flat head and a body block (a cone for the skirt), thin enough to stay inside the plate's depth
   for (const [cx, skirt] of [[-0.1, false], [0.1, true]] as const) {
-    P.put('figure', WHITE_PAINT, new THREE.SphereGeometry(0.03, 8, 6).scale(1, 1, 0.12).translate(cx, h * 0.72, zf));
-    P.put('figure', WHITE_PAINT, skirt ? new THREE.ConeGeometry(0.06, 0.16, 6).scale(1, 1, 0.12).translate(cx, h * 0.46, zf) : new THREE.BoxGeometry(0.07, 0.17, 0.006).translate(cx, h * 0.46, zf - 0.003));
+    P.put('figure', WHITE_PAINT, new THREE.SphereGeometry(0.03, 8, 6).scale(1, 1, 0.12).translate(cx, lift + ph * 0.72, zf));
+    P.put('figure', WHITE_PAINT, skirt ? new THREE.ConeGeometry(0.06, 0.16, 6).scale(1, 1, 0.12).translate(cx, lift + ph * 0.46, zf) : new THREE.BoxGeometry(0.07, 0.17, 0.006).translate(cx, lift + ph * 0.46, zf - 0.003));
   }
-  P.box('band', WHITE_PAINT, -w / 2 + 0.03, w / 2 - 0.03, h * 0.12, h * 0.17, zf - 0.004, zf, { c: 0 });
+  P.box('band', WHITE_PAINT, -w / 2 + 0.03, w / 2 - 0.03, lift + ph * 0.12, lift + ph * 0.17, zf - 0.004, zf, { c: 0 });
 }
 
 /** A tapered terracotta-glazed pot with soil and a small areca palm. */
