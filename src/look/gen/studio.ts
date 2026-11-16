@@ -150,7 +150,7 @@ export function buildStudio(env: GenEnv, size: GenSize, p: StudioParams, roles: 
     },
     scale: () => {
       // a flat digital scale: a glass platform on a frame with a small window display at the front edge
-      parts.box('scale-body', SHROUD_LIGHT, -x1, x1, 0, H, z0, z1, { c: 0.006 });
+      parts.box('scale-body', SHROUD_LIGHT, -x1, x1, 0, H - 0.001, z0, z1, { c: 0.004 });
       slab(parts, 'scale-glass', { key: 'granite', tint: '#14181C' }, -x1 + 0.02, x1 - 0.02, H - 0.001, H, z0 + 0.02, z1 - 0.06);
       slab(parts, 'scale-display', SCREEN_GLASS, -0.05, 0.05, H - 0.0, H + 0.0, z1 - 0.045, z1 - 0.012);
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) cylY(parts, 'scale-feet', RUBBER, sx * (x1 - 0.03), sz * (z1 - 0.03), 0, 0.004, 0.012, 8);

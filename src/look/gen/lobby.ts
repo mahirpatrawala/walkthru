@@ -103,7 +103,7 @@ export function buildLobby(env: GenEnv, size: GenSize, p: LobbyParams, roles: Ro
       // a bank of steel letterboxes: 6 across, 5 high, each with a number, a slot and a lock, on a wall plate
       const cols = 6, rows = 5, top = H, bot = lift;
       const cw = w / cols, ch = (top - bot) / rows;
-      parts.box('lb-body', { key: 'laminate', tint: '#7E8388' }, -x1, x1, bot, top, z0, z1, { c: 0.004 });
+      parts.box('lb-body', { key: 'laminate', tint: '#7E8388' }, -x1, x1, bot, top, z0, z1 - 0.004, { c: 0.002 });
       for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
         const xa = -x1 + c * cw + 0.006, xb = -x1 + (c + 1) * cw - 0.006, ya = bot + r * ch + 0.006, yb = bot + (r + 1) * ch - 0.006;
         slab(parts, 'lb-doors', { key: 'laminate', tint: '#B9BEC3' }, xa, xb, ya, yb, z1 - 0.004, z1);
@@ -125,14 +125,14 @@ export function buildLobby(env: GenEnv, size: GenSize, p: LobbyParams, roles: Ro
       slab(parts, 'sec-keyboard', CONSOLE, -0.2, 0.2, 0.76, 0.78, z0 + 0.5, z0 + 0.72);
     },
     notice: () => {
-      parts.box('notice-frame', WOOD_ASH, -x1, x1, lift, H, z0, z1, { c: 0.004 });
+      parts.box('notice-frame', WOOD_ASH, -x1, x1, lift, H, z0, z1 - 0.004, { c: 0.002 });
       slab(parts, 'notice-cork', { key: 'wood', tint: '#B98A55' }, -x1 + 0.03, x1 - 0.03, lift + 0.03, H - 0.03, z1 - 0.012, z1);
       const sheets: [number, number, number, number, string][] = [[-0.45, 0.2, 0.28, 0.38, '#F4F2EC'], [-0.1, 0.28, 0.22, 0.3, '#E8D9A0'], [0.18, 0.18, 0.3, 0.4, '#F4F2EC'], [0.4, 0.4, 0.2, 0.28, '#BFD6E6'], [-0.35, 0.58, 0.22, 0.3, '#EAC8C0'], [0.0, 0.55, 0.3, 0.2, '#F4F2EC']];
       for (const [cx, cy, sw, sh, tint] of sheets) slab(parts, 'notice-sheets', { key: 'laminate', tint }, cx - sw / 2, cx + sw / 2, lift + 0.05 + cy - sh / 2 + 0.1, lift + 0.05 + cy + sh / 2 + 0.1, z1, z1 + 0.003);
     },
     directory: () => {
       // a dark board with a header band and rows of name strips in two columns
-      parts.box('dir-frame', FRAME, -x1, x1, lift, H, z0, z1, { c: 0.004 });
+      parts.box('dir-frame', FRAME, -x1, x1, lift, H, z0, z1 - 0.004, { c: 0.002 });
       slab(parts, 'dir-face', { key: 'laminate', tint: '#23282E' }, -x1 + 0.025, x1 - 0.025, lift + 0.025, H - 0.025, z1 - 0.004, z1);
       slab(parts, 'dir-header', { key: 'brass', tint: '#C9A24E' }, -x1 + 0.05, x1 - 0.05, H - 0.16, H - 0.07, z1, z1 + 0.003);
       const rows = 9;
@@ -151,7 +151,7 @@ export function buildLobby(env: GenEnv, size: GenSize, p: LobbyParams, roles: Ro
     },
     art: () => {
       // three canvases in one frame, abstract blocks of colour
-      parts.box('art-frame', { key: 'wood', tint: '#3A2C22' }, -x1, x1, lift, H, z0, z1, { c: 0.004 });
+      parts.box('art-frame', { key: 'wood', tint: '#3A2C22' }, -x1, x1, lift, H, z0, z1 - 0.004, { c: 0.002 });
       const tints = ['#C9583C', '#E7B954', '#2F5F6E', '#EFE7D8', '#8DA68B'];
       const nx = 3, cw = (w - 0.1) / nx;
       for (let i = 0; i < nx; i++) {

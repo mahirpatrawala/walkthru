@@ -150,8 +150,8 @@ describe('validation catches what it is for', () => {
   it('lobby anchors: marked, empty positions inside the lobby; one outside a room or on another is an error', () => {
     const lobby = b.levels[0].spaces[0];
     expect(lobby.lobbyAnchors!.map((a) => a.role).sort()).toEqual(['letterboxes', 'reception', 'seating', 'security']);
-    // the lobby has no desk in it: those positions are left empty
-    expect(readScene(lobby.sceneId)!.furniture.some((f) => /desk/i.test(f.label))).toBe(false);
+    // the full tower's lobby has its reception and security desks on those positions (stage 2, SPEC 16.17); the empty twin leaves them empty (tests/building-furnished.test.ts)
+    expect(readScene(lobby.sceneId)!.furniture.filter((f) => /desk/i.test(f.label)).length).toBe(2);
     const out = clone(b);
     out.levels[0].spaces[0].lobbyAnchors![0].at = { x: -5, z: -5 };
     expect(validateBuilding(out, readScene).errors.some((e) => /anchor "reception" does not lie wholly inside a room/.test(e))).toBe(true);
