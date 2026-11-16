@@ -78,8 +78,10 @@ describe('the manifest', () => {
       };
       put('test-sample-1bhk');
       expect(scanScenes(dir, () => {}, []).scenes.map((s) => s.id)).toEqual(['test-sample-1bhk']);
-      // the gallery's hidden list takes the made-up samples off
-      expect(scanScenes(dir, () => {}).scenes).toEqual([]);
+      // the gallery's hidden list takes the made-up samples off, all but the first
+      put('test-sample-1'); put('test-sample-2');
+      expect(scanScenes(dir, () => {}).scenes.map((s) => s.id)).toEqual(['test-sample-1']);
+      fs.rmSync(path.join(dir, 'test-sample-1'), { recursive: true }); fs.rmSync(path.join(dir, 'test-sample-2'), { recursive: true });
       put('test-sample-2bhk');
       fs.mkdirSync(path.join(dir, 'no-property'));
       fs.mkdirSync(path.join(dir, 'bad-json'));
@@ -105,7 +107,8 @@ describe('the manifest', () => {
     }
     // the four furnished brochure flats are in, their empty twins are not, and the made-up samples are out
     expect(ids.filter((id) => /^test-tower-flat-/.test(id))).toHaveLength(4);
-    expect(ids.some((id) => /^test-tower-empty-|^test-sample-/.test(id))).toBe(false);
+    expect(ids.some((id) => /^test-tower-empty-/.test(id))).toBe(false);
+    expect(ids.filter((id) => /^test-sample-/.test(id))).toEqual(['test-sample-1']);
   });
   it('a plan from a published brochure is tagged as that, not as made-up', () => {
     expect(sceneOrigin({ id: 'test-tower-flat-x', subtitle: 'Sample building · plan follows a published builder brochure, furniture illustrative' })).toBe('brochure');
