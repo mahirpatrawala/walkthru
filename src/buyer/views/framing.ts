@@ -38,9 +38,10 @@ export function viewVector(theta: number, phi: number): Vec3 {
  * up axes and the distance is the least that brings every one inside the vertical and the horizontal field of view. Never more than the
  * bounding-sphere distance (that is the loose rule), so a tight fit is what a flat-roomed layout gets. `margin` leaves air round it.
  */
-export function fitDistance(b: Bounds, fovVDeg: number, aspect: number, theta: number, phi: number, margin = 1.1): number {
-  const tanV = Math.tan((fovVDeg * DEG) / 2);
-  const tanH = tanV * Math.max(0.2, aspect);
+export function fitDistance(b: Bounds, fovVDeg: number, aspect: number, theta: number, phi: number, margin = 1.1, fill: { x: number; y: number } = { x: 1, y: 1 }): number {
+  // `fill`: the share of the picture's width and height the layout may take (the rest is under the panels)
+  const tanV = Math.tan((fovVDeg * DEG) / 2) * Math.max(0.2, fill.y);
+  const tanH = Math.tan((fovVDeg * DEG) / 2) * Math.max(0.2, aspect) * Math.max(0.2, fill.x);
   const c = boundsCentre(b);
   const v = viewVector(theta, phi);
   // camera axes: forward = -v, right = forward x up (normalised), up' = right x forward
@@ -89,7 +90,7 @@ export interface OrbitLimits {
 export const DOLL_PHI_MIN_DEG = 20;
 export const DOLL_PHI_MAX_DEG = 80;
 /** the first elevation above the horizon, degrees (polar 40 degrees from vertical) */
-export const DOLL_ELEVATION_DEG = 50;
+export const DOLL_ELEVATION_DEG = 58;
 export const DOLL_FOV_DEG = 42;
 export const DOLL_FOV_PORTRAIT_DEG = 52;
 
@@ -98,11 +99,11 @@ export function dollFov(aspect: number): number {
 }
 
 /** The first pose: centred, 50 degrees up, the entrance side nearest the viewer when it is known, the whole layout in frame. */
-export function initialOrbit(b: Bounds, o: { fovVDeg: number; aspect: number; entrance?: Vec2 | null; margin?: number }): { goal: OrbitGoal; limits: OrbitLimits } {
+export function initialOrbit(b: Bounds, o: { fovVDeg: number; aspect: number; entrance?: Vec2 | null; margin?: number; fill?: { x: number; y: number } }): { goal: OrbitGoal; limits: OrbitLimits } {
   const c = boundsCentre(b);
   const theta = o.entrance ? Math.atan2(o.entrance.x, o.entrance.z) : 0;
   const phi = (90 - DOLL_ELEVATION_DEG) * DEG;
-  const dist = fitDistance(b, o.fovVDeg, o.aspect, theta, phi, o.margin ?? 1.1);
+  const dist = fitDistance(b, o.fovVDeg, o.aspect, theta, phi, o.margin ?? 1.1, o.fill);
   const span = Math.max(b.x1 - b.x0, b.z1 - b.z0);
   const r = boundsRadius(b);
   const loose = sphereDistance(r, o.fovVDeg) * 1.2;
@@ -170,4 +171,33 @@ export function panBy(g: OrbitGoal, dxPx: number, dyPx: number, viewportH: numbe
     tx: g.tx - right.x * dxPx * metresPerPx + fwd.x * dyPx * metresPerPx / elev,
     tz: g.tz - right.z * dxPx * metresPerPx + fwd.z * dyPx * metresPerPx / elev,
   }, l);
+}
+
+export interface Panel { left: number; top: number; right: number; bottom: number }
+export interface FreeRect { left: number; top: number; right: number; bottom: number }
+
+/**
+ * The part of a W x H picture left clear by the panels over it (the identity card, the mini plan, the room strip, the top bar): each panel is taken
+ * off the side that costs the least picture, with `gap` px of air. The doll house is framed inside what is left, so no panel covers the model.
+ */
+export function freeRect(panels: readonly Panel[], W: number, H: number, gap = 14): FreeRect {
+  const r: FreeRect = { left: 0, top: 0, right: W, bottom: H };
+  for (const p of panels) {
+    if (p.right <= p.left || p.bottom <= p.top) continue;
+    const loss = (next: FreeRect): number => Math.max(0, next.right - next.left) * Math.max(0, next.bottom - next.top);
+    const options: FreeRect[] = [
+      { ...r, left: Math.max(r.left, p.right + gap) },
+      { ...r, right: Math.min(r.right, p.left - gap) },
+      { ...r, top: Math.max(r.top, p.bottom + gap) },
+      { ...r, bottom: Math.min(r.bottom, p.top - gap) },
+    ];
+    // a panel that does not touch the rect costs nothing
+    if (p.right + gap <= r.left || p.left - gap >= r.right || p.bottom + gap <= r.top || p.top - gap >= r.bottom) continue;
+    let best = options[0];
+    for (const o of options) if (loss(o) > loss(best)) best = o;
+    Object.assign(r, best);
+  }
+  // never so little that the model is a postage stamp: fall back to the whole picture
+  if (r.right - r.left < W * 0.3 || r.bottom - r.top < H * 0.3) return { left: 0, top: 0, right: W, bottom: H };
+  return r;
 }

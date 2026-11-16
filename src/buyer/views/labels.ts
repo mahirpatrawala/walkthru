@@ -65,3 +65,37 @@ export function labelPoint(poly: readonly Vec2[]): Vec2 {
   }
   return best;
 }
+
+export interface Footprint { cx: number; cz: number; w: number; d: number }
+
+/** How much furniture a tag at (x, z) would sit on: the footprints within `radius` metres of it, nearer ones counting more. */
+export function coverage(x: number, z: number, boxes: readonly Footprint[], radius = 0.9): number {
+  let c = 0;
+  for (const b of boxes) {
+    const dx = Math.max(0, Math.abs(x - b.cx) - b.w / 2), dz = Math.max(0, Math.abs(z - b.cz) - b.d / 2);
+    const d = Math.hypot(dx, dz);
+    if (d < radius) c += (1 - d / radius) * Math.min(2, (b.w * b.d) + 0.3);
+  }
+  return c;
+}
+
+/** Of the places in a room that no wall hides (`visible`), the one with the least furniture under it; the first wins a tie (the middle comes first). -1 when none shows. */
+export function pickSpot(spots: readonly Vec2[], visible: readonly boolean[], boxes: readonly Footprint[]): number {
+  let best = -1, bc = Infinity;
+  spots.forEach((s, i) => {
+    if (!visible[i]) return;
+    const c = coverage(s.x, s.z, boxes);
+    if (c < bc - 1e-9) { bc = c; best = i; }
+  });
+  return best;
+}
+
+/** A tiny room (a toilet, a passage) is a dot until the pointer is on it or the view is close. */
+export function isTinyRoom(areaM2: number, limitM2 = 6): boolean {
+  return areaM2 < limitM2;
+}
+
+/** The tag shows the size line when hovered or when the view has come in to under `closeRatio` of its first distance. */
+export function showsArea(hovered: boolean, dist: number, homeDist: number, closeRatio = 0.62): boolean {
+  return hovered || dist < homeDist * closeRatio;
+}

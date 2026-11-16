@@ -11,7 +11,9 @@ import {
 } from '../src/buyer/views/framing';
 import { CAP_LIFT_M, capPositions, wallCapQuads } from '../src/buyer/views/wall-caps';
 import { ceilingOpacity, classifyHang, keepBelow } from '../src/buyer/views/hang';
-import { distanceOpacity, labelPoint, placeLabels } from '../src/buyer/views/labels';
+import { coverage, distanceOpacity, isTinyRoom, labelPoint, pickSpot, placeLabels, showsArea } from '../src/buyer/views/labels';
+import { cutEdges, cutPieces, cutTop, collapses, keepUncutInto, ownerOf, triangleOwners } from '../src/buyer/views/wall-cut-core';
+import { freeRect } from '../src/buyer/views/framing';
 
 function rect(id: string, x0: number, z0: number, x1: number, z1: number, type: RoomTag['roomType'] = 'bedroom', label = id): RoomTag {
   return { id, roomType: type, label, polygon: [{ x: x0, z: z0 }, { x: x1, z: z0 }, { x: x1, z: z1 }, { x: x0, z: z1 }], edges: ['wall', 'wall', 'wall', 'wall'] };
@@ -174,10 +176,10 @@ describe('framing', () => {
     const closed = layoutOf([rect('a', 0, 0, 4, 4), rect('b', 4.12, 0, 8.12, 4)], [flat().openings[0]]);
     expect(entranceOutward(closed)).toBeNull();
   });
-  it('starts 50 degrees up, the entrance side nearest, with the pose inside its own limits', () => {
+  it('starts 58 degrees up, the entrance side nearest, with the pose inside its own limits', () => {
     const { goal, limits } = initialOrbit(bounds, { fovVDeg: 42, aspect: 1.6, entrance: { x: 0, z: 1 } });
     expect(goal.theta).toBeCloseTo(0, 6);
-    expect((90 - (goal.phi * 180) / Math.PI)).toBeCloseTo(50, 6);
+    expect((90 - (goal.phi * 180) / Math.PI)).toBeCloseTo(58, 6);
     expect(clampOrbit(goal, limits)).toEqual(goal);
     const pos = orbitPosition(goal);
     expect(pos.z).toBeGreaterThan(goal.tz); // on the entrance (+z) side
@@ -331,5 +333,99 @@ describe('the views stylesheet is sized in tokens', () => {
       for (const m of code.matchAll(/(?<![\w.#-])(\d+(?:\.\d+)?)px\b/g)) if (Number(m[1]) > 1.5) bad.push(`${i + 1} ${m[0]}`);
     });
     expect(bad).toEqual([]);
+  });
+});
+
+describe('room tags that keep clear of furniture and decide what to show', () => {
+  it('prefers the free spot over the crowded middle, and the middle when all are alike', () => {
+    const spots = [{ x: 2, z: 2 }, { x: 4, z: 2 }, { x: 2, z: 4 }];
+    const boxes = [{ cx: 2, cz: 2, w: 2, d: 1 }];
+    expect(coverage(2, 2, boxes)).toBeGreaterThan(coverage(4, 2, boxes));
+    expect(pickSpot(spots, [true, true, true], boxes)).toBe(1);
+    expect(pickSpot(spots, [true, true, true], [])).toBe(0);
+    expect(pickSpot(spots, [false, false, true], boxes)).toBe(2);
+    expect(pickSpot(spots, [false, false, false], boxes)).toBe(-1);
+  });
+  it('a toilet is a dot and a bedroom a name; the size shows on hover or when the view is close', () => {
+    expect(isTinyRoom(3.1)).toBe(true);
+    expect(isTinyRoom(12)).toBe(false);
+    expect(showsArea(false, 20, 20)).toBe(false);
+    expect(showsArea(true, 20, 20)).toBe(true);
+    expect(showsArea(false, 10, 20)).toBe(true);
+  });
+});
+
+describe('the free part of the picture', () => {
+  it('takes each panel off the side that costs least and keeps the rest', () => {
+    // a card top left, a mini plan bottom left, a strip along the bottom, a bar along the top: at 1440 x 900
+    const r = freeRect([
+      { left: 15, top: 15, right: 367, bottom: 158 }, { left: 15, top: 600, right: 260, bottom: 885 },
+      { left: 330, top: 825, right: 1110, bottom: 885 }, { left: 413, top: 15, right: 1027, bottom: 75 },
+    ], 1440, 900);
+    expect(r.left).toBeGreaterThan(260);
+    expect(r.top).toBeGreaterThan(70);
+    expect(r.bottom).toBeLessThan(830);
+    expect(r.right).toBe(1440);
+    expect((r.right - r.left) * (r.bottom - r.top)).toBeGreaterThan(1440 * 900 * 0.4);
+  });
+  it('a panel that touches nothing costs nothing, and too little room means the whole picture', () => {
+    const small = freeRect([{ left: 0, top: 0, right: 10, bottom: 10 }], 1000, 800, 0);
+    expect((small.right - small.left) * (small.bottom - small.top)).toBeGreaterThan(1000 * 800 * 0.98);
+    expect(freeRect([{ left: 2000, top: 0, right: 2100, bottom: 10 }], 1000, 800)).toEqual({ left: 0, top: 0, right: 1000, bottom: 800 });
+    expect(freeRect([{ left: 0, top: 0, right: 900, bottom: 700 }], 1000, 800)).toEqual({ left: 0, top: 0, right: 1000, bottom: 800 });
+  });
+});
+
+describe('the near walls cut down', () => {
+  const lay = flat();
+  const pieces = cutPieces(lay);
+  it('lists the wall boxes in shell order, with their edge keys', () => {
+    expect(pieces.length).toBeGreaterThan(8);
+    expect(pieces.every((p) => /^(a|b):\d$/.test(p.key))).toBe(true);
+  });
+  it('cuts the walls that face the camera and keeps the far walls of each room', () => {
+    // the camera on the +z side (looking toward -z): the south walls of both rooms (outward +z) face it
+    const cut = cutEdges(pieces, { x: 0, z: 1 });
+    expect(cut.has('a:2')).toBe(true);   // room a's south wall (edge 2 runs x1 -> x0 at z1)
+    expect(cut.has('a:0')).toBe(false);  // its north wall: seen from inside, stays
+    const north = cutEdges(pieces, { x: 0, z: -1 });
+    expect(north.has('a:0')).toBe(true);
+    expect(north.has('a:2')).toBe(false);
+  });
+  it('a partition is cut on one side only: each room keeps its far wall', () => {
+    const cut = cutEdges(pieces, { x: 1, z: 0 }); // camera on the east
+    const aEast = cut.has('a:1'), bWest = cut.has('b:3');
+    expect(aEast).not.toBe(bWest);
+  });
+  it('does not flicker at the threshold', () => {
+    const base = cutEdges(pieces, { x: 0, z: 1 });
+    const a = Math.acos(0.26) + 0.01; // just past the cutting angle
+    const slightly = { x: Math.sin(a), z: Math.cos(a) };
+    expect(cutEdges(pieces, slightly).has('a:2')).toBe(false);
+    expect(cutEdges(pieces, slightly, base).has('a:2')).toBe(true); // already cut: held by the margin
+  });
+  it('lowers the top of a piece, and a lintel collapses', () => {
+    expect(cutTop(0, 2.75, 1, 0)).toBe(2.75);
+    expect(cutTop(0, 2.75, 1, 1)).toBe(1);
+    expect(cutTop(0, 2.75, 1, 0.5)).toBeCloseTo(1.875, 6);
+    expect(cutTop(2.1, 2.75, 1, 1)).toBe(2.1);
+    expect(collapses(2.1, 1)).toBe(true);
+    expect(collapses(0, 1)).toBe(false);
+    expect(cutTop(0, 0.9, 1, 1)).toBe(0.9); // a sill below the cut is left as it is
+  });
+  it('finds the wall a fixture belongs to and drops what is on a cut wall above the cut', () => {
+    const p = pieces.find((q) => q.key === 'a:2' && q.y0 === 0)!;
+    const mid = { x: (p.rect[0].x + p.rect[2].x) / 2, z: (p.rect[0].z + p.rect[2].z) / 2 };
+    expect(ownerOf(pieces, mid.x, mid.z)).toBeGreaterThanOrEqual(0);
+    expect(ownerOf(pieces, 100, 100)).toBe(-1);
+    // two triangles on that wall, one high (a window pane) and one low (a skirting), and one far from every wall
+    const pos = [mid.x, 1.5, mid.z, mid.x + 0.1, 1.5, mid.z, mid.x, 1.9, mid.z,   mid.x, 0.05, mid.z, mid.x + 0.1, 0.05, mid.z, mid.x, 0.12, mid.z,   50, 1.5, 50, 51, 1.5, 50, 50, 1.9, 50];
+    const { owner, y } = triangleOwners(pieces, pos, null);
+    expect(Array.from(owner).map((o) => o >= 0)).toEqual([true, true, false]);
+    const out = new Uint32Array(9);
+    const n = keepUncutInto(owner, y, pieces, new Set(['a:2']), 1, null, out);
+    expect(n).toBe(6);
+    expect(Array.from(out.subarray(0, 6))).toEqual([3, 4, 5, 6, 7, 8]);
+    expect(keepUncutInto(owner, y, pieces, new Set(), 1, null, out)).toBe(9);
   });
 });
