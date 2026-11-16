@@ -24,7 +24,7 @@ export interface StylePack {
   /** per look kind, params that differ from the generator's own defaults */
   generators: Partial<Record<LookKind, Record<string, unknown>>>;
   /** finishes of the room itself, used where the drawing and the video gave none */
-  room: { wall?: string; floor?: string; ceiling?: string; /** a bathroom with no finish of its own: tiled walls and a matt tiled floor (SPEC 16.19) */ wet?: { wall?: string; floor?: string }; /** floor finish by room type, used where nothing names a floor for the room (SPEC 16.20: planks in living rooms, bedrooms and passages) */ floorByType?: Partial<Record<string, string>> };
+  room: { wall?: string; floor?: string; ceiling?: string; /** a bathroom with no finish of its own: tiled walls and a matt tiled floor (SPEC 16.19) */ wet?: { wall?: string; floor?: string }; /** floor finish by room type, used where nothing names a floor for the room (SPEC 16.20: planks in living rooms, bedrooms and passages) */ floorByType?: Partial<Record<string, string>>; /** floor finish by the kind of a shared space of a building: a timber look in a hall, a polished tile in a lobby */ floorBySpace?: Partial<Record<string, string>> };
   /** typical decor this pack adds to rooms that have no design sheet */
   decor: { rug?: boolean; curtains?: boolean };
   /** the dark or warm accents of the shell itself: skirting, door frames and architraves, door handles (finish ids; SPEC 16.18). Absent = the wall's own colour, the layout's frame colour, brushed steel */
@@ -71,6 +71,12 @@ export function loadPack(raw: unknown): { pack: StylePack | null; dropped: strin
     const byType: Record<string, string> = {};
     for (const [t, v] of Object.entries(rawByType)) { if (typeof v === 'string' && knownFinish(v)) byType[t] = v; else dropped.push(`room.floorByType.${t}: unknown finish ${String(v)}`); }
     room.floorByType = byType;
+  }
+  const rawBySpace = (o.room as Record<string, unknown> | undefined)?.floorBySpace as Record<string, unknown> | undefined;
+  if (rawBySpace && typeof rawBySpace === 'object') {
+    const bySpace: Record<string, string> = {};
+    for (const [t, v] of Object.entries(rawBySpace)) { if (typeof v === 'string' && knownFinish(v)) bySpace[t] = v; else dropped.push(`room.floorBySpace.${t}: unknown finish ${String(v)}`); }
+    room.floorBySpace = bySpace;
   }
   let models: ModelPolicy | undefined;
   if (o.models && typeof o.models === 'object' && !o.classic) {

@@ -6,17 +6,18 @@ import { roundedBoxBetween } from '../furniture-parts';
 import type { MatSpec, Parts } from './core';
 import { CHROME, RUBBER } from './kit';
 
-export const FRAME: MatSpec = { key: 'blackMetal', tint: '#3B3F45' };
+// dark-grey painted steel, not black metal (SPEC 16.20): under the plain sky a high-metalness black reads as a flat silhouette
+export const FRAME: MatSpec = { key: 'laminate', tint: '#5A5F67' };
 export const FRAME_GREY: MatSpec = { key: 'metal', tint: '#A3A9B0' };
 export const SHROUD: MatSpec = { key: 'laminate', tint: '#C7CBD0' };
 export const SHROUD_LIGHT: MatSpec = { key: 'laminate', tint: '#EDEFF1' };
 export const CONSOLE: MatSpec = { key: 'laminate', tint: '#2D3036' };
-export const PAD_BLACK: MatSpec = { key: 'dark', tint: '#1E1F22' };
-export const PAD_GREY: MatSpec = { key: 'dark', tint: '#3C3F44' };
+export const PAD_BLACK: MatSpec = { key: 'dark', tint: '#3A3D43' };
+export const PAD_GREY: MatSpec = { key: 'dark', tint: '#555962' };
 export const ACCENT_RED: MatSpec = { key: 'paint', tint: '#B3322B' };
 export const ACCENT_BLUE: MatSpec = { key: 'paint', tint: '#2F5F9E' };
-export const STACK_STEEL: MatSpec = { key: 'metal', tint: '#8F949A' };
-export const IRON: MatSpec = { key: 'blackMetal', tint: '#1A1B1D' };
+export const STACK_STEEL: MatSpec = { key: 'metal', tint: '#B2B7BD' };
+export const IRON: MatSpec = { key: 'laminate', tint: '#484B51' };
 export const SCREEN_GLASS: MatSpec = { key: 'granite', tint: '#0D1722' };
 export const WOOD_ASH: MatSpec = { key: 'wood', tint: '#C8A06B' };
 export { CHROME, RUBBER };

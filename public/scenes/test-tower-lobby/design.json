@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "pack": "clean-contrast",
+  "source": "typical",
+  "note": "A typical designed lobby (the gallery default): a timber slat feature wall behind the reception desk, a stone-look desk top, a rug under the visitor seating, a polished large-format floor. Finishes and decor only.",
+  "items": {
+    "lobby-1-lobby-desk": {
+      "roles": {
+        "top": "white-stone"
+      }
+    }
+  },
+  "rooms": {
+    "entrance-lobby": {
+      "floor": "tile-lobby",
+      "wall": "wall-bright"
+    },
+    "lift-lobby": {
+      "floor": "tile-lobby",
+      "wall": "wall-bright"
+    }
+  },
+  "fixtures": [
+    {
+      "kind": "slat-wall",
+      "roomId": "entrance-lobby",
+      "edge": 0,
+      "u0": 3.9,
+      "u1": 8.1,
+      "y0M": 0.0,
+      "y1M": 2.6,
+      "pitchM": 0.06
+    },
+    {
+      "kind": "rug",
+      "roomId": "entrance-lobby",
+      "aroundItem": "lobby-3-lobby-visitor-set",
+      "margin": {
+        "head": 0.3,
+        "foot": 0.5,
+        "side": 0.5
+      }
+    }
+  ]
+}

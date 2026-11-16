@@ -385,6 +385,8 @@ export const FINISH_LIST: FinishDef[] = [
   F('tile-grey', 'Soft grey tile', '#C9C6C0', 'gloss', 'tile'),
   F('tile-wet-white', 'Pale glazed wall tile', '#ECEEED', 'gloss', 'tile'),
   F('tile-wet-grey', 'Matt grey floor tile', '#B4B2AD', 'gloss', 'tile'),
+  F('tile-lobby', 'Polished large-format lobby tile', '#C6C1B7', 'gloss', 'tile'),
+  F('rubber-grey', 'Grey rubber gym floor', '#575A5F', 'gloss', 'tile'),
   F('plank-oak', 'Wood-look vitrified plank, light oak', '#CBAB80', 'gloss', 'plank'),
   F('tile-stone', 'Light stone tile', '#C9C6BD', 'gloss', 'tile'),
   F('tile-stone-grey', 'Mid stone-grey tile', '#A9A7A1', 'gloss', 'tile'),

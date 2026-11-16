@@ -30,7 +30,7 @@ import type { KitHandle } from '../look/kit';
 import { fetchDesignSheet } from '../look/design-sheet';
 import { mountDesign } from '../look/design-mount';
 import { PACKS } from '../look/packs';
-import { doorPanelFinish, finishNote, getStyle, onStyleChange, setStyle, trimColours } from '../look/style';
+import { doorPanelFinish, finishNote, getStyle, onStyleChange, setSpaceKind, setStyle, trimColours } from '../look/style';
 import { resolveItemLook } from '../look/furniture-real';
 import { modelNote } from '../look/models/apply';
 import { setModelsEnabled } from '../look/models/library';
@@ -313,6 +313,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   {
     const picked = params.get('style') ?? storageGet(storage, styleKey) ?? host?.space.pack ?? null;
     const packId: string | undefined = picked && picked !== 'designer' && PACKS.some((p) => p.id === picked) ? picked : undefined;
+    setSpaceKind(property.spaceKind);
     setStyle({ packId, sheet });
   }
   // the sanitary and kitchen fixtures the drawing reader recognised, at their drawn place (src/core/fixtures.ts)
@@ -652,7 +653,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   design = mountDesign({
     scene: viewer.scene, layout, shell, look, store, tier: startTier, registry: fittingRegistry,
     beforeRestyle: () => { kit?.dispose(); kit = null; },
-    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store, registry: fittingRegistry, outdoor: !!outdoorFile, ...(host?.bare || outdoorFile || (host && host.space.kind !== 'home') ? { plain: true } : {}) }); }, // a lobby, a corridor or a gym has no flat fittings (window grills, switchboards, fans) by default
+    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store, registry: fittingRegistry, outdoor: !!outdoorFile, ...(host?.bare || outdoorFile ? { plain: true } : host && host.space.kind !== 'home' ? { shared: host.space.kind } : {}) }); }, // a lobby, a corridor or a gym has no flat fittings (window grills, switchboards, fans): its kit is skirting, floor tiles, downlights and a gym's mirror wall (SPEC 16.20)
   });
   cleanup.push(() => { design?.dispose(); kit?.dispose(); kit = null; });
   // a new style rebuilds the furniture and the openable wardrobes' shutters (the decor and rooms are rebuilt by mountDesign itself)

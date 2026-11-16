@@ -8,7 +8,9 @@ import { computeEdgeFrames, computeTunnels, computeWallPieces } from '../../core
 import { planDownlights } from '../baked/lights';
 
 /** The one line that says what this is (rooms sheet and look panel). */
-export const KIT_NOTE = 'Fan, lights, switches, grills, tiles and wood-look vitrified planks are typical fittings and finishes, not from your drawing.';
+export const KIT_NOTE = 'Fan, lights, switches, grills and tiles are typical fittings, not from your drawing.';
+/** shown beside it where a wood-look plank floor is drawn (SPEC 16.20): what it is, and that it is illustrative */
+export const PLANK_NOTE = 'Wood-look floors are vitrified planks, an illustrative finish: your drawing does not give the floor.';
 
 // ---- numbers (all visual conventions of an Indian flat, none of them measured)
 export const FAN_MIN_ROOM_M2 = 7;
@@ -510,8 +512,34 @@ export interface KitPlan {
 /** An open-air space (SPEC 19.1) has no fan, tube, switchboard, grill, cove, skirting or tiled floor: the indoor kit plans nothing for it. */
 export const EMPTY_PLAN = (): KitPlan => ({ fans: [], tubes: [], boards: [], bedheads: [], windows: [], railings: [], coves: [], skirting: [], floors: [], downlights: [], mirrors: [] });
 
-export function kitPlan(layout: Layout, furniture: FurnitureItem[] = [], outdoor = false, formats: TileFormats = {}): KitPlan {
+/** the long mirror wall of a gym (SPEC 16.20): the longest stretch of wall with no opening, along the longest wall of the room, 0.4 to 2.2 m up */
+export function gymMirrorSites(layout: Layout): MirrorSite[] {
+  const frames = computeEdgeFrames(layout);
+  const tunnels = computeTunnels(layout);
+  let best: { roomId: string; edge: number; u0: number; u1: number } | null = null;
+  for (const f of frames) {
+    if (f.kind !== 'wall') continue;
+    const room = layout.rooms.find((r) => r.id === f.roomId);
+    if (!room || isPartial(room)) continue;
+    const cuts = tunnels.filter((t) => t.roomId === f.roomId && t.edge === f.edge && t.headM > 0.3 && t.sillM < 2.2).map((t) => [t.u0 - 0.15, t.u1 + 0.15] as const).sort((a, b) => a[0] - b[0]);
+    let from = 0.4;
+    const spans: [number, number][] = [];
+    for (const [a, b] of cuts) { if (a > from) spans.push([from, a]); from = Math.max(from, b); }
+    if (f.length - 0.4 > from) spans.push([from, f.length - 0.4]);
+    for (const [a, b] of spans) if (b - a >= 2.5 && (!best || b - a > best.u1 - best.u0)) best = { roomId: f.roomId, edge: f.edge, u0: a, u1: b };
+  }
+  if (!best) return [];
+  const w = Math.min(7, best.u1 - best.u0), u = (best.u0 + best.u1) / 2;
+  return [{ roomId: best.roomId, edge: best.edge, u, y0: 0.45, y1: 2.15, w }];
+}
+
+export function kitPlan(layout: Layout, furniture: FurnitureItem[] = [], outdoor = false, formats: TileFormats = {}, sharedKind?: string): KitPlan {
   if (outdoor) return EMPTY_PLAN();
+  if (sharedKind) {
+    // a shared space (lobby, corridor, gym, hall, games room): skirting, floor tiles, downlights, and a mirror wall in a gym; no fan, tube, switchboard, grill, cove or railing
+    const full = kitPlan(layout, furniture, false, formats);
+    return { ...EMPTY_PLAN(), skirting: full.skirting, floors: full.floors, downlights: full.downlights, mirrors: sharedKind === 'gym' ? gymMirrorSites(layout) : [] };
+  }
   const floors: FloorSpec[] = [];
   for (const r of layout.rooms) {
     if (isPartial(r) || r.polygon.length < 3) continue;

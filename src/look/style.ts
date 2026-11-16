@@ -225,6 +225,10 @@ export function finishNote(r: ResolvedLook | null, packName: string): string {
 }
 
 /** the room finish ids in force for a room: sheet room > pack room, with the provenance of each */
+/** the kind of space on screen ('home', 'lobby', 'gym', 'hall', ...), set by the page; the pack's floors by room type are for homes only (SPEC 16.20) */
+let spaceKind = 'home';
+export function setSpaceKind(k: string | undefined): void { spaceKind = k ?? 'home'; }
+
 export function roomFinishIds(roomId: string, st: StyleState = state, roomType?: string): { wall?: [string, Prov]; floor?: [string, Prov]; ceiling?: [string, Prov] } {
   const out: { wall?: [string, Prov]; floor?: [string, Prov]; ceiling?: [string, Prov] } = {};
   if (st.pack.classic) return out;
@@ -233,7 +237,8 @@ export function roomFinishIds(roomId: string, st: StyleState = state, roomType?:
     const s = sheetRoom?.[k];
     if (s) out[k] = [s, 'sheet'];
     else if (roomType === 'bathroom' && (k === 'wall' || k === 'floor') && st.pack.room.wet?.[k]) out[k] = [st.pack.room.wet[k] as string, 'pack'];
-    else if (k === 'floor' && roomType && st.pack.room.floorByType?.[roomType]) out[k] = [st.pack.room.floorByType[roomType] as string, 'pack'];
+    else if (k === 'floor' && spaceKind !== 'home' && st.pack.room.floorBySpace?.[spaceKind]) out[k] = [st.pack.room.floorBySpace[spaceKind] as string, 'pack'];
+    else if (k === 'floor' && spaceKind === 'home' && roomType && st.pack.room.floorByType?.[roomType]) out[k] = [st.pack.room.floorByType[roomType] as string, 'pack'];
     else if (st.pack.room[k]) out[k] = [st.pack.room[k] as string, 'pack'];
   }
   return out;
