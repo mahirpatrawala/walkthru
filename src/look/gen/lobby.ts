@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { Parts, role, roleOr } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { CERAMIC, CHROME, LEAF, SOIL, soft } from './kit';
+
+const LEAF_DARK: MatSpec = { key: LEAF.key, tint: '#2F6A35' };
 import { roundedBoxBetween } from '../furniture-parts';
 import { ACCENT_BLUE, ACCENT_RED, CONSOLE, FRAME, FRAME_GREY, IRON, PAD_BLACK, SCREEN_GLASS, SHROUD_LIGHT, WOOD_ASH, cylY, slab, tube } from './gymkit';
 
@@ -77,15 +79,32 @@ export function buildLobby(env: GenEnv, size: GenSize, p: LobbyParams, roles: Ro
       const r = w / 2, potH = 0.55;
       cylY(parts, 'planter-pot', roleOr(roles, CERAMIC, 'pot'), 0, 0, 0.02, potH, r, seg);
       cylY(parts, 'planter-pot', roleOr(roles, CERAMIC, 'pot'), 0, 0, 0, 0.02, r - 0.04, seg);
+      // a rolled rim, and the soil a hair above the pot's top cap
+      parts.put('planter-rim', roleOr(roles, CERAMIC, 'pot'), new THREE.TorusGeometry(r - 0.012, 0.014, 6, seg * 2).rotateX(Math.PI / 2).translate(0, potH, 0));
       cylY(parts, 'planter-soil', SOIL, 0, 0, potH - 0.02, potH + 0.004, r - 0.03, seg);
-      const blob = (cx: number, cy: number, cz: number, rx: number, ry: number, rz: number): void => { parts.put('plant-leaves', LEAF, new THREE.SphereGeometry(1, wseg, 6).scale(rx, ry, rz).translate(cx, cy, cz), { tile: 0.3 }); };
-      // a tall plant with several lobes of leaves; the top lobe reaches exactly the item's height
-      tube(parts, 'plant-stems', { key: 'wood', tint: '#6B5640' }, [0, potH, 0], [0, H - 0.28, 0], 0.025);
-      blob(0, H - 0.26, 0, 0.27, 0.26, 0.27);
-      blob(0.16, H - 0.55, 0.06, 0.22, 0.2, 0.22);
-      blob(-0.15, H - 0.62, -0.08, 0.22, 0.2, 0.22);
-      blob(0.04, H - 0.78, -0.18, 0.2, 0.17, 0.2);
-      blob(-0.08, H - 0.8, 0.2, 0.2, 0.17, 0.2);
+      // a proper leafy plant: stems from the pot and elongated leaves in two greens, set on a golden-angle spiral, long and drooping low, short and upright at the crown
+      const n = q.tier === 'low' ? 14 : q.tier === 'medium' ? 36 : 54;
+      const topY = H - 0.1;
+      const lsegW = q.tier === 'low' ? 5 : 7, lsegH = q.tier === 'low' ? 3 : 4;
+      for (let i = 0; i < n; i++) {
+        const t = (i + 0.5) / n;
+        const ang = i * 2.399963;
+        const hash = (Math.sin(i * 91.7) * 43758.5453) % 1, hh = Math.abs(hash);
+        const baseY = potH + 0.12 + (topY - potH - 0.12) * (0.2 + 0.8 * t);
+        const reach = (r * 0.5 + 0.18) * (1 - 0.55 * t) * (0.7 + 0.5 * hh);
+        const len = 0.2 + 0.14 * (1 - t) + 0.05 * hh, wid = 0.075 + 0.025 * hh;
+        const pitch = (0.5 - 0.55 * t) + 0.25 * (hh - 0.5);            // radians above horizontal: drooping at the bottom, up at the top
+        const g = new THREE.SphereGeometry(1, lsegW, lsegH).scale(wid / 2, 0.012, len / 2);
+        g.translate(0, 0, len / 2);                                       // the leaf's base at the origin, pointing +z
+        g.rotateX(-pitch);
+        g.rotateY(ang);
+        g.translate(Math.sin(ang) * reach * 0.35, baseY, Math.cos(ang) * reach * 0.35);
+        parts.put('plant-leaves', i % 3 === 0 ? LEAF_DARK : LEAF, g, { tile: 0.3 });
+      }
+      for (let k = 0; k < 5; k++) {
+        const a = k * 1.256;
+        tube(parts, 'plant-stems', { key: 'wood', tint: '#6B5640' }, [0, potH, 0], [Math.sin(a) * 0.1, topY - 0.25 + (k % 2) * 0.12, Math.cos(a) * 0.1], 0.012);
+      }
     },
     'planter-trough': () => {
       parts.box('planter-pot', roleOr(roles, CERAMIC, 'pot'), -x1, x1, 0, 0.45, z0, z1, { c: 0.008 });

@@ -65,6 +65,9 @@ if (set === 'flat') {
       views.rsofa = { eye: [hx + ax * 0.45, 0.75, hz + az * 0.45], target: [hx, 0.52, hz], yaw: 0, at: { x: hx + ax * 0.45, z: hz + az * 0.45 } };
     }
   }
+  // round 4: down the length of the master bed to its head (bedside tables, lamps, the pair of prints), and the kitchen counter wall
+  views.bedhead = lookAt([8.9, 1.5, 4.9], [11.6, 0.9, 4.9]);
+  views.kitchen2 = lookAt([5.3, 1.55, 4.0], [4.7, 1.25, 2.1]);
   // round 3 extension of the materials sheet: a door leaf at 55 cm, the wardrobe fronts and handles, the kitchen worktop, a wet-room tiled wall
   { const d = await doorInfo('door-bedroom-1'); const um = (d.u0 + d.u1) / 2; const c = { x: d.a.x + d.dir.x * um, z: d.a.z + d.dir.z * um };
     views.rleaf = { eye: [c.x + d.out.x * 0.55, 1.35, c.z + d.out.z * 0.55], target: [c.x, 1.2, c.z], yaw: 0, at: { x: c.x + d.out.x * 0.55, z: c.z + d.out.z * 0.55 } }; }

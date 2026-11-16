@@ -8,6 +8,17 @@
       "roles": {
         "top": "white-stone"
       }
+    },
+    "lobby-3-lobby-visitor-set": {
+      "roles": {
+        "fabric": "weave-sand",
+        "top": "walnut-deep"
+      }
+    },
+    "decor": {
+      "roles": {
+        "rug": "weave-bluegrey"
+      }
     }
   },
   "rooms": {

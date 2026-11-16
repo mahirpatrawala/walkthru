@@ -11,9 +11,9 @@ export const REALISM_KEY = 'walkthru:materials';
 export const REALISM_LABEL = 'Realistic materials';
 export const REALISM_CHOICE: Record<RealismLevel, string> = { off: 'Off', '1k': '1K', '2k': '2K' };
 export const REALISM_NOTE: Record<RealismLevel, string> = {
-  off: 'Basic materials, drawn by the program: the lightest.',
-  '1k': 'Photographed material maps, faster. They download once, then stay cached.',
-  '2k': 'Photographed material maps, sharper (about 5 times the download of 1K). They download once, then stay cached.',
+  off: 'Basic materials, drawn by the program: the lightest. Walls, doors and tile look the same at every setting.',
+  '1k': 'Sharper floors, fabrics and wood. Photographed maps, light to load: they download once, then stay cached.',
+  '2k': 'Sharper floors, fabrics and wood, a little finer than 1K (about 3 times the download). They download once, then stay cached.',
 };
 
 export function parseRealism(v: string | null | undefined): RealismLevel | null {

@@ -667,7 +667,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     look?.refresh(store.grid());
   }));
   // optional "Lived-in" decor (SPEC 16.6.7): a switch in the look sheet, a label in the rooms sheet; on by default only for made-up sample homes
-  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, registry: fittingRegistry, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), models: () => (getStyle().pack.classic ? null : getStyle().pack.models ?? null), defaultOn: !host?.bare && !outdoorFile && sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
+  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, registry: fittingRegistry, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), models: () => (getStyle().pack.classic ? null : getStyle().pack.models ?? null), defaultOn: !host?.bare && !outdoorFile && ['sample', 'brochure'].includes(sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat })) }); mountLivedInToggle(hud.root, livedIn, rooms);
   cleanup.push(() => { livedIn?.dispose(); });
 
   // SPEC 16.14: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.

@@ -297,6 +297,8 @@ export function fanRotorGeometry(wallHeightM: number, radiusM: number): THREE.Bu
 
 // ---------------------------------------------------------------- cove
 
+/** the slot between the top of the fascia and the ceiling (round 4: 7 cm showed as a hard dark line in a baked home, where the slot is correctly unlit; 2.5 cm is a hairline of shade) */
+const COVE_SLOT_M = 0.025;
 export function addCove(b: KitBuckets, s: CoveSite): void {
   const H = s.wallHeightM, yLow = H - s.dropM;
   const n = s.outer.length;
@@ -308,10 +310,11 @@ export function addCove(b: KitBuckets, s: CoveSite): void {
     // the fascia: from the soffit up to 7 cm short of the ceiling, facing the room
     const dx = i1.x - i0.x, dz = i1.z - i0.z, l = Math.hypot(dx, dz) || 1;
     const nIn: V3 = [-dz / l, 0, dx / l];
-    b.cove.quad([at(i0, yLow), at(i1, yLow), at(i1, H - 0.07), at(i0, H - 0.07)], nIn);
+    b.cove.quad([at(i0, yLow), at(i1, yLow), at(i1, H - COVE_SLOT_M), at(i0, H - COVE_SLOT_M)], nIn);
     // the LED strip lies on the real ceiling just behind the fascia: seen through the slot, never directly
     const back = (p: Vec2, d: number): V3 => [p.x - nIn[0] * d, H - 0.004, p.z - nIn[2] * d];
-    b.coveLed.quad([back(i0, 0.02), back(i1, 0.02), back(i1, 0.07), back(i0, 0.07)], [0, -1, 0]);
+    // (its shading normal points up: lit from the ceiling's side it reads as a pale strip, where a downward normal went near black in the slot)
+    b.coveLed.quad([back(i0, 0.01), back(i1, 0.01), back(i1, 0.04), back(i0, 0.04)], [0, 1, 0]);
   }
 }
 
@@ -320,7 +323,7 @@ export function addMirror(b: KitBuckets, walls: Map<string, Wall>, s: MirrorSite
   const w = walls.get(`${s.roomId}:${s.edge}`);
   if (!w) return;
   const u0 = s.u - s.w / 2, u1 = s.u + s.w / 2, f = 0.008;
-  b.fixtures.tint('#6A6C70');
+  b.fixtures.tint('#9A9FA4');
   w.box(b.fixtures, u0 - f, u1 + f, -0.014, 0, s.y0 - f, s.y0);
   w.box(b.fixtures, u0 - f, u1 + f, -0.014, 0, s.y1, s.y1 + f);
   w.box(b.fixtures, u0 - f, u0, -0.014, 0, s.y0, s.y1);
@@ -329,7 +332,7 @@ export function addMirror(b: KitBuckets, walls: Map<string, Wall>, s: MirrorSite
   for (let i = 0; i < strips; i++) {
     const ya = s.y0 + ((s.y1 - s.y0) * i) / strips, yb = s.y0 + ((s.y1 - s.y0) * (i + 1)) / strips;
     const k = (i + 0.5) / strips;
-    const c = new THREE.Color('#B9C6CC').lerp(new THREE.Color('#F3F8FA'), k * k);
+    const c = new THREE.Color('#8FA5B3').lerp(new THREE.Color('#E6EFF3'), k * k);
     b.mirror.tint(`#${c.getHexString()}`);
     b.mirror.quad([w.pt(u0, -0.0135, ya), w.pt(u1, -0.0135, ya), w.pt(u1, -0.0135, yb), w.pt(u0, -0.0135, yb)], n);
   }

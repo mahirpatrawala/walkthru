@@ -195,7 +195,7 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   }
   // a number plate (a flat's door) or a sign (the stairs), on the face the style names
   if (style?.text) {
-    const plateW = style.kind === 'stairs' ? 0.34 : 0.2, plateH = style.kind === 'stairs' ? 0.1 : 0.1;
+    const plateW = style.kind === 'stairs' ? 0.34 : style.kind === 'main' ? 0.32 : 0.2, plateH = style.kind === 'main' ? 0.15 : 0.1; // a flat's main door: a number plate that reads from down the corridor
     const tex = style.kind === 'stairs' ? textTexture(style.text, plateW, plateH, '#1F5A3B', '#FFFFFF') : textTexture(style.text, plateW, plateH, '#B08D3C', '#2B1D10');
     if (tex) textures.push(tex);
     const plate = mat(new THREE.MeshStandardMaterial({ color: tex ? '#FFFFFF' : '#B08D3C', map: tex ?? null, roughness: 0.4, metalness: tex ? 0 : 0.7 }));

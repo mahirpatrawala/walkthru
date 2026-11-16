@@ -257,6 +257,57 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
     parts.add(cyl(0.012 * k, 0.012 * k, 0.03 * k, 0.17 * k, 6), BRASS, 0.4, 0.5);
     parts.add(cyl(0.07 * k, 0.11 * k, 0.19 * k, 0.15 * k, seg.s), '#F3E4C4', 0.95, 0, { emissive: '#FFD9A0' });
   },
+  nightstand(p, parts, _kit, seg) {
+    // a bedside table: white carcass on a short plinth, an oak top, a drawer with a knob, and a lamp whose shade glows
+    const w = p.w, d = p.d;
+    parts.add(box(-w / 2 + 0.03, w / 2 - 0.03, 0, 0.07, -d / 2 + 0.03, d / 2 - 0.03), '#6E5438', 0.6);
+    parts.add(box(-w / 2, w / 2, 0.07, 0.5, -d / 2, d / 2), '#EFEADF', 0.55);
+    parts.add(box(-w / 2 - 0.006, w / 2 + 0.006, 0.5, 0.522, -d / 2 - 0.006, d / 2 + 0.012), '#C9A77C', 0.5);
+    parts.add(box(-w / 2 + 0.03, w / 2 - 0.03, 0.29, 0.296, d / 2, d / 2 + 0.002), '#B7AE9E', 0.7);
+    parts.add(ball(0.013, 6, 0, 0.4, d / 2 + 0.012), BRASS, 0.4, 0.5);
+    parts.add(cyl(0.05, 0.058, 0.522, 0.022, seg.s), BRASS, 0.4, 0.5);
+    parts.add(cyl(0.011, 0.011, 0.544, 0.15, 6), BRASS, 0.4, 0.5);
+    parts.add(cyl(0.085, 0.125, 0.69, 0.17, seg.s), '#F6E8CB', 0.95, 0, { emissive: '#FFD9A0', shadow: false });
+  },
+  hob(p, parts, _kit, seg) {
+    // a four-burner gas hob under a black glass top: burner rings, caps and a row of control knobs on the front edge
+    const w = p.w, d = p.d;
+    parts.add(box(-w / 2, w / 2, 0, 0.026, -d / 2, d / 2), '#25272A', 0.25, 0.1);
+    for (const [bx, bz, r] of [[-0.14, -0.1, 0.06], [0.14, -0.1, 0.045], [-0.14, 0.11, 0.045], [0.14, 0.11, 0.06]] as const) {
+      parts.add(cyl(r, r, 0.026, 0.006, seg.s, bx, bz), '#B9BDC2', 0.4, 0.6);
+      parts.add(cyl(r * 0.55, r * 0.6, 0.032, 0.008, seg.s, bx, bz), '#1A1B1D', 0.5, 0.3);
+    }
+    for (let i = 0; i < 4; i++) parts.add(cyl(0.012, 0.012, 0.026, 0.01, 8, -0.2 + i * 0.133, d / 2 - 0.02), '#B9BDC2', 0.4, 0.6);
+  },
+  hood(p, parts) {
+    // a chimney hood: a sloped steel canopy 12 cm deep and a flue to the ceiling
+    const w = p.w, d = p.d, H = p.height;
+    parts.add(box(-w / 2, w / 2, 0, 0.1, 0.02, d), '#C4C8CC', 0.35, 0.5);
+    parts.add(box(-w / 2 + 0.03, w / 2 - 0.03, 0.1, 0.16, 0.06, d - 0.06), '#B1B6BB', 0.4, 0.5);
+    parts.add(box(-0.13, 0.13, 0.16, H, 0.02, 0.26), '#C4C8CC', 0.35, 0.5);
+    parts.add(box(-w / 2 + 0.05, w / 2 - 0.05, -0.002, 0.004, d * 0.2, d * 0.8), '#2A2C2E', 0.6);
+  },
+  wallcab(p, parts) {
+    // a wall unit: white carcass, two flush doors with a hairline gap and slim steel pulls
+    const w = p.w, h = p.height, d = p.d;
+    parts.add(box(-w / 2, w / 2, 0, h, 0, d), '#E9E3D6', 0.6);
+    const dw = w / 2 - 0.006;
+    for (const sx of [-1, 1]) {
+      const x0 = sx < 0 ? -w / 2 + 0.003 : 0.003, x1 = sx < 0 ? -0.003 : w / 2 - 0.003;
+      parts.add(box(x0, x1, 0.004, h - 0.004, d, d + 0.018), '#F4F0E6', 0.5);
+      const px = sx < 0 ? -0.025 : 0.025;
+      parts.add(box(px - 0.005, px + 0.005, 0.06, 0.06 + Math.min(0.3, h * 0.45), d + 0.018, d + 0.03), '#9FA4A9', 0.35, 0.6);
+    }
+    void dw;
+  },
+  dado(p, parts) {
+    // a glazed ceramic backsplash, 30 x 15 cm tiles with hairline joints
+    const w = p.w, h = p.height;
+    parts.add(box(-w / 2, w / 2, 0, h, 0, 0.012), '#F3F0E8', 0.22);
+    const jy = Math.round(h / 0.15);
+    for (let i = 1; i < jy; i++) parts.add(box(-w / 2, w / 2, i * 0.15 - 0.001, i * 0.15 + 0.001, 0.0118, 0.0126), '#C9C1B1', 0.8, 0, { shadow: false });
+    for (let x = -w / 2 + 0.3; x < w / 2 - 0.02; x += 0.3) parts.add(box(x - 0.001, x + 0.001, 0, h, 0.0118, 0.0126), '#C9C1B1', 0.8, 0, { shadow: false });
+  },
   cooker(p, parts, _kit, seg) {
     const r = 0.105;
     parts.add(cyl(r, r, 0, 0.17, seg.s), STEEL, 0.4, 0.45);
