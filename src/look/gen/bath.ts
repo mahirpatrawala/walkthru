@@ -100,9 +100,9 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
     box('basin-splash', ceramic, -w / 2 + 0.01, w / 2 - 0.01, S - 0.01, S + 0.035, -d / 2, -d / 2 + 0.03, 0.01);
     const tz = -d / 2 + 0.075;
     parts.put('tap-base', tap, new THREE.CylinderGeometry(0.03, 0.034, 0.022, 16).translate(0, S + 0.011, tz));
-    bar(parts, 'tap', tap, [0, S + 0.01, tz], [0, S + 0.115, tz], 0.012);
-    bar(parts, 'tap', tap, [0, S + 0.115, tz], [0, S + 0.115, tz + 0.1], 0.0095);
-    bar(parts, 'tap', tap, [0, S + 0.115, tz + 0.1], [0, S + 0.09, tz + 0.1], 0.008);
+    bar(parts, 'tap', tap, [0, S + 0.01, tz], [0, S + 0.085, tz], 0.012);
+    bar(parts, 'tap', tap, [0, S + 0.085, tz], [0, S + 0.085, tz + 0.1], 0.0095);
+    bar(parts, 'tap', tap, [0, S + 0.085, tz + 0.1], [0, S + 0.06, tz + 0.1], 0.008);
     parts.put('tap-lever', tap, new THREE.BoxGeometry(0.06, 0.01, 0.012).translate(0, S + 0.07, tz - 0.02));
     disc(parts, 'basin-drain', tap, 0, 0.02, S + 0.0014, S + 0.0024, 0.02);
     if (v === 'basin-pedestal') {

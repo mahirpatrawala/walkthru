@@ -81,7 +81,7 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
   // one welded soft pad per cushion (src/look/gen/soft.ts): plump, rounded, no creases; the lowest tier draws a plain rounded box
   const cush = (cwid: number, ch: number, cdep: number, puff: number, rad?: number): THREE.BufferGeometry =>
     q.tier === 'low' ? roundedBoxBetween(-cwid / 2, cwid / 2, -ch / 2, ch / 2, -cdep / 2, cdep / 2, Math.min(0.04, ch / 2.5), 1)
-      : softCushion(cwid, ch, cdep, { r: rad ?? Math.min(0.055, ch / 2.6), puff, seg: q.tier === 'high' && n <= 3 && chaise === 'none' ? 3 : 2 });
+      : softCushion(cwid, ch, cdep, { r: rad ?? Math.min(0.055, ch / 2.6), puff, seg: q.tier === 'high' && n <= 2 && chaise === 'none' ? 3 : 2 });
   for (let i = 0; i < n; i++) {
     const x = inner0 + cw * (i + 0.5);
     const g = cush(cw - 0.01, seatH, cd, 0.014);

@@ -66,10 +66,10 @@ export function buildAppliance(env: GenEnv, size: GenSize, p: ApplianceParams, r
     for (const s of [-1, 1]) box('washer-feet', BLACK, s * (w / 2 - 0.06) - 0.025, s * (w / 2 - 0.06) + 0.025, 0, 0.025, bz0 + 0.04, zb - 0.05, 0);
     // door: a chrome ring, dark glass, a gasket
     const cy = 0.42, R = 0.2;
-    const ring = new THREE.TorusGeometry(R, 0.015, 12, 64).translate(0, cy, bz1 - 0.015);
+    const ring = new THREE.TorusGeometry(R, 0.015, q.tier === 'low' ? 6 : 12, q.tier === 'high' ? 64 : q.tier === 'medium' ? 32 : 16).translate(0, cy, bz1 - 0.015);
     parts.put('washer-door', trim, ring);
-    parts.put('washer-door-glass', GLASS, new THREE.CylinderGeometry(R, R, 0.01, 64).rotateX(Math.PI / 2).translate(0, cy, bz1 - 0.017));
-    parts.put('washer-door-glass', SCREEN, new THREE.CylinderGeometry(R - 0.04, R - 0.04, 0.012, 64).rotateX(Math.PI / 2).translate(0, cy, zb));
+    parts.put('washer-door-glass', GLASS, new THREE.CylinderGeometry(R, R, 0.01, q.tier === 'high' ? 64 : q.tier === 'medium' ? 32 : 16).rotateX(Math.PI / 2).translate(0, cy, bz1 - 0.017));
+    parts.put('washer-door-glass', SCREEN, new THREE.CylinderGeometry(R - 0.04, R - 0.04, 0.012, q.tier === 'high' ? 64 : q.tier === 'medium' ? 32 : 16).rotateX(Math.PI / 2).translate(0, cy, zb));
     // control strip with a dial and a display
     box('washer-panel', roleOr(roles, { key: 'blackMetal', tint: '#2A2C30' }, 'appliancePanel'), -w / 2 + 0.02, w / 2 - 0.02, H - 0.13, H - 0.03, zb - 0.002, bz1 - 0.022, 0.001);
     parts.put('washer-dial', trim, new THREE.CylinderGeometry(0.03, 0.03, 0.02, 12).rotateX(Math.PI / 2).translate(-w / 2 + 0.1, H - 0.08, bz1 - 0.012));
