@@ -3,10 +3,15 @@
 // chunk plus the building's portals). `?building=<id>` alone is the building's map page, part of the start page.
 // Keep this file tiny and free of heavy imports.
 import { installScale } from '../brand/scale';
+import { isLandingAddress } from '../landing/address';
 installScale();
 const q = new URLSearchParams(location.search);
 const scene = q.get('scene')?.trim();
 const building = q.get('building')?.trim();
 if (scene) void import('./main');
 else if (building && q.get('space')?.trim()) void import('../building/walk').then((m) => m.startBuildingWalk());
-else { document.getElementById('wt-boot')?.classList.add('is-light'); void import('../start/start').then((m) => m.mountStart()); }
+else {
+  // the landing page (bare `/`) is dark, like the boot screen; every other start-page screen is paper
+  if (!isLandingAddress(location.search)) document.getElementById('wt-boot')?.classList.add('is-light');
+  void import('../start/start').then((m) => m.mountStart());
+}

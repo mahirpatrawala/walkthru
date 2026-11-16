@@ -1,4 +1,5 @@
-// The start page (no ?scene=): a gallery of homes drawn as floor plans, then "Where do you want to start?" for the home picked.
+// The start page (no ?scene=): the landing hero at the bare address (src/landing), a gallery of buildings and of homes drawn as floor
+// plans, then "Where do you want to start?" for the home picked.
 // No three.js here on purpose: this page must open fast. The walk itself is the lazy chunk behind `?scene=<id>&room=<id>`.
 import './start.css';
 import { ORIGIN_TAG } from '../buyer/scene-tag';
@@ -14,6 +15,9 @@ import { SAMPLE_UPLOAD_TAG } from '../upload/tag';
 import { fetchBuildingIndex } from '../building/load';
 import { renderBuildingList, renderBuildingPage } from '../building/start-section';
 import type { BuildingIndex } from '../building/types';
+import { isLandingAddress } from '../landing/address';
+import { LANDING_TITLE, createLanding, setLandingTheme } from '../landing/landing';
+import type { Landing } from '../landing/landing';
 
 function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string, parent?: HTMLElement): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -61,10 +65,30 @@ export async function mountStart(): Promise<void> {
   root.dataset.testid = 'start';
   document.body.appendChild(root);
   document.title = 'walkthru';
+  // forward declared: the landing hero's buttons navigate inside this page
+  let navigate: Go = (url) => { location.assign(url); };
+  // the landing page's hero is made once (bare `/` only) and kept, so its picture does not start again when the list is redrawn
+  let landing: Landing | null = null;
+  const landingNow = (): Landing | null => {
+    if (!isLandingAddress(location.search)) return null;
+    landing ??= createLanding((url) => navigate(url));
+    return landing;
+  };
 
   // the hero is static, so it is on screen before the list of homes arrives; a light line stands in for the gallery
-  renderHero(root);
-  const wait = h('p', 'ws-loading', 'Loading the homes…', root);
+  const first = landingNow();
+  let wait: HTMLElement;
+  if (first) {
+    root.classList.add('is-landing');
+    setLandingTheme(true);
+    document.title = LANDING_TITLE;
+    root.appendChild(first.hero);
+    wait = h('p', 'ws-loading', 'Loading the projects…', first.band());
+    root.appendChild(wait.parentElement!);
+  } else {
+    renderHero(root);
+    wait = h('p', 'ws-loading', 'Loading the homes…', root);
+  }
   wait.dataset.testid = 'start-loading';
 
   let index: SceneIndex;
@@ -76,6 +100,8 @@ export async function mountStart(): Promise<void> {
     index = await loadIndex();
   } catch (err) {
     root.replaceChildren();
+    root.classList.remove('is-landing');
+    setLandingTheme(false);
     const box = h('div', 'ws-empty', undefined, root);
     h('h1', undefined, 'Could not load the homes.', box);
     h('p', undefined, err instanceof Error ? err.message : String(err), box);
@@ -89,6 +115,7 @@ export async function mountStart(): Promise<void> {
   const buildings = await buildingsPromise;
   let mine = await minePromise;
   const refreshMine = async (): Promise<void> => { mine = await loadLocalEntries().catch((): SceneEntry[] => []); route(); };
+  let landingDrawn = false;
   const route = (fresh = false): void => {
     const q = new URLSearchParams(location.search);
     const checking = q.get('check');
@@ -97,18 +124,35 @@ export async function mountStart(): Promise<void> {
     if (!fresh && !checking) { void loadLocalEntries().catch((): SceneEntry[] => []).then((m) => { mine = m; route(true); }); return; }
     if (checking) {
       root.replaceChildren();
+      root.classList.remove('is-landing');
+      setLandingTheme(false);
+      landingDrawn = false;
       void import('../upload/check').then((m) => m.renderCheck(root, checking, go)).catch(() => { root.replaceChildren(); h('p', 'ws-empty', 'This screen could not load. Reload the page.', root); });
       return;
     }
     const home = [...mine, ...index.scenes].find((s) => s.id === wanted);
+    const wantedBuilding = q.get('building')?.trim();
+    const page = !wantedBuilding && !home ? landingNow() : null;
+    // a redraw of the landing page (an upload deleted, the list read again) keeps the reader where they were
+    const keep = page && landingDrawn ? root.scrollTop : null;
+    landingDrawn = !!page;
     root.replaceChildren();
     root.scrollTop = 0;
-    const wantedBuilding = q.get('building')?.trim();
+    root.classList.toggle('is-landing', !!page);
+    setLandingTheme(!!page);
     if (wantedBuilding) void renderBuildingPage(root, wantedBuilding, go);
     else if (home) renderPicker(root, home, q.get('room'), go);
-    else renderGallery(root, index, mine, buildings, go, () => { void refreshMine(); });
+    else if (page) {
+      document.title = LANDING_TITLE;
+      root.appendChild(page.hero);
+      const band = page.band();
+      root.appendChild(band);
+      renderGallery(band, index, mine, buildings, go, () => { void refreshMine(); }, true);
+      if (keep !== null) root.scrollTop = keep; else page.settle(root);
+    } else renderGallery(root, index, mine, buildings, go, () => { void refreshMine(); });
   };
   const go = (url: string): void => { history.pushState(null, '', url); route(); };
+  navigate = go;
   window.addEventListener('popstate', () => route());
   route(true); // `mine` was read a moment ago
 }
@@ -137,9 +181,9 @@ function renderHero(root: HTMLElement): void {
   h('p', 'ws-lead', 'Pick a building or a home. Sizes come from the drawing, and anything it does not show is marked as not measured.', copy);
 }
 
-function renderGallery(root: HTMLElement, index: SceneIndex, mine: SceneEntry[], buildings: BuildingIndex, go: Go, refreshMine: () => void): void {
-  document.title = 'walkthru';
-  renderHero(root);
+/** `landing`: the landing page has its own hero and title; the list is drawn into its "Projects" band. */
+function renderGallery(root: HTMLElement, index: SceneIndex, mine: SceneEntry[], buildings: BuildingIndex, go: Go, refreshMine: () => void, landing = false): void {
+  if (!landing) { document.title = 'walkthru'; renderHero(root); }
   renderBuildingList(root, buildings, go);
   const section = h('div', 'ws-section', undefined, root);
   section.id = 'homes';
