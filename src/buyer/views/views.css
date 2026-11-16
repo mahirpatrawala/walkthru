@@ -91,7 +91,7 @@
   --wvp-dim: #9aa3ae; --wvp-swing: #5b6571; --wvp-water: #1d4a52; --wvp-grid: rgba(255, 255, 255, 0.04);
 }
 .wt-views-plan-svg { position: absolute; inset: calc(124 * var(--wt-u, 1px)) calc(20 * var(--wt-u, 1px)) calc(28 * var(--wt-u, 1px)) calc(20 * var(--wt-u, 1px)); width: calc(100% - calc(40 * var(--wt-u, 1px))); height: calc(100% - calc(152 * var(--wt-u, 1px))); display: block; overflow: visible; font-family: var(--wt-font, system-ui, sans-serif); }
-@media (max-width: 720px) { .wt-views-plan-svg { inset: 172px 8px 24px 8px; width: calc(100% - 16px); height: calc(100% - 196px); } }
+@media (max-width: 720px) { .wt-views-plan-svg { inset: calc(172 * var(--wt-u, 1px)) calc(76 * var(--wt-u, 1px)) calc(24 * var(--wt-u, 1px)) calc(8 * var(--wt-u, 1px)); width: calc(100% - calc(84 * var(--wt-u, 1px))); height: calc(100% - calc(196 * var(--wt-u, 1px))); } }
 .wt-views-plan .plan-floor { fill: var(--wvp-floor); stroke: none; }
 .wt-views-plan .plan-room.is-partial .plan-floor { fill: var(--wvp-floor-dim); stroke: var(--wvp-muted); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-dasharray: 4 3; }
 .wt-views-plan .plan-hatch { stroke: var(--wvp-muted); opacity: 0.5; }
@@ -133,3 +133,12 @@
   background: var(--wtv-glass); color: var(--wtv-ink); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur); font-size: calc(13 * var(--wt-u, 1px)); font-weight: 600;
 }
 @media (max-width: 720px) { .wt-views-plan-hint { bottom: calc(80px + var(--wt-safe-b, 0px)); } }
+
+/* a phone: the names are smaller and carry no size (the room strip below has it), and what belongs to the walk steps aside */
+@media (max-width: 720px) {
+  .wt-views-label { padding: calc(2 * var(--wt-u, 1px)) calc(7 * var(--wt-u, 1px)); border-radius: calc(8 * var(--wt-u, 1px)); }
+  .wt-views-label-name { font-size: calc(10.5 * var(--wt-u, 1px)); }
+  .wt-views-label-area { display: none; }
+}
+.wt-view-dollhouse .wt-slot, .wt-view-plan .wt-slot { display: none; }
+.wt-view-dollhouse .wt-hint-chips, .wt-view-plan .wt-hint-chips { display: none; }

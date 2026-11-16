@@ -254,7 +254,7 @@ export function mountViews(d: ViewsDeps): MountedViews {
     // a tour begun some other way (the debug hook) is the walk's: back to Walk
     if (machine.mode() !== 'walk' && d.nav.debug.driver.touring) machine.set('walk');
     const flight = machine.flight();
-    dollhouse.update(dt, flight);
+    dollhouse.update(dt, flight, machine.planAmount());
     plan.setAmount(machine.planAmount());
     plan.update();
     // under a fully covering plan the 3D view is not drawn at all

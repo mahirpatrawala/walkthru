@@ -72,7 +72,7 @@ export interface DollhouseDeps {
 
 export interface Dollhouse {
   /** per frame, after the walk's own camera has run: `flight` comes from the view machine */
-  update(dt: number, flight: Flight): void;
+  update(dt: number, flight: Flight, planCover?: number): void;
   /** the doll house is up (resources exist) */
   readonly on: boolean;
   /** the camera has arrived and the orbit answers the buyer */
@@ -191,7 +191,7 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
     if (!bounds) return;
     const aspect = cam.aspect > 0 ? cam.aspect : 1.6;
     const fov = dollFov(aspect);
-    const r = initialOrbit(bounds, { fovVDeg: fov, aspect, entrance: d.entrance });
+    const r = initialOrbit(bounds, { fovVDeg: fov, aspect, entrance: d.entrance, margin: aspect < 1 ? 1.3 : 1.12 });
     limits = r.limits;
     home = r.goal;
   }
@@ -430,7 +430,7 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
   }
 
   return {
-    update(dt, flight) {
+    update(dt, flight, planCover = 0) {
       if (disposed) return;
       if (flight.raw > 0 && !on) build();
       if (!on) return;
@@ -451,7 +451,8 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
       // the name tags' wall tests are a few rays each: twice as seldom on the low tier
       occludeClock += dt;
       if (occludeClock > (d.tier() === 'low' ? 0.5 : 0.2)) { occludeClock = 0; updateOcclusion(); }
-      updateLabels(dt, flight.amount > 0.6);
+      updateLabels(dt, flight.amount > 0.6 && planCover < 0.05);
+      if (planCover > 0.05 && tip) tip.hidden = true;
       updateHover(dt);
       if (outline?.active) {
         const s = viewer.renderer.getPixelRatio();

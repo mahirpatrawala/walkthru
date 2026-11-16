@@ -98,11 +98,11 @@ export function dollFov(aspect: number): number {
 }
 
 /** The first pose: centred, 50 degrees up, the entrance side nearest the viewer when it is known, the whole layout in frame. */
-export function initialOrbit(b: Bounds, o: { fovVDeg: number; aspect: number; entrance?: Vec2 | null }): { goal: OrbitGoal; limits: OrbitLimits } {
+export function initialOrbit(b: Bounds, o: { fovVDeg: number; aspect: number; entrance?: Vec2 | null; margin?: number }): { goal: OrbitGoal; limits: OrbitLimits } {
   const c = boundsCentre(b);
   const theta = o.entrance ? Math.atan2(o.entrance.x, o.entrance.z) : 0;
   const phi = (90 - DOLL_ELEVATION_DEG) * DEG;
-  const dist = fitDistance(b, o.fovVDeg, o.aspect, theta, phi);
+  const dist = fitDistance(b, o.fovVDeg, o.aspect, theta, phi, o.margin ?? 1.1);
   const span = Math.max(b.x1 - b.x0, b.z1 - b.z0);
   const r = boundsRadius(b);
   const loose = sphereDistance(r, o.fovVDeg) * 1.2;
