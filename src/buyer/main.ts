@@ -78,6 +78,7 @@ import type { PersonSpec } from './people/manager';
 import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
+import { mountNav } from './nav/mount';
 import { mountSceneTag, sceneOrigin, sceneTagText } from './scene-tag';
 import { isLocalHomeId } from '../upload/tag';
 import { createLivedIn, mountLivedInToggle } from '../look/lived-in';
@@ -609,6 +610,9 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   rooms = createRoomsSheet(document.body, layout, () => { /* nothing to resume */ }, unverifiedRooms);
   rooms.setPeopleNote(people.ui.note());
   people.people.onChange(() => rooms.setPeopleNote(people!.ui.note()));
+  // the mini plan, the room bar and the Tour button (src/buyer/nav); the auto-walk drives the walker from `tick`
+  const nav = mountNav({ ctx, layout, store, doors, unverified: unverifiedRooms, water: outdoorFile?.pools.map((p) => p.rect) ?? [], blocked: blocking, posed: () => !!interactions.pose(), getUp: () => interactions.getUp(), resetMotion: () => resetLocomotion(character), storage, parent: hud.root });
+  cleanup.push(() => nav.dispose());
   // look-kit: typical Indian-flat fittings (decor only, labelled, 'Plain' removes them). The style's room finishes are applied first (the kit's
   // floors read them), and the kit is taken off and put back whenever the style changes them.
   let kit: KitHandle | null = null;
@@ -753,7 +757,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
       if (character.state === 'walk' || character.state === 'jog') character.setLocomotion(0, false);
       resetLocomotion(character); // a sheet that opens mid-stride stops the walker; it does not glide on when the sheet closes
     } else if (modes.id !== 'pose') {
-      stepLocomotion(character, input, camera.viewYawDeg, people!.people.walkGrid(store.grid()), dt);
+      if (!nav.drive(dt)) stepLocomotion(character, input, camera.viewYawDeg, people!.people.walkGrid(store.grid()), dt);
     } else resetLocomotion(character);
     modes.update(dt);
     interactions.update(dt);
@@ -919,6 +923,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     },
     decor,
     seats,
+    /** the mini plan, room bar and tour (src/buyer/nav) */
+    nav: nav.debug,
     /** the people a buyer added (src/buyer/people): the model, and the sheets and card */
     people: { get model() { return people!.people; }, get ui() { return people!.ui; } },
     /** SPEC 16.14: the offline bake dumps the scene as built (loaded on demand, never part of a first load) */
