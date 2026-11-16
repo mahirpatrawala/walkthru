@@ -47,6 +47,8 @@ export interface LightOverride {
   bakedOff?: boolean;
   /** no planar reflection (a second pass of the whole scene that a view from above does not need) */
   noReflection?: boolean;
+  /** no window light and lamp pools in the shell shader (they are chosen by the nearest to the camera, which is no use from above) */
+  noDaylight?: boolean;
   /** called at the end of every lighting pass with the lights as the look set them: change them here */
   apply?(l: { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight; scene: THREE.Scene; renderer: THREE.WebGLRenderer; cfg: TierConfig; shadows: boolean }): void;
 }
@@ -293,7 +295,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let daylightAt = { x: NaN, z: NaN };
   function updateDaylight(force = false): void {
     const sh = materials.shared;
-    const on = cfg.tier !== 'low' && !scanVisible && !trueColours && !outdoor && windows.length + lamps.length > 0;
+    const on = cfg.tier !== 'low' && !scanVisible && !trueColours && !outdoor && lightOverride?.noDaylight !== true && windows.length + lamps.length > 0;
     sh.winOn.value = on ? 1 : 0;
     if (!on) { daylightAt = { x: NaN, z: NaN }; return; }
     const cx = camera.position.x, cz = camera.position.z;

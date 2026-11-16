@@ -164,7 +164,7 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
     if (l.scene.environment) l.scene.environmentIntensity = DOLL_LIGHT.env;
   }
   const override: LightOverride = {
-    hour: DOLL_LIGHT.hour, bakedOff: true, noReflection: true,
+    hour: DOLL_LIGHT.hour, bakedOff: true, noReflection: true, noDaylight: true,
     apply: (l) => { if (!look?.trueColours) lightValues({ ...l, tier: l.cfg.tier }); },
   };
   function applyLight(): void {
