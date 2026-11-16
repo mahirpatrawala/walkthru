@@ -14,6 +14,8 @@ import { createPostChain } from './post';
 import type { PostChain } from './post';
 import { TIERS, clampAnisotropy, lowerTier, loadSavedTier, readDevice, guessTier, saveTier, stepDown, tierFromQuery, postWanted, tierPixelCap, toneMapperFromQuery } from './quality';
 import { ResolutionGovernor } from './resolution';
+import { MAX_LAMP_POOLS, MAX_WINDOW_LIGHTS, lampColour, lampSources, nearestTo, skylightColour, windowSources } from './daylight';
+import type { LampSource, WindowSource } from './daylight';
 import type { TierConfig, ToneMapperName } from './quality';
 import type { BakedHook } from './baked/hook';
 import { Reflections } from './reflect';
@@ -265,6 +267,34 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     else sky.showPlain(grade.sky, grade.night ? 14 : sun.elevationDeg, cfg);
   }
 
+  // ---- daylight (SPEC 16.19): the nearest windows are soft light sources in the shell shader, a windowless room is lit by its downlights.
+  // Kept inside the look's own state (uniforms of the shared materials), so a view that replaces the lighting (a dollhouse) simply sets `winOn` to 0.
+  let windows: WindowSource[] = windowSources(layout);
+  let lamps: LampSource[] = lampSources(layout, windows);
+  let daylightAt = { x: NaN, z: NaN };
+  function updateDaylight(force = false): void {
+    const sh = materials.shared;
+    const on = cfg.tier !== 'low' && !scanVisible && !trueColours && !outdoor && windows.length + lamps.length > 0;
+    sh.winOn.value = on ? 1 : 0;
+    if (!on) { daylightAt = { x: NaN, z: NaN }; return; }
+    const cx = camera.position.x, cz = camera.position.z;
+    const moved = Math.hypot(cx - daylightAt.x, cz - daylightAt.z) > 0.25;
+    sh.winCol.value.setRGB(...skylightColour(grade, trueColours));
+    sh.lampCol.value.setRGB(...lampColour(grade, trueColours));
+    if (!force && !moved) return;
+    daylightAt = { x: cx, z: cz };
+    const wsel = nearestTo(windows, cx, cz, MAX_WINDOW_LIGHTS);
+    for (let i = 0; i < MAX_WINDOW_LIGHTS; i++) {
+      const w = wsel[i];
+      if (w) { sh.winA.value[i].set(w.x, w.y, w.z, w.hw); sh.winB.value[i].set(w.nx, w.nz, w.hh, 1); } else sh.winB.value[i].set(0, 0, 0, 0);
+    }
+    const lsel = nearestTo(lamps, cx, cz, MAX_LAMP_POOLS);
+    for (let i = 0; i < MAX_LAMP_POOLS; i++) {
+      const l = lsel[i];
+      if (l) sh.lampA.value[i].set(l.x, l.y - 0.01, l.z, 1); else sh.lampA.value[i].set(0, 0, 0, 0);
+    }
+  }
+
   function applyLighting(): void {
     sun = sunState(layout, lookFile, hour);
     grade = trueColours ? TRUE_GRADE : gradeAt(hour);
@@ -340,6 +370,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     baked?.update({ grade, hour, cfg, off: trueColours || scanVisible });
     syncBaked();
     needsShadowRefresh();
+    updateDaylight(true);
   }
 
   /** SPEC 16.14: while a bake lights the home, the pooled lamps (the bake has their light), the wall-edge darkening and the grid AO of walls step back;
@@ -537,6 +568,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   const offFrame = viewer.onFrame((frameDt) => {
     renderer.info.reset();
     if (!disposed && !scanVisible) interior.update(frameDt, { x: camera.position.x, z: camera.position.z });
+    if (!disposed) updateDaylight();
     const now = performance.now();
     const dt = lastNow ? (now - lastNow) / 1000 : 0;
     lastNow = now;
@@ -653,6 +685,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       materials.setWallHeight(l.wallHeightM);
       reflections.setLayout(l);
       interior.setLayout(l);
+      windows = windowSources(l);
+      lamps = lampSources(l, windows);
       if (g) { grid = g; rebuildAo(g); }
       applyLighting();
       scheduleCube();

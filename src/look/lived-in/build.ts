@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { mulberry32 } from '../../core/geometry';
+import { getStyle } from '../style';
 import type { DecorPiece } from './plan';
 import { attachDecorModel } from '../models/decor';
 import type { ModelPolicy } from '../models/library';
@@ -15,7 +16,11 @@ import type { ModelPolicy } from '../models/library';
 const DEG = Math.PI / 180;
 
 /** The warm palette (ochre, terracotta, teal, indigo, sage, rani pink, cream, saffron): cushions, throws, curtains, pots. */
-export const TONES = ['#C4623F', '#D9A23F', '#2E7D84', '#3A4A7A', '#7E9A78', '#B84B72', '#EFE3CD', '#E88B2A'] as const;
+const WARM_TONES = ['#C4623F', '#D9A23F', '#2E7D84', '#3A4A7A', '#7E9A78', '#B84B72', '#EFE3CD', '#E88B2A'] as const;
+/** the clean packs' calm palette (SPEC 16.19): muted terracotta and ochre as the one warm accent, blue-greys and sage-greys, cream at index 6 as before */
+const CALM_TONES = ['#B97A62', '#C9A86A', '#8C98A6', '#7D8CA0', '#9AA593', '#B3A39A', '#EFE8DC', '#C58E6B'] as const;
+export const tones = (): readonly string[] => (getStyle().pack.id.startsWith('clean-contrast') ? CALM_TONES : WARM_TONES);
+export const TONES = WARM_TONES;
 const CREAM = '#F1E6D2';
 const STEEL = '#B9BDC2';
 const BRASS = '#C79A3C';
@@ -153,8 +158,8 @@ function canvasTexture(w: number, h: number, draw: (c: CanvasRenderingContext2D,
 /** A flat-woven dhurrie: a border, bands and rows of diamonds in the palette. */
 function rugTexture(tone: number, seed: number): THREE.Texture | null {
   const rnd = mulberry32(seed);
-  const main = TONES[tone % TONES.length] === TONES[6] ? '#C4623F' : TONES[tone % TONES.length];
-  const accent = TONES[(tone + 2 + Math.floor(rnd() * 3)) % TONES.length];
+  const main = tones()[tone % tones().length] === tones()[6] ? '#C4623F' : tones()[tone % tones().length];
+  const accent = tones()[(tone + 2 + Math.floor(rnd() * 3)) % tones().length];
   return canvasTexture(256, 384, (c, w, h) => {
     c.fillStyle = '#EFE3CD'; c.fillRect(0, 0, w, h);
     c.fillStyle = main; c.fillRect(10, 10, w - 20, h - 20);
@@ -176,7 +181,7 @@ function rugTexture(tone: number, seed: number): THREE.Texture | null {
 
 /** A small warm landscape for the framed picture: a sun low over layered hills. */
 function artTexture(tone: number): THREE.Texture | null {
-  const hills = [TONES[(tone + 1) % 8], TONES[(tone + 2) % 8], '#3D5A5E'];
+  const hills = [tones()[(tone + 1) % 8], tones()[(tone + 2) % 8], '#3D5A5E'];
   return canvasTexture(192, 144, (c, w, h) => {
     const sky = c.createLinearGradient(0, 0, 0, h);
     sky.addColorStop(0, '#F3C58B'); sky.addColorStop(0.7, '#F7E2B8'); sky.addColorStop(1, '#FBEFD6');
@@ -196,11 +201,11 @@ function artTexture(tone: number): THREE.Texture | null {
 type Seg = { s: number };
 type Builder = (p: DecorPiece, parts: Parts, kit: DecorKit, seg: Seg) => void;
 
-const tone = (p: DecorPiece, shift = 0): string => TONES[(p.tone + shift) % TONES.length];
+const tone = (p: DecorPiece, shift = 0): string => tones()[(p.tone + shift) % tones().length];
 
 const BUILD: Record<DecorPiece['kind'], Builder> = {
   cushion(p, parts, _kit, seg) {
-    const main = tone(p) === TONES[6] ? tone(p, 1) : tone(p);
+    const main = tone(p) === tones()[6] ? tone(p, 1) : tone(p);
     const g = pillow(p.w, p.height, p.d, seg.s > 8 ? 8 : 5);
     // the cushion leans back against the pillow or backrest, pivoting on its bottom edge
     g.rotateX(-(p.tiltDeg ?? 0) * DEG);
@@ -213,8 +218,8 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
   },
   throw(p, parts) {
     // a folded woollen throw: a thick body in one colour, a cream and a second stripe near each end, and a short fringe
-    const main = tone(p) === TONES[6] ? tone(p, 1) : tone(p);
-    const second = tone(p, 3) === TONES[6] ? tone(p, 4) : tone(p, 3);
+    const main = tone(p) === tones()[6] ? tone(p, 1) : tone(p);
+    const second = tone(p, 3) === tones()[6] ? tone(p, 4) : tone(p, 3);
     const h = Math.max(0.035, p.height);
     parts.add(box(-p.w / 2, p.w / 2, 0, h, -p.d / 2, p.d / 2), main, 0.98);
     for (const sx of [-1, 1]) {
@@ -316,7 +321,7 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
       const top = kit.texturedMat(tex, 1);
       parts.mesh(geo, [side, side, top, side, side, side], false);
     } else {
-      parts.mesh(geo, kit.mat({ hex: TONES[p.tone % 8] === TONES[6] ? '#C4623F' : TONES[p.tone % 8], rough: 1, metal: 0 }), false);
+      parts.mesh(geo, kit.mat({ hex: tones()[p.tone % 8] === tones()[6] ? '#C4623F' : tones()[p.tone % 8], rough: 1, metal: 0 }), false);
     }
   },
   shoes(p, parts) {

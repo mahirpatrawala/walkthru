@@ -225,13 +225,14 @@ export function finishNote(r: ResolvedLook | null, packName: string): string {
 }
 
 /** the room finish ids in force for a room: sheet room > pack room, with the provenance of each */
-export function roomFinishIds(roomId: string, st: StyleState = state): { wall?: [string, Prov]; floor?: [string, Prov]; ceiling?: [string, Prov] } {
+export function roomFinishIds(roomId: string, st: StyleState = state, roomType?: string): { wall?: [string, Prov]; floor?: [string, Prov]; ceiling?: [string, Prov] } {
   const out: { wall?: [string, Prov]; floor?: [string, Prov]; ceiling?: [string, Prov] } = {};
   if (st.pack.classic) return out;
   const sheetRoom = sheetInForce(st)?.rooms[roomId];
   for (const k of ['wall', 'floor', 'ceiling'] as const) {
     const s = sheetRoom?.[k];
     if (s) out[k] = [s, 'sheet'];
+    else if (roomType === 'bathroom' && (k === 'wall' || k === 'floor') && st.pack.room.wet?.[k]) out[k] = [st.pack.room.wet[k] as string, 'pack'];
     else if (st.pack.room[k]) out[k] = [st.pack.room[k] as string, 'pack'];
   }
   return out;
@@ -246,11 +247,11 @@ export function doorPanelFinish(st: StyleState = getStyle()): { colour: string; 
 }
 
 /** The pack's accents of the shell itself (SPEC 16.18): skirting, frame and handle colours; every field null where the pack names none (and always in Classic). */
-export function trimColours(st: StyleState = getStyle()): { skirting: string | null; frame: string | null; handle: string | null; /** the frame is a wood (its grain shows), not paint */ frameGrain: boolean } {
-  if (st.pack.classic) return { skirting: null, frame: null, handle: null, frameGrain: true };
+export function trimColours(st: StyleState = getStyle()): { skirting: string | null; frame: string | null; handle: string | null; /** a thin light window grill, null = the kit's dark one */ grill: string | null; /** the frame is a wood (its grain shows), not paint */ frameGrain: boolean } {
+  if (st.pack.classic) return { skirting: null, frame: null, handle: null, grill: null, frameGrain: true };
   const t = st.pack.trim ?? {};
   const frame = finishDef(t.frame);
-  return { skirting: finishDef(t.skirting)?.colour ?? null, frame: frame?.colour ?? null, handle: finishDef(t.handle)?.colour ?? null, frameGrain: frame ? frame.kind === 'wood' : true };
+  return { skirting: finishDef(t.skirting)?.colour ?? null, frame: frame?.colour ?? null, handle: finishDef(t.handle)?.colour ?? null, grill: finishDef(t.grill)?.colour ?? null, frameGrain: frame ? frame.kind === 'wood' : true };
 }
 
 /** the colour of door panels under the active style: the sheet's or the pack's `door` role (a wood or laminate finish), null in Classic */

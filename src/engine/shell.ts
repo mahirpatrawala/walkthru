@@ -77,7 +77,8 @@ const hasDom = (): boolean => typeof document !== 'undefined';
 /** Materials the look supplies (SPEC 16.5). Shared materials carry `userData.shared = true` and are not disposed with the shell. */
 export interface ShellMaterialSet {
   floor(spec: { color: string; tile: Finishes['tile']; groutColor: string; balcony: boolean }): THREE.Material;
-  wall(color: string): THREE.Material;
+  /** `tile`: a glazed wall tile of this size in metres, with hairline joints, up to the ceiling (a wet room, SPEC 16.19) */
+  wall(color: string, tile?: { wM: number; hM: number }): THREE.Material;
   ceiling(color: string): THREE.Material;
   /** `grain`: the wood grain shows (a wood finish); false for a painted frame (default true) */
   frame(color: string, grain?: boolean): THREE.Material;

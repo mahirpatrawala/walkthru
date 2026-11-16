@@ -36,10 +36,18 @@ export function buildTvUnit(env: GenEnv, size: GenSize, p: TvUnitParams, roles: 
   parts.box('tv-niche-kit', roleOr(roles, { key: 'blackMetal' }, 'tvBlack'), -nw / 2 + 0.05, nw / 2 - 0.05, y0 + 0.02, y0 + 0.06, d / 2 - 0.16, d / 2 - 0.05, { c: 0.002 });
   // the TV, on the wall above: a thin panel with a bezel and a slim stand-off from the wall
   const tvY0 = size.h - p.tvH;
-  const tvBody: MatSpec = { key: 'blackMetal', tint: '#17181A' };
-  const screen: MatSpec = { key: 'granite', tint: '#0E0F12' };
-  parts.box('tv-panel', tvBody, -p.tvW / 2, p.tvW / 2, tvY0, size.h, -d / 2, -d / 2 + 0.045, { c: 0.003 });
-  parts.box('tv-screen', screen, -p.tvW / 2 + 0.01, p.tvW / 2 - 0.01, tvY0 + 0.01, size.h - 0.01, -d / 2 + 0.0455, -d / 2 + 0.047, { c: 0 });
+  const tvBody: MatSpec = { key: 'blackMetal', tint: '#202225' };
+  // a thin bezel (5 mm), a glossy screen that goes from a faint sky reflection at the top to deep blue-black at the bottom (four bands), and a
+  // wall bracket behind the panel (its shadow lifts the TV off the wall)
+  const bez = 0.005, zf0 = -d / 2 + 0.0455;
+  parts.box('tv-panel', tvBody, -p.tvW / 2, p.tvW / 2, tvY0, size.h, -d / 2 + 0.02, -d / 2 + 0.045, { c: 0.003 });
+  parts.box('tv-bracket', tvBody, -0.09, 0.09, tvY0 + p.tvH * 0.3, tvY0 + p.tvH * 0.7, -d / 2, -d / 2 + 0.02, { c: 0 });
+  const bands = ['#39424D', '#242B34', '#171C23', '#10141A'];
+  const x0 = -p.tvW / 2 + bez, x1 = p.tvW / 2 - bez, hh = (p.tvH - 2 * bez) / bands.length;
+  bands.forEach((tint, i) => {
+    const yb1 = size.h - bez - i * hh;
+    parts.box('tv-screen', { key: 'gloss', tint }, x0, x1, yb1 - hh, yb1, zf0, zf0 + 0.0015, { c: 0 });
+  });
   return parts.done();
 }
 

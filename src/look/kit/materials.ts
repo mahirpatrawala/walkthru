@@ -13,6 +13,8 @@ export interface KitMaterials {
   /** the fan's blades, same paint as its body */
   fan: THREE.MeshStandardMaterial;
   cove: THREE.Material;
+  /** a bathroom mirror's glass: per-vertex gradient, glossy */
+  mirror: THREE.MeshStandardMaterial;
   /** the glass of the recessed downlights (walkthruLight 'lamp'): off by default, the look lights it with the evening */
   downlight: THREE.MeshStandardMaterial;
   /** the glowing parts, off by default: emissiveIntensity 0 is off, `lit[kind]` is the value when on */
@@ -46,7 +48,7 @@ function meshTexture(): THREE.Texture | null {
 }
 
 /** `paint` is the look's own wall material for skirting (so it carries the same floor-edge shading as the wall above it), when there is a look. */
-export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string) => THREE.Material) | null } = { wall: null }, trim: { skirting?: string | null } = {}): KitMaterials {
+export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string) => THREE.Material) | null } = { wall: null }, trim: { skirting?: string | null; grill?: string | null } = {}): KitMaterials {
   const std = (color: string, roughness: number, metalness = 0): THREE.MeshStandardMaterial => new THREE.MeshStandardMaterial({ color, roughness, metalness });
   const tex = meshTexture();
   const veil = new THREE.MeshBasicMaterial({ color: '#6a6a6a', transparent: true, opacity: tex ? 0.4 : 0.1, depthWrite: false, side: THREE.DoubleSide });
@@ -65,7 +67,7 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
   const coveMat = std(`#${new THREE.Color(fin.ceilingColor).multiplyScalar(0.8).getHexString()}`, 1);
   const m: KitMaterials = {
     skirting: skirting as THREE.MeshStandardMaterial,
-    grill: std('#3A3836', 0.5, 0.25),
+    grill: std(trim.grill ?? '#3A3836', trim.grill ? 0.4 : 0.5, trim.grill ? 0.05 : 0.25),
     alu: std('#C8C9CB', 0.38, 0.6),
     veil,
     railing: std(fin.railingColor, 0.45, 0.35),
@@ -73,6 +75,7 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
     fan: std('#DCD8CE', 0.5),
     cove: coveMat,
     downlight,
+    mirror: new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.12, metalness: 0.35 }),
     lens,
     setLit(kind, on) { lit[kind] = on; lens[kind].emissiveIntensity = on ? LIT[kind] : 0; lens[kind].color.set(on ? '#ffffff' : OFF[kind]); },
     isLit: (kind) => lit[kind],
@@ -80,6 +83,7 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
       for (const mat of [m.grill, m.alu, m.veil, m.railing, m.fixtures, m.fan, ...Object.values(lens)]) { mat.map?.dispose(); mat.dispose(); }
       coveMat.dispose();
       downlight.dispose();
+      m.mirror.dispose();
       skirting.dispose();
     },
   };

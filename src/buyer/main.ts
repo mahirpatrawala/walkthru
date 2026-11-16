@@ -499,7 +499,12 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   const styleDoors = (): void => { doors.setPanelFinish(doorPanelFinish()); doors.setHandleColour(trimColours().handle); };
   styleDoors();
   // a board over every door, on both sides, naming the room beyond it (src/buyer/door-labels.ts)
-  { const labels = mountDoorLabels(viewer.scene, layout, property.spaceKind ?? 'home'); cleanup.push(() => labels.dispose()); }
+  {
+    let labels = mountDoorLabels(viewer.scene, layout, property.spaceKind ?? 'home');
+    cleanup.push(() => labels.dispose());
+    // the boards follow the style (the clean packs' are small light plates)
+    cleanup.push(onStyleChange(() => { labels.dispose(); labels = mountDoorLabels(viewer.scene, layout, property.spaceKind ?? 'home'); }));
+  }
   cleanup.push(onStyleChange(styleDoors)); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
   const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, editNote: (item) => { const d = store.drawnItem(item.id); return d && store.isOriginal(item.id) ? editNote(d, item) : null; }, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name) + modelNote(item.id)) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });

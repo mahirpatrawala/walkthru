@@ -129,7 +129,7 @@ describe('packs: the default, its charcoal sibling, trim and tiles', () => {
     const b = trimColours();
     expect(b.skirting).toBe('#3B3D41'); expect(b.frame).toBe('#5A3F2E'); expect(b.frameGrain).toBe(true);
     setStyle({ packId: 'classic' });
-    expect(trimColours()).toEqual({ skirting: null, frame: null, handle: null, frameGrain: true });
+    expect(trimColours()).toEqual({ skirting: null, frame: null, handle: null, grill: null, frameGrain: true });
     resetStyle();
   });
   it('the door finish says whether the grain shows', () => {

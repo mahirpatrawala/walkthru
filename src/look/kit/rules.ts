@@ -363,6 +363,39 @@ export function coveSites(layout: Layout, furniture: FurnitureItem[] = []): Cove
   return out;
 }
 
+// ---------------------------------------------------------------- mirrors over the wash basins (SPEC 16.19)
+
+export interface MirrorSite { roomId: string; edge: number; u: number; y0: number; y1: number; w: number }
+export const MIRROR_W_M = 0.55, MIRROR_Y0_M = 1.05, MIRROR_Y1_M = 1.75;
+
+/** A mirror on the wall behind each wash basin of a whole bathroom: on the nearest wall edge, only where no door or window is in its way. */
+export function mirrorSites(layout: Layout, furniture: FurnitureItem[]): MirrorSite[] {
+  const out: MirrorSite[] = [];
+  const frames = computeEdgeFrames(layout);
+  const tunnels = computeTunnels(layout);
+  for (const room of layout.rooms) {
+    if (isPartial(room) || room.roomType !== 'bathroom' || room.polygon.length < 3) continue;
+    for (const it of furniture) {
+      if (!/basin/i.test(`${it.catalogId ?? ''} ${it.id}`)) continue;
+      if (!pointInPolygon({ x: it.box.cx, z: it.box.cz }, room.polygon)) continue;
+      let best: { edge: number; d: number; u: number } | null = null;
+      for (const f of frames) {
+        if (f.roomId !== room.id || f.kind !== 'wall') continue;
+        const rx = it.box.cx - f.a.x, rz = it.box.cz - f.a.z;
+        const u = rx * f.dir.x + rz * f.dir.z;
+        const d = Math.abs(rx * f.out.x + rz * f.out.z);
+        if (u < MIRROR_W_M / 2 || u > f.length - MIRROR_W_M / 2) continue;
+        if (!best || d < best.d) best = { edge: f.edge, d, u };
+      }
+      if (!best || best.d > 0.7) continue;
+      const u0 = best.u - MIRROR_W_M / 2 - 0.05, u1 = best.u + MIRROR_W_M / 2 + 0.05;
+      if (tunnels.some((t) => t.roomId === room.id && t.edge === best!.edge && t.u1 > u0 && t.u0 < u1 && t.headM > MIRROR_Y0_M - 0.1 && t.sillM < MIRROR_Y1_M)) continue;
+      out.push({ roomId: room.id, edge: best.edge, u: best.u, y0: MIRROR_Y0_M, y1: MIRROR_Y1_M, w: MIRROR_W_M });
+    }
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- 8. skirting
 
 export interface SkirtingRun { roomId: string; edge: number; u0: number; u1: number }
@@ -461,10 +494,12 @@ export interface KitPlan {
   coves: CoveSite[]; skirting: SkirtingRun[]; floors: FloorSpec[];
   /** recessed ceiling downlights, drawn as small rings (SPEC 16.18); the same places the bake lights from (baked/lights.ts) */
   downlights: { x: number; y: number; z: number; roomId: string }[];
+  /** a mirror over each wash basin of a bathroom (SPEC 16.19) */
+  mirrors: MirrorSite[];
 }
 
 /** An open-air space (SPEC 19.1) has no fan, tube, switchboard, grill, cove, skirting or tiled floor: the indoor kit plans nothing for it. */
-export const EMPTY_PLAN = (): KitPlan => ({ fans: [], tubes: [], boards: [], bedheads: [], windows: [], railings: [], coves: [], skirting: [], floors: [], downlights: [] });
+export const EMPTY_PLAN = (): KitPlan => ({ fans: [], tubes: [], boards: [], bedheads: [], windows: [], railings: [], coves: [], skirting: [], floors: [], downlights: [], mirrors: [] });
 
 export function kitPlan(layout: Layout, furniture: FurnitureItem[] = [], outdoor = false, formats: TileFormats = {}): KitPlan {
   if (outdoor) return EMPTY_PLAN();
@@ -478,6 +513,7 @@ export function kitPlan(layout: Layout, furniture: FurnitureItem[] = [], outdoor
     fans: fanSites(layout), tubes: tubeSites(layout, furniture),
     boards: doorBoards(layout, furniture), bedheads: bedheadBoards(layout, furniture),
     windows: windowSites(layout), railings: railingPieces(layout), coves: coveSites(layout, furniture), skirting: skirtingRuns(layout), floors,
+    mirrors: mirrorSites(layout, furniture),
     downlights: planDownlights(layout).map((f) => ({ x: f.position[0], y: layout.wallHeightM, z: f.position[2], roomId: f.roomId ?? '' })),
   };
 }

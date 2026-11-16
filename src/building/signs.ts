@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { doorFrame } from './geom';
 import { computeEdgeFrames } from '../core/layout-geom';
 import { signText } from './portal-looks';
+import { signLook } from '../look/sign-style';
+import type { SignLook } from '../look/sign-style';
 import type { MountedSpace } from './space-host';
 import type { BuildingFile, Space } from './types';
 
@@ -19,22 +21,22 @@ export function signWidthM(text: string): number {
   return Math.min(1.8, Math.max(0.5, 0.2 + text.length * 0.075));
 }
 
-function board(text: string, w: number): THREE.CanvasTexture | null {
+function board(text: string, w: number, look: SignLook = signLook()): THREE.CanvasTexture | null {
   if (typeof document === 'undefined') return null;
   const c = document.createElement('canvas');
   // 1,280 px a metre (a board is read from 1 m away on a 2x screen): drawn in a 128 px high design space, scaled up by K
   const K = SIGN_TEXTURE_SCALE;
-  c.height = 128 * K; c.width = Math.round(128 * K * (w / SIGN_HEIGHT_M));
+  c.height = 128 * K; c.width = Math.round(128 * K * (w / (SIGN_HEIGHT_M * look.scale)));
   const g = c.getContext('2d');
   if (!g) return null;
   g.scale(K, K);
   const W = c.width / K, H = c.height / K;
-  g.fillStyle = '#23292E'; g.fillRect(0, 0, W, H);
-  g.strokeStyle = '#C9A657'; g.lineWidth = 5; g.strokeRect(7, 7, W - 14, H - 14);
-  g.fillStyle = '#F6F2E8'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = look.bg; g.fillRect(0, 0, W, H);
+  if (look.border) { g.strokeStyle = look.border; g.lineWidth = 5; g.strokeRect(7, 7, W - 14, H - 14); }
+  g.fillStyle = look.fg; g.textAlign = 'center'; g.textBaseline = 'middle';
   let px = 84;
-  g.font = `700 ${px}px system-ui, sans-serif`;
-  while (px > 24 && g.measureText(text).width > W - 48) { px -= 2; g.font = `700 ${px}px system-ui, sans-serif`; }
+  g.font = `${look.weight} ${px}px system-ui, sans-serif`;
+  while (px > 24 && g.measureText(text).width > W - 48) { px -= 2; g.font = `${look.weight} ${px}px system-ui, sans-serif`; }
   g.fillText(text, W / 2, H / 2 + 3);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
@@ -56,13 +58,15 @@ export function mountSigns(m: MountedSpace, space: Space, b?: BuildingFile): Sig
     const text = signText(p, space, b);
     const f = text ? doorFrame(m.layout, p.opening, frames) : null;
     if (!text || !f) continue;
-    const y = f.headM + SIGN_GAP_M + SIGN_HEIGHT_M / 2;
-    if (y + SIGN_HEIGHT_M / 2 > wallH - 0.02) continue; // no wall above the door to carry a board
-    const w = signWidthM(text);
-    const tex = board(text, w);
-    const side = new THREE.MeshStandardMaterial({ color: '#23292E', roughness: 0.6 });
-    const face = new THREE.MeshStandardMaterial({ color: tex ? '#FFFFFF' : '#23292E', map: tex, roughness: 0.55, emissive: '#FFFFFF', emissiveMap: tex, emissiveIntensity: tex ? 0.18 : 0 });
-    const geo = new THREE.BoxGeometry(w, SIGN_HEIGHT_M, SIGN_THICK_M);
+    const look = signLook();
+    const sh = SIGN_HEIGHT_M * look.scale;
+    const y = f.headM + SIGN_GAP_M + sh / 2;
+    if (y + sh / 2 > wallH - 0.02) continue; // no wall above the door to carry a board
+    const w = signWidthM(text) * (look.scale < 1 ? 0.85 : 1);
+    const tex = board(text, w, look);
+    const side = new THREE.MeshStandardMaterial({ color: look.border ? look.bg : '#D9D5CD', roughness: 0.6 });
+    const face = new THREE.MeshStandardMaterial({ color: tex ? '#FFFFFF' : look.bg, map: tex, roughness: 0.55, emissive: '#FFFFFF', emissiveMap: tex, emissiveIntensity: tex ? (look.border ? 0.18 : 0.04) : 0 });
+    const geo = new THREE.BoxGeometry(w, sh, SIGN_THICK_M);
     // box faces: +x, -x, +y, -y, +z (the front), -z
     const mesh = new THREE.Mesh(geo, [side, side, side, side, face, side]);
     mesh.name = `sign:${p.id}`;

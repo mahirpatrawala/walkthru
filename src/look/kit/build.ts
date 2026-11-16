@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import type { EdgeFrame, Layout, Vec2 } from '../../types';
 import { computeEdgeFrames } from '../../core/layout-geom';
-import type { BoardSite, CoveSite, FanSite, KitPlan, SkirtingRun, TubeSite, WindowSite } from './rules';
+import type { BoardSite, CoveSite, FanSite, KitPlan, MirrorSite, SkirtingRun, TubeSite, WindowSite } from './rules';
 import { PLATE_H_M, PLATE_W_M, SKIRTING_H_M, SKIRTING_T_M } from './rules';
 import type { WallPiece } from '../../types';
 
@@ -142,11 +142,13 @@ export interface KitBuckets {
   cove: Acc; coveLed: Acc;
   /** the glass of a recessed downlight (the bezel is in `fixtures`): glows in the evening (walkthruLight 'lamp') */
   downlightLens: Acc;
+  /** the glass of a bathroom mirror: a vertical gradient in vertex colours, the frame is in `fixtures` */
+  mirror: Acc;
 }
 /** paints of the fixtures mesh (sRGB) */
 export const PAINT = { tube: '#D3D1CB', plate: '#E3E0DA', bezel: '#B9B6AE', rocker: '#EFEDE8', socket: '#2A2A2A', fan: '#DCD8CE' } as const;
 export const newBuckets = (): KitBuckets => ({
-  skirting: new Acc(), grill: new Acc(), meshFrame: new Acc(), meshVeil: new Acc(), railing: new Acc(), fixtures: new Acc(), tubeLens: new Acc(), fanLight: new Acc(), cove: new Acc(), coveLed: new Acc(), downlightLens: new Acc(),
+  skirting: new Acc(), grill: new Acc(), meshFrame: new Acc(), meshVeil: new Acc(), railing: new Acc(), fixtures: new Acc(), tubeLens: new Acc(), fanLight: new Acc(), cove: new Acc(), coveLed: new Acc(), downlightLens: new Acc(), mirror: new Acc(),
 });
 
 const wallsOf = (layout: Layout): Map<string, Wall> => new Map(computeEdgeFrames(layout).map((f) => [`${f.roomId}:${f.edge}`, new Wall(f)]));
@@ -167,7 +169,7 @@ const SKIRTING_PROFILE: [number, number][] = [
 ];
 
 /** MS grill: a flat frame, round-ish square bars every ~11 cm, one or two cross bars. Sits just behind the mesh shutter, inside the hole. */
-export function addWindow(b: KitBuckets, walls: Map<string, Wall>, s: WindowSite): void {
+export function addWindow(b: KitBuckets, walls: Map<string, Wall>, s: WindowSite, thin = false): void {
   const w = walls.get(`${s.roomId}:${s.edge}`);
   if (!w) return;
   const d = Math.max(0.04, s.depthM);
@@ -188,14 +190,14 @@ export function addWindow(b: KitBuckets, walls: Map<string, Wall>, s: WindowSite
   // the grill proper, behind the mesh frame and in front of the glass
   const go0 = fo1 + 0.006 * k, go1 = go0 + 0.014 * k;
   const gy0 = y0 + 0.02, gy1 = y1 - 0.02, gu0 = u0 + 0.02, gu1 = u1 - 0.02;
-  const flat = 0.024;
+  const flat = thin ? 0.016 : 0.024;
   w.box(b.grill, gu0, gu1, go0, go1, gy0, gy0 + flat);
   w.box(b.grill, gu0, gu1, go0, go1, gy1 - flat, gy1);
   w.box(b.grill, gu0, gu0 + flat, go0, go1, gy0, gy1);
   w.box(b.grill, gu1 - flat, gu1, go0, go1, gy0, gy1);
   const inner0 = gu0 + flat, inner1 = gu1 - flat;
-  const n = Math.max(1, Math.round((inner1 - inner0) / 0.11));
-  const bar = 0.012;
+  const n = Math.max(1, Math.round((inner1 - inner0) / (thin ? 0.2 : 0.11)));
+  const bar = thin ? 0.008 : 0.012;
   for (let i = 1; i < n; i++) {
     const u = inner0 + ((inner1 - inner0) * i) / n;
     w.box(b.grill, u - bar / 2, u + bar / 2, go0 + 0.001, go1 - 0.001, gy0 + flat, gy1 - flat);
@@ -313,6 +315,26 @@ export function addCove(b: KitBuckets, s: CoveSite): void {
   }
 }
 
+/** A bathroom mirror: a 12 mm dark frame round a glass that goes from bright at the top to a cooler grey at the bottom (a soft reflection gradient). */
+export function addMirror(b: KitBuckets, walls: Map<string, Wall>, s: MirrorSite): void {
+  const w = walls.get(`${s.roomId}:${s.edge}`);
+  if (!w) return;
+  const u0 = s.u - s.w / 2, u1 = s.u + s.w / 2, f = 0.008;
+  b.fixtures.tint('#6A6C70');
+  w.box(b.fixtures, u0 - f, u1 + f, -0.014, 0, s.y0 - f, s.y0);
+  w.box(b.fixtures, u0 - f, u1 + f, -0.014, 0, s.y1, s.y1 + f);
+  w.box(b.fixtures, u0 - f, u0, -0.014, 0, s.y0, s.y1);
+  w.box(b.fixtures, u1, u1 + f, -0.014, 0, s.y0, s.y1);
+  const strips = 24, n: V3 = [-w.out[0], 0, -w.out[2]];
+  for (let i = 0; i < strips; i++) {
+    const ya = s.y0 + ((s.y1 - s.y0) * i) / strips, yb = s.y0 + ((s.y1 - s.y0) * (i + 1)) / strips;
+    const k = (i + 0.5) / strips;
+    const c = new THREE.Color('#B9C6CC').lerp(new THREE.Color('#F3F8FA'), k * k);
+    b.mirror.tint(`#${c.getHexString()}`);
+    b.mirror.quad([w.pt(u0, -0.0135, ya), w.pt(u1, -0.0135, ya), w.pt(u1, -0.0135, yb), w.pt(u0, -0.0135, yb)], n);
+  }
+}
+
 /** A recessed downlight seen from below: a white bezel ring 5 cm in radius, a recess and a small glass disc (112 triangles). */
 export function addDownlight(b: KitBuckets, x: number, y: number, z: number, radiusM = 0.05): void {
   const sides = 16, ro = radiusM, ri = radiusM * 0.68, yb = y - 0.004, yr = y - 0.012;
@@ -342,12 +364,13 @@ export interface BuiltKit {
   rotors: { radiusM: number; sites: FanSite[]; geometry: THREE.BufferGeometry }[];
 }
 
-export function buildBuckets(layout: Layout, plan: KitPlan): BuiltKit {
+export function buildBuckets(layout: Layout, plan: KitPlan, opts: { thinGrills?: boolean } = {}): BuiltKit {
   const b = newBuckets();
   const walls = wallsOf(layout);
   addSkirting(b, walls, plan.skirting);
   for (const d of plan.downlights) addDownlight(b, d.x, d.y, d.z);
-  for (const s of plan.windows) addWindow(b, walls, s);
+  for (const m of plan.mirrors) addMirror(b, walls, m);
+  for (const s of plan.windows) addWindow(b, walls, s, opts.thinGrills === true);
   for (const p of plan.railings) addRailing(b, walls, p);
   const ranges = new Map<string, VertexRange[]>();
   const track = (id: string, fn: () => void): void => {
