@@ -86,6 +86,7 @@ export function buildLobby(env: GenEnv, size: GenSize, p: LobbyParams, roles: Ro
       const n = q.tier === 'low' ? 14 : q.tier === 'medium' ? 36 : 54;
       const topY = H - 0.1;
       const lsegW = q.tier === 'low' ? 5 : 7, lsegH = q.tier === 'low' ? 3 : 4;
+      const leaves: { g: THREE.BufferGeometry; dark: boolean }[] = [];
       for (let i = 0; i < n; i++) {
         const t = (i + 0.5) / n;
         const ang = i * 2.399963;
@@ -99,7 +100,16 @@ export function buildLobby(env: GenEnv, size: GenSize, p: LobbyParams, roles: Ro
         g.rotateX(-pitch);
         g.rotateY(ang);
         g.translate(Math.sin(ang) * reach * 0.35, baseY, Math.cos(ang) * reach * 0.35);
-        parts.put('plant-leaves', i % 3 === 0 ? LEAF_DARK : LEAF, g, { tile: 0.3 });
+        leaves.push({ g, dark: i % 3 === 0 });
+      }
+      // the plant stays inside the row's box at every tier: the crown reaches exactly its height, no leaf passes the pot's width
+      const box = new THREE.Box3();
+      for (const l of leaves) { l.g.computeBoundingBox(); box.union(l.g.boundingBox!); }
+      const reachXZ = Math.max(Math.abs(box.min.x), box.max.x, Math.abs(box.min.z), box.max.z, 1e-6);
+      const kxz = Math.min(1, (r - 0.002) / reachXZ), ky = (H - box.min.y) / Math.max(1e-6, box.max.y - box.min.y);
+      for (const l of leaves) {
+        l.g.translate(0, -box.min.y, 0).scale(kxz, ky, kxz).translate(0, box.min.y, 0);
+        parts.put('plant-leaves', l.dark ? LEAF_DARK : LEAF, l.g, { tile: 0.3 });
       }
       for (let k = 0; k < 5; k++) {
         const a = k * 1.256;
