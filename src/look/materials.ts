@@ -322,6 +322,7 @@ const FRAG_NORMAL = /* glsl */ `
 if (uLkNormOn > 0.5 && uLkPlain < 0.5) {
   vec3 lkN = textureGrad(uLkNorm, lkUV, lkDx, lkDy).xyz * 2.0 - 1.0;
   lkN.xy *= uLkNormScale * uLkRMix;
+  if (uLkWallTile.x > 0.0) lkN.xy *= lkTileIn;   // a tiled wall: the glaze's waviness only where the tile is, never on the paint above it
   normal = normalize(lkTBN(-vViewPosition, normal, lkUVc) * lkN);
 }
 if (uLkKit > 0.5 && uLkPlain < 0.5 && uLkKitBevel > 0.0) {
@@ -508,7 +509,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${FRAG_NORMAL}`)
         .replace('#include <aomap_fragment>', `#include <aomap_fragment>\n${FRAG_AO}`);
     };
-    mat.customProgramCacheKey = () => 'walkthru-look-v6';
+    mat.customProgramCacheKey = () => 'walkthru-look-v7';
     const rec: Rec = { kind, balcony, mat, u, plain, look: { roughness: mat.roughness, metalness: mat.metalness }, map: null };
     records.push(rec);
     byKey.set(key, rec);
@@ -521,7 +522,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
   /** the family of the realistic-materials table a material belongs to, from what it is (null: stays procedural: balcony and plain floors, glazed wall tile, painted frames) */
   const familyOf = (r: Rec): RealisticFamily | null => {
     if (r.kind === 'floor') return (r.u.uLkKit.value as number) > 0.5 ? ((r.u.uLkPlank.value as number) > 0.5 ? 'plank' : 'tile') : null;
-    if (r.kind === 'wall') return (r.u.uLkWallTile.value as THREE.Vector3).x > 0 ? null : 'wall';
+    if (r.kind === 'wall') return (r.u.uLkWallTile.value as THREE.Vector3).x > 0 ? 'tile' : 'wall';
     if (r.kind === 'ceiling') return 'wall';
     if (r.kind === 'frame') return (r.u.uLkWood.value as number) > 0.5 ? 'veneer' : null;
     return null;
@@ -668,6 +669,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         set_(r, 'uLkRough', t.rough); set_(r, 'uLkRoughRange', new THREE.Vector2(set.rough[0], set.rough[1])); set_(r, 'uLkRoughOn', 1);
         if (r.kind === 'floor') { set_(r, 'uLkRMap', family === 'plank' ? 1 : 2); set_(r, 'uLkRScale', set.tileM); } else set_(r, 'uLkRepeat', set.tileM);
         set_(r, 'uLkRSwap', set.swap ? 1 : 0);
+        if (r.kind === 'wall' && family === 'tile') { set_(r, 'uLkDetailOn', 0); set_(r, 'uLkRoughOn', 0); } // a glazed wall tile: a normal only (its colour and gloss are the pack's)
         set_(r, 'uLkRMix', 0);
       }
       if (cfg) api.configure(cfg, { trueColours });

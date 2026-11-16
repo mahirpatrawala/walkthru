@@ -171,7 +171,10 @@ export const COUNTER_DEFAULTS: CounterParams = { shutterStyle: 'framed', handle:
 export function buildCounter(env: GenEnv, size: GenSize, p: CounterParams, roles: Roles): THREE.Group {
   const { w, d, s: S } = size;
   const parts = new Parts(env, 'gen:counter');
-  const face = role(roles, 'case'), top = role(roles, 'top', 'case'), hm = role(roles, 'handle'), dark = role(roles, 'plinth', 'handle');
+  const face = role(roles, 'case'), hm = role(roles, 'handle'), dark = role(roles, 'plinth', 'handle');
+  // a kitchen worktop is stone (quartz or granite), whatever timber the pack's tables are: a stone `top` role is kept, any other becomes a pale quartz
+  const topRole = roles.top;
+  const top: MatSpec = topRole && (topRole.key === 'quartz' || topRole.key === 'granite' || topRole.key === 'gloss') ? topRole : { key: 'quartz', tint: '#E6E3DD' };
   parts.box('counter-plinth', dark, -w / 2 + 0.05, w / 2 - 0.05, 0, 0.1, -d / 2 + 0.05, d / 2 - 0.05, { c: 0 });
   const cabTop = S - 0.04;
   parts.box('counter-carcass', face, -w / 2, w / 2, 0.1, cabTop, -d / 2, d / 2 - 0.04, { c: 0.002 });

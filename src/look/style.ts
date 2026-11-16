@@ -252,7 +252,7 @@ export function doorPanelFinish(st: StyleState = getStyle()): { colour: string; 
   return f ? { colour: f.colour, grain: f.kind === 'wood' } : null;
 }
 
-const DEFAULT_TRIM = { skirting: 'white-laminate', frame: 'white-laminate', handle: 'charcoal-matte', grill: 'white-laminate' } as const;
+const DEFAULT_TRIM = { skirting: 'white-laminate', frame: 'white-laminate', handle: 'steel', grill: 'white-laminate' } as const;
 
 /** The pack's accents of the shell itself (SPEC 16.18): skirting, frame and handle colours; every field null where the pack names none (and always in Classic). */
 export function trimColours(st: StyleState = getStyle()): { skirting: string | null; frame: string | null; handle: string | null; /** a thin light window grill, null = the kit's dark one */ grill: string | null; /** the frame is a wood (its grain shows), not paint */ frameGrain: boolean } {

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLSL_NOISE, GLSL_WOOD } from '../look/procedural';
+import { furnitureKit } from '../look/furniture-materials';
 import { DOOR_FLOOR_GAP_M, DOOR_THICKNESS_M, leafSegment } from '../core/doors';
 import type { Door } from '../core/doors';
 import type { DoorStyle } from '../building/space-host';
@@ -57,7 +58,9 @@ function woodLeafMaterial(color: THREE.Color, roughness: number): { mat: THREE.M
     shader.uniforms.uWood = grain;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWoodP;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWoodP = position;');
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWoodP = position;')
+      // the leaf's UV runs 0..1 over a face: the (optional) realistic normal map repeats 0.6 m, grain running up the leaf
+      .replace('#include <uv_vertex>', '#include <uv_vertex>\n#ifdef USE_NORMALMAP\nvNormalMapUv *= vec2(1.5, 3.5);\n#endif');
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\nvarying vec3 vWoodP;\nuniform float uWood;\n${GLSL_NOISE}\n${GLSL_WOOD}`)
       .replace('#include <map_fragment>', `#include <map_fragment>
@@ -66,7 +69,7 @@ if (uWood > 0.5) {
   diffuseColor.rgb *= lkWoodTone(g, max(fwidth(g.x), fwidth(g.y)));
 }`);
   };
-  mat.customProgramCacheKey = () => 'walkthru-door-wood-v2';
+  mat.customProgramCacheKey = () => 'walkthru-door-wood-v3';
   return { mat, grain };
 }
 
@@ -117,6 +120,8 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   panelMat.metalness = kind === 'lift' ? 0.3 : kind === 'glass' ? 0.6 : 0;
   // a plain flush door is wood or laminate (grain on by default); a lift, glass or stairs door is a plain colour
   wood.grain.value = kind === 'plain' || kind === 'main' ? 1 : 0;
+  // SPEC 16.21: with the Realistic materials layer on, a laminate or veneer leaf gets a fine photographed grain in its normal map, which the clear coat turns into a soft sheen
+  if (kind === 'plain' && !glazed) furnitureKit.adopt(panelMat, 'laminate', 0.9);
   // the dark groove round the leaf's face: a slab the leaf's own size, a hair behind the face, under a core a little smaller
   const gapMat = new THREE.MeshStandardMaterial({ color: '#241E1A', roughness: 0.9 });
   const styled = kind !== 'plain';

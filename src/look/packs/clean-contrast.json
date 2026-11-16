@@ -17,7 +17,7 @@
     "duvet": "quilt-white",
     "pillow": "cotton-white",
     "cushion": "weave-terracotta",
-    "handle": "charcoal-matte",
+    "handle": "steel",
     "plinth": "charcoal-matte",
     "slatBack": "grey-matte",
     "lampMetal": "brass",
@@ -125,7 +125,7 @@
   "trim": {
     "skirting": "white-laminate",
     "frame": "white-laminate",
-    "handle": "charcoal-matte",
+    "handle": "steel",
     "grill": "white-laminate"
   },
   "tiles": {

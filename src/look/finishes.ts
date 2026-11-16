@@ -379,7 +379,7 @@ export const FINISH_LIST: FinishDef[] = [
   F('brass', 'Brushed brass', '#D4AD66', 'brass', 'metal'),
   F('steel', 'Brushed steel', '#B8B8B8', 'metal', 'metal'),
   F('black-stone', 'Black stone', '#1B1B1D', 'granite', 'stone'),
-  F('white-stone', 'White stone', '#E9E6E0', 'gloss', 'stone'),
+  F('white-stone', 'White stone', '#E9E6E0', 'quartz', 'stone'),
   F('tile-beige-gloss', 'Glossy beige tile', '#F2E3CA', 'gloss', 'tile'),
   F('tile-ivory-gloss', 'Glossy ivory tile', '#ECE4D6', 'gloss', 'tile'),
   F('tile-grey', 'Soft grey tile', '#C9C6C0', 'gloss', 'tile'),

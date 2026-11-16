@@ -65,6 +65,12 @@ if (set === 'flat') {
       views.rsofa = { eye: [hx + ax * 0.45, 0.75, hz + az * 0.45], target: [hx, 0.52, hz], yaw: 0, at: { x: hx + ax * 0.45, z: hz + az * 0.45 } };
     }
   }
+  // round 3 extension of the materials sheet: a door leaf at 55 cm, the wardrobe fronts and handles, the kitchen worktop, a wet-room tiled wall
+  { const d = await doorInfo('door-bedroom-1'); const um = (d.u0 + d.u1) / 2; const c = { x: d.a.x + d.dir.x * um, z: d.a.z + d.dir.z * um };
+    views.rleaf = { eye: [c.x + d.out.x * 0.55, 1.35, c.z + d.out.z * 0.55], target: [c.x, 1.2, c.z], yaw: 0, at: { x: c.x + d.out.x * 0.55, z: c.z + d.out.z * 0.55 } }; }
+  views.rwardrobe = lookAt([10.3, 1.4, 5.55], [10.76, 1.1, 6.47]);
+  views.rcounter = lookAt([4.55, 1.45, 3.1], [4.6, 0.9, 2.2]);
+  views.rwet = lookAt([7.35, 1.5, 4.7], [7.0, 1.25, 3.95]);
   // the zoom test (30 cm from the surface): a floor with joints, a wall with its skirting, a door's edge with its frame
   views.zoomfloor = lookAt([1.4, 0.32, 7.5], [1.55, 0.0, 7.6]);
   views.zoomfloor2 = lookAt([7.3, 0.34, 7.85], [7.55, 0.0, 8.0]);

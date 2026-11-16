@@ -103,7 +103,8 @@ export const RUG_DEFAULTS: RugParams = { widthM: 2, depthM: 1.6, pileM: 0.025, r
 /** a rug lying on the floor, centred on its origin; its top is `pileM` above the floor */
 export function buildRug(env: GenEnv, p: RugParams, roles: Roles): THREE.Group {
   const parts = new Parts(env, 'gen:rug');
-  const rug = role(roles, 'rug');
+  const named = role(roles, 'rug');
+  const rug = named.key === 'weave' ? { ...named, key: 'rug' as const } : named; // a woven rug is a finer, deeper pile than upholstery
   const w = p.widthM, d = p.depthM;
   const seg = env.q.tier === 'low' ? 3 : 6;
   parts.put('rug', rug, prism(roundedRectOutline(-w / 2, w / 2, -d / 2, d / 2, [p.radiusM, p.radiusM, p.radiusM, p.radiusM], seg), 0, p.pileM, Math.min(0.012, p.pileM * 0.5)), { noShadow: true });
