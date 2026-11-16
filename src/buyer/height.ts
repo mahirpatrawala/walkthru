@@ -1,7 +1,6 @@
 // Owned by C3. B2: "How tall are you?" (SPEC 2.1). Changes apply live to the character behind the sheet.
 import { formatHeight } from '../core/units';
-import { HEIGHT_TINTS } from '../types';
-import { SKIN_TONES, SKIN_TONE_NAMES } from '../look/people-materials';
+import { SKIN_TONES, SKIN_TONE_NAMES, TOP_TINTS } from '../look/people-materials';
 import { PERSON_BODIES } from '../look/people';
 import type { PersonBody } from '../look/people';
 import { el } from './hud';
@@ -134,7 +133,7 @@ export function createHeightPicker(
       const b = el('button', 'wt-chip-btn', undefined, chips);
       b.type = 'button';
       b.dataset.cm = String(cmv);
-      b.style.setProperty('--tint', HEIGHT_TINTS[i]);
+      b.style.setProperty('--tint', TOP_TINTS[person.body][i]);
       el('span', 'wt-swatch', undefined, b);
       el('span', undefined, `${cmv} cm`, b);
       b.addEventListener('click', () => set(cmv));

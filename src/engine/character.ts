@@ -473,7 +473,7 @@ export class Character {
     model.updateMatrixWorld(true);
     const pelvis = this.skinned[0].skeleton.bones.find((b) => /^(pelvis|DEF-hips)$/i.test(b.name));
     const pw = pelvis ? pelvis.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0, 0, -SIT_HIP_BACK_RATIO * REF_HEIGHT_M);
-    // the seat is what the buttocks rest on: the skin's underside, less 2.5 cm of cloth. A kurta or saree hangs far below it and is not what the body sits on
+    // the seat is what the buttocks rest on: the skin's underside, less 2.5 cm of cloth (trousers are a centimetre thick at the seat; a saree skirt hangs far below it and is not what the body sits on)
     const underside = Math.min(...verts((s) => s.name === 'skin' || !this.person, /pelvis|thigh|hips/i).map((v) => v.y)) - (this.person ? 0.025 : 0);
     const lowest = Math.min(...verts(bodyOnly).map((v) => v.y));
     // back to standing idle

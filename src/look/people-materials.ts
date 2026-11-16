@@ -3,8 +3,8 @@
 //
 // The family bodies carry no textures. Every part is a flat colour chosen by its role (the mesh name that
 // tools/make_family.py gives it): skin (the buyer's tone), eyes, brows, hair and shoes, and four garment roles. `top` is
-// the kurta, kameez, blouse or shirt and takes the height preset's tint (16 % desaturated so it reads as dyed cotton);
-// `bottom` is the pyjama, salwar or saree skirt; `wrap` is the dupatta or the pallu; `trim` is the neckline and hem border.
+// the shirt, kurti, T-shirt or blouse and takes the height preset's tint (16 % desaturated so it reads as dyed cotton);
+// `bottom` is the trousers, shorts or saree skirt and never takes the tint; `wrap` is the shirt's buttons or the pallu; `trim` is the belt, the neck band or the border.
 import * as THREE from 'three';
 
 /** sRGB targets for the mean skin colour: fair, wheatish, medium brown (default), brown, deep brown. */
@@ -20,12 +20,27 @@ export const SKIN_ALBEDO_GAIN = [0.95, 0.91, 0.86] as const;
 
 type Body = 'man' | 'woman' | 'elder' | 'child';
 
-/** The fixed colours of each person. The top's colour comes from the height preset (`setTop`). */
+/** The fixed colours of each person. The top's colour comes from the height preset (`setTop`, `TOP_TINTS`).
+ * `bottom` is never tinted: man charcoal trousers, woman beige trousers, child denim shorts, elder the saree. `trim` is the man's belt, the
+ * woman's neck piping, the child's crew-neck rib and the saree's border; `wrap` is the man's shirt buttons and the saree's pallu. */
 export const OUTFITS: Record<Body, { bottom: string; wrap: string; trim: string; hair: string; brows: string; shoes: string; eyes: string; pupil: string }> = {
-  man: { bottom: '#E8E0CC', wrap: '#E8E0CC', trim: '#C9A24A', hair: '#1D1815', brows: '#1A1512', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
-  woman: { bottom: '#D9CDB6', wrap: '#9A2E4C', trim: '#C9A24A', hair: '#1A1513', brows: '#1A1512', shoes: '#5A4232', eyes: '#F3F0EA', pupil: '#1B1311' },
+  man: { bottom: '#565C68', wrap: '#EFEBE0', trim: '#2B1D15', hair: '#1D1815', brows: '#1A1512', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
+  woman: { bottom: '#CBB994', wrap: '#CBB994', trim: '#EDE4CF', hair: '#1A1513', brows: '#1A1512', shoes: '#5A4232', eyes: '#F3F0EA', pupil: '#1B1311' },
   elder: { bottom: '#A4453C', wrap: '#A4453C', trim: '#D2AE5C', hair: '#D9D5CD', brows: '#B9B4AB', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
-  child: { bottom: '#E3DAC4', wrap: '#E3DAC4', trim: '#C9A24A', hair: '#1D1815', brows: '#1A1512', shoes: '#C0563A', eyes: '#F3F0EA', pupil: '#1B1311' },
+  child: { bottom: '#3F5F8F', wrap: '#3F5F8F', trim: '#F2F0EA', hair: '#1D1815', brows: '#1A1512', shoes: '#C0563A', eyes: '#F3F0EA', pupil: '#1B1311' },
+};
+
+/**
+ * The three colours of each person's top, for their three quick heights in order (`tintForPerson`). The middle one is the person's
+ * first impression at their default height (man 175 cm, child 120 cm; the woman's and the elder's default is the first), so it is a
+ * believable one: a light blue shirt, a muted teal top, a bright green T-shirt. Every older tint (teal, crimson, violet, `HEIGHT_TINTS`)
+ * is still on offer: the elder keeps all three, the others keep two of them and the woman the third.
+ */
+export const TOP_TINTS: Record<Body, readonly [string, string, string]> = {
+  man: ['#1FA3A3', '#7FA7D8', '#7A5AF0'],
+  woman: ['#4FA3A0', '#B71C6C', '#7A5AF0'],
+  elder: ['#1FA3A3', '#B71C6C', '#7A5AF0'],
+  child: ['#1FA3A3', '#3BAA5C', '#7A5AF0'],
 };
 
 /** The albedo to paint for a tone: the target colour times the calibration gain. */
@@ -79,7 +94,7 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
     mat.metalness = 0;
     mat.roughness = ROUGHNESS[s.name] ?? 0.8;
     if (s.name === 'skin') { mat.color.copy(skinTone(toneIdx)); skinMats.push(mat); }
-    else if (s.name === 'top') { mat.color.copy(fabricColour('#B71C6C')); topMats.push(mat); }
+    else if (s.name === 'top') { mat.color.copy(fabricColour(TOP_TINTS[body][1])); topMats.push(mat); }
     else if (fixed[s.name]) mat.color.set(fixed[s.name]);
     s.castShadow = false;
   }

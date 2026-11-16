@@ -1,6 +1,6 @@
 // Owned by C11b. SPEC 16.6.4: who is walking. Pure helpers (storage is injected), so they run under Node.
-import { HEIGHT_MAX_CM, HEIGHT_MIN_CM, HEIGHT_TINTS } from '../types';
-import { DEFAULT_TONE, SKIN_TONES, clampTone } from '../look/people-materials';
+import { HEIGHT_MAX_CM, HEIGHT_MIN_CM } from '../types';
+import { DEFAULT_TONE, SKIN_TONES, TOP_TINTS, clampTone } from '../look/people-materials';
 import { HEIGHT_KEY, storageGet, storageSet } from './store';
 import type { StorageLike } from './store';
 import { PERSON_BODIES } from '../look/people';
@@ -15,7 +15,7 @@ export const PERSON_LABELS: Record<PersonBodyChoice, string> = { man: 'Man', wom
 export const BODY_DEFAULT_CM: Record<PersonBodyChoice, number> = { man: 175, woman: 160, elder: 150, child: 120 };
 /** The stepper's range for each person. The proportions stay human at every height in it. */
 export const BODY_RANGE_CM: Record<PersonBodyChoice, readonly [number, number]> = { man: [150, 200], woman: [140, 190], elder: [135, 180], child: [90, 150] };
-/** The three quick heights for each person; their tints are HEIGHT_TINTS in order (teal, crimson, violet). */
+/** The three quick heights for each person; their top colours are `TOP_TINTS[body]` in order. */
 export const BODY_CHIPS_CM: Record<PersonBodyChoice, readonly [number, number, number]> = {
   man: [160, 175, 190], woman: [160, 168, 176], elder: [150, 158, 166], child: [105, 120, 135],
 };
@@ -37,12 +37,12 @@ export function clampPersonHeight(body: PersonBodyChoice, cm: unknown): number {
   return Math.min(hi, Math.max(lo, Math.round(n)));
 }
 
-/** The tint of the top (kurta, kameez, blouse) for a height: that of the nearest of the person's three quick heights. */
+/** The colour of the top (shirt, kurti, T-shirt, blouse) for a height: that of the nearest of the person's three quick heights. */
 export function tintForPerson(body: PersonBodyChoice, cm: number): string {
   const chips = BODY_CHIPS_CM[body];
   let best = 0;
   chips.forEach((c, i) => { if (Math.abs(c - cm) < Math.abs(chips[best] - cm)) best = i; });
-  return HEIGHT_TINTS[best];
+  return TOP_TINTS[body][best];
 }
 
 /** Any input to a valid state: a bad body falls back to the man, the tone and the height are clamped. */
