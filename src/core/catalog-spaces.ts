@@ -6,8 +6,10 @@ import type { MorePiece } from './catalog-more';
 import { GYM_PIECES } from './catalog-gym';
 import { LOBBY_PIECES } from './catalog-lobby';
 import { HALL_PIECES } from './catalog-hall';
+import { POOL_PIECES } from './catalog-pool';
+import { GARDEN_PIECES } from './catalog-garden';
 
-export const SPACE_PIECES: MorePiece[] = [...GYM_PIECES, ...LOBBY_PIECES, ...HALL_PIECES];
+export const SPACE_PIECES: MorePiece[] = [...GYM_PIECES, ...LOBBY_PIECES, ...HALL_PIECES, ...POOL_PIECES, ...GARDEN_PIECES];
 export const SPACE_ROWS = SPACE_PIECES.map((p) => p.row);
 
 /**

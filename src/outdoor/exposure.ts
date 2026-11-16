@@ -1,0 +1,24 @@
+// How the look's interior-tuned light is brought outdoors (SPEC 19.1). The presets (src/look/grade.ts) were set by looking at rooms with a
+// sun patch through a window; in the open the same sun lights everything, so the exposure comes down a little, and a tier with no shadow
+// map still lets the sun light the faces it hits (indoors it turns it down so a sun patch does not light the whole floor). Pure.
+import type { Grade } from '../look/grade';
+
+/** the exposure multiplier outdoors, by how bright the day is: full sun is held down, dusk and night are not */
+export function outdoorExposure(g: Pick<Grade, 'sunIntensity' | 'night'>): number {
+  if (g.night) return 1;
+  const sun = Math.min(1, g.sunIntensity / 5.9);
+  return 1 - 0.3 * sun;
+}
+
+/** the low tier has no sun shadow, so indoors its sun is turned right down (0.1); outdoors it needs most of its strength to read as sunlight at all */
+export function outdoorSunScale(tierScale: number): number { return Math.max(tierScale, 0.8); }
+
+/**
+ * Dusk and night outdoors are not as dark as the interior grade would leave them: there is a moon and a sky, and the eye has adapted. The hemisphere
+ * (sky and ground bounce) is lifted as the sun goes: 1 in full sun, 1.8 at sunset, 2.2 at night.
+ */
+export function outdoorHemiBoost(g: Pick<Grade, 'sunIntensity' | 'night'>): number {
+  if (g.night) return 2.2;
+  // by day the open sky fills the shade (a quarter to a third of the sun), so a shadow outdoors is never black
+  return 1.3 + 0.5 * (1 - Math.min(1, g.sunIntensity / 5.4));
+}

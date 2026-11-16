@@ -35,13 +35,19 @@ import { LOBBY_DEFAULTS, LOBBY_VARIANTS, buildLobby } from './lobby';
 import type { LobbyParams } from './lobby';
 import { HALL_DEFAULTS, HALL_VARIANTS, buildHall } from './hall';
 import type { HallParams } from './hall';
+import { POOL_DEFAULTS, POOL_VARIANTS, buildPool } from './pool';
+import type { PoolParams } from './pool';
+import { GARDEN_DEFAULTS, GARDEN_VARIANTS, buildGarden } from './garden';
+import type { GardenParams } from './garden';
 
 export type LookKind = 'bed' | 'sofa' | 'bench' | 'wardrobe' | 'study' | 'side' | 'dresser' | 'counter' | 'dining'
   // the families added with the catalogue's second table (src/core/catalog-more.ts): each takes a `variant` param that names the piece
   | 'swing' | 'tvunit' | 'cabinet' | 'tablex' | 'seatx' | 'bedx' | 'appliance' | 'fit' | 'outdoor' | 'bath'
   // the shared spaces of a building (src/core/catalog-gym.ts, catalog-lobby.ts, catalog-hall.ts)
-  | 'cardio' | 'strength' | 'freew' | 'studio' | 'lobby' | 'hall';
-export const LOOK_KINDS: LookKind[] = ['bed', 'sofa', 'bench', 'wardrobe', 'study', 'side', 'dresser', 'counter', 'dining', 'swing', 'tvunit', 'cabinet', 'tablex', 'seatx', 'bedx', 'appliance', 'fit', 'outdoor', 'bath', 'cardio', 'strength', 'freew', 'studio', 'lobby', 'hall'];
+  | 'cardio' | 'strength' | 'freew' | 'studio' | 'lobby' | 'hall'
+  // the pool deck and the garden (src/core/catalog-pool.ts, catalog-garden.ts)
+  | 'pool' | 'garden';
+export const LOOK_KINDS: LookKind[] = ['bed', 'sofa', 'bench', 'wardrobe', 'study', 'side', 'dresser', 'counter', 'dining', 'swing', 'tvunit', 'cabinet', 'tablex', 'seatx', 'bedx', 'appliance', 'fit', 'outdoor', 'bath', 'cardio', 'strength', 'freew', 'studio', 'lobby', 'hall', 'pool', 'garden'];
 
 /** which kind of piece an item is: by `kind`, and for a counter by its label */
 export function lookKindOf(item: Pick<FurnitureItem, 'kind' | 'label'> & { catalogId?: string }): LookKind {
@@ -179,6 +185,14 @@ export const GENERATORS: Record<LookKind, GenSpec> = {
   hall: {
     defaults: HALL_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildHall(e, s, p as unknown as HallParams, r),
     enums: enumsOf(['variant', HALL_VARIANTS]), ranges: { liftM: [0, 2.6] },
+  },
+  pool: {
+    defaults: POOL_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildPool(e, s, p as unknown as PoolParams, r),
+    enums: enumsOf(['variant', POOL_VARIANTS]), ranges: { canopyM: [1.5, 4], liftM: [0, 2.6] },
+  },
+  garden: {
+    defaults: GARDEN_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildGarden(e, s, p as unknown as GardenParams, r),
+    enums: enumsOf(['variant', GARDEN_VARIANTS]), ranges: {},
   },
   bath: {
     defaults: BATH_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildBath(e, s, p as unknown as BathParams, r),

@@ -1,0 +1,106 @@
+{
+  "generatedBy": "scripts/fetch-outdoor-assets.ts",
+  "licence": "CC0 1.0 (Poly Haven, https://polyhaven.com/license)",
+  "files": {
+    "leafy_grass/leafy_grass_diff.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leafy_grass/leafy_grass_diff_1k.jpg",
+      "originalMd5": "0dbc071e91d6905edfcfbe8eb785a1ab",
+      "originalBytes": 1195394,
+      "sha256": "0e0040215f4d803a56d00509505e61b97a26e4a1bc10ec57da97bfb5b3887fc0",
+      "bytes": 76679
+    },
+    "leafy_grass/leafy_grass_nor_gl.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leafy_grass/leafy_grass_nor_gl_1k.jpg",
+      "originalMd5": "8279e096e204ea326d57a318869f99df",
+      "originalBytes": 1466049,
+      "sha256": "2e9941b9b9c25594229e1f47b94df010d3cc9bd834112cb5cdbb13bb0d961bbc",
+      "bytes": 98126
+    },
+    "wood_floor_deck/wood_floor_deck_diff.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_diff_1k.jpg",
+      "originalMd5": "186a695239216a4b9dc970a87d6dbb15",
+      "originalBytes": 925789,
+      "sha256": "38a90efe318c729ebbdcbe3baaa6e2c01c7326f8f18ee95960eeffb652f46868",
+      "bytes": 54385
+    },
+    "wood_floor_deck/wood_floor_deck_nor_gl.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_nor_gl_1k.jpg",
+      "originalMd5": "dddabd549ede92e370d5268b0d895179",
+      "originalBytes": 665094,
+      "sha256": "d0faa5a6a084320050d7a4dfed37635fffb4c029e406bf7c64663a8874ab165d",
+      "bytes": 21009
+    },
+    "red_sandstone_pavement/red_sandstone_pavement_diff.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/red_sandstone_pavement/red_sandstone_pavement_diff_1k.jpg",
+      "originalMd5": "c2de38e10d06a4576b820af8a474d2b5",
+      "originalBytes": 662808,
+      "sha256": "cb3bc606798a145aeb3231f3513a04d1df65c46f2af764b65b080ba4eed7ee2e",
+      "bytes": 20896
+    },
+    "red_sandstone_pavement/red_sandstone_pavement_nor_gl.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/red_sandstone_pavement/red_sandstone_pavement_nor_gl_1k.jpg",
+      "originalMd5": "0b961a8ed91b297db7dd75458b70b8d1",
+      "originalBytes": 815891,
+      "sha256": "6002bdecf70719fdfaa1c4c4e41cc400130b4ab1886ac596adc6aae29ab3d848",
+      "bytes": 23232
+    },
+    "interlocking_concrete_pavers/interlocking_concrete_pavers_diff.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/interlocking_concrete_pavers/interlocking_concrete_pavers_diff_1k.jpg",
+      "originalMd5": "5b87a284763747870b74cc589080d227",
+      "originalBytes": 693979,
+      "sha256": "5aa9a789a800d0b2d1f17ed841a2de7352f9abd5e2610fa1c7c9f81de1172558",
+      "bytes": 22494
+    },
+    "interlocking_concrete_pavers/interlocking_concrete_pavers_nor_gl.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/interlocking_concrete_pavers/interlocking_concrete_pavers_nor_gl_1k.jpg",
+      "originalMd5": "b8f2196f4c1919068dfd9cab9e651ba5",
+      "originalBytes": 1077102,
+      "sha256": "2914b46c8f3cec513da1540f5c602cde20468801284fddd7e76cffcdb5217e44",
+      "bytes": 52010
+    },
+    "gravel_floor_02/gravel_floor_02_diff.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_floor_02/gravel_floor_02_diff_1k.jpg",
+      "originalMd5": "9e420814367b8ee7a25bcfea10ff4b08",
+      "originalBytes": 1240441,
+      "sha256": "923c86e7799cdb0e4755fe3922299d67b7d9b08edebe0bc23456f30648d0302a",
+      "bytes": 96293
+    },
+    "gravel_floor_02/gravel_floor_02_nor_gl.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_floor_02/gravel_floor_02_nor_gl_1k.jpg",
+      "originalMd5": "ed3da750848a3e05faff98bc5b08c491",
+      "originalBytes": 1545680,
+      "sha256": "124bc6379c85046a37ab46d40115592a97a341587d45d87e0a60c54814900208",
+      "bytes": 119715
+    },
+    "farm_soil/farm_soil_diff.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/farm_soil/farm_soil_diff_1k.jpg",
+      "originalMd5": "29fad1e29469e644759032c3ade249fa",
+      "originalBytes": 735837,
+      "sha256": "80b26ba1fc8afeb859715945f4d81c624a7aad4442f22761c153c00d05e9f15c",
+      "bytes": 30548
+    },
+    "farm_soil/farm_soil_nor_gl.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/farm_soil/farm_soil_nor_gl_1k.jpg",
+      "originalMd5": "e0afe5e537ed2869ddd4d0cfe1b529b5",
+      "originalBytes": 1541114,
+      "sha256": "3a3d49c62ae18e7b19c838450327f9fa66a6af1197f885e6ca0b0e52a721a406",
+      "bytes": 121945
+    },
+    "rubber_tiles/rubber_tiles_diff.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rubber_tiles/rubber_tiles_diff_1k.jpg",
+      "originalMd5": "2a2cc9b5e06639c7fb6cc26c263c00ff",
+      "originalBytes": 351085,
+      "sha256": "a4eed0a6279045785777d61ce951e4bd3351bc4d67c2de338d54bb76f3086f58",
+      "bytes": 5177
+    }
+  },
+  "means": {
+    "leafy_grass": 0.2389,
+    "wood_floor_deck": 0.06,
+    "red_sandstone_pavement": 0.1068,
+    "interlocking_concrete_pavers": 0.0912,
+    "gravel_floor_02": 0.3875,
+    "farm_soil": 0.0588,
+    "rubber_tiles": 0.0158
+  }
+}

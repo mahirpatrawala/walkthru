@@ -1,12 +1,14 @@
 // The sample tower's own spaces, authored as ordinary scenes: the typical floor's corridor and lift lobby (drawn from where the flats'
 // doors fell), the ground lobby, and the clubhouse level (foyer, hall, gym, pool, garden). Sizes are ordinary Indian apartment sizes:
-// corridor 1.8 m, lift car 1.1 x 1.4 m with a 0.9 m door, main doors 1.0 m. The pool and the garden are plain rooms until stage 3.
+// corridor 1.8 m, lift car 1.1 x 1.4 m with a 0.9 m door, main doors 1.0 m. The pool area and the garden are open-air spaces (outdoor-spaces.ts).
 import { catalogItem } from '../../src/core/catalog';
 import type { DoorLeaf, FurnitureItem, Opening, PropertyFile, RoomTag, SpaceKind } from '../../src/types';
 import type { LobbyAnchor } from '../../src/building/types';
 import { finishes, openingAt, rectRoom, sceneFile, windowAt } from './scene-kit';
 import type { Rect, Side } from './scene-kit';
 import type { Plate } from './plate';
+import type { OutdoorFile } from '../../src/outdoor/types';
+import { GARDEN_DOOR_AT, GARDEN_FACADE_EDGE, POOL_DOOR_AT, POOL_FACADE_EDGE, gardenProperty, gardenRoom, poolProperty, poolRoom } from './outdoor-spaces';
 
 export const UPDATED_AT = '2026-11-16T00:00:00.000Z';
 export const SAMPLE_SUBTITLE = 'Sample building · made-up layout for demonstration';
@@ -33,7 +35,7 @@ export function doorPair(a: { room: RoomTag; side: Side; at: number; id: string 
   };
 }
 
-function piece(id: string, catalogId: string, cx: number, cz: number, yawDeg: number): FurnitureItem {
+export function piece(id: string, catalogId: string, cx: number, cz: number, yawDeg: number): FurnitureItem {
   const s = catalogItem(catalogId);
   return {
     id, source: 'virtual', kind: s.kind, catalogId, label: s.name, box: { cx, cz, w: s.footprint.w, d: s.footprint.d, yawDeg },
@@ -131,20 +133,24 @@ export function groundLobbyScene(id: string, furnished: boolean): LobbyOut {
 
 export interface ClubhouseOut {
   foyer: PropertyFile; hall: PropertyFile; gym: PropertyFile; pool: PropertyFile; garden: PropertyFile;
+  /** the empty tower's own pool area and garden: the deck, the basins, the lawn and the boundaries, nothing placed or planted */
+  poolBare: PropertyFile; gardenBare: PropertyFile;
+  /** each open-air scene's outdoor.json (SPEC 19.2), by scene key */
+  outdoor: { pool: OutdoorFile; garden: OutdoorFile; poolBare: OutdoorFile; gardenBare: OutdoorFile };
   doors: { hall: string; gym: string; pool: string; garden: string; walkway: string };
 }
 
-export function clubhouseScenes(ids: { foyer: string; hall: string; gym: string; pool: string; garden: string }): ClubhouseOut {
+export function clubhouseScenes(ids: { foyer: string; hall: string; gym: string; pool: string; garden: string; poolBare: string; gardenBare: string }): ClubhouseOut {
   const foyerR: Rect = { x0: 0, z0: 0, x1: 12, z1: 6 };
   const foyerRoom = rectRoom('foyer', 'Clubhouse foyer', 'other', foyerR);
   const hallRoom = rectRoom('hall', 'Community hall', 'other', { x0: -12.3, z0: -5.4, x1: -0.3, z1: 3.0 });
   const gymRoom = rectRoom('gym', 'Gym', 'other', { x0: 2, z0: -12.3, x1: 10, z1: -0.3 });
-  const poolRoom = rectRoom('pool', 'Pool area (placeholder)', 'other', { x0: 12.3, z0: -3, x1: 28.3, z1: 6 });
-  const gardenRoom = rectRoom('garden', 'Garden (placeholder)', 'other', { x0: 1, z0: 6.3, x1: 15, z1: 16.3 });
+  const poolR = poolRoom();
+  const gardenR = gardenRoom();
   const hall = doorPair({ room: foyerRoom, side: 'W', at: 1.5, id: 'door-hall' }, { room: hallRoom, id: 'door-foyer' }, 1.2);
   const gym = doorPair({ room: foyerRoom, side: 'N', at: 6, id: 'door-gym' }, { room: gymRoom, id: 'door-foyer' }, 1.2);
-  const pool = doorPair({ room: foyerRoom, side: 'E', at: 2, id: 'door-pool' }, { room: poolRoom, id: 'door-foyer' }, 1.2);
-  const garden = doorPair({ room: foyerRoom, side: 'S', at: 9.5, id: 'door-garden' }, { room: gardenRoom, id: 'door-foyer' }, 1.2);
+  const pool = doorPair({ room: foyerRoom, side: 'E', at: POOL_DOOR_AT, id: 'door-pool' }, { room: poolR, id: 'door-foyer' }, 1.2);
+  const garden = doorPair({ room: foyerRoom, side: 'S', at: GARDEN_DOOR_AT, id: 'door-garden' }, { room: gardenR, id: 'door-foyer' }, 1.2);
   const foyerOpenings: Opening[] = [
     hall.a, gym.a, pool.a, garden.a,
     openingAt(foyerRoom, 'W', 4.8, { id: 'door-walkway', widthM: MAIN_DOOR_M, leaf: { hinge: 'start', swing: 'in', kind: 'hinged' } }),
@@ -157,7 +163,7 @@ export function clubhouseScenes(ids: { foyer: string; hall: string; gym: string;
   const foyer = mk(ids.foyer, 'Clubhouse foyer', 3.6, [foyerRoom], foyerOpenings, finishes({ ...WARM }), { x: 6, z: 3, yawDeg: 0 }, 'corridor');
   const hallScene = mk(ids.hall, 'Community hall', 3.6, [hallRoom], [hall.b, windowAt(hallRoom, 'W', -1.2, 'window-w1', 2.4, 0.0, 2.6), windowAt(hallRoom, 'N', -6.3, 'window-n1', 2.4, 0.9, 2.6), windowAt(hallRoom, 'N', -2.5, 'window-n2', 2.4, 0.9, 2.6)], finishes({ floorColor: '#B79F7C', tile: null, wallColor: '#EFE8DA' }), { x: -6.3, z: -1.2, yawDeg: 90 }, 'hall');
   const gymScene = mk(ids.gym, 'Gym', 3.6, [gymRoom], [gym.b, windowAt(gymRoom, 'E', -6.3, 'window-e1', 2.4, 0.9, 2.6), windowAt(gymRoom, 'E', -10.5, 'window-e2', 2.4, 0.9, 2.6)], finishes({ floorColor: '#6E6A66', tile: null, wallColor: '#ECE9E2' }), { x: 6, z: -2, yawDeg: 180 }, 'gym');
-  const poolScene = mk(ids.pool, 'Pool area (placeholder)', 4.2, [poolRoom], [pool.b], finishes({ floorColor: '#CFC6B6', tile: { wM: 0.6, lM: 0.6 }, groutColor: '#B8AE9C', wallColor: '#EDE9DF' }), { x: 14, z: 1.5, yawDeg: 90 }, 'pool');
-  const gardenScene = mk(ids.garden, 'Garden (placeholder)', 3.6, [gardenRoom], [garden.b], finishes({ floorColor: '#A9B58F', tile: null, wallColor: '#EDEADF' }), { x: 9.5, z: 8, yawDeg: 180 }, 'garden');
-  return { foyer, hall: hallScene, gym: gymScene, pool: poolScene, garden: gardenScene, doors: { hall: 'door-hall', gym: 'door-gym', pool: 'door-pool', garden: 'door-garden', walkway: 'door-walkway' } };
+  const poolFull = poolProperty(ids.pool, pool.b, false), poolEmpty = poolProperty(ids.poolBare, pool.b, true);
+  const gardenFull = gardenProperty(ids.garden, garden.b, false), gardenEmpty = gardenProperty(ids.gardenBare, garden.b, true);
+  return { foyer, hall: hallScene, gym: gymScene, pool: poolFull.property, garden: gardenFull.property, poolBare: poolEmpty.property, gardenBare: gardenEmpty.property, outdoor: { pool: poolFull.outdoor, garden: gardenFull.outdoor, poolBare: poolEmpty.outdoor, gardenBare: gardenEmpty.outdoor }, doors: { hall: 'door-hall', gym: 'door-gym', pool: 'door-pool', garden: 'door-garden', walkway: 'door-walkway' } };
 }

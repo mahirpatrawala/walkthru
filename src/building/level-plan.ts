@@ -9,6 +9,7 @@ import { planSvg } from '../start/plan-svg';
 import type { PlanLayout } from '../start/manifest';
 import type { Opening, RoomTag, Vec2 } from '../types';
 import { roomsOnLevel, toLevel } from './geom';
+import { outdoorPlanArt } from '../outdoor/plan-art';
 import type { SceneInfo } from './load';
 import type { BuildingFile, Level, Space } from './types';
 
@@ -52,12 +53,14 @@ export function levelPlan(b: BuildingFile, level: Level, scenes: ReadonlyMap<str
   const unverified: Record<string, string> = {};
   let wall = 2.7;
   const boxes: SpaceBox[] = [];
+  const art: string[] = [];
   for (const s of level.spaces) {
     const sc = scenes.get(s.sceneId);
     if (!sc) continue;
     const lay = sc.property.layout;
     wall = Math.max(wall, lay.wallHeightM);
     const placed = roomsOnLevel(lay, s.placement);
+    if (sc.outdoor) art.push(outdoorPlanArt(sc.outdoor, `${o.idPrefix}-${s.id}`, (p) => toLevel(p, s.placement)));
     const key = (id: string): string => `${s.id}~${id}`;
     for (const r of placed) { rooms.push({ ...r, id: key(r.id) }); if (sc.unverified[r.id]) unverified[key(r.id)] = sc.unverified[r.id]; }
     for (const op of lay.openings) openings.push({ ...op, id: key(op.id), roomId: key(op.roomId) });
@@ -74,6 +77,11 @@ export function levelPlan(b: BuildingFile, level: Level, scenes: ReadonlyMap<str
   const pic = planSvg(layout, unverified, { idPrefix: o.idPrefix, title: `Plan of ${level.label}, ${b.name}` });
   // the room names of every flat are too small to read at this scale: the spaces carry the labels
   let svg = pic.svg.replace(/<text class="plan-label[\s\S]*?<\/text>/g, '');
+  // the ground, water and planting of the open-air spaces go under the walls (above the floors), so the water is drawn as water and the lawn as lawn
+  if (art.length) {
+    const at = svg.search(/<polygon class="plan-(wall|rail|sill)/);
+    svg = at >= 0 ? `${svg.slice(0, at)}${art.join('')}${svg.slice(at)}` : svg.replace(/<\/svg>$/, `${art.join('')}</svg>`);
+  }
   const vb = /viewBox="([-\d.e]+) ([-\d.e]+) ([-\d.e]+) ([-\d.e]+)"/.exec(svg);
   const span = vb ? Math.max(+vb[3], +vb[4]) : 30;
   const font = span * 0.021;

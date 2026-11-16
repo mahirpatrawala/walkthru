@@ -14,6 +14,8 @@ import { rebuildFurnitureTier, setFurnitureDefaults } from '../engine/furniture'
 import { fixturesToItems } from '../core/fixtures';
 import { setGenCeiling } from '../look/gen/ceiling';
 import { fetchFixtures } from './fixtures-load';
+import { fetchOutdoor, ownedEdges } from '../outdoor/load';
+import type { OutdoorMount } from '../outdoor/mount';
 import { applyDesigns, buildDecor, fetchDesigns } from '../look/designs';
 import type { Decor } from '../look/designs';
 import { furnitureKit } from '../look/furniture-materials';
@@ -220,6 +222,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   const lookFileP = fetchLookFile(sceneId);
   const extrasP = fetchExtras(sceneId);
   const fixturesP = fetchFixtures(sceneId);
+  const outdoorP = fetchOutdoor(sceneId); // an open-air space (SPEC 19): the pool deck, the garden
   loading.setProgress(0.05, 'Loading the layout…');
   const result = await fetchProperty(sceneId);
   if (result.kind === 'missing') {
@@ -237,6 +240,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   // Optional drawing-import sidecar: rooms whose size came from a label, not measured walls, must not show a
   // confident area. Missing file (or a dev server's index page) means nothing is flagged.
   const unverifiedRooms = await extrasP;
+  const outdoorFile = await outdoorP;
+  if (outdoorFile) setCeilingTrust({ known: true }); // an open-air space has no ceiling: no ceiling-height checks, no "ceiling not measured" note
   if (layout.rooms.length === 0) {
     loading.showError('This home has no rooms yet.', 'The layout is empty. A broker can trace the rooms in the editor.');
     return failed();
@@ -268,7 +273,10 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   // the look (C11a): lights, tone mapping, materials, backdrop. It never blocks boot: assets arrive after first paint.
   let look: Look | null = null;
   try {
-    look = await createLook(viewer, layout, await lookFileP, { hasSplat: !!property.splat });
+    const lookFile0 = await lookFileP;
+    // an open-air space says which way north is (outdoor.json), so the sun has a real path across it; a look.json of its own wins
+    const lookFile = outdoorFile?.northDeg !== undefined && lookFile0?.northDeg === undefined ? { ...(lookFile0 ?? { version: 1 as const }), northDeg: ((outdoorFile.northDeg % 360) + 360) % 360 } : lookFile0;
+    look = await createLook(viewer, layout, lookFile, { hasSplat: !!property.splat, outdoor: !!outdoorFile });
   } catch (err) {
     console.warn('[walkthru] the look could not start, using the plain scene:', err);
   }
@@ -279,7 +287,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     if (host?.carry?.hour !== undefined) lk0.setHour(host.carry.hour);
     if (host?.carry?.trueColours !== undefined) lk0.setTrueColours(host.carry.trueColours);
   }
-  const shell = buildShell(layout, look ? { materials: look.materials() } : undefined);
+  const shell = buildShell(layout, { ...(look ? { materials: look.materials() } : {}), ...(outdoorFile ? { outdoor: { skipEdges: ownedEdges(outdoorFile) } } : {}) });
   cleanup.push(() => { disposeTree(shell); });
   viewer.scene.add(shell);
   const furnitureRoot = new THREE.Group();
@@ -327,6 +335,17 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
       if (refreshTimer) clearTimeout(refreshTimer);
       refreshTimer = setTimeout(() => { refreshTimer = null; lk.refresh(store.grid()); }, 80);
     });
+  }
+  // the open-air parts: ground, boundaries, water, plants (SPEC 19). They need the store (the water stops the walker) and the look (tier, hour).
+  let outdoor: OutdoorMount | null = null;
+  if (outdoorFile) {
+    const om = await import('../outdoor/mount');
+    outdoor = await om.mountOutdoor({ scene: viewer.scene, layout, file: outdoorFile, look, tier: startTier });
+    const o0 = outdoor;
+    cleanup.push(() => o0.dispose());
+    // a walker cannot walk on water: the basins stop them at the coping (SPEC 19.3)
+    if (outdoorFile.pools.length) store.setTemporary('pool', (await import('../outdoor/pool')).waterObstacles(outdoorFile.pools));
+    look?.refresh(store.grid());
   }
   loading.setProgress(0.3, 'Loading the walker…');
 
@@ -378,6 +397,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   const input = createInput(viewer.canvas);
   cleanup.push(() => input.dispose());
   const camera = new FollowCamera(viewer.camera, () => store.grid(), layout.wallHeightM);
+  if (outdoorFile) camera.setOpenAir(true); // no ceiling: a longer boom and a higher start
   const overlays = createOverlays(viewer.scene);
   cleanup.push(() => overlays.dispose());
   const modes = new ModeManager();
@@ -401,6 +421,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   if (tagText) mountSceneTag(hud.root, tagText);
   if (uploaded) { const up = uploaded; void import('../upload/notes-panel').then((m) => m.mountUploadNote(hud.root, up.data.notes, sceneId, up.source === 'sample')); }
   mountHomeLink(hud.root);
+  // a pool: the depth pill, the walkway verdict and the depth card (SPEC 19.3)
+  outdoor?.attachUi({ host: hud.root, walker: { position: () => character.position, heightCm: () => heightCm }, items: () => store.all(), onItemsChange: (cb) => store.onChange(cb), block: (on) => { extBlock = on; } });
   const partialBadge = mountPartialBadge(hud.root);
   // C11c: the painterly mode is a lazy chunk, fetched only when the buyer taps "Show as a painting"
   type PaintSession = import('../look/painterly/index').PaintingSession;
@@ -590,7 +612,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   design = mountDesign({
     scene: viewer.scene, layout, shell, look, store, tier: startTier, registry: fittingRegistry,
     beforeRestyle: () => { kit?.dispose(); kit = null; },
-    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store, registry: fittingRegistry, ...(host?.bare || (host && host.space.kind !== 'home') ? { plain: true } : {}) }); }, // a lobby, a corridor or a gym has no flat fittings (window grills, switchboards, fans) by default
+    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store, registry: fittingRegistry, outdoor: !!outdoorFile, ...(host?.bare || outdoorFile || (host && host.space.kind !== 'home') ? { plain: true } : {}) }); }, // a lobby, a corridor or a gym has no flat fittings (window grills, switchboards, fans) by default
   });
   cleanup.push(() => { design?.dispose(); kit?.dispose(); kit = null; });
   // a new style rebuilds the furniture and the openable wardrobes' shutters (the decor and rooms are rebuilt by mountDesign itself)
@@ -601,12 +623,12 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     look?.refresh(store.grid());
   }));
   // optional "Lived-in" decor (SPEC 16.6.7): a switch in the look sheet, a label in the rooms sheet; on by default only for made-up sample homes
-  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, registry: fittingRegistry, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), models: () => (getStyle().pack.classic ? null : getStyle().pack.models ?? null), defaultOn: !host?.bare && sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
+  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, registry: fittingRegistry, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), models: () => (getStyle().pack.classic ? null : getStyle().pack.models ?? null), defaultOn: !host?.bare && !outdoorFile && sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
   cleanup.push(() => { livedIn?.dispose(); });
 
   // SPEC 16.14: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.
   let baked: BakedHandle | null = null;
-  if (look && params.get('bake') !== 'off' && !property.splat) {
+  if (look && params.get('bake') !== 'off' && !property.splat && !outdoorFile) {
     baked = mountBaked({ look, scene: viewer.scene, renderer: viewer.renderer, sceneId, layout, extraDynamic: () => [character.object, ...people!.people.objects()] });
     cleanup.push(() => { baked?.dispose(); baked = null; });
     const lk = look;
@@ -758,6 +780,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     }
     people!.people.update(dt);
     people!.ui.update(dt);
+    outdoor?.update(dt);
     // below a 0.7 m boom the character is hidden, above 0.8 m it comes back (SPEC 2.4)
     if (camera.boom < 0.7) character.setVisible(false);
     else if (camera.boom > 0.8) character.setVisible(true);
@@ -903,6 +926,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     },
     /** the CC0 model library (SPEC 16.15): files fetched so far, and a promise for when nothing is loading */
     models: { stats: modelStats, idle: modelsIdle, lived: () => livedIn?.pieces() ?? [] },
+    /** SPEC 19: the open-air parts of this space (null in a room) */
+    outdoor,
     /** open-wardrobe hooks for the acceptance scripts */
     wardrobe: wardrobes.debug,
     /** SPEC 16.8 hooks. `ready` is the current tier's asset promise (a getter, so it follows tier changes). */

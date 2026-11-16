@@ -1,0 +1,2 @@
+Everything in this folder is derived from CC0 1.0 textures by Poly Haven (https://polyhaven.com), scaled to 512 x 512.
+See outdoor.lock.json for the source URL and the original MD5 of each file.

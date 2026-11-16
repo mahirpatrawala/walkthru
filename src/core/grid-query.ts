@@ -1,5 +1,5 @@
 // Grid queries (SPEC 4.3). Pure: no DOM, no three.
-import { GRID_FREE, GRID_TALL_CM } from '../types';
+import { GRID_FREE, GRID_TALL_CM, GRID_VOID } from '../types';
 import type { Grid, Vec2, Vec3 } from '../types';
 import { cellValue } from './grid-codec';
 
@@ -125,7 +125,7 @@ export function clearance(grid: Grid, origin: Vec2, dir: Vec2, maxM = 3): number
  * Returns max(0, hitDistance - 0.20), or `maxDist` when nothing blocks.
  */
 export function boomDistance(
-  grid: Grid, pivot: Vec3, dir: Vec3, maxDist: number, ceilingM: number, ignoreLow = false,
+  grid: Grid, pivot: Vec3, dir: Vec3, maxDist: number, ceilingM: number, ignoreLow = false, blockVoid = false,
 ): number {
   // ignoreLow (integrator addition): low furniture (beds, sofas, sills) never blocks. Used while the camera is
   // focused on a piece of furniture, where the pivot sits on that furniture's own surface.
@@ -137,7 +137,8 @@ export function boomDistance(
     let blocked = y > top || y < 0.15;
     if (!blocked) {
       const v = cellValue(grid, x, z);
-      if (v >= GRID_TALL_CM && v <= 250) blocked = true;
+      if (blockVoid && v === GRID_VOID) blocked = true; // an open-air space: past its edge there is nothing to look from
+      else if (v >= GRID_TALL_CM && v <= 250) blocked = true;
       else if (!ignoreLow && v > 0 && v < GRID_TALL_CM && y < v / 100 + 0.15) blocked = true;
     }
     if (blocked) return Math.max(0, t - BOOM_STOP_M);

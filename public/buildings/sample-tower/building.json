@@ -184,7 +184,7 @@
       "id": "l1",
       "label": "Level 1",
       "short": "1",
-      "summary": "Clubhouse: hall, gym, pool, garden",
+      "summary": "Clubhouse: hall, gym, pool area, garden",
       "floorToFloorM": 4.2,
       "spaces": [
         {
@@ -345,7 +345,7 @@
             "rotDeg": 0
           },
           "notes": [
-            "A plain room the size of the pool deck, about 16 × 9 m. No water yet."
+            "Open air, about 20 × 14 m: an 11 × 4.5 m pool (1.2 to 1.7 m deep) with steps, a children's pool, a covered verandah, loungers, parasols and planting. Water, sky and sun are drawn; the surroundings beyond the walls are not."
           ],
           "portals": [
             {
@@ -361,7 +361,7 @@
               "look": "plain"
             }
           ],
-          "comingNext": true
+          "outdoor": true
         },
         {
           "id": "garden",
@@ -374,7 +374,7 @@
             "rotDeg": 0
           },
           "notes": [
-            "A plain room the size of the garden, about 14 × 10 m. No planting yet."
+            "Open air, about 34 × 20 m: lawn with a jogging track round it, a paved plaza with a water feature, a children's play area, benches, a pergola and Indian garden planting. The sky is a plain graded sky, not the real view."
           ],
           "portals": [
             {
@@ -390,7 +390,7 @@
               "look": "plain"
             }
           ],
-          "comingNext": true
+          "outdoor": true
         }
       ]
     },

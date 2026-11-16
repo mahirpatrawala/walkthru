@@ -15,7 +15,7 @@ import { resetStyle, setStyle } from '../src/look/style';
 import type { Tier } from '../src/look/types';
 
 const TIERS: Tier[] = ['low', 'medium', 'high'];
-const NOT_BOX = /^(bag-chains|bag-hook)/;
+const NOT_BOX = /^(bag-chains|bag-hook|umbrella-)/; // the parasol's canopy reaches beyond its base on purpose (stage 3)
 const rows = SPACE_PIECES.map((p) => p.row);
 
 afterEach(() => { resetStyle(); setGenCeiling(2.7); });
@@ -152,6 +152,8 @@ describe('triangle budgets', () => {
     studio: { low: 1800, medium: 3600, high: 5200 },
     lobby: { low: 2600, medium: 6200, high: 9000 },
     hall: { low: 1800, medium: 3800, high: 5500 },
+    pool: { low: 1800, medium: 3600, high: 5200 },
+    garden: { low: 2600, medium: 5200, high: 7500 },
   };
   for (const tier of TIERS) {
     it(`at ${tier}`, () => {
