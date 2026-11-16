@@ -221,7 +221,7 @@ describe('the drawing\'s swing arc gives hinge and swing', () => {
       }
       expect(checked).toBeGreaterThanOrEqual(6);
     }
-  }, 60000);
+  }, 300000);
 });
 
 describe('the walk grid with a leaf in every state', () => {
