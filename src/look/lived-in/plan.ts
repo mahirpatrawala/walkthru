@@ -503,6 +503,15 @@ class Planner {
       if (!this.wallFree(f, u - w / 2, u + w / 2, bottom)) continue;
       this.wallPiece('frame', room, f, u, bottom, w, 0.03, w * 0.75);
       used.push({ f, u0: u - w / 2 - 0.1, u1: u + w / 2 + 0.1 });
+      // pictures hang in pairs: a smaller one beside the first, on the side with room
+      const w2 = w * 0.7;
+      for (const du of [w / 2 + w2 / 2 + 0.12, -(w / 2 + w2 / 2 + 0.12)]) {
+        const u2 = u + du;
+        if (u2 - w2 / 2 < 0.2 || u2 + w2 / 2 > f.length - 0.2 || !this.wallFree(f, u2 - w2 / 2, u2 + w2 / 2, bottom)) continue;
+        this.wallPiece('frame', room, f, u2, bottom, w2, 0.03, w2 * 0.75);
+        used.push({ f, u0: u2 - w2 / 2 - 0.1, u1: u2 + w2 / 2 + 0.1 });
+        break;
+      }
       break;
     }
     if (room.roomType !== 'living') return;

@@ -97,7 +97,7 @@ if (set === 'flat') {
 } else if (set === 'club') {
   views.stairs = await doorView('door-stairs');
   views.sign = await signView('door-stairs');
-} else if (set === 'space') {
+} else if (set === 'space' || set === 'scene') {
   // a shared space (lobby, clubhouse, gym, games, hall, pool deck): the walker's own start and the three other quarter turns, in first person
   const st0 = JSON.parse(await ev(`JSON.stringify(window.__walkthru.state())`));
   const p0 = st0.pos, y0 = st0.yawDeg;

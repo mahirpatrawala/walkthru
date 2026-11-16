@@ -63,7 +63,8 @@ export function autoFixtures(layout: Layout, items: FurnitureItem[], st: StyleSt
       const f = frames.find((x) => x.roomId === o.roomId && x.edge === o.edge);
       if (!f) continue;
       const u0 = Math.max(0.05, o.centreM - o.widthM / 2 - 0.25), u1 = Math.min(f.length - 0.05, o.centreM + o.widthM / 2 + 0.25);
-      if (u1 - u0 > 0.8) out.push({ kind: 'curtain', roomId: o.roomId, edge: o.edge, u0, u1 });
+      // a pack with a sheer of its own hangs sheers alone (a light veil, no heavy drape): calm, and the window still reads as a window
+      if (u1 - u0 > 0.8) out.push(st.pack.roles.curtainSheer ? { kind: 'curtain', roomId: o.roomId, edge: o.edge, u0, u1, sheer: true, drape: 'none' } : { kind: 'curtain', roomId: o.roomId, edge: o.edge, u0, u1 });
     }
   }
   if (st.pack.decor.rug) {
@@ -89,7 +90,13 @@ function pointInPolygon(p: Vec2, poly: Vec2[]): boolean {
 /** the fixtures in force: the designer's sheet while its look is on, else the pack's typical ones (automatic) */
 export function activeFixtures(layout: Layout, items: FurnitureItem[], st: StyleState = getStyle()): SheetFixture[] {
   const sheet = sheetInForce(st);
-  return sheet ? sheet.fixtures : autoFixtures(layout, items, st);
+  if (!sheet) return autoFixtures(layout, items, st);
+  // a TYPICAL sheet (the brochure flats, the sample homes) names the specification only: the pack's usual curtains and rugs still dress the rooms it does not
+  // dress itself. A designer's or broker's sheet is the whole word.
+  if (sheet.source !== 'typical') return sheet.fixtures;
+  const has = (kind: string, roomId: string, around?: string): boolean => sheet.fixtures.some((f) => f.kind === kind && f.roomId === roomId && (around === undefined || ('aroundItem' in f && f.aroundItem === around)));
+  const extra = autoFixtures(layout, items, st).filter((f) => !(f.kind === 'curtain' ? has('curtain', f.roomId) : f.kind === 'rug' ? has('rug', f.roomId, 'aroundItem' in f ? f.aroundItem : undefined) : true));
+  return [...sheet.fixtures, ...extra];
 }
 
 /** the roles every decor piece reads: the pack's, overridden by the sheet's `decor` roles when it has them (a sheet item named `decor`) */

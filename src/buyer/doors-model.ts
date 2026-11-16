@@ -123,7 +123,7 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   // SPEC 16.21: with the Realistic materials layer on, a laminate or veneer leaf gets a fine photographed grain in its normal map, which the clear coat turns into a soft sheen
   if (kind === 'plain' && !glazed) furnitureKit.adopt(panelMat, 'laminate', 0.9);
   // the dark groove round the leaf's face: a slab the leaf's own size, a hair behind the face, under a core a little smaller
-  const gapMat = new THREE.MeshStandardMaterial({ color: '#241E1A', roughness: 0.9 });
+  const gapMat = new THREE.MeshStandardMaterial({ color: '#8C847A', roughness: 0.9 });
   const styled = kind !== 'plain';
   const extra: THREE.Material[] = [];
   const textures: THREE.Texture[] = [];
