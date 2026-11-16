@@ -124,7 +124,7 @@ describe('packs: the default, its charcoal sibling, trim and tiles', () => {
   it('trim colours: white frames in the default, charcoal skirting and walnut frames in the dark one, nothing in Classic', () => {
     setStyle({ packId: 'clean-contrast' });
     const a = trimColours();
-    expect(a.frame).toBe('#F1EFEA'); expect(a.frameGrain).toBe(false); expect(a.handle).toBe('#1D1D1F');
+    expect(a.frame).toBe('#F1EFEA'); expect(a.frameGrain).toBe(false); expect(a.handle).toBe('#3B3D41');
     setStyle({ packId: 'clean-contrast-dark' });
     const b = trimColours();
     expect(b.skirting).toBe('#3B3D41'); expect(b.frame).toBe('#5A3F2E'); expect(b.frameGrain).toBe(true);

@@ -413,7 +413,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         set(r, 'uLkKitTile', new THREE.Vector2(spec.tileU, spec.tileV));
         set(r, 'uLkKitGrout', spec.groutM);
         // the joint is the tile's own colour, a little deeper and a little towards the drawing's grout colour: a hairline you can see, not a dark rule
-        set(r, 'uLkKitGroutCol', new THREE.Color(spec.color).lerp(new THREE.Color(spec.groutColor), 0.3).multiplyScalar(0.74));
+        set(r, 'uLkKitGroutCol', new THREE.Color(spec.color).lerp(new THREE.Color(spec.groutColor), 0.3).multiplyScalar(0.66));
         if (!spec.matt) { set(r, 'uLkKitBevel', spec.antiSkid ? 0.35 : 0.9); set(r, 'uLkKitSpeck', spec.antiSkid ? 1.4 : 1); } else set(r, 'uLkKitSpeck', 1.6);
         set(r, 'uLkKitVar', spec.antiSkid ? 0.12 : 0.06);
         set(r, 'uLkKitRoughMin', spec.antiSkid ? 0.72 : spec.matt ? 0.6 : 0);
