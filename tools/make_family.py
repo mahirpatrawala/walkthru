@@ -1235,7 +1235,7 @@ def fit_report(key, body, meshes, say=print):
 CALF_LEAD = float(arg('--calf-lead', '0'))
 PANEL_THIGH_ONLY = '--panel-thigh-only' in argv   # panels of a kurta or kameez hang from the thigh alone (they end above the knee)
 SLEEVE_PASSES = int(arg('--sleeve-passes', '3'))
-LEG_PASSES = int(arg('--leg-passes', '16'))   # smoothing passes of the trousers' weights: fewer follow the skin more closely at the knee
+LEG_PASSES = int(arg('--leg-passes', '6'))   # smoothing passes of the trousers' weights: fewer follow the skin more closely at the knee
 HAND_HI = float(arg('--hand-hi', '0.17'))      # trousers: the legs' weights take over from the body's this far above the crotch ...
 HAND_SPAN = float(arg('--hand-span', '0.10'))   # ... over this distance
 LEG_SHARE = float(arg('--leg-share', '0.55'))   # how much of its leg's motion a panel takes below the hip (the rest stays with the pelvis, as hanging cloth lags)
@@ -2073,7 +2073,7 @@ def measure_sleeves(rig, final, samples, hips_scale, body, say=print):
 
 FIT_ITERS = int(arg('--fit-iters', '3'))
 FIT_POSES = ('walk', 'idle', 'lie', 'sit')   # the poses the cloth is fitted to; jog is measured and looked at, not fitted ('sitin' is the same legs in transit)
-FIT_CAP = {'top': 0.025, 'skirt': 0.02, 'leg_l': 0.006, 'leg_r': 0.006}   # most the fit may add: the trouser legs get 6 mm at most (more is a pad behind the knee)
+FIT_CAP = {'top': 0.025, 'skirt': 0.02, 'leg_l': 0.014, 'leg_r': 0.014}   # most the fit may add: the trouser legs get 14 mm at most (16.6.11d: 6 mm left the thigh's crease through the cloth when seated)
 
 def make_garment_objs(key, spec, body, extra):
     """The garment parts as weighted Blender objects, [(role, object)], and their Mesh data by role."""
