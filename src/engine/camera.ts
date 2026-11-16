@@ -55,6 +55,9 @@ export class FollowCamera {
   distance = DEFAULT_BOOM_M;
   /** Ceiling height used for the boom's top limit; update it if the layout changes. */
   ceilingM: number;
+  /** the longest boom and the steepest look-down the player can ask for: an open-air space (SPEC 19.5) allows more of both */
+  private boomMax = BOOM_MAX_M;
+  private pitchMax = PITCH_MAX_DEG;
 
   private readonly camera: THREE.PerspectiveCamera;
   private readonly getGrid: () => Grid;
@@ -82,6 +85,16 @@ export class FollowCamera {
     camera.near = 0.05;
     camera.far = 200;
     camera.updateProjectionMatrix();
+  }
+
+  /**
+   * An open-air space has no ceiling and a lot to look at: a longer boom, a steeper look-down and a higher, wider start (a nicer view of a
+   * pool or a lawn than the 2 m boom of a room). First person is unchanged.
+   */
+  setOpenAir(on: boolean): void {
+    this.boomMax = on ? 6.5 : BOOM_MAX_M;
+    this.pitchMax = on ? 72 : PITCH_MAX_DEG;
+    if (on) { this.distance = 3.8; this.pitchDeg = 22; this.haveBoom = false; }
   }
 
   /** Current boom length after collision. The buyer hides the character below 0.7 m and shows it again above 0.8 m. */
@@ -189,11 +202,11 @@ export class FollowCamera {
       f.distance = clamp(f.distance + look.zoom * ZOOM_M_PER_NOTCH, BOOM_MIN_M, 8);
     } else {
       this.yawDeg += look.dx * LOOK_DEG_PER_PX;
-      this.pitchDeg = clamp(this.pitchDeg + look.dy * LOOK_DEG_PER_PX, PITCH_MIN_DEG, PITCH_MAX_DEG);
-      this.distance = clamp(this.distance + look.zoom * ZOOM_M_PER_NOTCH, BOOM_MIN_M, BOOM_MAX_M);
+      this.pitchDeg = clamp(this.pitchDeg + look.dy * LOOK_DEG_PER_PX, PITCH_MIN_DEG, this.pitchMax);
+      this.distance = clamp(this.distance + look.zoom * ZOOM_M_PER_NOTCH, BOOM_MIN_M, this.boomMax);
     }
-    this.pitchDeg = clamp(this.pitchDeg, PITCH_MIN_DEG, PITCH_MAX_DEG);
-    this.distance = clamp(this.distance, BOOM_MIN_M, BOOM_MAX_M);
+    this.pitchDeg = clamp(this.pitchDeg, PITCH_MIN_DEG, this.pitchMax);
+    this.distance = clamp(this.distance, BOOM_MIN_M, this.boomMax);
 
     // 2. focus blend 0..1 over 0.5 s
     const step = dt / FOCUS_S;

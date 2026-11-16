@@ -4,6 +4,7 @@
 // stand. Pure data and pure maths, no three.js. Rows of the original table (beds, sofas, wardrobes...) have no rule here and behave as before.
 import type { RoomType, Side } from '../types';
 import { MORE_PIECES } from './catalog-more';
+import { OUTDOOR_PIECES } from './catalog-outdoor';
 
 export type PieceCategory = 'seating' | 'beds' | 'storage' | 'tables' | 'kitchen' | 'kids' | 'balcony' | 'fitness' | 'swing' | 'bathroom'
   // the shared spaces of a building (stage 2 adds more of these; the pool and the garden use these two and 'seating')
@@ -109,7 +110,7 @@ export function sizeModeOf(id: string | undefined | null): SizeMode | null {
   return STRETCH_HEIGHT.has(r.id) ? 'wdh' : 'wd';
 }
 
-export const PIECE_RULES: Record<string, PieceRule> = Object.fromEntries(MORE_PIECES.map((p) => [p.rule.id, p.rule]));
+export const PIECE_RULES: Record<string, PieceRule> = Object.fromEntries([...MORE_PIECES, ...OUTDOOR_PIECES].map((p) => [p.rule.id, p.rule]));
 
 export function pieceRule(catalogId: string | undefined | null): PieceRule | null {
   return catalogId ? (PIECE_RULES[catalogId] ?? null) : null;

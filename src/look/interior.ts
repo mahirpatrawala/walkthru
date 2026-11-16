@@ -20,6 +20,8 @@ const POOL_LIGHT: Record<InteriorLightKind, { colour: string; intensity: number 
   lamp: { colour: '#FFC892', intensity: 6 },
 };
 const POOL_DISTANCE = 6.5;
+/** a lamp post stands 3 to 4 m up in the open: its pooled light is stronger and reaches further than a room's */
+const OUTDOOR_LAMP = { intensity: 30, distance: 12 };
 
 interface Emitter {
   obj: THREE.Object3D | null;
@@ -47,11 +49,14 @@ export class InteriorLights {
   private layout: Layout;
   private clock = 0;
   private scanned = false;
+  /** an open-air space: no virtual ceiling light, and a lamp post throws a wider, stronger pool */
+  private outdoor = false;
   /** the real fixtures found by the last scan (meshes, lights) with the level they are driven at */
   private driven: Array<{ obj: THREE.Object3D; kind: InteriorLightKind }> = [];
 
   constructor(private readonly scene: THREE.Scene, layout: Layout) { this.layout = layout; }
 
+  setOutdoor(on: boolean): void { this.outdoor = on; this.scanned = false; }
   setLayout(layout: Layout): void { this.layout = layout; this.scanned = false; }
   setRoots(roots: Array<THREE.Object3D | undefined>): void { this.roots = roots.filter((r): r is THREE.Object3D => !!r); this.scanned = false; }
 
@@ -107,7 +112,7 @@ export class InteriorLights {
     };
     for (const r of this.roots) visit(r);
     for (const r of this.registered) visit(r);
-    if (found.length === 0) {
+    if (found.length === 0 && !this.outdoor) {
       for (const room of this.layout.rooms) {
         if (room.roomType === 'balcony' || room.polygon.length < 3) continue;
         let cx = 0, cz = 0;
@@ -170,7 +175,8 @@ export class InteriorLights {
     const level = interiorLevel(s.emitter.kind, g) * s.fade;
     const spec = POOL_LIGHT[s.emitter.kind];
     s.light.color.set(spec.colour);
-    s.light.intensity = spec.intensity * level;
+    s.light.intensity = (this.outdoor && s.emitter.kind === 'lamp' ? OUTDOOR_LAMP.intensity : spec.intensity) * level;
+    s.light.distance = this.outdoor ? OUTDOOR_LAMP.distance : POOL_DISTANCE;
   }
 
   /** Move the pooled lights to the fixtures nearest the walker. Call once a frame with the camera position and dt in seconds. */

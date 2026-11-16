@@ -75,7 +75,15 @@ export interface ShellMaterialSet {
   railing(color: string): THREE.Material;
   pane(): THREE.Material;
 }
-export interface ShellOptions { materials?: ShellMaterialSet }
+export interface ShellOptions {
+  materials?: ShellMaterialSet;
+  /**
+   * An open-air space (SPEC 19): no ceiling and no floor mesh (src/outdoor draws the ground, with its own finishes and the water), and no
+   * wall on the edges named `<roomId>:<edge>` (the outdoor module builds its own boundary there: a compound wall, a hedge, a railing).
+   * Collision does not change: the layout still has the walls.
+   */
+  outdoor?: { skipEdges: ReadonlySet<string> };
+}
 
 /** The 256 px tile texture: floor colour with a 2 px grout border. Null without a DOM (Node). */
 export function makeTileTexture(floorColor: string, groutColor: string): THREE.Texture | null {
@@ -218,13 +226,15 @@ export function buildShell(layout: Layout, opts?: ShellOptions): THREE.Group {
   for (const room of layout.rooms) {
     if (room.polygon.length < 3) continue;
     const isPartial = partialIds.has(room.id);
-    const floor = new THREE.Mesh(toGeometry(polygonFace(room, 0, true, isPartial ? hatchUv : uvOf)), isPartial ? partialMats().floor : floorMat(room));
-    floor.name = `floor:${room.id}`;
-    floor.userData.roomId = room.id;
-    floor.receiveShadow = true;
-    group.add(floor);
+    if (!opts?.outdoor) {
+      const floor = new THREE.Mesh(toGeometry(polygonFace(room, 0, true, isPartial ? hatchUv : uvOf)), isPartial ? partialMats().floor : floorMat(room));
+      floor.name = `floor:${room.id}`;
+      floor.userData.roomId = room.id;
+      floor.receiveShadow = true;
+      group.add(floor);
+    }
 
-    if (room.roomType !== 'balcony' && !isPartial) {
+    if (room.roomType !== 'balcony' && !isPartial && !opts?.outdoor) {
       const ceil = new THREE.Mesh(
         toGeometry(polygonFace(room, layout.wallHeightM, false, uvOf)),
         set ? set.ceiling(fin.ceilingColor) : new THREE.MeshStandardMaterial({ color: fin.ceilingColor, roughness: 0.95 }),
@@ -278,6 +288,7 @@ export function buildShell(layout: Layout, opts?: ShellOptions): THREE.Group {
   for (const p of pieces) {
     const f = frameOf.get(`${p.roomId}:${p.edge}`);
     if (!f) continue;
+    if (opts?.outdoor?.skipEdges.has(`${p.roomId}:${p.edge}`)) continue;
     if (p.kind === 'railing') {
       addBox(rail, pieceRect(f, p), p.y0, p.y1);
     } else if (partialIds.has(p.roomId)) {

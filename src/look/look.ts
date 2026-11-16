@@ -18,6 +18,7 @@ import type { BakedHook } from './baked/hook';
 import { Reflections } from './reflect';
 import { Sky, chooseBackdrop } from './sky';
 import { sunState } from './sun';
+import { outdoorExposure, outdoorSunScale } from '../outdoor/exposure';
 import type { SunState } from './sun';
 import { parseLookFile } from './types';
 import type { LookFile, Tier } from './types';
@@ -54,6 +55,8 @@ export interface Look {
   readonly ready: Promise<void>;
   readonly hour: number;
   readonly trueColours: boolean;
+  /** an open-air space (SPEC 19) */
+  readonly outdoor: boolean;
   /** 'auto' while the device guess and the frame-rate watchdog choose the tier */
   readonly quality: QualityMode;
   readonly tierConfig: TierConfig;
@@ -133,7 +136,7 @@ const HEMI_REFERENCE = 1.25;
 /** the screen-space AO of the high tier on top of a bake: the bake has the corners, so this only adds the contact detail of furniture (SPEC 16.14) */
 const BAKED_SSAO_STRENGTH = 0.55;
 
-export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: LookFile | null, opts: { tier?: Tier; storage?: Storage | null; hasSplat?: boolean; /** false keeps the flat background colour (the editor's orbit preview) */ backdrop?: boolean } = {}): Promise<Look> {
+export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: LookFile | null, opts: { tier?: Tier; storage?: Storage | null; hasSplat?: boolean; /** an open-air space (SPEC 19): outdoor exposure, no room lamps, no floor reflection */ outdoor?: boolean; /** false keeps the flat background colour (the editor's orbit preview) */ backdrop?: boolean } = {}): Promise<Look> {
   const { renderer, scene, camera } = viewer;
   let layout = layoutIn;
   const lookFile = lookFileIn;
@@ -158,7 +161,9 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let hour = clampDayHour(lookFile?.hour ?? PRESET_HOURS[queryPreset ?? lookFile?.preset ?? DEFAULT_PRESET]);
   let grade: Grade = gradeAt(hour);
   let skyKey = '';
+  const outdoor = opts.outdoor === true;
   const interior = new InteriorLights(scene, layout);
+  interior.setOutdoor(outdoor);
   let trueColours = false;
   let scanVisible = false;
   let post: PostChain | null = null;
@@ -288,7 +293,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       // a tier with no pooled lights fakes the lamps with a warm lift of the ambient
       // the room lights are on at night: every tier gets a warm ambient fill (a lit Indian room is evenly bright, tube lights are
       // diffuse); tiers with pooled point lights need less of it because the pools add the local pools of light
-      const lamps = Math.max(g.interior.tube, g.interior.cove);
+      const lamps = outdoor ? 0 : Math.max(g.interior.tube, g.interior.cove);
       if (lamps > 0) {
         const pooled = cfg.interiorLights > 0;
         hemi.color.lerp(WARM_AMBIENT, (pooled ? 0.25 : 0.35) * lamps);
@@ -298,13 +303,13 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       const sunOn = !g.night && g.sunIntensity > 0.01;
       sunLight.visible = sunOn;
       sunLight.color.setRGB(g.sunColour[0], g.sunColour[1], g.sunColour[2]);
-      sunLight.intensity = g.sunIntensity * cfg.sunScale;
+      sunLight.intensity = g.sunIntensity * (outdoor ? outdoorSunScale(cfg.sunScale) : cfg.sunScale);
       scene.environmentIntensity = cfg.envIntensity * g.envScale;
       sunLight.castShadow = shadowsOn() && sunOn;
       fitShadow();
     }
     // low is a touch brighter: with no sun patch and no real lights it has less to show
-    const exposure = grade.exposure * (cfg.tier === 'low' && !trueColours ? 1.12 : 1);
+    const exposure = grade.exposure * (cfg.tier === 'low' && !trueColours ? 1.12 : 1) * (outdoor && !trueColours ? outdoorExposure(grade) : 1);
     // "True colours" is no tone mapping at all: nothing in it is brighter than its own colour, so surfaces show it exactly
     renderer.toneMapping = post || trueColours ? THREE.NoToneMapping : threeToneMapping();
     renderer.toneMappingExposure = exposure;
@@ -395,7 +400,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
 
   function applyRenderPath(): void {
     const wantPost = cfg.post && !scanVisible && !postFailed && postAllowed;
-    const wantReflection = scanVisible ? 'none' : cfg.reflection;
+    const wantReflection = scanVisible || outdoor ? 'none' : cfg.reflection;
     if (wantPost) {
       if (post) viewer.setRenderOverride(renderFrame);
       else if (!postLoading) {
@@ -533,6 +538,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     get ready() { return readyPromise; },
     get hour() { return hour; },
     get trueColours() { return trueColours; },
+    get outdoor() { return outdoor; },
     get quality() { return quality; },
     get tierConfig() { return cfg; },
     get lookFile() { return lookFile; },

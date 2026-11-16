@@ -1,5 +1,6 @@
 import type { AccessRule, Box, CatalogItem, FurnitureItem, FurnitureKind, Side } from '../types';
 import { MORE_ROWS } from './catalog-more';
+import { OUTDOOR_ROWS } from './catalog-outdoor';
 import { pieceRule } from './pieces';
 
 const BED_ACCESS: AccessRule[] = [{ sides: ['left', 'right'], minM: 0.6, mode: 'any' }];
@@ -85,6 +86,8 @@ export const CATALOG: CatalogItem[] = [
   },
   // ---- the rows added after that table (src/core/catalog-more.ts): swings, more seating, beds, storage, tables, kitchen, bathroom, kids, balcony, fitness
   ...MORE_ROWS,
+  // ---- the pool deck and the garden (src/core/catalog-pool.ts, catalog-garden.ts). They carry their own `places`.
+  ...OUTDOOR_ROWS,
 ];
 
 /** Defaults for broker-tagged real items (SPEC 4.4). */
