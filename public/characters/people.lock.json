@@ -1,7 +1,7 @@
 {
-  "version": 5,
+  "version": 6,
   "built": "2026-11-16",
-  "route": "family: MakeHuman base meshes shaped in MPFB2, stylised, clothes and hair modelled by tools/make_family.py (SPEC 16.6.7); 15 Nov 2026: per-leg skirt panels, draped dupatta and pallu, shoulder caps; motion pass 15 Nov 2026: animation clips rebuilt from the free Quaternius Universal Animation Libraries 1 and 2 (CC0, SPEC 16.6.8); 16 Nov 2026: garments refitted close to the body (side slits, no flare, sleeves and legs measured by rays), head 6 % larger (child 14 %), hair dome closed over the crown (SPEC 16.6.9); 16 Nov 2026 (later): man in a collared shirt and trousers, woman in a hip-length top and trousers, child in a T-shirt and shorts, the elder keeps her saree (SPEC 16.6.11)",
+  "route": "family: MakeHuman base meshes shaped in MPFB2, stylised, clothes and hair modelled by tools/make_family.py (SPEC 16.6.7); 15 Nov 2026: per-leg skirt panels, draped dupatta and pallu, shoulder caps; motion pass 15 Nov 2026: animation clips rebuilt from the free Quaternius Universal Animation Libraries 1 and 2 (CC0, SPEC 16.6.8); 16 Nov 2026: garments refitted close to the body (side slits, no flare, sleeves and legs measured by rays), head 6 % larger (child 14 %), hair dome closed over the crown (SPEC 16.6.9); 16 Nov 2026 (later): man in a collared shirt and trousers, woman in a hip-length top and trousers, child in a T-shirt and shorts, the elder keeps her saree (SPEC 16.6.11); 16 Nov 2026 (later still): elder in a tunic and trousers, the man's shirt tucked in with belt and buckle, slimmer tops, calf-weighted trouser hems, 6-pass leg weights (SPEC 16.6.11b to 16.6.11d)",
   "sources": {
     "mpfb": {
       "file": "mpfb-2.0.18.zip",
@@ -108,52 +108,52 @@
       "sha256": "998c73bd5a3c72caaa3bbf1248b9bf9a260021664e635c01a911bc2247fea1a0"
     },
     "person-child-low.glb": {
-      "bytes": 111908,
-      "sha256": "a040908c39460d6c134667739366d529914f7bf791db2f5ae70a01531478f927"
+      "bytes": 112068,
+      "sha256": "e885425b5426eec555c49bee3686f0fc2ff88c926a5e1363002b500e3587a111"
     },
     "person-child.glb": {
-      "bytes": 152348,
-      "sha256": "e7114ba0dd833dfe18e0d5afe56c893b04bf3c2520c0c949e2b971541bfb6dcd"
+      "bytes": 152296,
+      "sha256": "d9142130feeb0d696e0c53844f176423b0d4b5dde30e3f27259b63d2647770aa"
     },
     "person-elder-low.glb": {
-      "bytes": 127628,
-      "sha256": "2f1d73e96b8daf622dae6a9a063d41d9338ff1a8ec4a3b7d62fecf1e1c1e72e0"
+      "bytes": 110668,
+      "sha256": "6e7e8df51652dc21ba2d097da08e6700c303bf3e99c975f5d6a7e345c561a036"
     },
     "person-elder.glb": {
-      "bytes": 181576,
-      "sha256": "ca23f5a2b8d1816cab337878a411caab5ffbde2d0e7acb2509582eabdba2b5fb"
+      "bytes": 165876,
+      "sha256": "6a64be5f3ffb4071bdb4fb891ba4e589c84837609c979864175bff571b7f2e4f"
     },
     "person-man-low.glb": {
-      "bytes": 121252,
-      "sha256": "e2b952254f315e490161fbf6b174b6d11316a602c715bc22a469f9accee7db0a"
+      "bytes": 122036,
+      "sha256": "830143ebf65ac244ac18dd5a99608d71ace066f9fe66655e87c5ae6c84dea6b5"
     },
     "person-man.glb": {
-      "bytes": 177192,
-      "sha256": "07ae88eb22ccd7f80f4ffdf30db88273cba89c4e665e9e51cbbe0326a529682c"
+      "bytes": 177312,
+      "sha256": "0d8d830af9b20cd7aa0247eca02e4c5008455614206bac7ed1a47801c1ed4415"
     },
     "person-woman-low.glb": {
-      "bytes": 112720,
-      "sha256": "0b2875a188c0e32cb948d10a541c5be1d2c1dfe454f86b3d02a6e890bfc29a1b"
+      "bytes": 110752,
+      "sha256": "14b61de80e097320c2cce9f805b0f673669fa1e051785f9adfe59f59ec06d7d3"
     },
     "person-woman.glb": {
-      "bytes": 167400,
-      "sha256": "6d9c9a2de7080a8cfae69b9274f924d1522e8123810537be691298ac83f2b990"
+      "bytes": 165224,
+      "sha256": "b0e4f2b6bf41a8d262c124c90bbadbcdaebd611ef79426229a3da6bf0525efdd"
     },
     "thumb-child.jpg": {
-      "bytes": 7983,
-      "sha256": "399c89b9b9b9b7599d48c1ce01eb228c3fb64912ffaf8ae19160d8d60a20144b"
+      "bytes": 7993,
+      "sha256": "0b70cd8799d27190fd34b69e58152d9b6db9e997c59c853e1ec5d8100318a59a"
     },
     "thumb-elder.jpg": {
-      "bytes": 8170,
-      "sha256": "a83e61b0234f03eb79310a12ac0734776cbe6b7c17ee06f87776e5ce3bea47a3"
+      "bytes": 7591,
+      "sha256": "ab65e2fa49cc51415083c469e5e810de89effc913ec3c65dd2cc3925f9b577d2"
     },
     "thumb-man.jpg": {
-      "bytes": 8003,
-      "sha256": "c4c0ec5980b0ebcaf51949dc8c019bf8c2ddbf44376ad289d7bb38d5207f9d2c"
+      "bytes": 8038,
+      "sha256": "6ed35dcac97f4c8866b3bc3a388d2f184a8a4bee22c2f5b859e1380c6a8c17fe"
     },
     "thumb-woman.jpg": {
-      "bytes": 7260,
-      "sha256": "6bcfd0aa1d9a6817cd79b69d73f785fe24273f9f915dc322f9409f35d53019f2"
+      "bytes": 7328,
+      "sha256": "6f2328014b7119176406c4f01ad80a91181b98e8847134e3b2539482dd262760"
     }
   }
 }

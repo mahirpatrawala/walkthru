@@ -181,7 +181,7 @@ export function roundedRectOutline(x0: number, x1: number, z0: number, z1: numbe
  * wherever that axis lies in the face's plane. A shelf's grain runs along its length, a door's up and down.
  * `tile` is the metres one repeat covers. A face the grain is not in (an end face) takes the usual projection.
  */
-export function grainUV(g: THREE.BufferGeometry, tile: number, grain: Axis = 'y'): THREE.BufferGeometry {
+export function grainUV(g: THREE.BufferGeometry, tile: number, grain: Axis = 'y', offset: [number, number] = [0, 0]): THREE.BufferGeometry {
   const p = g.attributes.position as THREE.BufferAttribute;
   if (!g.attributes.normal) g.computeVertexNormals();
   const n = g.attributes.normal as THREE.BufferAttribute;
@@ -196,11 +196,19 @@ export function grainUV(g: THREE.BufferGeometry, tile: number, grain: Axis = 'y'
     if (gi === pl[0]) { a = pl[1]; b = pl[0]; } else if (gi === pl[1]) { a = pl[0]; b = pl[1]; }
     else if (face === 1) { a = 0; b = 2; } else if (face === 0) { a = 2; b = 1; } else { a = 0; b = 1; }
     const P = [p.getX(i), p.getY(i), p.getZ(i)];
-    uv[i * 2] = P[a] / tile;
-    uv[i * 2 + 1] = P[b] / tile;
+    uv[i * 2] = P[a] / tile + offset[0];
+    uv[i * 2 + 1] = P[b] / tile + offset[1];
   }
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   return g;
+}
+
+/** a stable pseudo-random UV offset for a board, from where it sits: two boards of one wood never show the same grain side by side, and a rebuild gives the same picture */
+export function boardOffset(g: THREE.BufferGeometry): [number, number] {
+  g.computeBoundingBox();
+  const b = g.boundingBox as THREE.Box3;
+  const h = (k: number): number => { const x = Math.sin(((b.min.x + b.max.x) * 12.9898 + (b.min.y + b.max.y) * 78.233 + (b.min.z + b.max.z) * 37.719) * (k + 1)) * 43758.5453; return x - Math.floor(x); };
+  return [h(0) * 7, h(1) * 7];
 }
 
 /** UVs projected straight onto the xy plane (u = x, v = y, in `tile` metres): a fluted panel keeps one continuous grain over its ribs. */
@@ -277,4 +285,63 @@ export function mergeGeos(list: THREE.BufferGeometry[]): THREE.BufferGeometry {
 export function boundsOf(g: THREE.Object3D): THREE.Box3 {
   g.updateMatrixWorld(true);
   return new THREE.Box3().setFromObject(g);
+}
+
+/** A round leg standing on the floor at (cx, cz): `rTop` under the piece, `rFoot` on the floor (a multiple of four sides, so its extremes lie on the axes). */
+export function taperedLeg(cx: number, cz: number, height: number, rTop: number, rFoot: number, sides = 8): THREE.BufferGeometry {
+  const s = Math.max(8, Math.ceil(sides / 4) * 4);
+  const g = new THREE.CylinderGeometry(rTop, rFoot, Math.max(0.001, height), s, 1, false);
+  g.translate(cx, height / 2, cz);
+  return g;
+}
+
+export interface LoftSection {
+  y: number;
+  /** full width (x) and depth (z) of the section; its centre is at x = 0, z = zc */
+  w: number;
+  d: number;
+  zc: number;
+  /** superellipse power: 2 an ellipse, 3 to 4 a rounded rectangle, default 2.6 */
+  p?: number;
+}
+
+/**
+ * A smooth solid lofted through superellipse sections (a toilet bowl, a basin, a pedestal, a bin): the sections are joined ring to ring with
+ * averaged normals, the top ring is closed by a flat cap (the bottom is left out). Exact extremes: every section's w and d are its real
+ * bounds, since the rings contain the points on both axes (`n` is a multiple of four). Returns the body and the cap as two geometries.
+ */
+export function loft(sections: LoftSection[], n = 32): { body: THREE.BufferGeometry; cap: THREE.BufferGeometry } {
+  const m = Math.max(8, Math.ceil(n / 4) * 4);
+  const pos: number[] = [], idx: number[] = [];
+  const ring = (s: LoftSection): [number, number][] => {
+    const e = 2 / (s.p ?? 2.6), pts: [number, number][] = [];
+    for (let i = 0; i < m; i++) {
+      const t = (i / m) * Math.PI * 2, c = Math.cos(t), sn = Math.sin(t);
+      pts.push([(s.w / 2) * Math.sign(c) * Math.abs(c) ** e, s.zc + (s.d / 2) * Math.sign(sn) * Math.abs(sn) ** e]);
+    }
+    return pts;
+  };
+  sections.forEach((s) => { for (const [x, z] of ring(s)) pos.push(x, s.y, z); });
+  for (let k = 0; k < sections.length - 1; k++) {
+    for (let i = 0; i < m; i++) {
+      const a = k * m + i, b = k * m + ((i + 1) % m), c = a + m, d = b + m;
+      idx.push(a, c, b, b, c, d);
+    }
+  }
+  const body = new THREE.BufferGeometry();
+  body.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  body.setIndex(idx);
+  body.computeVertexNormals();
+  // closed rings share their first and last vertex positions with distinct indices only through the modulo above, so the seam is already smooth
+  const top = sections[sections.length - 1];
+  const cp: number[] = [], cn: number[] = [], ci: number[] = [];
+  const r = ring(top);
+  cp.push(0, top.y, top.zc); cn.push(0, 1, 0);
+  r.forEach(([x, z]) => { cp.push(x, top.y, z); cn.push(0, 1, 0); });
+  for (let i = 0; i < m; i++) ci.push(0, 1 + ((i + 1) % m), 1 + i);
+  const cap = new THREE.BufferGeometry();
+  cap.setAttribute('position', new THREE.Float32BufferAttribute(cp, 3));
+  cap.setAttribute('normal', new THREE.Float32BufferAttribute(cn, 3));
+  cap.setIndex(ci);
+  return { body, cap };
 }

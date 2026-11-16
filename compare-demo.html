@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>walkthru furniture compare (SPEC 16.15)</title>
+<!--
+  Not a build input. `npx vite`, then /compare-demo.html?id=sofa-3. One catalogue piece against a wall in a plain room, through the same builder the app uses.
+  ?id=<catalogue id>  ?stretch=1.12 (width scale)  ?finish={"fabric":"fab-navy"} (the viewer's finish)  ?models=off  ?pack=  ?tier=low|medium|high  ?yaw=0
+  window.__cmp.view('walk' | 'close' | 'close2') points the camera: walk = about 2.5 m, three-quarter; close = 40 cm from a corner of the piece, close2 = 40 cm from its front.
+  window.__cmp.ready resolves when the piece (and its model, if any) is drawn.
+-->
+<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #eceae6; } #app { position: fixed; inset: 0; }</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import * as THREE from 'three';
+import { catalogItem, itemFromCatalog } from '/src/core/catalog.ts';
+import { buildFurnitureMesh, setFurnitureDefaults } from '/src/engine/furniture.ts';
+import { furnitureKit } from '/src/look/furniture-materials.ts';
+import { setStyle } from '/src/look/style.ts';
+import { setGenCeiling } from '/src/look/gen/ceiling.ts';
+import { setModelsEnabled } from '/src/look/models/library.ts';
+import { modelsIdle, modelStats } from '/src/look/models/load.ts';
+import { groupTriangles } from '/src/look/furniture-real.ts';
+
+const q = new URLSearchParams(location.search);
+const id = q.get('id');
+const tier = q.get('tier') || 'high';
+if (q.get('models') === 'off') setModelsEnabled(false);
+setGenCeiling(2.7);
+setStyle({ packId: q.get('pack') || 'light-scandinavian' });
+setFurnitureDefaults({ style: 'real', tier });
+await furnitureKit.setTier(tier);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+document.getElementById('app').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#e9e6e0');
+scene.add(new THREE.HemisphereLight('#ffffff', '#b9b2a6', 1.15));
+const sun = new THREE.DirectionalLight('#fff3e0', 2.2);
+sun.position.set(-2.5, 4.5, 3.5); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 0.5, far: 16 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
+scene.add(sun);
+
+const spec = catalogItem(id);
+const sx = parseFloat(q.get('stretch') || '1');
+const box = { cx: 0, cz: 0, w: spec.footprint.w * sx, d: spec.footprint.d, yawDeg: parseFloat(q.get('yaw') || '0') };
+const item = itemFromCatalog(id, box, 'virtual');
+const fin = q.get('finish');
+if (fin) item.finish = JSON.parse(fin);
+const g = buildFurnitureMesh(item);
+g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+scene.add(g);
+const W = box.w, D = box.d, H = item.heightM;
+
+// the room: a floor, a back wall behind the piece and a side wall
+const R = Math.max(W, D, H);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.MeshStandardMaterial({ color: '#d9d3c7', roughness: 0.85 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const wallMat = new THREE.MeshStandardMaterial({ color: '#f3f0ea', roughness: 1 });
+const back = new THREE.Mesh(new THREE.PlaneGeometry(14, 3.2), wallMat); back.position.set(0, 1.6, -D / 2 - 0.06); back.receiveShadow = true; scene.add(back);
+const side = new THREE.Mesh(new THREE.PlaneGeometry(14, 3.2), wallMat); side.rotation.y = Math.PI / 2; side.position.set(-W / 2 - 0.9, 1.6, 0); side.receiveShadow = true; scene.add(side);
+const skirt = new THREE.Mesh(new THREE.BoxGeometry(14, 0.1, 0.02), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.6 })); skirt.position.set(0, 0.05, -D / 2 - 0.05); scene.add(skirt);
+
+const cam = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.05, 50);
+const views = {
+  walk() {
+    const dist = Math.max(2.5, R * 1.7);
+    const az = THREE.MathUtils.degToRad(35);
+    const tgt = new THREE.Vector3(0, Math.min(H, 1.6) * 0.45, 0);
+    cam.fov = 38; cam.position.set(Math.sin(az) * dist, Math.min(1.45, H * 0.8 + 0.5), Math.cos(az) * dist).add(new THREE.Vector3(0, 0, 0)); cam.lookAt(tgt);
+  },
+  close() {
+    // 40 cm from the front-right top corner region of the piece
+    const p = new THREE.Vector3(W / 2 - Math.min(0.15, W * 0.2), Math.min(H * 0.55, 0.7), D / 2);
+    const dir = new THREE.Vector3(0.45, 0.35, 1).normalize();
+    cam.fov = 55; cam.position.copy(p).addScaledVector(dir, 0.4); cam.lookAt(p.x - 0.12, p.y - 0.04, p.z - 0.15);
+  },
+  close2() {
+    const p = new THREE.Vector3(-W * 0.18, Math.min(H * 0.5, 0.8), D / 2);
+    const dir = new THREE.Vector3(-0.2, 0.3, 1).normalize();
+    cam.fov = 55; cam.position.copy(p).addScaledVector(dir, 0.4); cam.lookAt(p.x + 0.1, p.y - 0.05, p.z - 0.1);
+  },
+};
+function view(name) { views[name](); cam.updateProjectionMatrix(); renderer.render(scene, cam); }
+const ready = (async () => {
+  await new Promise((r) => setTimeout(r, 400));
+  await modelsIdle();
+  await furnitureKit.ready;
+  await new Promise((r) => setTimeout(r, 600));
+  g.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(g);
+  const info = { id, size: [bb.max.x - bb.min.x, bb.max.y - bb.min.y, bb.max.z - bb.min.z].map((v) => +v.toFixed(3)), box: [W, H, D], tris: groupTriangles(g), model: g.userData.model ?? null, modelBytes: modelStats.bytes, failed: modelStats.failed };
+  view('walk');
+  return info;
+})();
+window.__cmp = { ready, view, scene, camera: cam, group: g, item };
+</script>
+</body>
+</html>

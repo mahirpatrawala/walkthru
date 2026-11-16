@@ -1,0 +1,54 @@
+{
+  "read": "2026-11-16",
+  "summary": "Sources looked at for better furniture models on 16 Nov 2026. Nothing from any of them is shipped: no CC0 model that fits the catalogue sizes and looks better than the generated piece exists, and the free hosted 3D generators allow about one model a day without an account. The generated furniture (src/look/gen) was improved instead.",
+  "sources": [
+    {
+      "name": "Poly Haven models, re-checked",
+      "url": "https://api.polyhaven.com/assets?t=models",
+      "licence": "CC0 1.0, https://polyhaven.com/license: \"Our assets are all licensed as CC0\"",
+      "result": "522 models listed, 159 furniture, seating, table, bed, shelf, appliance, electronics or lighting pieces, none added since the library was built that fits a catalogue size within 12 percent and is a clean contemporary piece. chinese_sofa (2.29 x 0.97 x 0.86 m) fits the 3-seat sofa but is a carved Chinese-style piece; modern_arm_chair_01 (0.82 x 0.99 x 1.02 m) fits only the recliner box and is not a recliner; the day beds, bed frames and dining_table of the Lighthouse collection are weathered or the wrong height."
+    },
+    {
+      "name": "Objaverse 1.0 (Sketchfab) CC0 subset",
+      "url": "https://huggingface.co/datasets/allenai/objaverse",
+      "licence": "per object; Sketchfab licence slug 'cc0' in the dataset metadata, re-checkable at https://api.sketchfab.com/v3/models/<uid>",
+      "result": "3465 of the 800k objects are CC0; the 67 with a furniture-like name are museum scans (Smithsonian, Cleveland, Polish museums: antique chairs, chests, lamps). No modern sofa, bed, wardrobe, commode, basin, fridge or washing machine."
+    },
+    {
+      "name": "Kenney, Quaternius",
+      "url": "https://kenney.nl/assets/furniture-kit",
+      "licence": "CC0 (Kenney pack page and License.txt, read 15 Nov 2026); Quaternius not read",
+      "result": "flat-colour toy low-poly, rejected in 16.15; not looked at again."
+    },
+    {
+      "name": "TRELLIS (Microsoft) image-to-3D, hosted Space trellis-community/TRELLIS and microsoft/TRELLIS.2",
+      "url": "https://github.com/microsoft/TRELLIS",
+      "licence": "README: \"TRELLIS models and the majority of the code are licensed under the MIT License. The following submodules may have different licenses: diffoctreerast ... Modified Flexicubes\"; weights TRELLIS-image-large and TRELLIS.2-4B: license mit (model cards)",
+      "result": "NOT USED. The texture baking of TRELLIS runs the Inria gaussian rasteriser (diffoctreerast, https://github.com/JeffreyXiang/diffoctreerast/blob/master/LICENSE: \"The Software may be used non-commercially, i.e., for research and/or evaluation purposes only\") and nvdiffrast (https://github.com/NVlabs/nvdiffrast/blob/main/LICENSE.txt: \"Nvidia Source Code License (1-Way Commercial)\"). TRELLIS.2 conditions on DINOv3 (facebook/dinov3-vitl16-pretrain-lvd1689m, Meta's own licence) and removes backgrounds with briaai/RMBG-2.0 (non-commercial). So the generator's stack is not MIT or Apache end to end, which the owner's rule asks for."
+    },
+    {
+      "name": "Hi3DGen / Stable3DGen (Stable-X), hosted Space Stable-X/Hi3DGen",
+      "url": "https://github.com/Stable-X/Hi3DGen",
+      "licence": "README: \"The model and code of Stable3DGen are adapted from Trellis, which are licensed under the MIT License. While the original Trellis is MIT licensed, we have specifically removed its dependencies on certain NVIDIA libraries (kaolin, nvdiffrast, flexicube) to ensure this adapted version can be used commercially. Stable3DGen itself is distributed under the MIT License.\" Weights Stable-X/trellis-normal-v0-1: license mit; normal estimator Stable-X/yoso-normal-v1-8-1: license apache-2.0 (Hugging Face model metadata)",
+      "result": "CLEARED for shape (no texture) but NOT RUN: the anonymous ZeroGPU quota was gone (see below). scripts/gen3d/hi3dgen.py is the client, untested."
+    },
+    {
+      "name": "FLUX.1-schnell, hosted Space black-forest-labs/FLUX.1-schnell (reference images)",
+      "url": "https://huggingface.co/black-forest-labs/FLUX.1-schnell",
+      "licence": "license: apache-2.0 (Hugging Face model metadata; the model card itself is gated)",
+      "result": "3 generic reference images made (sofa), kept in ~/walkthru-tools/gen3d/ref, not shipped."
+    },
+    {
+      "name": "TripoSG (VAST-AI), hosted Space VAST-AI/TripoSG",
+      "url": "https://github.com/VAST-AI-Research/TripoSG",
+      "licence": "weights VAST-AI/TripoSG: license mit (model metadata); the Space always runs briaai/RMBG-1.4 (non-commercial) on the input and has no licence of its own",
+      "result": "NOT USED: the calls failed with a bare RuntimeError while the quota ran out."
+    },
+    {
+      "name": "Hugging Face ZeroGPU quota",
+      "url": "https://huggingface.co/docs/hub/spaces-zerogpu",
+      "licence": "n/a",
+      "result": "\"Unauthenticated: 2 minutes of included daily GPU quota ... resets exactly 24 hours after your first GPU usage\"; a call needs its whole requested duration (90 s asked, 0 s left) so a few failed calls end the day. A free account is 5 minutes, PRO 40 minutes, both with extra GPU time at USD 1 per 10 minutes for PRO (posted on the docs page, nothing bought)."
+    }
+  ]
+}

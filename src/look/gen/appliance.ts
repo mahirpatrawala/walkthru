@@ -32,13 +32,13 @@ export function buildAppliance(env: GenEnv, size: GenSize, p: ApplianceParams, r
     const bz0 = -d / 2 + gap, bz1 = d / 2;
     const feet = 0.03;
     const zb = bz1 - 0.05;                       // the body's front; the doors are the last 5 cm, handles end at the box's front
-    parts.put('fridge-body', bodyM, roundedBoxBetween(-w / 2, w / 2, feet, H, bz0, zb, 0.012, q.seg));
+    parts.put('fridge-body', bodyM, roundedBoxBetween(-w / 2, w / 2, feet, H, bz0, zb, 0.022, q.seg));
     box('fridge-feet', BLACK, -w / 2 + 0.03, w / 2 - 0.03, 0, feet + 0.005, bz0 + 0.04, zb - 0.04, 0);
     // rear spacers and the condenser grille: the 5 cm gap the fridge needs to breathe, drawn to the back of the footprint
     for (const s of [-1, 1]) box('fridge-spacers', BLACK, s * (w / 2 - 0.06) - 0.025, s * (w / 2 - 0.06) + 0.025, H - 0.1, H - 0.04, -d / 2, bz0 + 0.002, 0.001);
     box('fridge-spacers', BLACK, -w / 2 + 0.06, w / 2 - 0.06, 0.2, 0.22, -d / 2, bz0 + 0.002, 0.001);
     const zd = bz1 - 0.03, hz = bz1 - 0.012;
-    const door = (x0: number, x1: number, y0: number, y1: number): void => parts.put('fridge-doors', bodyM, roundedBoxBetween(x0, x1, y0, y1, zb - 0.002, zd, 0.012, q.seg));
+    const door = (x0: number, x1: number, y0: number, y1: number): void => parts.put('fridge-doors', bodyM, roundedBoxBetween(x0, x1, y0, y1, zb - 0.002, zd, 0.018, q.seg));
     const handle = (x: number, y0: number, y1: number): void => {
       bar(parts, 'fridge-handles', trim, [x, y0, hz], [x, y1, hz], 0.011);
       for (const y of [y0 + 0.02, y1 - 0.02]) bar(parts, 'fridge-handles', trim, [x, y, zd - 0.001], [x, y, hz], 0.006);
@@ -62,14 +62,14 @@ export function buildAppliance(env: GenEnv, size: GenSize, p: ApplianceParams, r
     const gap = 0.1;
     const bz0 = -d / 2 + gap, bz1 = d / 2;
     const zb = bz1 - 0.03;
-    parts.put('washer-body', bodyM, roundedBoxBetween(-w / 2, w / 2, 0.02, H, bz0, zb, 0.015, q.seg));
+    parts.put('washer-body', bodyM, roundedBoxBetween(-w / 2, w / 2, 0.02, H, bz0, zb, 0.025, q.seg));
     for (const s of [-1, 1]) box('washer-feet', BLACK, s * (w / 2 - 0.06) - 0.025, s * (w / 2 - 0.06) + 0.025, 0, 0.025, bz0 + 0.04, zb - 0.05, 0);
     // door: a chrome ring, dark glass, a gasket
     const cy = 0.42, R = 0.2;
-    const ring = new THREE.TorusGeometry(R, 0.015, 8, rsides(env) * 2).translate(0, cy, bz1 - 0.015);
+    const ring = new THREE.TorusGeometry(R, 0.015, q.tier === 'low' ? 6 : 12, q.tier === 'high' ? 64 : q.tier === 'medium' ? 32 : 16).translate(0, cy, bz1 - 0.015);
     parts.put('washer-door', trim, ring);
-    parts.put('washer-door-glass', GLASS, new THREE.CylinderGeometry(R, R, 0.01, rsides(env) * 2).rotateX(Math.PI / 2).translate(0, cy, bz1 - 0.017));
-    parts.put('washer-door-glass', SCREEN, new THREE.CylinderGeometry(R - 0.04, R - 0.04, 0.012, rsides(env) * 2).rotateX(Math.PI / 2).translate(0, cy, zb));
+    parts.put('washer-door-glass', GLASS, new THREE.CylinderGeometry(R, R, 0.01, q.tier === 'high' ? 64 : q.tier === 'medium' ? 32 : 16).rotateX(Math.PI / 2).translate(0, cy, bz1 - 0.017));
+    parts.put('washer-door-glass', SCREEN, new THREE.CylinderGeometry(R - 0.04, R - 0.04, 0.012, q.tier === 'high' ? 64 : q.tier === 'medium' ? 32 : 16).rotateX(Math.PI / 2).translate(0, cy, zb));
     // control strip with a dial and a display
     box('washer-panel', roleOr(roles, { key: 'blackMetal', tint: '#2A2C30' }, 'appliancePanel'), -w / 2 + 0.02, w / 2 - 0.02, H - 0.13, H - 0.03, zb - 0.002, bz1 - 0.022, 0.001);
     parts.put('washer-dial', trim, new THREE.CylinderGeometry(0.03, 0.03, 0.02, 12).rotateX(Math.PI / 2).translate(-w / 2 + 0.1, H - 0.08, bz1 - 0.012));
