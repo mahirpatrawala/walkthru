@@ -33,27 +33,28 @@ export function createMarker(scene: THREE.Scene): Marker {
   const coneGeo = new THREE.BufferGeometry();
   coneGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   coneGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
-  const coneMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+  // drawn over the walls (no depth test): the walker is often in a room the near walls hide, and the marker must say where they stand
+  const coneMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, depthTest: false, side: THREE.DoubleSide, toneMapped: false });
   const cone = new THREE.Mesh(coneGeo, coneMat);
   cone.name = 'dollhouse-marker-cone';
-  cone.renderOrder = 20;
+  cone.renderOrder = 1020;
   cone.raycast = () => {};
   const rig = new THREE.Group();
   rig.add(cone);
 
   const ringGeo = new THREE.RingGeometry(0.19, 0.29, 40);
   ringGeo.rotateX(-Math.PI / 2);
-  const ringMat = new THREE.MeshBasicMaterial({ color: '#ffffff', depthWrite: false, toneMapped: false });
+  const ringMat = new THREE.MeshBasicMaterial({ color: '#ffffff', depthWrite: false, depthTest: false, toneMapped: false });
   const ring = new THREE.Mesh(ringGeo, ringMat);
   ring.position.y = 0.002;
-  ring.renderOrder = 21;
+  ring.renderOrder = 1021;
   ring.raycast = () => {};
   const dotGeo = new THREE.CircleGeometry(0.19, 32);
   dotGeo.rotateX(-Math.PI / 2);
-  const dotMat = new THREE.MeshBasicMaterial({ color: MARKER_COLOUR, depthWrite: false, toneMapped: false });
+  const dotMat = new THREE.MeshBasicMaterial({ color: MARKER_COLOUR, depthWrite: false, depthTest: false, toneMapped: false });
   const dot = new THREE.Mesh(dotGeo, dotMat);
   dot.position.y = 0.004;
-  dot.renderOrder = 22;
+  dot.renderOrder = 1022;
   dot.raycast = () => {};
   rig.add(ring, dot);
   group.add(rig);

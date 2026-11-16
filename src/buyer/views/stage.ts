@@ -124,7 +124,7 @@ float wtLine(vec2 p, float w) { vec2 q = abs(fract(p - 0.5) - 0.5) / max(fwidth(
   float minor = wtLine(vGW.xz, 1.0);
   float major = wtLine(vGW.xz / 5.0, 1.15);
   float gridFade = 1.0 - smoothstep(uFade.x * 0.15, uFade.x * 0.9, d);
-  diffuseColor.rgb *= 1.0 - gridFade * (0.045 * minor + 0.07 * major);
+  diffuseColor.rgb *= 1.0 - gridFade * (0.075 * minor + 0.11 * major);
   if (uHasShadow > 0.5) {
     vec2 uv = (vGW.xz - uRect.xy) / uRect.zw;
     float s = (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) ? 0.0 : texture2D(uShadow, uv).r;

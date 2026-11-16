@@ -15,7 +15,7 @@ import type { PointerEvt } from '../../engine/controls';
 import type { BuyerContext } from '../context';
 import type { Look, LightOverride } from '../../look/look';
 import type { CheckCard, FurnitureItem, Layout, Vec2 } from '../../types';
-import { polygonArea } from '../../core/geometry';
+import { pointInPolygon, polygonArea } from '../../core/geometry';
 import type { RoomChip } from '../nav/nav-model';
 import { boundsCentre, boundsRadius, dampOrbit, dollFov, initialOrbit, layoutBounds, orbitPosition } from './framing';
 import type { Bounds, OrbitGoal, OrbitLimits } from './framing';
@@ -88,7 +88,7 @@ export interface Dollhouse {
   dispose(): void;
 }
 
-interface LabelEl { el: HTMLDivElement; chip: RoomChip; at: THREE.Vector3; weight: number; w: number; h: number; occlusion: number; shown: number }
+interface LabelEl { el: HTMLDivElement; chip: RoomChip; /** candidate places for the tag, best first: the middle of the room, then four more inside it */ spots: THREE.Vector3[]; at: THREE.Vector3; weight: number; w: number; h: number; occlusion: number; shown: number }
 
 export function createDollhouse(d: DollhouseDeps): Dollhouse {
   const { viewer, layout, look, ctx } = d;
@@ -279,7 +279,12 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
       el.style.opacity = '0';
       labelRoot.appendChild(el);
       const p = labelPoint(room.polygon);
-      labels.push({ el, chip, at: new THREE.Vector3(p.x, 0.12, p.z), weight: Math.abs(polygonArea(room.polygon)), w: 0, h: 0, occlusion: 1, shown: 0 });
+      const xs = room.polygon.map((q) => q.x), zs = room.polygon.map((q) => q.z);
+      const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2, hx = (Math.max(...xs) - Math.min(...xs)) * 0.32, hz = (Math.max(...zs) - Math.min(...zs)) * 0.32;
+      const spots = [p, { x: cx + hx, z: cz }, { x: cx - hx, z: cz }, { x: cx, z: cz + hz }, { x: cx, z: cz - hz }]
+        .filter((q, i) => i === 0 || pointInPolygon(q, room.polygon))
+        .map((q) => new THREE.Vector3(q.x, 0.12, q.z));
+      labels.push({ el, chip, spots, at: spots[0].clone(), weight: Math.abs(polygonArea(room.polygon)), w: 0, h: 0, occlusion: 1, shown: 0 });
     }
   }
 
@@ -304,16 +309,22 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
     }
   }
 
-  /** a room name behind a wall (seen from here) is dimmed rather than left floating over the wall top */
+  /** a room name goes where its room can be seen: the middle, else another place in it that no wall hides from here, else it is left out */
   function updateOcclusion(): void {
     const targets = [d.shell];
+    const camPos = cam.position;
+    const dir = new THREE.Vector3();
     for (const l of labels) {
-      const dir = l.at.clone().sub(cam.position);
-      const dist = dir.length();
-      caster.set(cam.position, dir.normalize());
-      caster.far = dist - 0.05;
-      const hit = caster.intersectObjects(targets, true).find((h) => !h.object.name.startsWith('ceiling:') && (h.object as THREE.Mesh).isMesh);
-      l.occlusion = hit ? 0.3 : 1;
+      let found: THREE.Vector3 | null = null;
+      for (const spot of l.spots) {
+        dir.copy(spot).sub(camPos);
+        const dist = dir.length();
+        caster.set(camPos, dir.normalize());
+        caster.far = dist - 0.05;
+        const hit = caster.intersectObjects(targets, true).some((h) => !h.object.name.startsWith('ceiling:') && (h.object as THREE.Mesh).isMesh);
+        if (!hit) { found = spot; break; }
+      }
+      if (found) { l.at.copy(found); l.occlusion = 1; } else l.occlusion = 0;
     }
   }
 
