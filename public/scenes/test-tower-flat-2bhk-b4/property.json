@@ -954,5 +954,6 @@
   "unlisted": true,
   "spaceKind": "home",
   "updatedAt": "2026-11-16T00:00:00.000Z",
-  "subtitle": "Sample building · plan follows a published builder brochure, furniture illustrative"
+  "subtitle": "Sample building · plan follows a published builder brochure, furniture illustrative",
+  "gallery": true
 }
