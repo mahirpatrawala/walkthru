@@ -69,7 +69,7 @@ for (const v of want) {
     // the follow camera lengthens its boom at 2 m/s of simulated time: advance the simulation 4 s in one frame so the picture is the settled one, whatever the frame rate
     await ev(`window.__walkthru.motion.pause(true, 1/30); window.__walkthru.motion.step(120);`);
     await sleep(1500);
-    await ev(`window.__walkthru.person.character.setVisible && window.__walkthru.person.character.setVisible(true)`);
+    // the page itself hides or shows the body in its own tick (camera.fade); nothing is forced here
   }
   await sleep(waitMs);
   await ev("(() => { const g = window.__walkthru.ctx.viewer.scene.getObjectByName('debug-grid'); if (g) g.visible = false; })()");
