@@ -80,8 +80,8 @@ export function mountKit(o: KitOptions): KitHandle {
   // a design sheet that draws its own downlights in a room keeps them: the kit's rings are for rooms without
   const sheetDownlit = new Set((style.sheet && style.designerLook ? style.sheet.fixtures : []).filter((f) => f.kind === 'downlights').map((f) => (f as { roomId?: string }).roomId ?? ''));
   plan.downlights = plan.downlights.filter((d) => !sheetDownlit.has(d.roomId));
-  const built = buildBuckets(layout, plan);
-  const mats: KitMaterials = createKitMaterials(layout.finishes, { wall: null }, { skirting: trimColours(style).skirting });
+  const built = buildBuckets(layout, plan, { thinGrills: !!trimColours(style).grill });
+  const mats: KitMaterials = createKitMaterials(layout.finishes, { wall: null }, { skirting: trimColours(style).skirting, grill: trimColours(style).grill });
 
   const group = new THREE.Group();
   group.name = 'kit';
@@ -114,6 +114,7 @@ export function mountKit(o: KitOptions): KitHandle {
   const fanLightMesh = add('fan-light', b.fanLight, mats.lens.fan, 'fan');
   add('cove', b.cove, mats.cove);
   add('cove-led', b.coveLed, mats.lens.cove, 'cove');
+  add('mirror', b.mirror, mats.mirror);
   { const dl = add('downlight-lens', b.downlightLens, mats.downlight); if (dl) dl.userData.walkthruLight = 'lamp'; }
 
   // the blades turn: one instanced mesh per blade radius (rebuilt when the viewer moves, resizes or removes a fan)

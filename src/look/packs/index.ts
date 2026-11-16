@@ -24,11 +24,11 @@ export interface StylePack {
   /** per look kind, params that differ from the generator's own defaults */
   generators: Partial<Record<LookKind, Record<string, unknown>>>;
   /** finishes of the room itself, used where the drawing and the video gave none */
-  room: { wall?: string; floor?: string; ceiling?: string };
+  room: { wall?: string; floor?: string; ceiling?: string; /** a bathroom with no finish of its own: tiled walls and a matt tiled floor (SPEC 16.19) */ wet?: { wall?: string; floor?: string } };
   /** typical decor this pack adds to rooms that have no design sheet */
   decor: { rug?: boolean; curtains?: boolean };
   /** the dark or warm accents of the shell itself: skirting, door frames and architraves, door handles (finish ids; SPEC 16.18). Absent = the wall's own colour, the layout's frame colour, brushed steel */
-  trim?: { skirting?: string; frame?: string; handle?: string };
+  trim?: { skirting?: string; frame?: string; handle?: string; /** window grills: a finish id for a thin light grill, absent = the kit's own dark one */ grill?: string };
   /** floor tile formats in metres as [along the room's longest wall, across it]: `large` in a room of 12 m2 or more with a short side of 3 m or more, `standard` in other rooms, and the joint width. A tile the drawing gives always wins (SPEC 16.11) */
   tiles?: { large?: [number, number]; standard?: [number, number]; groutMm?: number };
   /** per family (a look kind or a decor kind): "generator" keeps the parametric piece, or model ids in order of preference; a family it does not name takes any model that fits (SPEC 16.15). Absent in Classic. */
@@ -60,6 +60,12 @@ export function loadPack(raw: unknown): { pack: StylePack | null; dropped: strin
     const v = (o.room as Record<string, unknown> | undefined)?.[k];
     if (typeof v === 'string') { if (knownFinish(v)) room[k] = v; else dropped.push(`room.${k}: unknown finish ${v}`); }
   }
+  const rawWet = (o.room as Record<string, unknown> | undefined)?.wet as Record<string, unknown> | undefined;
+  if (rawWet && typeof rawWet === 'object') {
+    const wet: { wall?: string; floor?: string } = {};
+    for (const k of ['wall', 'floor'] as const) { const v = rawWet[k]; if (typeof v === 'string') { if (knownFinish(v)) wet[k] = v; else dropped.push(`room.wet.${k}: unknown finish ${v}`); } }
+    room.wet = wet;
+  }
   let models: ModelPolicy | undefined;
   if (o.models && typeof o.models === 'object' && !o.classic) {
     models = {};
@@ -75,7 +81,7 @@ export function loadPack(raw: unknown): { pack: StylePack | null; dropped: strin
     }
   }
   const trim: NonNullable<StylePack['trim']> = {};
-  for (const k of ['skirting', 'frame', 'handle'] as const) {
+  for (const k of ['skirting', 'frame', 'handle', 'grill'] as const) {
     const v = (o.trim as Record<string, unknown> | undefined)?.[k];
     if (typeof v === 'string') { if (knownFinish(v)) trim[k] = v; else dropped.push(`trim.${k}: unknown finish ${v}`); }
   }

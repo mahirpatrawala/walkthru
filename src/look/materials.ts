@@ -7,6 +7,7 @@ import type { AssetLoader } from './assets';
 import type { AoField } from './floor-ao';
 import type { TierConfig } from './quality';
 import { GLSL_NOISE, GLSL_WOOD } from './procedural';
+import { MAX_LAMP_POOLS, MAX_WINDOW_LIGHTS } from './daylight';
 
 /** Mean linear luminance of each diffuse texture, measured once with scripts/derive-look-assets.ts. */
 export const TEXTURE_MEAN = {
@@ -33,6 +34,9 @@ type Uniform<T> = { value: T };
 /** Uniforms shared by every look material, so one assignment updates all of them. */
 export interface SharedUniforms {
   plain: Uniform<number>;
+  /** SPEC 16.19: window light and downlight pools (the nearest few sources, set by look.ts); `winOn` 0 on low and in Plain and baked modes */
+  winOn: Uniform<number>; winA: Uniform<THREE.Vector4[]>; winB: Uniform<THREE.Vector4[]>; winCol: Uniform<THREE.Color>;
+  lampA: Uniform<THREE.Vector4[]>; lampCol: Uniform<THREE.Color>;
   /** 1 on tiers that draw the procedural fine detail (paint grain, tile speckle): medium and high */
   fine: Uniform<number>;
   /** 1 while a bake lights the room (SPEC 16.14): the wall-edge darkening steps back, the bake has the real corners */
@@ -89,6 +93,57 @@ LK_END_FRAG
 uniform float uLkMode;        // 0 floor (tile grid), 1 box-mapped (walls, ceilings), 2 the mesh's own UVs (frames: u runs along the grain)
 uniform float uLkPaint;       // 1 on walls and ceilings: fine paint grain, relief and the ceiling shadow line (SPEC 16.18)
 uniform float uLkWood;        // 1 on frames: procedural wood grain along the member (u of the UV is along the grain)
+uniform vec3 uLkWallTile;     // wall tile width, height and the height the tile runs to (m); width 0 = painted wall
+uniform vec3 uLkWallJoint;
+float lkTileIn;
+uniform float uLkWinOn;
+uniform vec4 uLkWinA[6];   // window centre xyz, half width
+uniform vec4 uLkWinB[6];   // inward normal x, z, half height, 1 when the slot is used
+uniform vec3 uLkWinCol;
+uniform vec4 uLkLampA[6]; // downlight xyz, 1 when used
+uniform vec3 uLkLampCol;
+// skylight from the nearest windows: an area source with a soft falloff, wrapped so a surface that faces away still gets a little bounce;
+// only on the room side of the opening (SPEC 16.19). No sun is invented here.
+vec3 lkDaylight(vec3 p, vec3 n, float floorK) {
+  vec3 acc = vec3(0.0);
+  for (int i = 0; i < 6; i++) {
+    if (uLkWinB[i].w < 0.5) continue;
+    vec3 c = uLkWinA[i].xyz;
+    vec3 wn = vec3(uLkWinB[i].x, 0.0, uLkWinB[i].y);
+    vec3 v = c - p;
+    float d2 = dot(v, v);
+    vec3 L = v * inversesqrt(max(d2, 1e-4));
+    float facing = smoothstep(0.02, 0.4, dot(-L, wn));
+    float lam = clamp(dot(n, L) * 0.75 + 0.25, 0.0, 1.0);
+    float area = uLkWinA[i].w * uLkWinB[i].z * 4.0;
+    float fall = area / (d2 + 1.8 + 0.6 * area);
+    float k = lam * facing * fall;
+    if (floorK > 0.5) {
+      // a soft bright patch of skylight on the floor in front of the opening, wider than the glass and fading over about 1.6 m
+      vec2 rel = p.xz - (c.xz + wn.xz * c.y * 0.7);
+      float across = dot(rel, vec2(-wn.z, wn.x));
+      float along = dot(rel, wn.xz);
+      float lkPatchK = smoothstep(uLkWinA[i].w * 1.5 + 0.35, uLkWinA[i].w * 0.3, abs(across)) * smoothstep(1.7, 0.1, abs(along - 0.3));
+      k += 0.55 * lkPatchK * facing * clamp(area * 0.35, 0.1, 1.0);
+    }
+    acc += k;
+  }
+  return acc * uLkWinCol;
+}
+// the light pool under a recessed downlight: a soft cone down, in a room that has no window it is on by day too
+vec3 lkLamps(vec3 p, vec3 n) {
+  vec3 acc = vec3(0.0);
+  for (int i = 0; i < 6; i++) {
+    if (uLkLampA[i].w < 0.5) continue;
+    vec3 v = uLkLampA[i].xyz - p;
+    float d2 = dot(v, v);
+    vec3 L = v * inversesqrt(max(d2, 1e-4));
+    float cone = smoothstep(0.2, 0.85, L.y);
+    float lam = clamp(dot(n, L) * 0.8 + 0.2, 0.0, 1.0);
+    acc += cone * lam / (d2 + 0.9);
+  }
+  return acc * uLkLampCol;
+}
 uniform float uLkFine;        // 1 where the tier draws procedural fine detail (medium, high)
 uniform float uLkKitBevel;    // strength of the bevel at a tile joint
 uniform float uLkKitSpeck;    // strength of the fine speckle and cloud in the tile
@@ -170,6 +225,22 @@ if (uLkWood > 0.5 && uLkPlain < 0.5) {
   diffuseColor.rgb *= lkWoodTone(lkWg, max(fwidth(lkWg.x), fwidth(lkWg.y)));
 }
 lkGrout = 0.0;
+lkTileIn = 0.0;
+if (uLkWallTile.x > 0.0 && uLkPlain < 0.5) {
+  // a glazed wall tile with hairline joints, from the floor to the ceiling (SPEC 16.19): the same joint maths as the floor, in metres on the wall
+  vec2 lkTs = uLkWallTile.xy;
+  vec2 lkTc = (lkUVc * uLkRepeat) / lkTs;
+  vec2 lkCw = fract(lkTc);
+  vec2 lkFwt = max(fwidth(lkTc), vec2(1e-5));
+  vec2 lkDw = min(lkCw, 1.0 - lkCw);
+  vec2 lkRealT = vec2(0.001) / lkTs;
+  vec2 lkHalfT = max(lkRealT, lkFwt * 0.55);
+  vec2 lkMt = (1.0 - smoothstep(lkHalfT - lkFwt * 0.5, lkHalfT + lkFwt * 0.5, lkDw)) * max(lkRealT / lkHalfT, vec2(0.4));
+  lkTileIn = 1.0 - smoothstep(uLkWallTile.z - 0.02, uLkWallTile.z, vLkPos.y);
+  float lkJoint = max(lkMt.x, lkMt.y) * lkTileIn;
+  diffuseColor.rgb *= 1.0 + (lkHash(floor(lkTc) + 5.3) - 0.5) * 0.04 * lkTileIn;
+  diffuseColor.rgb = mix(diffuseColor.rgb, uLkWallJoint, lkJoint);
+}
 if (uLkKit > 0.5) {
   // a hairline joint: its real width (about 2 mm) where a pixel is narrower than that, and one pixel wide, but only as dark as the part of the pixel the joint
   // really covers, where a pixel is wider (so a joint never reads thicker or darker at a distance than it is)
@@ -213,6 +284,7 @@ if (uLkRoughOn > 0.5 && uLkPlain < 0.5) {
   roughnessFactor = mix(uLkRoughRange.x, uLkRoughRange.y, textureGrad(uLkRough, lkUV, lkDx, lkDy).g);
 }
 if (uLkKit > 0.5 && uLkPlain < 0.5) roughnessFactor = mix(max(roughnessFactor, uLkKitRoughMin), 0.92, lkGrout);
+if (uLkWallTile.x > 0.0 && uLkPlain < 0.5) roughnessFactor = mix(roughnessFactor, 0.26, lkTileIn);
 `;
 const FRAG_NORMAL = /* glsl */ `
 if (uLkNormOn > 0.5 && uLkPlain < 0.5) {
@@ -248,6 +320,11 @@ const FRAG_AO = /* glsl */ `
     lkAO *= mix(0.7, 1.0, smoothstep(0.0, 0.42, min(vLkPos.y, uLkWallH - vLkPos.y)));
     float lkCd = min(99.0 - vLkEnd.x, 99.0 - vLkEnd.y);
     lkAO *= mix(0.74, 1.0, smoothstep(0.0, 0.55, lkCd));
+  }
+  if (uLkWinOn > 0.5 && uLkPlain < 0.5 && uLkBaked < 0.5) {
+    vec3 lkNw = normalize(vLkN);
+    vec3 lkLit = lkDaylight(vLkPos, lkNw, uLkMode < 0.5 ? 1.0 : 0.0) + lkLamps(vLkPos, lkNw);
+    reflectedLight.indirectDiffuse += lkLit * BRDF_Lambert(diffuseColor.rgb);
   }
   reflectedLight.indirectDiffuse *= lkAO;
   reflectedLight.indirectSpecular *= lkAO;
@@ -323,6 +400,12 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
   const shared: SharedUniforms = {
     plain: { value: 0 },
     fine: { value: 0 },
+    winOn: { value: 0 },
+    winA: { value: Array.from({ length: MAX_WINDOW_LIGHTS }, () => new THREE.Vector4()) },
+    winB: { value: Array.from({ length: MAX_WINDOW_LIGHTS }, () => new THREE.Vector4()) },
+    winCol: { value: new THREE.Color(0, 0, 0) },
+    lampA: { value: Array.from({ length: MAX_LAMP_POOLS }, () => new THREE.Vector4()) },
+    lampCol: { value: new THREE.Color(0, 0, 0) },
     baked: { value: 0 },
     floorAO: { value: white }, floorAORect: { value: new THREE.Vector4(0, 0, 1, 1) },
     ceilAO: { value: white }, ceilAORect: { value: new THREE.Vector4(0, 0, 1, 1) },
@@ -347,7 +430,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
     mat.userData.shared = true;
     const u: Rec['u'] = {
       uLkMode: { value: kind === 'floor' ? 0 : kind === 'frame' ? 2 : 1 },
-      uLkPaint: { value: kind === 'wall' || kind === 'ceiling' ? 1 : 0 }, uLkWood: { value: kind === 'frame' ? 1 : 0 }, uLkFine: shared.fine, uLkKitBevel: { value: 0 }, uLkKitSpeck: { value: 0 },
+      uLkPaint: { value: kind === 'wall' || kind === 'ceiling' ? 1 : 0 }, uLkWood: { value: kind === 'frame' ? 1 : 0 }, uLkFine: shared.fine, uLkWinOn: shared.winOn, uLkWinA: shared.winA, uLkWinB: shared.winB, uLkWinCol: shared.winCol, uLkLampA: shared.lampA, uLkLampCol: shared.lampCol, uLkKitBevel: { value: 0 }, uLkKitSpeck: { value: 0 }, uLkWallTile: { value: new THREE.Vector3(0, 0, 0) }, uLkWallJoint: { value: new THREE.Color('#999') },
       uLkTile: { value: new THREE.Vector2(0.6, 0.6) },
       uLkRepeat: { value: kind === 'frame' ? 0.6 : 1.6 },
       uLkPlain: shared.plain,
@@ -380,7 +463,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${FRAG_NORMAL}`)
         .replace('#include <aomap_fragment>', `#include <aomap_fragment>\n${FRAG_AO}`);
     };
-    mat.customProgramCacheKey = () => 'walkthru-look-v4';
+    mat.customProgramCacheKey = () => 'walkthru-look-v5';
     const rec: Rec = { kind, balcony, mat, u, plain, look: { roughness: mat.roughness, metalness: mat.metalness }, map: null };
     records.push(rec);
     byKey.set(key, rec);
@@ -428,8 +511,15 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
       }
       return r.mat;
     },
-    wall(color) {
-      return make('wall', `wall|${color}`, { color, roughness: 0.9, metalness: 0 }, { roughness: 0.9, metalness: 0 }).mat;
+    wall(color, tile) {
+      const key = `wall|${color}|${tile ? `${tile.wM}x${tile.hM}` : ''}`;
+      const had = byKey.has(key);
+      const r = make('wall', key, { color, roughness: tile ? 0.3 : 0.9, metalness: 0 }, { roughness: 0.9, metalness: 0 });
+      if (!had && tile) {
+        set(r, 'uLkWallTile', new THREE.Vector3(tile.wM, tile.hM, shared.wallH.value));
+        set(r, 'uLkWallJoint', new THREE.Color(color).multiplyScalar(0.8));
+      }
+      return r.mat;
     },
     ceiling(color) {
       return make('ceiling', `ceiling|${color}`, { color, roughness: 0.9, metalness: 0 }, { roughness: 0.95, metalness: 0 }).mat;

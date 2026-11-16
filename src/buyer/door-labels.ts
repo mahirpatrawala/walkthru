@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { resolveDoors } from '../core/doors';
 import type { Door } from '../core/doors';
 import type { Layout, SpaceKind } from '../types';
+import { signLook } from '../look/sign-style';
+import type { SignLook } from '../look/sign-style';
 
 export const DOOR_LABEL_HEIGHT_M = 0.13;
 export const DOOR_LABEL_GAP_M = 0.06;
@@ -32,22 +34,22 @@ export function doorLabels(layout: Layout, spaceKind: SpaceKind = 'home'): DoorL
   return out;
 }
 
-function board(text: string, w: number): THREE.CanvasTexture | null {
+function board(text: string, w: number, look: SignLook = signLook()): THREE.CanvasTexture | null {
   if (typeof document === 'undefined') return null;
   const c = document.createElement('canvas');
   // drawn in a 96 px high design space and scaled up (about 2,200 px a metre: sharp at arm's length on a 2x screen, SPEC 16.18)
   const K = DOOR_LABEL_TEXTURE_SCALE;
-  c.height = 96 * K; c.width = Math.round(96 * K * (w / DOOR_LABEL_HEIGHT_M));
+  c.height = 96 * K; c.width = Math.round(96 * K * (w / (DOOR_LABEL_HEIGHT_M * look.scale)));
   const g = c.getContext('2d');
   if (!g) return null;
   g.scale(K, K);
   const W = c.width / K, H = c.height / K;
-  g.fillStyle = '#23292E'; g.fillRect(0, 0, W, H);
-  g.strokeStyle = '#C9A657'; g.lineWidth = 4; g.strokeRect(5, 5, W - 10, H - 10);
-  g.fillStyle = '#F6F2E8'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = look.bg; g.fillRect(0, 0, W, H);
+  if (look.border) { g.strokeStyle = look.border; g.lineWidth = 4; g.strokeRect(5, 5, W - 10, H - 10); }
+  g.fillStyle = look.fg; g.textAlign = 'center'; g.textBaseline = 'middle';
   let px = 60;
-  g.font = `700 ${px}px system-ui, sans-serif`;
-  while (px > 20 && g.measureText(text).width > W - 36) { px -= 2; g.font = `700 ${px}px system-ui, sans-serif`; }
+  g.font = `${look.weight} ${px}px system-ui, sans-serif`;
+  while (px > 20 && g.measureText(text).width > W - 36) { px -= 2; g.font = `${look.weight} ${px}px system-ui, sans-serif`; }
   g.fillText(text, W / 2, H / 2 + 2);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
@@ -65,13 +67,15 @@ export function mountDoorLabels(scene: THREE.Object3D, layout: Layout, spaceKind
   for (const l of doorLabels(layout, spaceKind)) {
     const d = doors.get(l.doorId);
     if (!d) continue;
-    const y = d.headM + DOOR_LABEL_GAP_M + DOOR_LABEL_HEIGHT_M / 2;
-    if (y + DOOR_LABEL_HEIGHT_M / 2 > layout.wallHeightM - 0.02) continue;
-    const w = doorLabelWidthM(l.text);
-    const tex = board(l.text, w);
-    const side = new THREE.MeshStandardMaterial({ color: '#23292E', roughness: 0.6 });
-    const face = new THREE.MeshStandardMaterial({ color: tex ? '#FFFFFF' : '#23292E', map: tex, roughness: 0.55, emissive: '#FFFFFF', emissiveMap: tex, emissiveIntensity: tex ? 0.18 : 0 });
-    const geo = new THREE.BoxGeometry(w, DOOR_LABEL_HEIGHT_M, THICK_M);
+    const look = signLook();
+    const lh = DOOR_LABEL_HEIGHT_M * look.scale;
+    const y = d.headM + DOOR_LABEL_GAP_M + lh / 2;
+    if (y + lh / 2 > layout.wallHeightM - 0.02) continue;
+    const w = doorLabelWidthM(l.text) * (look.scale < 1 ? 0.82 : 1);
+    const tex = board(l.text, w, look);
+    const side = new THREE.MeshStandardMaterial({ color: look.border ? look.bg : '#D9D5CD', roughness: 0.6 });
+    const face = new THREE.MeshStandardMaterial({ color: tex ? '#FFFFFF' : look.bg, map: tex, roughness: 0.55, emissive: '#FFFFFF', emissiveMap: tex, emissiveIntensity: tex ? (look.border ? 0.18 : 0.04) : 0 });
+    const geo = new THREE.BoxGeometry(w, lh, THICK_M);
     const mesh = new THREE.Mesh(geo, [side, side, side, side, face, side]);
     mesh.name = `door-label:${l.doorId}:${l.side}`;
     // `edgeA` runs along the wall's face in the door's own room; the far face is `depth` along `out`. The board stands proud of its face

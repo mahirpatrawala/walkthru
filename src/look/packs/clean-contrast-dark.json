@@ -3,21 +3,21 @@
   "name": "Clean Contrast, charcoal",
   "blurb": "The same bright walls and pale floor, with charcoal skirting, deep walnut frames and warm oak doors as strong accents.",
   "roles": {
-    "case": "oak-light",
+    "case": "white-laminate",
     "flute": "oak-light",
     "slats": "oak-light",
     "legs": "oak-light",
     "drawerFront": "white-laminate",
-    "accent": "charcoal-matte",
+    "accent": "weave-bluegrey",
     "bedFrame": "oak-light",
     "headboard": "oak-light",
     "top": "oak-light",
-    "fabric": "weave-sage",
+    "fabric": "weave-greige",
     "bedding": "cotton-white",
     "duvet": "quilt-white",
     "pillow": "cotton-white",
-    "cushion": "weave-sage",
-    "handle": "black-metal",
+    "cushion": "weave-terracotta",
+    "handle": "charcoal-matte",
     "plinth": "charcoal-matte",
     "slatBack": "grey-matte",
     "lampMetal": "brass",
@@ -36,7 +36,7 @@
   "generators": {
     "wardrobe": {
       "shutterStyle": "flat",
-      "handle": "groove"
+      "handle": "long-bar"
     },
     "bed": {
       "base": "legs",
@@ -93,7 +93,11 @@
   "room": {
     "wall": "wall-bright",
     "floor": "tile-stone",
-    "ceiling": "ceiling-warm-grey"
+    "ceiling": "ceiling-warm-grey",
+    "wet": {
+      "wall": "tile-wet-white",
+      "floor": "tile-wet-grey"
+    }
   },
   "decor": {
     "rug": true,
@@ -109,7 +113,8 @@
   "trim": {
     "skirting": "charcoal-matte",
     "frame": "walnut-deep",
-    "handle": "charcoal-matte"
+    "handle": "charcoal-matte",
+    "grill": "white-laminate"
   },
   "tiles": {
     "large": [

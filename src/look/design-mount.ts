@@ -384,6 +384,9 @@ export function buildDecorGroup(layout: Layout, items: FurnitureItem[], tier: Ti
 
 // ---------------------------------------------------------------- room finishes (walls, floors)
 
+/** a wet room's glazed wall tile: 300 x 600, to the ceiling (SPEC 16.19) */
+const WET_WALL_TILE = { wM: 0.3, hM: 0.6 } as const;
+
 interface RoomOriginals { wallColor?: string; floorColor?: string }
 const originals = new WeakMap<RoomTag, RoomOriginals>();
 
@@ -410,7 +413,7 @@ export function applyRoomFinishes(layout: Layout, shell: THREE.Object3D, look: L
     if (room.partial) continue;
     let o = originals.get(room);
     if (!o) { o = { wallColor: room.wallColor, floorColor: room.floorColor }; originals.set(room, o); }
-    const ids = sampled ? {} : roomFinishIds(room.id, st);
+    const ids = sampled ? {} : roomFinishIds(room.id, st, room.roomType);
     const wallId = o.wallColor === undefined ? ids.wall?.[0] : undefined;
     const floorId = o.floorColor === undefined && room.roomType !== 'balcony' ? ids.floor?.[0] : undefined;
     const wantWall = wallId ? finishDef(wallId)?.colour : o.wallColor;
@@ -424,7 +427,8 @@ export function applyRoomFinishes(layout: Layout, shell: THREE.Object3D, look: L
       if (!mesh.isMesh || mesh.userData.roomId !== room.id) return;
       if (c.name === `walls:${room.id}`) {
         const color = room.wallColor ?? fin.wallColor;
-        mesh.material = lm ? lm.wall(color) : new THREE.MeshStandardMaterial({ color, roughness: 0.9 });
+        const tiled = !!wallId && finishDef(wallId)?.kind === 'tile';
+        mesh.material = lm ? lm.wall(color, tiled ? WET_WALL_TILE : undefined) : new THREE.MeshStandardMaterial({ color, roughness: 0.9 });
       } else if ((c.name.startsWith('floor:') || c.name.startsWith('threshold:'))) {
         const m = floorFor(room);
         if (m && !(mesh.material as THREE.Material).userData?.partialLook) mesh.material = m;
