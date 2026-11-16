@@ -4,7 +4,9 @@ import * as THREE from 'three';
 
 export const MARKER_COLOUR = '#C0502E';
 const CONE_HALF_DEG = 34;
-const MARKER_Y = 0.035;
+const MARKER_Y = 0.03;
+/** the dot's radius in marker units */
+const R_DOT = 0.26;
 
 export interface Marker {
   group: THREE.Group;
@@ -33,33 +35,52 @@ export function createMarker(scene: THREE.Scene): Marker {
   const coneGeo = new THREE.BufferGeometry();
   coneGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   coneGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
-  // drawn over the walls (no depth test): the walker is often in a room the near walls hide, and the marker must say where they stand
-  const coneMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, depthTest: false, side: THREE.DoubleSide, toneMapped: false });
+  // on the floor: the cone, a soft contact shadow, the white ring and the dot are depth tested, so they lie on the floor and a wall in front hides them;
+  // a faint copy of the ring and the dot is drawn over everything, so the walker is still found in a room the near walls hide
+  const flat = (extra: THREE.MeshBasicMaterialParameters): THREE.MeshBasicMaterial => new THREE.MeshBasicMaterial({ depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, ...extra });
+  const coneMat = flat({ vertexColors: true, transparent: true, side: THREE.DoubleSide });
   const cone = new THREE.Mesh(coneGeo, coneMat);
   cone.name = 'dollhouse-marker-cone';
-  cone.renderOrder = 1020;
+  cone.renderOrder = 20;
   cone.raycast = () => {};
   const rig = new THREE.Group();
   rig.add(cone);
 
-  const ringGeo = new THREE.RingGeometry(0.19, 0.29, 40);
+  const shadowGeo = new THREE.CircleGeometry(0.62, 40);
+  shadowGeo.rotateX(-Math.PI / 2);
+  const shadowMat = flat({ color: '#000000', transparent: true, opacity: 0.22 });
+  const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+  shadow.position.y = -0.004;
+  shadow.renderOrder = 19;
+  shadow.raycast = () => {};
+  const ringGeo = new THREE.RingGeometry(R_DOT, R_DOT + 0.12, 40);
   ringGeo.rotateX(-Math.PI / 2);
-  const ringMat = new THREE.MeshBasicMaterial({ color: '#ffffff', depthWrite: false, depthTest: false, toneMapped: false });
+  const ringMat = flat({ color: '#ffffff' });
   const ring = new THREE.Mesh(ringGeo, ringMat);
   ring.position.y = 0.002;
-  ring.renderOrder = 1021;
+  ring.renderOrder = 21;
   ring.raycast = () => {};
-  const dotGeo = new THREE.CircleGeometry(0.19, 32);
+  const dotGeo = new THREE.CircleGeometry(R_DOT, 32);
   dotGeo.rotateX(-Math.PI / 2);
-  const dotMat = new THREE.MeshBasicMaterial({ color: MARKER_COLOUR, depthWrite: false, depthTest: false, toneMapped: false });
+  const dotMat = flat({ color: MARKER_COLOUR });
   const dot = new THREE.Mesh(dotGeo, dotMat);
   dot.position.y = 0.004;
-  dot.renderOrder = 1022;
+  dot.renderOrder = 22;
   dot.raycast = () => {};
-  rig.add(ring, dot);
+  const ghostMat = flat({ color: MARKER_COLOUR, transparent: true, opacity: 0.4, depthTest: false });
+  const ghost = new THREE.Mesh(dotGeo, ghostMat);
+  ghost.position.y = 0.006;
+  ghost.renderOrder = 1030;
+  ghost.raycast = () => {};
+  const ghostRingMat = flat({ color: '#ffffff', transparent: true, opacity: 0.4, depthTest: false });
+  const ghostRing = new THREE.Mesh(ringGeo, ghostRingMat);
+  ghostRing.position.y = 0.005;
+  ghostRing.renderOrder = 1029;
+  ghostRing.raycast = () => {};
+  rig.add(shadow, ring, dot, ghostRing, ghost);
   group.add(rig);
   group.position.y = MARKER_Y;
-  disposables.push(coneGeo, coneMat, ringGeo, ringMat, dotGeo, dotMat);
+  disposables.push(coneGeo, coneMat, ringGeo, ringMat, dotGeo, dotMat, shadowGeo, shadowMat, ghostMat, ghostRingMat);
   scene.add(group);
 
   return {
@@ -68,9 +89,9 @@ export function createMarker(scene: THREE.Scene): Marker {
       group.position.x = x;
       group.position.z = z;
       rig.rotation.y = (yawDeg * Math.PI) / 180;
-      // the cone's length and the dot's size scale together; the cone is 1.7 marker units long
+      // the cone's length and the dot's size scale together; the cone is 1.9 marker units long
       rig.scale.set(scale, 1, scale);
-      cone.scale.set(1.7, 1, 1.7);
+      cone.scale.set(1.9, 1, 1.9);
     },
     setVisible(v) { group.visible = v; },
     dispose() {

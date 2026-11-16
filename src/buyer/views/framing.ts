@@ -103,7 +103,8 @@ export function initialOrbit(b: Bounds, o: { fovVDeg: number; aspect: number; en
   const c = boundsCentre(b);
   const theta = o.entrance ? Math.atan2(o.entrance.x, o.entrance.z) : 0;
   const phi = (90 - DOLL_ELEVATION_DEG) * DEG;
-  const dist = fitDistance(b, o.fovVDeg, o.aspect, theta, phi, o.margin ?? 1.1, o.fill);
+  // the near walls are cut to a metre, the far ones stand: the box that has to fit is a little lower than the walls
+  const dist = fitDistance({ ...b, h: b.h * 0.78 }, o.fovVDeg, o.aspect, theta, phi, o.margin ?? 1.1, o.fill);
   const span = Math.max(b.x1 - b.x0, b.z1 - b.z0);
   const r = boundsRadius(b);
   const loose = sphereDistance(r, o.fovVDeg) * 1.2;
@@ -184,7 +185,8 @@ export function freeRect(panels: readonly Panel[], W: number, H: number, gap = 1
   const r: FreeRect = { left: 0, top: 0, right: W, bottom: H };
   for (const p of panels) {
     if (p.right <= p.left || p.bottom <= p.top) continue;
-    const loss = (next: FreeRect): number => Math.max(0, next.right - next.left) * Math.max(0, next.bottom - next.top);
+    // what is left is judged by its shorter side first (a model is framed by the shorter one), then by its area
+    const loss = (next: FreeRect): number => { const w = Math.max(0, next.right - next.left), h = Math.max(0, next.bottom - next.top); return Math.min(w, h) * 1e4 + w * h * 1e-6; };
     const options: FreeRect[] = [
       { ...r, left: Math.max(r.left, p.right + gap) },
       { ...r, right: Math.min(r.right, p.left - gap) },

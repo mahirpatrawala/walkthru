@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { CHARACTER_RADIUS_M } from '../../types';
 import type { CheckCard, FurnitureItem, Vec2 } from '../../types';
 import { circleFree, nearestFree } from '../../core/grid-query';
+import type { PointerEvt } from '../../engine/controls';
 import { yawToward } from '../../core/spawn';
 import { resetLocomotion } from '../../engine/locomotion';
 import type { Look } from '../../look/look';
@@ -20,6 +21,8 @@ import { actionFor as kindAction } from '../store';
 import type { UnverifiedRooms } from '../store';
 import { CHAIR_PROMPT } from '../seats';
 import { createDollhouse } from './dollhouse';
+import type { FurnishHandle } from './dollhouse';
+import type { FurnishMode } from '../furnish';
 import type { Dollhouse } from './dollhouse';
 import { entranceOutward } from './framing';
 import { labelPoint } from './labels';
@@ -133,6 +136,53 @@ export function mountViews(d: ViewsDeps): MountedViews {
     onRoomTap: (id) => { void goToRoom(id); },
     onEscape: () => api.set('walk'),
   });
+  // ---- Furnish from above: the same session, the same rules (clearance, collision, the walls, My layout), only the pointer comes from the doll house's camera
+  const furnishSession = (): FurnishMode['session'] | undefined => (modes.id === 'furnish' ? (modes.active() as FurnishMode | undefined)?.session : undefined);
+  const caster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  const overWork = (e: { ndcX: number; ndcY: number }, s: FurnishMode['session']): boolean => {
+    const m = s.workMesh();
+    if (!m) return false;
+    viewer.camera.updateMatrixWorld(true);
+    ndc.set(e.ndcX, e.ndcY);
+    caster.setFromCamera(ndc, viewer.camera);
+    return caster.intersectObject(m, true).length > 0;
+  };
+  const aim = (e: PointerEvt, s: FurnishMode['session']): void => {
+    const ray = ctx.rayOf?.(e);
+    const l = ray ? Math.hypot(ray.dir.x, ray.dir.z) : 0;
+    s.aimFitting({ wallPoint: ctx.raycastWalls?.(e) ?? null, floor: ctx.raycastFloor(e), ceiling: ctx.raycastCeiling?.(e) ?? null, rayDirXZ: ray && l > 1e-6 ? { x: ray.dir.x / l, z: ray.dir.z / l } : null });
+  };
+  const furnish: FurnishHandle = {
+    active: () => modes.id === 'furnish',
+    down(e) {
+      const s = furnishSession();
+      if (!s) return false;
+      if (s.fittingMoving()) { aim(e, s); return true; }
+      if (!s.working()) return false;
+      const floor = ctx.raycastFloor(e);
+      if (!(overWork(e, s) || s.grabs(floor))) return false;
+      return floor ? s.startDrag(floor) : false;
+    },
+    move(e) {
+      const s = furnishSession();
+      if (!s) return;
+      if (s.fittingMoving()) { aim(e, s); return; }
+      if (!s.dragging()) return;
+      const floor = ctx.raycastFloor(e);
+      if (floor) s.dragTo(floor);
+    },
+    up() { furnishSession()?.endDrag(); },
+    tap(e) {
+      const s = furnishSession();
+      if (!s || s.working() || s.fittingMoving()) return;
+      // one hit-test for furniture and fittings: the nearest thing under the tap; an empty floor or wall clears the selection
+      const hit = ctx.pickAt?.(e) ?? null;
+      if (hit?.kind === 'fitting') s.selectFitting(hit.id);
+      else if (hit) s.select(hit.id);
+      else s.select(null);
+    },
+  };
   const dollhouse = createDollhouse({
     viewer, layout, look, character: ch, ctx,
     labelHost: hud.root,
@@ -142,6 +192,7 @@ export function mountViews(d: ViewsDeps): MountedViews {
     promptFor: (item) => d.wardrobe.promptFor(item) ?? (d.seats.isSeat(item) ? CHAIR_PROMPT : (pieceAction(item) ?? kindAction(item.kind)).prompt),
     cardFor: d.cardFor,
     onFloorTap: (p, roomId) => { void goToFloor(p, roomId); },
+    furnish,
     onEscape: () => api.set('walk'),
     tier: () => look?.tier ?? 'medium',
   });
@@ -210,8 +261,8 @@ export function mountViews(d: ViewsDeps): MountedViews {
     syncBody(m);
     syncUrl(m);
     if (m !== 'walk') {
-      // Furnish and Measure are for the walk; a tour is the walk's too
-      if (modes.id === 'furnish' || modes.id === 'measure') modes.set('walk');
+      // Measure is for the walk, and Furnish works from the doll house but not from the plan; a tour is the walk's too
+      if (modes.id === 'measure' || (modes.id === 'furnish' && m === 'plan')) modes.set('walk');
       d.nav.debug.stop();
       ctx.hud.setPrompt(null);
     }

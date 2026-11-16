@@ -49,6 +49,10 @@ export interface LightOverride {
   noReflection?: boolean;
   /** no window light and lamp pools in the shell shader (they are chosen by the nearest to the camera, which is no use from above) */
   noDaylight?: boolean;
+  /** leave the sky and the backdrop as they are (they change with the hour; a view that replaces the backdrop does not want them rebuilt each frame while the hour moves) */
+  holdSky?: boolean;
+  /** multiplies the exposure (a view that is lit brighter than the grade says wants it brought down, with the lights, together) */
+  exposureScale?: number;
   /** called at the end of every lighting pass with the lights as the look set them: change them here */
   apply?(l: { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight; scene: THREE.Scene; renderer: THREE.WebGLRenderer; cfg: TierConfig; shadows: boolean }): void;
 }
@@ -218,6 +222,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let baked: BakedHook | null = null;
   let bakedApplied = false;
   let lightOverride: LightOverride | null = null;
+  let overrideNoRefl = false;
 
   renderer.info.autoReset = false;
   const sunLight = viewer.lights.sun;
@@ -279,7 +284,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
 
   /** the sky the window shows: the plain graded one (or the broker's own backdrop picture from look.json) */
   function syncSky(force = false): void {
-    if (opts.backdrop === false || scanVisible) return;
+    if (opts.backdrop === false || scanVisible || lightOverride?.holdSky) return;
     const bd = chooseBackdrop(lookFile, hour, trueColours);
     const key = bd ? `pic|${bd}|${cfg.hdri}` : `plain|${trueColours ? 'true' : hour.toFixed(2)}|${cfg.environment}`;
     if (!force && key === skyKey) return;
@@ -373,7 +378,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       fitShadow();
     }
     // low is a touch brighter: with no sun patch and no real lights it has less to show
-    const exposure = grade.exposure * (cfg.tier === 'low' && !trueColours ? 1.12 : 1) * (outdoor && !trueColours ? outdoorExposure(grade) : 1);
+    const exposure = grade.exposure * (lightOverride?.exposureScale ?? 1) * (cfg.tier === 'low' && !trueColours ? 1.12 : 1) * (outdoor && !trueColours ? outdoorExposure(grade) : 1);
     // "True colours" is no tone mapping at all: nothing in it is brighter than its own colour, so surfaces show it exactly
     renderer.toneMapping = post || trueColours ? THREE.NoToneMapping : threeToneMapping();
     renderer.toneMappingExposure = exposure;
@@ -664,10 +669,11 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     },
     get bakedActive() { return bakedApplied; },
     setLightOverride(o) {
+      const same = o !== null && o === lightOverride; // the same override again (its values moved): only the lighting pass is run again
       lightOverride = o;
       applyLighting();
-      applyRenderPath();
-      scheduleCube();
+      const refl = o?.noReflection === true;
+      if (!same || refl !== overrideNoRefl) { overrideNoRefl = refl; applyRenderPath(); scheduleCube(); }
     },
     setBaked(h) {
       baked = h;

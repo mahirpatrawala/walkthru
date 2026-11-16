@@ -12,6 +12,9 @@ const TAP_PX = 9;
 /** keys the walk would act on; the doll house swallows them so a stray W does not move the walker out of sight */
 const SWALLOW = new Set(['w', 'a', 's', 'd', 'e', 'q', 'r', 'm', 'f', 'v', ' ', 'shift', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
 
+/** the keys Furnish listens to (rotate, measure, furnish): they go through while Furnish is on */
+const FURNISH_KEYS = new Set(['q', 'e', 'r', 'f']);
+
 export interface OrbitInputDeps {
   canvas: HTMLCanvasElement;
   getGoal(): OrbitGoal;
@@ -26,11 +29,15 @@ export interface OrbitInputDeps {
   onEscape(): void;
   /** the buyer took hold of the camera: hover and tap states may clear */
   onGrab?(): void;
+  /** Furnish from above: a press it takes (it drags the piece being placed) is not an orbit; its moves and its release are its own */
+  claim?: { down(e: PointerEvt): boolean; move(e: PointerEvt): void; up(e: PointerEvt): void };
+  /** while true the keys Furnish uses (rotate, delete) go through to the walk's input */
+  keysThrough?(): boolean;
 }
 
 export interface OrbitInput { dispose(): void }
 
-interface P { x: number; y: number; sx: number; sy: number; t0: number; type: string; button: number; shift: boolean; moved: boolean }
+interface P { x: number; y: number; sx: number; sy: number; t0: number; type: string; button: number; shift: boolean; moved: boolean; claimed: boolean }
 
 export function attachOrbitInput(d: OrbitInputDeps): OrbitInput {
   const { canvas } = d;
@@ -52,8 +59,10 @@ export function attachOrbitInput(d: OrbitInputDeps): OrbitInput {
     if (!mine(e) || disposed) return;
     take(e);
     if (e.pointerType === 'mouse' && e.button > 2) return;
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t0: performance.now(), type: e.pointerType, button: e.button, shift: e.shiftKey, moved: false });
+    const taken = pointers.size === 0 && (e.pointerType !== 'mouse' || e.button === 0) && !!d.claim && d.claim.down(evt('down', e));
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t0: performance.now(), type: e.pointerType, button: e.button, shift: e.shiftKey, moved: false, claimed: taken });
     try { canvas.setPointerCapture(e.pointerId); } catch { /* a synthetic pointer has nothing to capture */ }
+    if (taken) return;
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
@@ -69,6 +78,7 @@ export function attachOrbitInput(d: OrbitInputDeps): OrbitInput {
       return;
     }
     take(e);
+    if (p.claimed) { d.claim?.move(evt('move', e)); return; }
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
     p.x = e.clientX; p.y = e.clientY;
     if (!p.moved && Math.hypot(p.x - p.sx, p.y - p.sy) > TAP_PX) { p.moved = true; d.onHover(null); }
@@ -94,6 +104,7 @@ export function attachOrbitInput(d: OrbitInputDeps): OrbitInput {
     const p = pointers.get(e.pointerId);
     if (!p) return;
     take(e);
+    if (p.claimed) { d.claim?.up(evt('up', e)); pointers.delete(e.pointerId); try { canvas.releasePointerCapture(e.pointerId); } catch { /* not captured */ } return; }
     pointers.delete(e.pointerId);
     try { canvas.releasePointerCapture(e.pointerId); } catch { /* not captured */ }
     if (pointers.size < 2) pinch = null;
@@ -122,7 +133,8 @@ export function attachOrbitInput(d: OrbitInputDeps): OrbitInput {
   const onKey = (e: KeyboardEvent): void => {
     if (disposed || typing(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toLowerCase();
-    if (k === 'escape') { if (e.type === 'keydown') { e.stopPropagation(); d.onEscape(); } return; }
+    if (k === 'escape') { if (d.keysThrough?.()) return; /* Furnish answers Escape itself */ if (e.type === 'keydown') { e.stopPropagation(); d.onEscape(); } return; }
+    if (d.keysThrough?.() && FURNISH_KEYS.has(k)) return;
     if (SWALLOW.has(k)) e.stopPropagation();
   };
 

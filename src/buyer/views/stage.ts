@@ -1,14 +1,12 @@
-// What the doll house stands on and finishes with: a large pale ground with a faint grid and a soft shadow under the building, and a neutral cap on
-// every cut wall so it reads as a solid line from above. Both are made when the mode is entered and taken away (geometry, material, texture) when
+// What the doll house stands on: a large pale ground with a faint grid and a soft shadow under the building (the wall caps are wall-cut.ts's, they ride
+// the walls as these are cut). It is made when the mode is entered and taken away (geometry, material, texture) when
 // it is left, so nothing of them stays in the scene during the walk.
 import * as THREE from 'three';
 import type { Layout, Vec2 } from '../../types';
 import type { Bounds } from './framing';
-import { CAP_LIFT_M, capPositions, wallCapQuads } from './wall-caps';
 
-export const GROUND_COLOUR = '#E6E8EC';
+export const GROUND_COLOUR = '#F7F8FB';
 export const GROUND_Y = -0.02;
-export const CAP_COLOUR = '#3E424A';
 /** how far (m) the building's soft shadow slides away from the key light */
 const SHADOW_SLIDE_M = 0.22;
 
@@ -62,28 +60,11 @@ function groundShadowTexture(layout: Layout, rect: { x0: number; z0: number; x1:
   return t;
 }
 
-export function createStage(o: { scene: THREE.Scene; layout: Layout; bounds: Bounds; capEdgesSkip?: ReadonlySet<string>; keyAzimuth: number; ground: boolean }): Stage {
+export function createStage(o: { scene: THREE.Scene; layout: Layout; bounds: Bounds; keyAzimuth: number; ground: boolean }): Stage {
   const { layout, bounds } = o;
   const group = new THREE.Group();
   group.name = 'dollhouse-stage';
   const disposables: Array<{ dispose(): void }> = [];
-
-  // ---- wall caps
-  const quads = wallCapQuads(layout, o.capEdgesSkip);
-  if (quads.length) {
-    const geo = new THREE.BufferGeometry();
-    const pos = capPositions(quads, layout.wallHeightM + CAP_LIFT_M);
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const nor = new Float32Array(pos.length);
-    for (let i = 1; i < nor.length; i += 3) nor[i] = 1;
-    geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-    const mat = new THREE.MeshBasicMaterial({ color: CAP_COLOUR, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.name = 'dollhouse-wall-caps';
-    mesh.raycast = () => {};
-    group.add(mesh);
-    disposables.push(geo, mat);
-  }
 
   // ---- ground
   if (o.ground) {

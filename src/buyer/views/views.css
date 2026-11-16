@@ -41,7 +41,7 @@
 @media (prefers-reduced-motion: reduce) { .wt-views-seg { transition: none; } }
 
 /* ---- what steps aside */
-.wt-view-dollhouse .wt-btn[data-btn='measure'], .wt-view-dollhouse .wt-btn[data-btn='furnish'],
+.wt-view-dollhouse .wt-btn[data-btn='measure'],
 .wt-view-plan .wt-btn[data-btn='measure'], .wt-view-plan .wt-btn[data-btn='furnish'] { display: none; }
 .wt-view-dollhouse .wt-stack .wt-pill, .wt-view-plan .wt-stack .wt-pill { display: none; }
 .wt-view-plan .wt-nav-map, .wt-view-plan .wt-nav-bar, .wt-view-plan .wt-chip, .wt-view-plan .wt-layout-chip { display: none !important; }
@@ -50,13 +50,17 @@
 /* ---- the doll house: room names floating over the rooms, and the hover tip */
 .wt-views-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
 .wt-views-label {
-  position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; padding: calc(4 * var(--wt-u, 1px)) calc(10 * var(--wt-u, 1px)) calc(5 * var(--wt-u, 1px)); border-radius: calc(10 * var(--wt-u, 1px)); white-space: nowrap; line-height: 1.2;
-  background: rgba(26, 29, 36, 0.58); color: var(--wtv-ink); -webkit-backdrop-filter: blur(calc(6 * var(--wt-u, 1px))); backdrop-filter: blur(calc(6 * var(--wt-u, 1px)));
-  font-family: var(--wt-font, system-ui, sans-serif); will-change: transform, opacity; opacity: 0;
+  position: absolute; left: 0; top: 0; display: inline-flex; align-items: baseline; gap: calc(6 * var(--wt-u, 1px)); padding: calc(2 * var(--wt-u, 1px)) calc(8 * var(--wt-u, 1px)) calc(3 * var(--wt-u, 1px)); border-radius: calc(8 * var(--wt-u, 1px)); white-space: nowrap; line-height: 1.2;
+  background: rgba(26, 29, 36, 0.5); color: var(--wtv-ink); -webkit-backdrop-filter: blur(calc(5 * var(--wt-u, 1px))); backdrop-filter: blur(calc(5 * var(--wt-u, 1px)));
+  font-family: var(--wt-font, system-ui, sans-serif); will-change: transform, opacity; opacity: 0; transition: background 140ms ease;
 }
-.wt-views-label-name { font-size: calc(12 * var(--wt-u, 1px)); font-weight: 700; letter-spacing: -0.005em; }
-.wt-views-label-area { font-size: calc(11 * var(--wt-u, 1px)); font-weight: 500; color: var(--wtv-muted); }
+.wt-views-label-name { font-size: calc(11.5 * var(--wt-u, 1px)); font-weight: 650; letter-spacing: -0.005em; }
+.wt-views-label-area { font-size: calc(10.5 * var(--wt-u, 1px)); font-weight: 500; color: var(--wtv-muted); }
+.wt-views-label-area[hidden] { display: none; }
 .wt-views-label.is-partial { background: rgba(70, 82, 96, 0.5); }
+/* a tiny room (a toilet, a passage) is a dot that opens to its name when the pointer is on it or the view is close */
+.wt-views-label.is-dot { padding: 0; width: calc(11 * var(--wt-u, 1px)); height: calc(11 * var(--wt-u, 1px)); border-radius: 50%; background: rgba(26, 29, 36, 0.62); border: 2px solid rgba(255, 255, 255, 0.85); box-sizing: border-box; }
+.wt-views-label.is-dot > span { display: none; }
 .wt-views-tip {
   position: absolute; left: 0; top: 0; z-index: 3; margin: -46px 0 0 0; padding: calc(7 * var(--wt-u, 1px)) calc(12 * var(--wt-u, 1px)); border-radius: calc(12 * var(--wt-u, 1px)); pointer-events: none; white-space: nowrap; will-change: transform;
   background: var(--wtv-glass); color: var(--wtv-ink); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur);
@@ -140,5 +144,5 @@
   .wt-views-label-name { font-size: calc(10.5 * var(--wt-u, 1px)); }
   .wt-views-label-area { display: none; }
 }
-.wt-view-dollhouse .wt-slot, .wt-view-plan .wt-slot { display: none; }
+.wt-view-dollhouse .wtw-bar, .wt-view-plan .wt-slot { display: none; }
 .wt-view-dollhouse .wt-hint-chips, .wt-view-plan .wt-hint-chips { display: none; }
