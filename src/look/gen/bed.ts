@@ -2,8 +2,9 @@
 // a fitted sheet, a draped quilted duvet with a turned-down fold, pillows and striped cushions. The footprint, the total height
 // and the mattress top are exactly the item's (the bounding box is the box), and every soft part stays inside them.
 import * as THREE from 'three';
-import { puffedCushion, roundedBoxBetween } from '../furniture-parts';
-import { Parts, role } from './core';
+import { roundedBoxBetween } from '../furniture-parts';
+import { softCushion } from './soft';
+import { Parts, role, shade } from './core';
 import type { GenEnv, GenSize, Roles } from './core';
 import { rod } from './geo';
 
@@ -30,42 +31,6 @@ function fitTop(g: THREE.BufferGeometry, top: number): THREE.BufferGeometry {
   g.computeBoundingBox();
   const over = g.boundingBox!.max.y - top;
   if (over > 0) g.translate(0, -over, 0);
-  return g;
-}
-
-const smooth = (a: number, b: number, x: number): number => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-
-/** A draped sheet of cloth over a mattress: a height field over x, z. The top bulges a little, the sides and the foot drop. */
-function duvetGeometry(w: number, z0: number, z1: number, y: number, thick: number, matW: number, drop: number, n: number, seed: number): THREE.BufferGeometry {
-  const nx = n, nz = Math.max(6, Math.round(n * (z1 - z0) / w * 1.2));
-  const pos: number[] = [], idx: number[] = [], uv: number[] = [];
-  const ph = seed * 1.7;
-  for (let j = 0; j <= nz; j++) {
-    const tz = j / nz;
-    const z = z0 + tz * (z1 - z0);
-    for (let i = 0; i <= nx; i++) {
-      const tx = i / nx;
-      const x = -w / 2 + tx * w;
-      const ax = Math.abs(x);
-      const edge = smooth(matW / 2 - 0.035, w / 2, ax);                // the sides roll down
-      const foot = smooth(0.78, 1.0, tz);                                 // the foot end rolls down
-      const crown = Math.cos((x / (matW / 2)) * Math.PI * 0.5) * 0.35 + 0.65; // a gentle hump across the bed
-      const ripple = 0.012 * Math.sin(5.1 * z + ph) * Math.sin(7.3 * x + ph * 0.6) + 0.008 * Math.sin(11 * x + 3 * z + ph);
-      const lift = thick * crown * (1 - 0.5 * smooth(0.0, 0.08, 1 - tz)) + ripple;
-      const yy = y + lift - drop * Math.max(edge, foot * 0.85 * (0.6 + 0.4 * (1 - edge)));
-      pos.push(x, yy, z);
-      uv.push(x, z);
-    }
-  }
-  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
-    const a = j * (nx + 1) + i, b = a + 1, c = a + nx + 1, d = c + 1;
-    idx.push(a, c, b, b, c, d);
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  g.setIndex(idx);
-  g.computeVertexNormals();
   return g;
 }
 
@@ -142,17 +107,27 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
   const mh = S - baseTop;
   parts.put('mattress', sheet, roundedBoxBetween(-m.w / 2, m.w / 2, baseTop, S, mz0, mz1, Math.min(0.05, mh / 2.2), Math.max(2, q.seg)), { grain: 'x' });
 
-  // ---- duvet: draped over the foot end, its top edge turned down in a thick fold
+  // ---- duvet: a tailored quilt, one soft block over the mattress from the foot to a turned-down roll, its sides and foot hanging past the mattress
   if (p.duvet !== 'none') {
     const cover = 0.72;
-    const zA = mz1 - cover * (mz1 - mz0), zB = mz1 - 0.004;
-    const cw = Math.min(m.w + 0.05, w - 0.012);
-    const thick = p.duvet === 'quilted' ? 0.055 : 0.04;
-    const dropY = Math.min(0.14, S - baseTop - 0.01);
-    const g = duvetGeometry(cw, zA, zB, S + 0.004, thick, m.w, dropY, q.cloth, 3);
-    parts.put('duvet', p.duvet === 'quilted' ? duvetM : { key: 'cotton', tint: duvetM.tint }, g, { grain: 'x' });
-    const fold = roundedBoxBetween(-(cw - 0.03) / 2, (cw - 0.03) / 2, S + 0.0, Math.min(S + thick + 0.05, H - 0.005), zA, zA + 0.2, Math.min(0.045, (Math.min(S + thick + 0.05, H - 0.005) - S) / 2.1), Math.max(2, q.seg));
-    parts.put('duvet-fold', p.duvet === 'quilted' ? duvetM : { key: 'cotton', tint: duvetM.tint }, fold, { grain: 'x' });
+    const zA = mz1 - cover * (mz1 - mz0), zB = Math.min(d / 2 - 0.003, mz1 + 0.02);
+    const cw = Math.min(m.w + 0.07, w - 0.012);
+    const thick = p.duvet === 'quilted' ? 0.05 : 0.038;
+    const top = Math.min(S + thick, H - 0.004);
+    const bottom = S - Math.min(0.14, S - baseTop - 0.01);
+    const duvetMat = p.duvet === 'quilted' ? duvetM : { key: 'cotton' as const, tint: duvetM.tint };
+    const body = q.puff > 0 ? softCushion(cw, top - bottom, zB - zA, { r: 0.045, puff: 0.012, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-cw / 2, cw / 2, -(top - bottom) / 2, (top - bottom) / 2, -(zB - zA) / 2, (zB - zA) / 2, 0.04, 1);
+    body.translate(0, (top + bottom) / 2, (zA + zB) / 2);
+    parts.put('duvet', duvetMat, body, { grain: 'x' });
+    if (p.duvet === 'quilted') {
+      // quilting channels across the quilt, as thin darker bands standing 1.5 mm proud of its top
+      const seam = shade(duvetM, 0.88);
+      for (let z = zA + 0.42; z < zB - 0.1; z += 0.22) parts.box('duvet-seams', seam, -cw / 2 + 0.05, cw / 2 - 0.05, top - 0.0015, top + 0.0015, z - 0.0025, z + 0.0025, { c: 0 });
+    }
+    const rollTop = Math.min(S + thick + 0.045, H - 0.004);
+    const roll = q.puff > 0 ? softCushion(cw - 0.03, rollTop - S, 0.2, { r: Math.min(0.05, (rollTop - S) / 2.2), seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-(cw - 0.03) / 2, (cw - 0.03) / 2, -(rollTop - S) / 2, (rollTop - S) / 2, -0.1, 0.1, 0.04, 1);
+    roll.translate(0, (rollTop + S) / 2, zA + 0.1);
+    parts.put('duvet-fold', duvetMat, roll, { grain: 'x' });
   }
 
   // ---- pillows lean against the headboard
@@ -163,7 +138,7 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
   const pz = Math.max(mz0, hz1) + 0.05 + pd / 2 * Math.cos(tilt);
   for (let i = 0; i < nPillow; i++) {
     const x = nPillow === 1 ? 0 : ((i + 0.5) / nPillow - 0.5) * (m.w - 0.06);
-    const g = q.puff > 0 ? puffedCushion(pw, ph, pd, 0.03, q.puff) : roundedBoxBetween(-pw / 2, pw / 2, -ph / 2, ph / 2, -pd / 2, pd / 2, 0.04, 1);
+    const g = q.puff > 0 ? softCushion(pw, ph, pd, { r: 0.06, puff: 0.04, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-pw / 2, pw / 2, -ph / 2, ph / 2, -pd / 2, pd / 2, 0.04, 1);
     g.rotateX(tilt);
     g.translate(x, S + 0.035 + ph / 2, pz);
     parts.put('pillows', pillowM, fitTop(g, H - 0.004), { grain: 'x' });
@@ -172,7 +147,7 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
   const nC = Math.max(0, Math.min(4, Math.round(p.cushions)));
   for (let i = 0; i < nC; i++) {
     const cwid = 0.46, cth = 0.13;
-    const g = q.puff > 0 ? puffedCushion(cwid, cth, cwid, 0.03, q.puff) : roundedBoxBetween(-cwid / 2, cwid / 2, -cth / 2, cth / 2, -cwid / 2, cwid / 2, 0.04, 1);
+    const g = q.puff > 0 ? softCushion(cwid, cth, cwid, { r: 0.06, puff: 0.04, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-cwid / 2, cwid / 2, -cth / 2, cth / 2, -cwid / 2, cwid / 2, 0.04, 1);
     g.rotateX(0.9 + 0.1 * (i % 2));
     g.rotateY((i % 2 ? 1 : -1) * 0.12);
     const x = nC === 1 ? 0 : ((i + 0.5) / nC - 0.5) * Math.min(m.w - 0.3, 0.85);

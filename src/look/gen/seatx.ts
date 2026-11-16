@@ -2,6 +2,7 @@
 // Footprint and heights are exactly the item's.
 import * as THREE from 'three';
 import { puffedCushion, roundedBoxBetween } from '../furniture-parts';
+import { softCushion } from './soft';
 import { Parts, role, roleOr } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { buildSofa } from './seating';
@@ -90,26 +91,36 @@ export function buildSeatX(env: GenEnv, size: GenSize, p: SeatXParams, roles: Ro
   } else if (v === 'office') {
     const R = d / 2 - 0.025;
     const metal = roleOr(roles, { key: 'blackMetal' }, 'officeBase');
-    // five-star base on casters (one leg to the back), gas column, seat and back with two arms: the arm pads reach the box's width
+    const sides = rsides(env);
+    // five-star base on casters (one leg to the back), hub, gas column, seat pan and mechanism: black; seat and back pads: the fabric
+    parts.put('office-base', metal, new THREE.CylinderGeometry(0.05, 0.06, 0.04, sides).translate(0, 0.08, 0));
     for (let k = 0; k < 5; k++) {
       const a = (k * 2 * Math.PI) / 5 + Math.PI;
       const x = Math.sin(a) * R, z = Math.cos(a) * R;
-      parts.put('office-base', metal, rod({ x: 0, y: 0.09, z: 0 }, { x, y: 0.07, z }, 0.016, 6));
-      parts.put('office-casters', metal, new THREE.CylinderGeometry(0.025, 0.025, 0.05, 8).translate(x, 0.025, z));
+      parts.put('office-base', metal, rod({ x: 0, y: 0.085, z: 0 }, { x, y: 0.065, z }, 0.019, sides));
+      parts.put('office-casters', metal, new THREE.CylinderGeometry(0.025, 0.025, 0.045, sides).translate(x, 0.0225, z));
     }
-    parts.put('office-column', CHROME, rod({ x: 0, y: 0.08, z: 0 }, { x: 0, y: 0.4, z: 0 }, 0.025, 8));
-    parts.put('office-seat', fab, roundedBoxBetween(-0.26, 0.26, 0.4, S, -0.2, d / 2, 0.04, q.seg), { grain: 'x' });
+    parts.put('office-column', metal, new THREE.CylinderGeometry(0.026, 0.03, 0.22, sides).translate(0, 0.21, 0));
+    parts.put('office-mechanism', metal, roundedBoxBetween(-0.07, 0.07, S - 0.13, S - 0.07, -0.1, 0.14, 0.015, 1));
+    parts.put('office-pan', metal, roundedBoxBetween(-0.23, 0.23, S - 0.075, S - 0.05, -0.2, d / 2 - 0.05, 0.012, 1));
+    const seat = softCushion(0.5, 0.06, d / 2 + 0.22, { r: 0.028, puff: 0.012, seg: q.tier === 'high' ? 3 : 2 });
+    seat.translate(0, S - 0.03, (-0.22 + d / 2) / 2);
+    parts.put('office-seat', fab, q.seg > 1 ? seat : roundedBoxBetween(-0.25, 0.25, S - 0.06, S, -0.22, d / 2, 0.025, 1), { grain: 'x' });
     const lean = (8 * Math.PI) / 180;
-    const back = roundedBoxBetween(-0.22, 0.22, 0, H - S - 0.08, -0.03, 0.03, 0.03, q.seg);
+    parts.put('office-back-support', metal, rod({ x: 0, y: S - 0.06, z: -0.12 }, { x: 0, y: S + 0.04, z: -0.285 }, 0.014, sides));
+    parts.put('office-back-support', metal, rod({ x: 0, y: S + 0.04, z: -0.285 }, { x: 0, y: S + 0.24, z: -0.29 }, 0.014, sides));
+    const backH = H - S - 0.1;
+    const back = q.seg > 1 ? softCushion(0.46, backH, 0.06, { r: 0.028, puff: 0.014, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-0.23, 0.23, -backH / 2, backH / 2, -0.03, 0.03, 0.03, 1);
     back.rotateX(-lean);
-    back.translate(0, S + 0.08, -0.22);
+    back.translate(0, S + 0.1 + backH / 2, -0.26);
     back.computeBoundingBox();
     back.translate(0, H - back.boundingBox!.max.y, 0);
     parts.put('office-back', fab, back, { grain: 'x' });
-    parts.put('office-back-support', metal, rod({ x: 0, y: S, z: -0.1 }, { x: 0, y: S + 0.14, z: -0.22 }, 0.012, 6));
+    parts.put('office-arms', metal, rod({ x: -(w / 2 - 0.03), y: S - 0.05, z: -0.02 }, { x: w / 2 - 0.03, y: S - 0.05, z: -0.02 }, 0.012, sides));
     for (const sx of [-1, 1]) {
-      parts.put('office-arms', metal, rod({ x: sx * (w / 2 - 0.03), y: S, z: -0.05 }, { x: sx * (w / 2 - 0.03), y: S + 0.2, z: -0.05 }, 0.011, 6));
-      parts.put('office-arms', fab, roundedBoxBetween(sx * (w / 2 - 0.03) - 0.03, sx * (w / 2 - 0.03) + 0.03, S + 0.2, S + 0.225, -0.2, 0.1, 0.01, 1));
+      const ax = sx * (w / 2 - 0.03);
+      parts.put('office-arms', metal, rod({ x: ax, y: S - 0.05, z: -0.02 }, { x: ax, y: S + 0.2, z: -0.02 }, 0.012, sides));
+      parts.put('office-arms', metal, roundedBoxBetween(ax - 0.03, ax + 0.03, S + 0.2, S + 0.228, -0.17, 0.11, 0.012, 1));
     }
   } else if (v === 'balcony-chair') {
     caneChair(parts, 0, 0, 0, H, legM, roleOr(roles, CANE, 'cane'), acc, w, d, S);

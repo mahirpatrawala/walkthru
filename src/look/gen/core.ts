@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import type { Tier } from '../types';
 import type { FurnitureKit, MatKey } from '../furniture-materials';
-import { chamferBox, frontUV, grainUV, mergeGeos } from './geo';
+import { boardOffset, chamferBox, frontUV, grainUV, mergeGeos } from './geo';
 import type { Axis } from './geo';
 
 /** a material kind with an optional tint (the finish's colour) */
@@ -90,7 +90,7 @@ export class Parts {
     for (const b of this.buckets.values()) {
       const tile = b.tile ?? this.env.kit.tile(b.mat.key);
       let geo: THREE.BufferGeometry;
-      if (b.uv === 'world') { for (const g of b.geos) grainUV(g, tile, b.grain); }
+      if (b.uv === 'world') { for (const g of b.geos) grainUV(g, tile, b.grain, boardOffset(g)); }
       else if (b.uv === 'front') { for (const g of b.geos) frontUV(g, tile); }
       geo = mergeGeos(b.geos);
       for (const g of b.geos) g.dispose();
