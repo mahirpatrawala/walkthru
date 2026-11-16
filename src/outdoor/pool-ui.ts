@@ -54,6 +54,7 @@ export interface PoolUi {
 
 const CSS = `
 .wto-pill { position: absolute; left: 50%; bottom: calc(18px + var(--wt-safe-b, 0px)); transform: translateX(-50%); display: flex; gap: 8px; align-items: center; z-index: 5; pointer-events: none; max-width: calc(100vw - 24px); flex-wrap: wrap; justify-content: center; }
+.wto-pill.wto-top { bottom: auto; top: calc(64px + var(--wt-safe-t, 0px)); }
 .wto-pill button { pointer-events: auto; min-height: 44px; padding: 8px 16px; border: 0; border-radius: 999px; background: var(--wt-card, #fff); color: var(--wt-ink, #2B211C); box-shadow: var(--wt-shadow, 0 2px 12px rgba(0,0,0,.2)); font: 600 14px/1.25 var(--wt-display, system-ui); cursor: pointer; text-align: left; }
 .wto-pill .wto-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; background: #3E9A4E; vertical-align: 1px; }
 .wto-pill .wto-bad .wto-dot { background: #C93A2E; } .wto-pill .wto-warn .wto-dot { background: #E0A12C; }
@@ -140,6 +141,8 @@ export function mountPoolUi(d: PoolUiDeps): PoolUi {
       acc += dt;
       if (acc < 0.15) return;
       acc = 0;
+      // while furnishing, the tray covers the bottom: the verdicts move up under the mode bar, where the piece being placed is judged against the walkway
+      pill.classList.toggle('wto-top', !!d.host.querySelector('.wtf-tray, .wtf-panel, .wtf-bar'));
       near = nearestWater(d.pools, d.walker.position());
       const inRoom = pointInPolygon(d.walker.position(), d.room);
       if (!near || !inRoom || near.distM > 3.2) { depthBtn.hidden = true; return; }

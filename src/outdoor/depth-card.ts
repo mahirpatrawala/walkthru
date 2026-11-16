@@ -55,7 +55,6 @@ export function sectionSvg(b: PoolBasin, person: Person, deckToWaterM = 0.12): s
     parts.push(`<text x="${x.toFixed(1)}" y="${Math.max(11, top - 5).toFixed(1)}" font-size="11" text-anchor="middle" fill="#3A302A">${esc(lv.overHead ? 'over the head' : lv.word)}</text>`);
   }
   parts.push(`<line x1="${x0 - 14}" y1="${wy}" x2="${x1 + 14}" y2="${wy}" stroke="#2F8FB5" stroke-width="1.5" stroke-dasharray="5 4"/>`);
-  parts.push(`<text x="${x1 + 14}" y="${wy - 5}" font-size="10" text-anchor="end" fill="#2F6F97">water level</text>`);
   return `<svg viewBox="0 0 ${W} 214" role="img" aria-label="Section of the pool with ${esc(person.label.toLowerCase())} of ${person.heightCm} cm standing at three places">${parts.join('')}</svg>`;
 }
 
