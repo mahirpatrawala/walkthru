@@ -302,10 +302,17 @@ export function mountHeroArt(host: HTMLElement, hb: HeroBuilding, o: HeroArtOpti
     const toward = towardCamera(cam);
     const dir = { x: toward.x * Math.cos(cam.elev), y: Math.sin(cam.elev), z: toward.z * Math.cos(cam.elev) };
     const solid = (s: Storey): boolean => stageOf(s, st).alpha > 0.5 && (s.build < 0 || (st.floors[s.build]?.facade ?? 1) > 0.5);
-    const check = frames % 3 === 0;
+    const check = frames % 3 === 0 || !!held().__wlHeroCam;
     const placed: { top: number; bottom: number; left: number; right: number }[] = [];
-    const cx = w / 2, cyy = h / 2;
-    const items = hb.anchors.map((a) => ({ a, p: P(a.x, a.y, a.z) })).sort((p, q) => p.p[1] - q.p[1]);
+    // the model's own box on the screen: the labels stand in a lane above it and a lane below it, never on it
+    let top = h, bottom = 0;
+    for (const s of hb.storeys) {
+      const q = stageOf(s, st);
+      if (q.alpha < 0.3) continue;
+      for (const loop of s.loops) for (const v of loop) { const a = P(v.x, s.y0, v.z)[1], b = P(v.x, s.y1 + q.lift, v.z)[1]; if (b < top) top = b; if (a > bottom) bottom = a; }
+    }
+    const mid = (top + bottom) / 2, m = 6, gap = narrow ? 10 : 18, foot = o.hint && !o.hint.classList.contains('is-used') ? 30 : 6;
+    const items = hb.anchors.map((a) => ({ a, p: P(a.x, a.y + (st.keep < 1 && (a.id === 'flat' || a.id === 'flats') ? (1 - st.keep) * 4 : 0), a.z) })).sort((p, q) => p.p[0] - q.p[0]);
     for (const { a, p } of items) {
       const el = labelEl.get(a.id);
       if (!el) continue;
@@ -315,30 +322,23 @@ export function mountHeroArt(host: HTMLElement, hb: HeroBuilding, o: HeroArtOpti
       const inFrame = p[0] > 4 && p[0] < w - 4 && p[1] > 4 && p[1] < h - 4;
       const show = on > 0.02 && (labelSeen.get(a.id) ?? false) && inFrame;
       const lw = el.offsetWidth, lh = el.offsetHeight;
-      // out from the middle of the picture, to the side the anchor is on
-      // out to the side the anchor is on, clear of the building's own width where the frame has the room
-      const left = p[0] < cx, clear = hb.subject.radius * scale * cam.zoom * (narrow ? 0.4 : 0.6);
-      const vy = p[1] < cyy ? -1 : 1;
-      let ex = left ? Math.min(p[0] - 30, cx - clear) : Math.max(p[0] + 30, cx + clear), ey = p[1] + vy * (narrow ? 18 : 26);
-      const m = 6;
-      let x0 = left ? ex - lw : ex;
-      x0 = Math.max(m, Math.min(w - m - lw, x0));
-      let y0 = Math.max(m, Math.min(h - m - lh, ey - lh / 2));
-      // on a narrow screen the building fills the frame: the labels keep to its top and bottom edges, off the model
-      if (narrow) { x0 = left ? m : w - m - lw; y0 = vy < 0 ? m : h - m - lh - 28; }
-      for (let guard = 0; guard < 6; guard++) {
-        const hit = placed.find((q) => x0 < q.right + 6 && x0 + lw > q.left - 6 && y0 < q.bottom + 5 && y0 + lh > q.top - 5);
+      const up = p[1] < mid;
+      const x0 = Math.max(m, Math.min(w - m - lw, p[0] - lw / 2 + (p[0] < w / 2 ? -1 : 1) * Math.min(40, lw * 0.25)));
+      let y0 = up ? Math.max(m, top - gap - lh) : Math.min(h - foot - lh, bottom + gap);
+      // two labels over the same stretch of a lane: the later one steps away from the model, or towards it when the frame ends
+      for (let guard = 0; guard < 5; guard++) {
+        const hit = placed.find((q) => x0 < q.right + 8 && x0 + lw > q.left - 8 && y0 < q.bottom + 4 && y0 + lh > q.top - 4);
         if (!hit) break;
-        y0 = (narrow ? vy > 0 : vy < 0) ? hit.top - lh - 6 : hit.bottom + 6;
+        const away = up ? hit.top - lh - 5 : hit.bottom + 5;
+        y0 = away >= m && away <= h - foot - lh ? away : (up ? hit.bottom + 5 : hit.top - lh - 5);
       }
-      y0 = Math.max(m, Math.min(h - m - lh, y0));
       if (show) placed.push({ top: y0, bottom: y0 + lh, left: x0, right: x0 + lw });
-      ex = left ? x0 + lw : x0; ey = y0 + lh / 2;
       el.style.transform = `translate(${x0.toFixed(1)}px, ${y0.toFixed(1)}px)`;
       el.style.opacity = show ? on.toFixed(2) : '0';
       if (!show) continue;
+      const ex = Math.max(x0 + 10, Math.min(x0 + lw - 10, p[0])), ey = y0 > p[1] ? y0 : y0 + lh;
       g.strokeStyle = `rgba(${INK}, ${0.5 * on})`; g.lineWidth = 1;
-      g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(ex + (left ? 6 : -6), ey); g.stroke();
+      g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(ex, ey + (y0 > p[1] ? -3 : 3)); g.stroke();
       g.fillStyle = `rgba(24, 18, 15, ${on})`; g.beginPath(); g.arc(p[0], p[1], 3.5, 0, Math.PI * 2); g.fill();
       g.strokeStyle = `rgba(${ACCENT}, ${on})`; g.lineWidth = 1.5; g.beginPath(); g.arc(p[0], p[1], 3.5, 0, Math.PI * 2); g.stroke();
     }
