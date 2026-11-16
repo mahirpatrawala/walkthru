@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "pack": "light-scandinavian",
+  "source": "typical",
+  "note": "The internal specification of a published builder brochure, as finishes of this look: vitrified floors in the living, dining, bedrooms, kitchen and passages; premium tiles in the utility, the balcony and the toilets; a quartz kitchen platform; flush doors with a laminate finish. Colours are typical, the specification gives none.",
+  "items": {
+    "decor": {
+      "roles": {
+        "door": "white-laminate"
+      }
+    }
+  },
+  "rooms": {
+    "living": {
+      "floor": "tile-ivory-gloss"
+    },
+    "dining": {
+      "floor": "tile-ivory-gloss"
+    },
+    "passage-b": {
+      "floor": "tile-ivory-gloss"
+    },
+    "passage-a": {
+      "floor": "tile-ivory-gloss"
+    },
+    "kitchen": {
+      "floor": "tile-ivory-gloss"
+    },
+    "utility": {
+      "floor": "tile-sand"
+    },
+    "s-room": {
+      "floor": "tile-ivory-gloss"
+    },
+    "s-toilet": {
+      "floor": "tile-grey",
+      "wall": "tile-grey"
+    },
+    "master-toilet": {
+      "floor": "tile-grey",
+      "wall": "tile-grey"
+    },
+    "powder-toilet": {
+      "floor": "tile-grey",
+      "wall": "tile-grey"
+    },
+    "master-bedroom": {
+      "floor": "tile-ivory-gloss"
+    },
+    "toilet-1": {
+      "floor": "tile-grey",
+      "wall": "tile-grey"
+    },
+    "bedroom-1": {
+      "floor": "tile-ivory-gloss"
+    },
+    "bedroom-2": {
+      "floor": "tile-ivory-gloss"
+    },
+    "toilet-2": {
+      "floor": "tile-grey",
+      "wall": "tile-grey"
+    },
+    "balcony": {
+      "floor": "tile-sand"
+    }
+  },
+  "fixtures": []
+}

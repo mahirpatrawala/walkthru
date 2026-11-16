@@ -1,0 +1,958 @@
+{
+  "version": 1,
+  "id": "test-tower-flat-2bhk-b4",
+  "title": "Flat · 2 BHK, 644 sq ft",
+  "layout": {
+    "wallHeightM": 2.75,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "living",
+        "roomType": "living",
+        "label": "Living with foyer",
+        "polygon": [
+          {
+            "x": 0,
+            "z": -0.6
+          },
+          {
+            "x": 1.39,
+            "z": -0.6
+          },
+          {
+            "x": 1.39,
+            "z": 0
+          },
+          {
+            "x": 3.05,
+            "z": 0
+          },
+          {
+            "x": 3.05,
+            "z": 2.46
+          },
+          {
+            "x": 3.05,
+            "z": 4.83
+          },
+          {
+            "x": 0,
+            "z": 4.83
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "none",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "dining",
+        "roomType": "living",
+        "label": "Dining",
+        "polygon": [
+          {
+            "x": 3.05,
+            "z": 0
+          },
+          {
+            "x": 5.27,
+            "z": 0
+          },
+          {
+            "x": 5.27,
+            "z": 1.57
+          },
+          {
+            "x": 5.27,
+            "z": 2.46
+          },
+          {
+            "x": 3.05,
+            "z": 2.46
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "none",
+          "wall",
+          "none"
+        ]
+      },
+      {
+        "id": "kitchen",
+        "roomType": "kitchen",
+        "label": "Kitchen",
+        "polygon": [
+          {
+            "x": 3.05,
+            "z": 2.58
+          },
+          {
+            "x": 5.17,
+            "z": 2.58
+          },
+          {
+            "x": 5.17,
+            "z": 5.1
+          },
+          {
+            "x": 3.05,
+            "z": 5.1
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "utility",
+        "roomType": "other",
+        "label": "Utility",
+        "polygon": [
+          {
+            "x": 3.2,
+            "z": 5.22
+          },
+          {
+            "x": 5.16,
+            "z": 5.22
+          },
+          {
+            "x": 5.16,
+            "z": 5.91
+          },
+          {
+            "x": 3.2,
+            "z": 5.91
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "toilet-1",
+        "roomType": "bathroom",
+        "label": "Toilet 1",
+        "polygon": [
+          {
+            "x": 5.38,
+            "z": -0.52
+          },
+          {
+            "x": 6.75,
+            "z": -0.52
+          },
+          {
+            "x": 6.75,
+            "z": 1.45
+          },
+          {
+            "x": 5.38,
+            "z": 1.45
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "cupboard",
+        "roomType": "other",
+        "label": "Cupboard",
+        "polygon": [
+          {
+            "x": 6.87,
+            "z": 1.07
+          },
+          {
+            "x": 9.87,
+            "z": 1.07
+          },
+          {
+            "x": 9.87,
+            "z": 1.57
+          },
+          {
+            "x": 8.38,
+            "z": 1.57
+          },
+          {
+            "x": 8.26,
+            "z": 1.57
+          },
+          {
+            "x": 6.87,
+            "z": 1.57
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "none",
+          "wall",
+          "none",
+          "wall"
+        ]
+      },
+      {
+        "id": "passage",
+        "roomType": "other",
+        "label": "Passage",
+        "polygon": [
+          {
+            "x": 5.27,
+            "z": 1.57
+          },
+          {
+            "x": 6.79,
+            "z": 1.57
+          },
+          {
+            "x": 6.79,
+            "z": 2.46
+          },
+          {
+            "x": 5.27,
+            "z": 2.46
+          }
+        ],
+        "edges": [
+          "wall",
+          "none",
+          "wall",
+          "none"
+        ]
+      },
+      {
+        "id": "master-passage",
+        "roomType": "other",
+        "label": "Master bed passage",
+        "polygon": [
+          {
+            "x": 6.79,
+            "z": 1.57
+          },
+          {
+            "x": 6.87,
+            "z": 1.57
+          },
+          {
+            "x": 8.26,
+            "z": 1.57
+          },
+          {
+            "x": 8.26,
+            "z": 2.46
+          },
+          {
+            "x": 6.79,
+            "z": 2.46
+          }
+        ],
+        "edges": [
+          "wall",
+          "none",
+          "wall",
+          "wall",
+          "none"
+        ]
+      },
+      {
+        "id": "master-toilet",
+        "roomType": "bathroom",
+        "label": "Master toilet",
+        "polygon": [
+          {
+            "x": 9.99,
+            "z": -0.84
+          },
+          {
+            "x": 11.36,
+            "z": -0.84
+          },
+          {
+            "x": 11.36,
+            "z": 1.43
+          },
+          {
+            "x": 9.99,
+            "z": 1.43
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "master-bedroom",
+        "roomType": "bedroom",
+        "label": "Master bedroom",
+        "polygon": [
+          {
+            "x": 8.38,
+            "z": 1.57
+          },
+          {
+            "x": 9.87,
+            "z": 1.57
+          },
+          {
+            "x": 11.43,
+            "z": 1.57
+          },
+          {
+            "x": 11.43,
+            "z": 5.42
+          },
+          {
+            "x": 8.38,
+            "z": 5.42
+          }
+        ],
+        "edges": [
+          "none",
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "bedroom-1",
+        "roomType": "bedroom",
+        "label": "Bedroom 1",
+        "polygon": [
+          {
+            "x": 5.3,
+            "z": 2.58
+          },
+          {
+            "x": 8.25,
+            "z": 2.58
+          },
+          {
+            "x": 8.25,
+            "z": 5.43
+          },
+          {
+            "x": 5.3,
+            "z": 5.43
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "deck",
+        "roomType": "balcony",
+        "label": "Deck",
+        "polygon": [
+          {
+            "x": 0,
+            "z": 4.95
+          },
+          {
+            "x": 2.97,
+            "z": 4.95
+          },
+          {
+            "x": 2.97,
+            "z": 6.07
+          },
+          {
+            "x": 0,
+            "z": 6.07
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "railing",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-main",
+        "roomId": "living",
+        "edge": 0,
+        "type": "door",
+        "centreM": 0.86,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "open-kitchen",
+        "roomId": "kitchen",
+        "edge": 0,
+        "type": "opening",
+        "centreM": 1.1,
+        "widthM": 0.95,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "slide-kitchen-utility",
+        "roomId": "kitchen",
+        "edge": 2,
+        "type": "door",
+        "centreM": 0.85,
+        "widthM": 1.5,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "sliding"
+        }
+      },
+      {
+        "id": "slide-deck",
+        "roomId": "living",
+        "edge": 5,
+        "type": "door",
+        "centreM": 1.13,
+        "widthM": 2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "sliding"
+        }
+      },
+      {
+        "id": "door-toilet-1",
+        "roomId": "toilet-1",
+        "edge": 2,
+        "type": "door",
+        "centreM": 0.93,
+        "widthM": 0.68,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-master-toilet",
+        "roomId": "master-toilet",
+        "edge": 2,
+        "type": "door",
+        "centreM": 0.35,
+        "widthM": 0.68,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "open-master-passage",
+        "roomId": "master-bedroom",
+        "edge": 4,
+        "type": "opening",
+        "centreM": 3.4,
+        "widthM": 0.8,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "door-bedroom-1",
+        "roomId": "bedroom-1",
+        "edge": 0,
+        "type": "door",
+        "centreM": 0.56,
+        "widthM": 0.92,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "win-toilet-1",
+        "roomId": "toilet-1",
+        "edge": 1,
+        "type": "window",
+        "centreM": 1.15,
+        "widthM": 0.58,
+        "sillM": 1.5,
+        "headM": 2.1
+      },
+      {
+        "id": "win-master-toilet",
+        "roomId": "master-toilet",
+        "edge": 3,
+        "type": "window",
+        "centreM": 1.12,
+        "widthM": 0.65,
+        "sillM": 1.5,
+        "headM": 2.1
+      },
+      {
+        "id": "win-bedroom-1",
+        "roomId": "bedroom-1",
+        "edge": 2,
+        "type": "window",
+        "centreM": 1.18,
+        "widthM": 1.77,
+        "sillM": 0.9,
+        "headM": 2.1
+      },
+      {
+        "id": "win-master-bedroom",
+        "roomId": "master-bedroom",
+        "edge": 3,
+        "type": "window",
+        "centreM": 2.02,
+        "widthM": 1.67,
+        "sillM": 0.9,
+        "headM": 2.1
+      }
+    ],
+    "finishes": {
+      "wallColor": "#F2EFE9",
+      "floorColor": "#D9CFC1",
+      "tile": {
+        "wM": 0.6,
+        "lM": 0.6
+      },
+      "groutColor": "#B9AE9F",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [
+    {
+      "id": "sofa-1",
+      "source": "real",
+      "kind": "sofa",
+      "catalogId": "sofa-3",
+      "label": "Sofa",
+      "box": {
+        "cx": 0.45,
+        "cz": 3.6,
+        "w": 2.1,
+        "d": 0.9,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "ottoman-1",
+      "source": "real",
+      "kind": "sofa",
+      "label": "Ottoman",
+      "box": {
+        "cx": 1.2,
+        "cz": 4.33,
+        "w": 0.68,
+        "d": 0.71,
+        "yawDeg": 90
+      },
+      "heightM": 0.4,
+      "surfaceHeightM": 0.4
+    },
+    {
+      "id": "table-centre",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "coffee-rect",
+      "label": "Centre table",
+      "box": {
+        "cx": 1.31,
+        "cz": 3.22,
+        "w": 1,
+        "d": 0.55,
+        "yawDeg": 90
+      },
+      "heightM": 0.42,
+      "surfaceHeightM": 0.42
+    },
+    {
+      "id": "dining-1",
+      "source": "real",
+      "kind": "dining",
+      "catalogId": "dining-6",
+      "label": "Dining table with six chairs",
+      "box": {
+        "cx": 3.43,
+        "cz": 0.98,
+        "w": 1.8,
+        "d": 1.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.95,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "counter-k-west",
+      "source": "real",
+      "kind": "counter",
+      "label": "Kitchen counter",
+      "box": {
+        "cx": 3.37,
+        "cz": 3.33,
+        "w": 1.41,
+        "d": 0.5,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "sink-1",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "sink-single",
+      "label": "Kitchen sink",
+      "box": {
+        "cx": 3.39,
+        "cz": 4.55,
+        "w": 1,
+        "d": 0.55,
+        "yawDeg": 90
+      },
+      "heightM": 1.1,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "fridge-1",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "fridge-1",
+      "label": "Fridge",
+      "box": {
+        "cx": 4.84,
+        "cz": 2.95,
+        "w": 0.58,
+        "d": 0.67,
+        "yawDeg": 270
+      },
+      "heightM": 1.45,
+      "surfaceHeightM": 1.45
+    },
+    {
+      "id": "counter-k-east",
+      "source": "real",
+      "kind": "counter",
+      "label": "Kitchen counter with hob",
+      "box": {
+        "cx": 4.89,
+        "cz": 4.19,
+        "w": 1.68,
+        "d": 0.55,
+        "yawDeg": 270
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "washer-1",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "washer-front",
+      "label": "Washing machine",
+      "box": {
+        "cx": 3.57,
+        "cz": 5.565,
+        "w": 0.6,
+        "d": 0.7,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "bed-1",
+      "source": "real",
+      "kind": "bed",
+      "label": "Bed",
+      "box": {
+        "cx": 7.245,
+        "cz": 4.25,
+        "w": 1.6,
+        "d": 1.95,
+        "yawDeg": 270
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5
+    },
+    {
+      "id": "tv-1",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "tv-unit-150",
+      "label": "TV unit",
+      "box": {
+        "cx": 5.5,
+        "cz": 4.33,
+        "w": 1.5,
+        "d": 0.4,
+        "yawDeg": 90
+      },
+      "heightM": 1.48,
+      "surfaceHeightM": 0.45
+    },
+    {
+      "id": "wardrobe-1",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "Wardrobe",
+      "box": {
+        "cx": 7.24,
+        "cz": 2.87,
+        "w": 1.84,
+        "d": 0.58,
+        "yawDeg": 0
+      },
+      "heightM": 2.1,
+      "surfaceHeightM": 2.1
+    },
+    {
+      "id": "bed-master",
+      "source": "real",
+      "kind": "bed",
+      "catalogId": "bed-queen",
+      "label": "Queen bed",
+      "box": {
+        "cx": 9.45,
+        "cz": 3.69,
+        "w": 1.62,
+        "d": 2.08,
+        "yawDeg": 90
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5,
+      "inner": {
+        "w": 1.52,
+        "d": 1.98
+      }
+    },
+    {
+      "id": "tv-master",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "tv-unit-180",
+      "label": "TV unit",
+      "box": {
+        "cx": 11.23,
+        "cz": 3.48,
+        "w": 1.8,
+        "d": 0.4,
+        "yawDeg": 270
+      },
+      "heightM": 1.62,
+      "surfaceHeightM": 0.45
+    },
+    {
+      "id": "desk-master",
+      "source": "real",
+      "kind": "counter",
+      "label": "Study table",
+      "box": {
+        "cx": 10.95,
+        "cz": 5.15,
+        "w": 1,
+        "d": 0.5,
+        "yawDeg": 180
+      },
+      "heightM": 0.75,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "wardrobe-master",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "Cupboard",
+      "box": {
+        "cx": 8.37,
+        "cz": 1.32,
+        "w": 3,
+        "d": 0.5,
+        "yawDeg": 0
+      },
+      "heightM": 2.1,
+      "surfaceHeightM": 2.1
+    },
+    {
+      "id": "wc-1",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "wc-western",
+      "label": "Western commode",
+      "box": {
+        "cx": 6.39,
+        "cz": 0.63,
+        "w": 0.4,
+        "d": 0.72,
+        "yawDeg": 270
+      },
+      "heightM": 0.8,
+      "surfaceHeightM": 0.42
+    },
+    {
+      "id": "basin-1",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "basin-wall",
+      "label": "Wash basin",
+      "box": {
+        "cx": 6.48,
+        "cz": 1.225,
+        "w": 0.55,
+        "d": 0.45,
+        "yawDeg": 180
+      },
+      "heightM": 0.95,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "shower-1",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "shower-over",
+      "label": "Shower",
+      "box": {
+        "cx": 6.4,
+        "cz": -0.33,
+        "w": 0.3,
+        "d": 0.35,
+        "yawDeg": 0
+      },
+      "heightM": 2.1,
+      "surfaceHeightM": 2
+    },
+    {
+      "id": "wc-master",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "wc-western",
+      "label": "Western commode",
+      "box": {
+        "cx": 11,
+        "cz": 0.25,
+        "w": 0.4,
+        "d": 0.72,
+        "yawDeg": 270
+      },
+      "heightM": 0.8,
+      "surfaceHeightM": 0.42
+    },
+    {
+      "id": "basin-master",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "basin-wall",
+      "label": "Wash basin",
+      "box": {
+        "cx": 10.3,
+        "cz": 1.205,
+        "w": 0.55,
+        "d": 0.45,
+        "yawDeg": 180
+      },
+      "heightM": 0.95,
+      "surfaceHeightM": 0.85
+    },
+    {
+      "id": "shower-master",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "shower-over",
+      "label": "Shower",
+      "box": {
+        "cx": 10.28,
+        "cz": -0.66,
+        "w": 0.3,
+        "d": 0.35,
+        "yawDeg": 0
+      },
+      "heightM": 2.1,
+      "surfaceHeightM": 2
+    },
+    {
+      "id": "chair-deck-1",
+      "source": "real",
+      "kind": "sofa",
+      "catalogId": "armchair",
+      "label": "Armchair",
+      "box": {
+        "cx": 1.25,
+        "cz": 5.4,
+        "w": 0.8,
+        "d": 0.85,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "chair-deck-2",
+      "source": "real",
+      "kind": "sofa",
+      "catalogId": "armchair",
+      "label": "Armchair",
+      "box": {
+        "cx": 2.53,
+        "cz": 5.4,
+        "w": 0.8,
+        "d": 0.85,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    }
+  ],
+  "spawn": {
+    "x": 0.9,
+    "z": 0.9,
+    "yawDeg": 180
+  },
+  "unlisted": true,
+  "spaceKind": "home",
+  "updatedAt": "2026-11-16T00:00:00.000Z",
+  "subtitle": "Sample building · plan follows a published builder brochure, furniture illustrative"
+}

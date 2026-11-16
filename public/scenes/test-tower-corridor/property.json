@@ -23,14 +23,54 @@
           },
           {
             "x": 0.9,
-            "z": 22.719990406996033
+            "z": 9.62
+          },
+          {
+            "x": 1.14,
+            "z": 9.62
+          },
+          {
+            "x": 1.14,
+            "z": 11.52
+          },
+          {
+            "x": 0.9,
+            "z": 11.52
+          },
+          {
+            "x": 0.9,
+            "z": 21.16
+          },
+          {
+            "x": 1.7,
+            "z": 21.16
+          },
+          {
+            "x": 1.7,
+            "z": 23.06
+          },
+          {
+            "x": 0.9,
+            "z": 23.06
+          },
+          {
+            "x": 0.9,
+            "z": 23.24
           },
           {
             "x": -0.9,
-            "z": 22.719990406996033
+            "z": 23.24
           }
         ],
         "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall",
+          "wall",
+          "wall",
+          "wall",
+          "wall",
           "wall",
           "wall",
           "wall",
@@ -44,19 +84,19 @@
         "polygon": [
           {
             "x": -3,
-            "z": 22.839990406996034
+            "z": 23.36
           },
           {
             "x": 3,
-            "z": 22.839990406996034
+            "z": 23.36
           },
           {
             "x": 3,
-            "z": 27.039990406996033
+            "z": 27.56
           },
           {
             "x": -3,
-            "z": 27.039990406996033
+            "z": 27.56
           }
         ],
         "edges": [
@@ -69,16 +109,31 @@
     ],
     "openings": [
       {
-        "id": "door-ne",
+        "id": "door-n",
         "roomId": "corridor",
-        "edge": 1,
+        "edge": 0,
         "type": "door",
-        "centreM": 8.099991827398693,
-        "widthM": 1.0668064773902617,
+        "centreM": 0.9,
+        "widthM": 1,
         "sillM": 0,
         "headM": 2.1,
         "leaf": {
-          "hinge": "start",
+          "hinge": "end",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-ne",
+        "roomId": "corridor",
+        "edge": 3,
+        "type": "door",
+        "centreM": 0.95,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
           "swing": "out",
           "kind": "hinged"
         }
@@ -86,9 +141,9 @@
       {
         "id": "door-se",
         "roomId": "corridor",
-        "edge": 1,
+        "edge": 7,
         "type": "door",
-        "centreM": 15.07059260890638,
+        "centreM": 0.95,
         "widthM": 1,
         "sillM": 0,
         "headM": 2.1,
@@ -101,29 +156,14 @@
       {
         "id": "door-nw",
         "roomId": "corridor",
-        "edge": 3,
+        "edge": 11,
         "type": "door",
-        "centreM": 18.709990031395073,
+        "centreM": 7.38,
         "widthM": 1,
         "sillM": 0,
         "headM": 2.1,
         "leaf": {
           "hinge": "start",
-          "swing": "out",
-          "kind": "hinged"
-        }
-      },
-      {
-        "id": "door-sw",
-        "roomId": "corridor",
-        "edge": 3,
-        "type": "door",
-        "centreM": 4.1599963732972185,
-        "widthM": 0.9999991018195937,
-        "sillM": 0,
-        "headM": 2.1,
-        "leaf": {
-          "hinge": "end",
           "swing": "out",
           "kind": "hinged"
         }
@@ -173,7 +213,7 @@
         "roomId": "lift-lobby",
         "edge": 1,
         "type": "door",
-        "centreM": 1.1000000000000014,
+        "centreM": 1.1,
         "widthM": 1,
         "sillM": 0,
         "headM": 2.1,
@@ -184,21 +224,11 @@
         }
       },
       {
-        "id": "window-end",
-        "roomId": "corridor",
-        "edge": 0,
-        "type": "window",
-        "centreM": 0.9,
-        "widthM": 1.2,
-        "sillM": 0.9,
-        "headM": 2.1
-      },
-      {
         "id": "window-lobby",
         "roomId": "lift-lobby",
         "edge": 3,
         "type": "window",
-        "centreM": 2.099999999999998,
+        "centreM": 2.1,
         "widthM": 1.6,
         "sillM": 0.9,
         "headM": 2.1
@@ -222,7 +252,7 @@
   "furniture": [],
   "spawn": {
     "x": 0,
-    "z": 21.719990406996033,
+    "z": 22.240000000000002,
     "yawDeg": 180
   },
   "unlisted": true,

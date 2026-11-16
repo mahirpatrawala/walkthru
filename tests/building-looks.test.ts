@@ -40,7 +40,7 @@ describe('portal doors', () => {
 });
 
 describe('the building map', () => {
-  const scenes = (ids: string[]): Map<string, SceneInfo> => new Map(ids.map((id) => [id, { property: readScene(id)!, unverified: (id === 'test-tower-flat-2bhk-a-m' ? { passage: 'drawing and label disagree' } : {}) as Record<string, string> }]));
+  const scenes = (ids: string[]): Map<string, SceneInfo> => new Map(ids.map((id) => [id, { property: readScene(id)!, unverified: (id === 'test-tower-flat-never-built-m' ? { passage: 'drawing and label disagree' } : {}) as Record<string, string> }]));
 
   it('draws every space of a level, outlined and named, with no per-room labels', () => {
     const lv = b.levels.find((l) => l.id === 'l1')!;
