@@ -12,7 +12,7 @@ export interface HallParams { variant: HallVariant; liftM: number }
 /** a banquet table's cloth: white cotton unless a pack names a `tablecloth` role */
 const CLOTH: MatSpec = { key: 'cotton', tint: '#F3F0EA' };
 /** a pool table's timber is a dark walnut whatever the pack's case colour (a white pool table reads as a toy) */
-const POOL_WOOD: MatSpec = { key: 'wood', tint: '#5B4333' };
+const POOL_WOOD: MatSpec = { key: 'wood', tint: '#6E5842' };
 export const HALL_DEFAULTS: HallParams = { variant: 'chair', liftM: 0 };
 
 export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Roles): THREE.Group {

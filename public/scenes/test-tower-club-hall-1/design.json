@@ -3,7 +3,13 @@
   "pack": "clean-contrast",
   "source": "typical",
   "note": "A typical clean scheme for this shared space (the gallery default): timber or polished floor, bright walls, wall panelling, a stepped ceiling band. Finishes and decor only.",
-  "items": {},
+  "items": {
+    "decor": {
+      "roles": {
+        "slats": "ash-white"
+      }
+    }
+  },
   "rooms": {
     "hall-1": {
       "floor": "plank-oak",

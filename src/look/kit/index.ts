@@ -298,7 +298,7 @@ export function mountKit(o: KitOptions): KitHandle {
       const floorId = layout.finishes.source === 'sampled' ? undefined : roomFinishIds(room.id, style, room.roomType).floor?.[0];
       const fdef = floorId ? finishDef(floorId) : null;
       // only where the room's colour IS the finish's (a room with a colour of its own keeps it)
-      const sp = fdef && fdef.kind === 'plank' && fdef.colour.toLowerCase() === (room.floorColor ?? '').toLowerCase() && !spec.drawn && !spec.antiSkid && !spec.matt ? plankSpec(spec) : spec;
+      const sp = fdef && fdef.kind === 'plank' && fdef.colour.toLowerCase() === (room.floorColor ?? '').toLowerCase() && (!spec.drawn || !!o.shared) && !spec.antiSkid && !spec.matt ? plankSpec(spec) : spec;
       const kit = lm.floorKit({
         color: room.floorColor ?? layout.finishes.floorColor, groutColor: layout.finishes.groutColor,
         tileU: sp.tileU, tileV: sp.tileV, axisX: sp.axisX, axisZ: sp.axisZ, originX: sp.originX, originZ: sp.originZ,
