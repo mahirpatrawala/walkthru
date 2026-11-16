@@ -1,0 +1,226 @@
+{
+  "version": 1,
+  "id": "test-tower-club-games",
+  "title": "Indoor games area",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "games",
+        "label": "Indoor games area",
+        "roomType": "other",
+        "polygon": [
+          {
+            "x": 46.77,
+            "z": 20.48
+          },
+          {
+            "x": 62.31,
+            "z": 20.48
+          },
+          {
+            "x": 62.31,
+            "z": 29.44
+          },
+          {
+            "x": 46.77,
+            "z": 29.44
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-foyer",
+        "roomId": "games",
+        "edge": 3,
+        "type": "door",
+        "centreM": 3.04,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-link",
+        "roomId": "games",
+        "edge": 1,
+        "type": "door",
+        "centreM": 0.86,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EFE7D8",
+      "floorColor": "#D2C2A3",
+      "tile": {
+        "wM": 0.8,
+        "lM": 0.8
+      },
+      "groutColor": "#B9A98A",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#F7F4EE",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [
+    {
+      "id": "games-games-card-set-1",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "games-card-set",
+      "label": "Card table with 4 chairs",
+      "box": {
+        "cx": 49.65,
+        "cz": 22.39,
+        "w": 1.7,
+        "d": 1.7,
+        "yawDeg": 0
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    },
+    {
+      "id": "games-games-chess-set-2",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "games-chess-set",
+      "label": "Chess table with 2 chairs",
+      "box": {
+        "cx": 48.79,
+        "cz": 28.23,
+        "w": 0.6,
+        "d": 1.44,
+        "yawDeg": 90
+      },
+      "heightM": 0.82,
+      "surfaceHeightM": 0.74
+    },
+    {
+      "id": "games-games-foosball-3",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "games-foosball",
+      "label": "Foosball table",
+      "box": {
+        "cx": 51.4,
+        "cz": 24.38,
+        "w": 1.4,
+        "d": 1.2,
+        "yawDeg": 0
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.8
+    },
+    {
+      "id": "games-games-carrom-set-4",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "games-carrom-set",
+      "label": "Carrom board with 4 stools",
+      "box": {
+        "cx": 54.56,
+        "cz": 24.18,
+        "w": 1.6,
+        "d": 1.6,
+        "yawDeg": 0
+      },
+      "heightM": 0.75,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "games-hall-table-tennis-5",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-table-tennis",
+      "label": "Table-tennis table",
+      "box": {
+        "cx": 58.41,
+        "cz": 22.62,
+        "w": 2.74,
+        "d": 1.525,
+        "yawDeg": 0
+      },
+      "heightM": 0.91,
+      "surfaceHeightM": 0.76
+    },
+    {
+      "id": "games-hall-pool-table-6",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "hall-pool-table",
+      "label": "Pool table, 8 ft",
+      "box": {
+        "cx": 53.23,
+        "cz": 26.99,
+        "w": 2.54,
+        "d": 1.42,
+        "yawDeg": 0
+      },
+      "heightM": 0.86,
+      "surfaceHeightM": 0.8
+    },
+    {
+      "id": "games-sofa-3-7",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "sofa-3",
+      "label": "3-seat sofa",
+      "box": {
+        "cx": 57.79,
+        "cz": 27.38,
+        "w": 2.1,
+        "d": 0.9,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "games-coffee-round-8",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "coffee-round",
+      "label": "Round centre table",
+      "box": {
+        "cx": 59.58,
+        "cz": 27.38,
+        "w": 0.8,
+        "d": 0.8,
+        "yawDeg": 0
+      },
+      "heightM": 0.45,
+      "surfaceHeightM": 0.45
+    }
+  ],
+  "spawn": {
+    "x": 48.68,
+    "z": 25.43,
+    "yawDeg": 90
+  },
+  "unlisted": true,
+  "spaceKind": "games",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

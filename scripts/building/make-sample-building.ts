@@ -17,9 +17,10 @@ import { FLATS, readFlat } from './flats';
 import type { FlatDesign } from './flats';
 import { composeTypicalFloor, mirrorId } from './plate';
 import type { Plate } from './plate';
-import { LIFT_CAR, UPDATED_AT, clubhouseScenes, groundLobbyScene } from './spaces';
+import { LIFT_CAR, UPDATED_AT, groundLobbyScene } from './spaces';
 import { corridorScene } from './typical-floor';
-import { bareCopy, furnishScene } from './furnish-spaces';
+import { furnishScene } from './furnish-spaces';
+import { buildPodium } from './podium-level';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -91,18 +92,9 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
   const lobby = groundLobbyScene(lobbyScene, false);
   // stage 2: the full tower's lobby is furnished from the shared-space catalogue ON the building's marked positions (furnish-spaces.ts)
   add(lobbyScene, { property: empty ? lobby.property : furnishScene(lobby.property, 'lobby', 'entrance-lobby', { anchors: lobby.anchors }) });
-  // the clubhouse level
-  const ids = { foyer: 'test-tower-club-foyer', hall: 'test-tower-club-hall', gym: 'test-tower-club-gym', pool: 'test-tower-club-pool', garden: 'test-tower-club-garden', poolBare: 'test-tower-empty-club-pool', gardenBare: 'test-tower-empty-club-garden' };
-  const club = clubhouseScenes(ids);
-  add(ids.foyer, { property: club.foyer });
-  // stage 2: the full tower's hall and gym are furnished in their own bounds, the empty twin keeps bare copies under their own ids (furnish-spaces.ts)
-  const roomScene = { hall: empty ? 'test-tower-empty-club-hall' : ids.hall, gym: empty ? 'test-tower-empty-club-gym' : ids.gym };
-  if (empty) { add(roomScene.hall, { property: bareCopy(club.hall, roomScene.hall) }); add(roomScene.gym, { property: bareCopy(club.gym, roomScene.gym) }); }
-  else { scenes.set(ids.hall, { property: furnishScene(club.hall, 'hall', 'hall') }); scenes.set(ids.gym, { property: furnishScene(club.gym, 'gym', 'gym') }); }
-  // stage 3: the pool area and the garden are open-air spaces, finished in the sample and bare in the empty tower (SPEC 19.8)
-  const poolScene = empty ? ids.poolBare : ids.pool, gardenScene = empty ? ids.gardenBare : ids.garden;
-  add(poolScene, { property: empty ? club.poolBare : club.pool, outdoor: empty ? club.outdoor.poolBare : club.outdoor.pool });
-  add(gardenScene, { property: empty ? club.gardenBare : club.garden, outdoor: empty ? club.outdoor.gardenBare : club.outdoor.garden });
+  // the clubhouse level: drawn after the amenity plan of a published builder brochure (podium-level.ts, podium-plan.ts)
+  const podium = buildPodium(empty);
+  for (const [id, sc] of podium.scenes) add(id, sc);
 
   // ---- the building
   const lift = (id: string, opening: string): Portal => ({ id, kind: 'lift', opening, lift: id });
@@ -120,30 +112,7 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
       ],
     }],
   };
-  const clubhouse: Level = {
-    id: 'l1', label: 'Level 1', short: '1', summary: 'Clubhouse: hall, gym, pool area, garden', floorToFloorM: 4.2,
-    spaces: [
-      {
-        id: 'clubhouse', kind: 'corridor', name: 'Clubhouse foyer', sceneId: ids.foyer, placement: { x: 0, z: 0, rotDeg: 0 },
-        portals: [
-          lift('lift-a', 'lift-a'), lift('lift-b', 'lift-b'), stairs('door-stairs'),
-          { id: 'walkway', kind: 'door', opening: club.doors.walkway, to: { space: 'lobby', portal: 'clubhouse' }, label: 'The ground floor', prompt: 'To the ground floor', look: 'glass' },
-          { id: 'hall', kind: 'door', opening: club.doors.hall, to: { space: 'hall', portal: 'foyer' }, label: 'Community hall', prompt: 'Enter the community hall', look: 'plain' },
-          { id: 'gym', kind: 'door', opening: club.doors.gym, to: { space: 'gym', portal: 'foyer' }, label: 'Gym', prompt: 'Enter the gym', look: 'plain' },
-          { id: 'pool', kind: 'door', opening: club.doors.pool, to: { space: 'pool', portal: 'foyer' }, label: 'Pool area', prompt: 'Enter the pool area', look: 'plain' },
-          { id: 'garden', kind: 'door', opening: club.doors.garden, to: { space: 'garden', portal: 'foyer' }, label: 'Garden', prompt: 'Enter the garden', look: 'plain' },
-        ],
-      },
-      amenity('hall', roomScene.hall, 'hall', 'Community hall', 'clubhouse', 'hall', empty ? ['Empty hall, about 12 × 8.4 m.'] : ['Hall of about 12 × 8.4 m with a stage, a podium, a screen, 60 chairs and tables (sample layout).']),
-      amenity('gym', roomScene.gym, 'gym', 'Gym', 'clubhouse', 'gym', empty ? ['Empty room, about 8 × 12 m.'] : ['Gym of about 8 × 12 m with a mirror wall, cardio, strength and free-weight equipment (sample layout).']),
-      { ...amenity('pool', poolScene, 'pool', 'Pool area', 'clubhouse', 'pool', empty
-        ? ['The pool area, bare: the deck, an 11 × 4.5 m pool and a children\'s pool, a covered verandah left out. Nothing placed or planted.']
-        : ['Open air, about 20 × 14 m: an 11 × 4.5 m pool (1.2 to 1.7 m deep) with steps, a children\'s pool, a covered verandah, loungers, parasols and planting. Water, sky and sun are drawn; the surroundings beyond the walls are not.']), outdoor: true },
-      { ...amenity('garden', gardenScene, 'garden', 'Garden', 'clubhouse', 'garden', empty
-        ? ['The garden, bare: a plain lawn, a paved entrance and a path, about 34 × 20 m. Nothing placed or planted.']
-        : ['Open air, about 34 × 20 m: lawn with a jogging track round it, a paved plaza with a water feature, a children\'s play area, benches, a pergola and Indian garden planting. The sky is a plain graded sky, not the real view.']), outdoor: true },
-    ],
-  };
+  const clubhouse: Level = podium.level;
   const typical = (n: number): Level => {
     const cid = `f${n}-corridor`;
     const spaces: Space[] = [];
@@ -170,10 +139,10 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
   return {
     version: 1,
     id: empty ? 'sample-tower-empty' : 'sample-tower',
-    name: empty ? 'Sample Tower, empty (made-up)' : 'Sample Tower (made-up)',
-    subtitle: `${empty ? 'The same tower with every room unfurnished: where a builder starts' : 'Lobby, lifts, four flats a floor and a clubhouse level'}. ${ARRANGEMENT_NOTE}`,
+    name: empty ? 'Sample Tower, empty' : 'Sample Tower',
+    subtitle: `${empty ? 'The same tower with every room unfurnished: where a builder starts' : 'Lobby, lifts, four flats a floor and a clubhouse level'}. The flats and the clubhouse level follow a published builder brochure; the floor arrangement around the lift lobby is ours.`,
     sample: true,
-    note: 'Sample layout for demonstration',
+    note: 'Sample layout for demonstration. The flats follow the printed plans of a published builder brochure (room sizes as printed); the clubhouse level follows its amenity plan, scaled from its one printed dimension (the 25 m lap pool), sizes not measured. The floor arrangement around the lift lobby is ours.',
     floorToFloorM: 3.1,
     flatTypes,
     lifts: ['lift-a', 'lift-b'].map((id, i) => ({ id, name: `Lift ${i === 0 ? 'A' : 'B'}`, car: { ...LIFT_CAR }, serves: levels.map((l) => l.id) })),
@@ -192,13 +161,6 @@ function flatNotes(d: FlatDesign, empty: boolean, rotDeg: number): string[] {
     `The brochure's own plan faces ${compassWord(d.authored.brochureFacing === 'N' ? 0 : d.authored.brochureFacing === 'E' ? 90 : d.authored.brochureFacing === 'S' ? 180 : 270)} (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces ${compassWord(lookOf(rotDeg).northDeg + 180)}.`,
     empty ? 'Unfurnished.' : "Furniture is the plan's artist's conception: illustrative sample pieces you can move or delete.",
   ];
-}
-
-function amenity(id: string, sceneId: string, kind: Space['kind'], name: string, foyer: string, portalToFoyer: string, notes: string[]): Space {
-  return {
-    id, kind, name, sceneId, placement: { x: 0, z: 0, rotDeg: 0 }, notes,
-    portals: [{ id: 'foyer', kind: 'door', opening: 'door-foyer', to: { space: foyer, portal: portalToFoyer }, label: 'The clubhouse foyer', prompt: 'To the clubhouse foyer', look: 'plain' }],
-  };
 }
 
 // ---------------------------------------------------------------- writing

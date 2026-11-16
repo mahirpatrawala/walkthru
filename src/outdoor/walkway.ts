@@ -3,7 +3,7 @@
 import { pointInBox, pointInPolygon } from '../core/geometry';
 import type { Box, Vec2 } from '../types';
 import type { PoolBasin, Side } from './types';
-import { inRect, sideVec } from './pool';
+import { exposureOf, inRect, sideVec } from './pool';
 import { rectD, rectW } from './types';
 
 export const WALKWAY_M = 1.2;
@@ -65,13 +65,21 @@ export function walkwaySides(inp: WalkwayInput): WalkwaySide[] {
   const cap = need + 0.4;
   const blockers = inp.obstacles.filter((o) => o.heightM >= WALKWAY_MIN_OBSTACLE_M);
   const out: WalkwaySide[] = [];
+  // a stretch where another basin's water touches this one is water, not edge: only the stretches that meet the deck are walked
+  const ex = exposureOf(inp.basin, inp.others);
   for (const side of SIDES) {
+    if (ex.exposed[side].length === 0) continue;
     const { a, dir, len } = sideSpan(inp.basin, side);
     const n = sideVec(side);
     let worst = cap, by = 'the deck', at: Vec2 = { x: a.x, z: a.z };
-    const nSamples = Math.max(2, Math.ceil(len / SAMPLE_M));
-    for (let i = 0; i <= nSamples; i++) {
-      const t = Math.min(len, (i / nSamples) * len);
+    const points: number[] = [];
+    for (const [e0, e1] of ex.exposed[side]) {
+      // a stretch is walked from 2 cm in from each end, so an end that meets another basin's water does not read that water as an obstacle at once
+      const t0 = e0 + 0.02, t1 = Math.max(t0, e1 - 0.02);
+      const n = Math.max(2, Math.ceil((t1 - t0) / SAMPLE_M));
+      for (let i = 0; i <= n; i++) points.push(t0 + (i / n) * (t1 - t0));
+    }
+    for (const t of points) {
       const o = { x: a.x + dir.x * t, z: a.z + dir.z * t };
       for (let d = STEP_M; d <= cap; d += STEP_M) {
         const p = { x: o.x + n.x * d, z: o.z + n.z * d };

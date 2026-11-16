@@ -91,6 +91,6 @@ describe('building.json', () => {
     expect(e.levels).toBe(4);
     expect(e.flats).toBe(8);
     expect(e.flatTypes.reduce((n, t) => n + t.count, 0)).toBe(8);
-    expect(e.amenities).toEqual(['Community hall', 'Gym', 'Pool area', 'Garden']);
+    expect(e.amenities).toEqual(['Indoor games area', 'Gymnasium', 'Changing room 1', 'Changing room 2', 'Banquet hall 1', 'Banquet lounge', 'Banquet hall 2', 'Banquet deck', 'Aqua play', 'Pool area']);
   });
 });

@@ -6,6 +6,7 @@ import type { Def, MorePiece } from './catalog-more';
 import type { Zone } from './pieces';
 
 const POOL: Def['places'] = ['pool'];
+const FOUR: Side[] = ['front', 'back', 'left', 'right'];
 const GUIDE = 'typical guidance, check your consultant';
 type PDef = Omit<Def, 'kind' | 'family' | 'look'> & Partial<Pick<Def, 'kind' | 'family'>>;
 const pool = (o: PDef): MorePiece => piece({ places: POOL, kind: 'counter', family: null, look: 'pool', ...o });
@@ -68,5 +69,29 @@ export const POOL_PIECES: MorePiece[] = [
   pool({
     id: 'pool-deck-planter', name: 'Deck planter', cat: 'decor', w: 0.8, d: 0.8, h: 1.1, s: 0.6,
     label: '80 × 80 cm, 60 cm tall pot with a palm', params: { variant: 'planter' }, pose: 'dims', kw: 'planter pot palm deck plant poolside green tub', places: ['pool', 'garden'],
+  }),
+  // aqua play: small features for a shallow children's water area. Sizes are typical for a toddler and junior splash area, not one maker's
+  pool({
+    id: 'aqua-tower', name: 'Water-play tower with slide', cat: 'amenities', w: 2.4, d: 1.5, h: 2.5, s: 1.2,
+    label: '240 × 150 × 250 cm, deck at 120 cm, slide into the water', params: { variant: 'aqua-tower' }, pose: 'dims', kw: 'aqua play water tower slide splash kids children water play toddler',
+    zones: [between('play', FOUR, 0.8, '80 cm round the tower for children to run and climb out', 'the run-out is blocked, {obs} is too close', 'a child would meet {obs} at the foot of the slide', 0.7)],
+    note: 'A water-play tower for children is typically 1.5 to 2 m across with a deck at 1.0 to 1.3 m and a slide of 1.5 to 2.5 m; the water at the foot is shallow (0.3 m or less). A supplier states each product\'s own fall zone: check it.',
+  }),
+  pool({
+    id: 'aqua-sun', name: 'Sun spray feature', cat: 'amenities', w: 2.1, d: 2.1, h: 1.4, s: 1.4,
+    label: '210 cm across, 140 cm high, spraying from the rays', params: { variant: 'aqua-sun' }, pose: 'dims', kw: 'aqua play water sun spray fountain splash kids children water feature sprinkler',
+    zones: [between('play', FOUR, 0.8, '80 cm round it for children to run through the spray', 'children cannot get round it, {obs} is too close', 'children would squeeze past {obs}', 0.7)],
+    note: 'A splash-pad sprayer is a post with a spray ring about 1.5 to 2.5 m across. It needs a water supply, a pump and a drain, none of which is on a drawing.',
+  }),
+  pool({
+    id: 'aqua-mushroom', name: 'Water mushroom', cat: 'amenities', w: 1.6, d: 1.6, h: 2.1, s: 2.1,
+    label: '160 cm across, 210 cm high, rain from the rim', params: { variant: 'aqua-mushroom' }, pose: 'dims', kw: 'aqua play water mushroom umbrella rain dome splash kids children water feature',
+    zones: [between('play', FOUR, 0.8, '80 cm round it for children to stand under the rain', 'children cannot get round it, {obs} is too close', 'children would squeeze past {obs}', 0.7)],
+    note: 'A water mushroom has a dome of 1.2 to 2.0 m on a post of 1.8 to 2.4 m and rains from its rim; the water beneath is shallow.',
+  }),
+  pool({
+    id: 'aqua-jets', name: 'Ground spray jets, row of nine', cat: 'amenities', w: 12.0, d: 0.3, h: 0.12, s: 0.12,
+    label: '1,200 × 30 cm, nozzles 12 cm high, nine jets 1.5 m apart', params: { variant: 'aqua-jets' }, pose: 'dims', kw: 'aqua play ground jets spray row fountain splash kids children water play nozzles',
+    note: 'A row of ground jets sprays a metre or two over a shallow area. The nozzles stand 10 to 15 cm proud of the floor: it needs a supply pipe and a drain, none of which is on a drawing.',
   }),
 ];

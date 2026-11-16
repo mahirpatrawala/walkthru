@@ -206,8 +206,13 @@ describe('the typical floor of the brochure flats', () => {
       expect(flats.map((s) => s.type).sort()).toEqual(['2bhk-b2', '2bhk-b4', '3bhk-a', '3bhk-b']);
       for (const f of flats) expect(f.mirrored).toBeUndefined();
     }
-    expect(b.subtitle).toContain('Flat plans follow a published builder brochure. The floor arrangement around the lift lobby is ours.');
-    expect(readBuilding('sample-tower-empty').subtitle).toContain('The floor arrangement around the lift lobby is ours.');
+    for (const id of ['sample-tower', 'sample-tower-empty']) {
+      const sub = readBuilding(id).subtitle!;
+      expect(sub, id).toContain('The flats and the clubhouse level follow a published builder brochure');
+      expect(sub, id).toContain('the floor arrangement around the lift lobby is ours');
+    }
+    expect(b.name).toBe('Sample Tower');
+    expect(readBuilding('sample-tower-empty').name).toBe('Sample Tower, empty');
     expect(corridorSpace.notes!.join(' ')).toContain('The floor arrangement around the lift lobby is ours.');
   });
 

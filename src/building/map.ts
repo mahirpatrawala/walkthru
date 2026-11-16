@@ -17,7 +17,7 @@ function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: s
   return e;
 }
 
-export const KIND_NAME: Record<Space['kind'], string> = { home: 'Flat', lobby: 'Lobby', corridor: 'Corridor', gym: 'Gym', hall: 'Hall', pool: 'Pool', garden: 'Garden', other: 'Space' };
+export const KIND_NAME: Record<Space['kind'], string> = { home: 'Flat', lobby: 'Lobby', corridor: 'Corridor', gym: 'Gym', hall: 'Hall', games: 'Games room', pool: 'Pool', garden: 'Garden', other: 'Space' };
 
 export interface MapOptions {
   building: BuildingFile;
@@ -58,7 +58,7 @@ export function mountBuildingMap(host: HTMLElement, o: MapOptions): BuildingMap 
   if (o.back.onClick) back.addEventListener('click', (e) => { e.preventDefault(); o.back.onClick!(); });
 
   const head = h('div', 'bm-head', undefined, root);
-  h('span', `ws-tag ${b.sample ? 'is-sample' : ''}`, b.sample ? 'Sample building · made-up' : 'Building', head);
+  h('span', `ws-tag ${b.sample ? 'is-sample' : ''}`, b.sample ? 'Sample building · plans from a published brochure' : 'Building', head);
   h('h1', undefined, b.name, head);
   if (b.subtitle) h('p', 'bm-sub-line', b.subtitle, head);
 

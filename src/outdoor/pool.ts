@@ -173,3 +173,71 @@ export function depthRows(b: PoolBasin, a: Person = ADULT, c: Person = CHILD): D
   if (hi - lo > 0.05) rows.push({ label: 'Deep end', depthM: hi, adult: levelAgainst(hi, a.heightCm), child: levelAgainst(hi, c.heightCm) });
   return rows;
 }
+
+// ---------------------------------------------------------------- basins that touch share their water
+
+/** The metres of a basin's side, from the side's start: N and S run from x0, E and W from z0 (the order the walkway and the steps already use). */
+export const sideLengthM = (b: PoolBasin, s: Side): number => (s === 'N' || s === 'S' ? rectW(b.rect) : rectD(b.rect));
+const TOUCH_M = 0.01;
+
+export interface Seam { side: Side; fromM: number; toM: number; other: PoolBasin }
+export interface Exposure { /** the parts of each side that meet the deck, not another basin's water: [from, to] metres along the side */ exposed: Record<Side, [number, number][]>; seams: Seam[] }
+
+/**
+ * Two basins whose rectangles touch along a stretch are one body of water there (an L-shaped pool drawn as rectangles): no coping, wall or
+ * walkway on that stretch. This gives, for each side of `b`, the stretches that stay edge (coping, wall, walkway) and the seams.
+ */
+export function exposureOf(b: PoolBasin, pools: readonly PoolBasin[]): Exposure {
+  const r = b.rect;
+  const seams: Seam[] = [];
+  for (const o of pools) {
+    if (o === b || o.id === b.id) continue;
+    const q = o.rect;
+    const zOv: [number, number] = [Math.max(r.z0, q.z0), Math.min(r.z1, q.z1)], xOv: [number, number] = [Math.max(r.x0, q.x0), Math.min(r.x1, q.x1)];
+    if (Math.abs(q.x0 - r.x1) < TOUCH_M && zOv[1] - zOv[0] > TOUCH_M) seams.push({ side: 'E', fromM: zOv[0] - r.z0, toM: zOv[1] - r.z0, other: o });
+    if (Math.abs(q.x1 - r.x0) < TOUCH_M && zOv[1] - zOv[0] > TOUCH_M) seams.push({ side: 'W', fromM: zOv[0] - r.z0, toM: zOv[1] - r.z0, other: o });
+    if (Math.abs(q.z0 - r.z1) < TOUCH_M && xOv[1] - xOv[0] > TOUCH_M) seams.push({ side: 'S', fromM: xOv[0] - r.x0, toM: xOv[1] - r.x0, other: o });
+    if (Math.abs(q.z1 - r.z0) < TOUCH_M && xOv[1] - xOv[0] > TOUCH_M) seams.push({ side: 'N', fromM: xOv[0] - r.x0, toM: xOv[1] - r.x0, other: o });
+  }
+  const exposed = { N: [] as [number, number][], E: [] as [number, number][], S: [] as [number, number][], W: [] as [number, number][] };
+  for (const s of ['N', 'E', 'S', 'W'] as Side[]) {
+    const len = sideLengthM(b, s);
+    const cut = seams.filter((m) => m.side === s).sort((a, c) => a.fromM - c.fromM);
+    let at = 0;
+    for (const m of cut) { if (m.fromM > at + 1e-6) exposed[s].push([at, m.fromM]); at = Math.max(at, m.toM); }
+    if (at < len - 1e-6) exposed[s].push([at, len]);
+  }
+  return { exposed, seams };
+}
+
+/** Is the point at `t` metres along side `s` of `b` on an exposed stretch (deck beyond it), not on a seam? */
+export const isExposedAt = (ex: Exposure, s: Side, t: number): boolean => ex.exposed[s].some(([a, c]) => t >= a - 1e-6 && t <= c + 1e-6);
+
+/** At a corner of a basin's rectangle, is the next side also edge (deck beyond it) there? Then the coping of this side wraps the corner. */
+function cornerOpen(b: PoolBasin, ex: Exposure, side: Side, end: 'lo' | 'hi'): boolean {
+  // the perpendicular side that shares this corner, and where on that side the corner is (its start or its end)
+  const next: Record<Side, { lo: [Side, 'lo' | 'hi']; hi: [Side, 'lo' | 'hi'] }> = {
+    N: { lo: ['W', 'lo'], hi: ['E', 'lo'] }, S: { lo: ['W', 'hi'], hi: ['E', 'hi'] },
+    W: { lo: ['N', 'lo'], hi: ['S', 'lo'] }, E: { lo: ['N', 'hi'], hi: ['S', 'hi'] },
+  };
+  const [s2, at] = next[side][end];
+  const spans = ex.exposed[s2];
+  if (spans.length === 0) return false;
+  return at === 'lo' ? spans[0][0] < 1e-6 : Math.abs(spans[spans.length - 1][1] - sideLengthM(b, s2)) < 1e-6;
+}
+
+/**
+ * The coping of a basin as boxes on the plan: one along each stretch of its edge that meets the deck, none along a seam where another basin's water touches.
+ * A stretch that ends at a corner with the next side also on deck runs on past it by the coping's width, so a convex corner has no gap.
+ */
+export function copingRects(b: PoolBasin, ex: Exposure = exposureOf(b, [b])): Rect[] {
+  const R = b.rect, cm = b.copingM;
+  const out: Rect[] = [];
+  for (const side of ['N', 'E', 'S', 'W'] as Side[]) for (const [t0, t1] of ex.exposed[side]) {
+    const full = sideLengthM(b, side);
+    const lo = t0 < 1e-6 && cornerOpen(b, ex, side, 'lo') ? cm : 0, hi = t1 > full - 1e-6 && cornerOpen(b, ex, side, 'hi') ? cm : 0;
+    if (side === 'N' || side === 'S') { const z = side === 'N' ? [R.z0 - cm, R.z0] : [R.z1, R.z1 + cm]; out.push({ x0: R.x0 + t0 - lo, x1: R.x0 + t1 + hi, z0: z[0], z1: z[1] }); }
+    else { const x = side === 'W' ? [R.x0 - cm, R.x0] : [R.x1, R.x1 + cm]; out.push({ x0: x[0], x1: x[1], z0: R.z0 + t0 - lo, z1: R.z0 + t1 + hi }); }
+  }
+  return out;
+}

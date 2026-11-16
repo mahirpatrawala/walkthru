@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "id": "test-tower-empty-club-games",
+  "title": "Indoor games area",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "games",
+        "label": "Indoor games area",
+        "roomType": "other",
+        "polygon": [
+          {
+            "x": 46.77,
+            "z": 20.48
+          },
+          {
+            "x": 62.31,
+            "z": 20.48
+          },
+          {
+            "x": 62.31,
+            "z": 29.44
+          },
+          {
+            "x": 46.77,
+            "z": 29.44
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-foyer",
+        "roomId": "games",
+        "edge": 3,
+        "type": "door",
+        "centreM": 3.04,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-link",
+        "roomId": "games",
+        "edge": 1,
+        "type": "door",
+        "centreM": 0.86,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EFE7D8",
+      "floorColor": "#D2C2A3",
+      "tile": {
+        "wM": 0.8,
+        "lM": 0.8
+      },
+      "groutColor": "#B9A98A",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#F7F4EE",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 48.68,
+    "z": 25.43,
+    "yawDeg": 90
+  },
+  "unlisted": true,
+  "spaceKind": "games",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

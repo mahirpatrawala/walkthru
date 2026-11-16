@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "id": "test-tower-empty-club-deck",
+  "title": "Banquet deck",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
+  "layout": {
+    "wallHeightM": 10.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "deck",
+        "label": "Banquet deck",
+        "roomType": "other",
+        "polygon": [
+          {
+            "x": 85.59,
+            "z": 8.61
+          },
+          {
+            "x": 89.02,
+            "z": 8.61
+          },
+          {
+            "x": 89.02,
+            "z": 33.88
+          },
+          {
+            "x": 85.59,
+            "z": 33.88
+          }
+        ],
+        "edges": [
+          "railing",
+          "railing",
+          "railing",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-hall-1",
+        "roomId": "deck",
+        "edge": 3,
+        "type": "door",
+        "centreM": 21.11,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-lounge",
+        "roomId": "deck",
+        "edge": 3,
+        "type": "door",
+        "centreM": 12.81,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-hall-2",
+        "roomId": "deck",
+        "edge": 3,
+        "type": "door",
+        "centreM": 4.44,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EFE6D3",
+      "floorColor": "#C9B9A0",
+      "tile": null,
+      "groutColor": "#B9AE9F",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#FAFAF8",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 87.23,
+    "z": 21.14,
+    "yawDeg": 270
+  },
+  "unlisted": true,
+  "spaceKind": "garden",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

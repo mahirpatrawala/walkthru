@@ -73,7 +73,10 @@ describe('building validation', () => {
     expect(readScene('test-tower-lobby')!.layout.wallHeightM).toBeGreaterThan(readScene('test-tower-corridor')!.layout.wallHeightM);
     const gym = readScene('test-tower-club-gym')!.layout.rooms[0];
     const gx = gym.polygon.map((p) => p.x), gz = gym.polygon.map((p) => p.z);
-    expect([Math.max(...gx) - Math.min(...gx), Math.max(...gz) - Math.min(...gz)].map((v) => Math.round(v * 100) / 100).sort((a, b) => a - b)).toEqual([8, 12]);
+    // the gym is scaled from the brochure plan (podium-plan.ts): about 15.9 x 9.5 m, not measured
+    const dims = [Math.max(...gx) - Math.min(...gx), Math.max(...gz) - Math.min(...gz)].sort((a, b) => a - b);
+    expect(dims[0]).toBeCloseTo(9.46, 1);
+    expect(dims[1]).toBeCloseTo(15.93, 1);
   });
 
   it('typical-floor plate: no overlaps, every flat door meets its corridor door, balconies face outside', () => {

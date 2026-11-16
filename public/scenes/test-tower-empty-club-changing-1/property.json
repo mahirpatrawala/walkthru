@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "id": "test-tower-empty-club-changing-1",
+  "title": "Changing room 1",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "changing-1",
+        "label": "Changing room 1",
+        "roomType": "other",
+        "polygon": [
+          {
+            "x": 29.6,
+            "z": 29.79
+          },
+          {
+            "x": 36.18,
+            "z": 29.79
+          },
+          {
+            "x": 36.18,
+            "z": 32.55
+          },
+          {
+            "x": 29.6,
+            "z": 32.55
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-foyer",
+        "roomId": "changing-1",
+        "edge": 1,
+        "type": "door",
+        "centreM": 1.4,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      }
+    ],
+    "finishes": {
+      "wallColor": "#E9EEF0",
+      "floorColor": "#CBD3D6",
+      "tile": {
+        "wM": 0.3,
+        "lM": 0.3
+      },
+      "groutColor": "#AEB7BB",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#F7F4EE",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [],
+  "spawn": {
+    "x": 34.66,
+    "z": 31.19,
+    "yawDeg": 270
+  },
+  "unlisted": true,
+  "spaceKind": "gym",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

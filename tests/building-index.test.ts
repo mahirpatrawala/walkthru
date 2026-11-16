@@ -31,7 +31,7 @@ describe('the list of buildings', () => {
     expect(scanBuildings(path.join(dir, 'nope')).buildings).toEqual([]);
     put('sample-tower', rawBuilding('sample-tower'));
     writeBuildingIndex(dir);
-    expect(JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8')).buildings[0].name).toBe('Sample Tower (made-up)');
+    expect(JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8')).buildings[0].name).toBe('Sample Tower');
   });
   it('the committed list is what the generator writes', () => {
     const committed = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '../public/buildings/index.json'), 'utf8'));

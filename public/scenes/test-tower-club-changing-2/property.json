@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "id": "test-tower-club-changing-2",
+  "title": "Changing room 2",
+  "subtitle": "Sample building · clubhouse level after a published builder brochure, scaled from its one printed dimension, not measured",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "changing-2",
+        "label": "Changing room 2",
+        "roomType": "other",
+        "polygon": [
+          {
+            "x": 29.6,
+            "z": 32.55
+          },
+          {
+            "x": 36.18,
+            "z": 32.55
+          },
+          {
+            "x": 36.18,
+            "z": 36.29
+          },
+          {
+            "x": 29.6,
+            "z": 36.29
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-foyer",
+        "roomId": "changing-2",
+        "edge": 1,
+        "type": "door",
+        "centreM": 1.87,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "end",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      }
+    ],
+    "finishes": {
+      "wallColor": "#E9EEF0",
+      "floorColor": "#CBD3D6",
+      "tile": {
+        "wM": 0.3,
+        "lM": 0.3
+      },
+      "groutColor": "#AEB7BB",
+      "frameColor": "#4A3528",
+      "ceilingColor": "#F7F4EE",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [
+    {
+      "id": "chg-gym-lockers-12-1",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-lockers-12",
+      "label": "Lockers, bank of 12",
+      "box": {
+        "cx": 30.7,
+        "cz": 32.78,
+        "w": 1.8,
+        "d": 0.45,
+        "yawDeg": 0
+      },
+      "heightM": 1.8,
+      "surfaceHeightM": 1.8
+    },
+    {
+      "id": "chg-gym-lockers-6-2",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-lockers-6",
+      "label": "Lockers, bank of 6",
+      "box": {
+        "cx": 32.05,
+        "cz": 32.78,
+        "w": 0.9,
+        "d": 0.45,
+        "yawDeg": 0
+      },
+      "heightM": 1.8,
+      "surfaceHeightM": 1.8
+    },
+    {
+      "id": "chg-gym-lockers-6-3",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-lockers-6",
+      "label": "Lockers, bank of 6",
+      "box": {
+        "cx": 33,
+        "cz": 32.78,
+        "w": 0.9,
+        "d": 0.45,
+        "yawDeg": 0
+      },
+      "heightM": 1.8,
+      "surfaceHeightM": 1.8
+    },
+    {
+      "id": "chg-gym-locker-bench-4",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-locker-bench",
+      "label": "Changing-room bench",
+      "box": {
+        "cx": 32.59,
+        "cz": 35.84,
+        "w": 1.5,
+        "d": 0.35,
+        "yawDeg": 0
+      },
+      "heightM": 0.45,
+      "surfaceHeightM": 0.45
+    }
+  ],
+  "spawn": {
+    "x": 34.66,
+    "z": 34.42,
+    "yawDeg": 270
+  },
+  "unlisted": true,
+  "spaceKind": "gym",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}
