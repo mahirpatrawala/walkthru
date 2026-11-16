@@ -133,20 +133,42 @@ class BuildingWalk implements BuildingWalkApi {
 
   /** The people who were following the walker come out of the portal with them: set down just behind, one after another, and told to follow again. */
   private async setDownFollowers(m: MountedSpace, followers: PersonSpec[]): Promise<void> {
-    const w = m.ctx.character.position;
-    const yaw = (m.ctx.character.yawDeg * Math.PI) / 180;
-    const fx = Math.sin(yaw), fz = Math.cos(yaw);
-    // (back, side) offsets from the walker, nearest first
+    // candidate spots around the walker, behind first and nearest first: (back, side) offsets. A cramped foyer rejects the usual ones
+    // (a person may not block a door's swing), so the search widens to a full ring before it gives up.
     const spots: [number, number][] = [[0.9, 0.45], [0.9, -0.45], [1.5, 0], [1.5, 0.6], [1.5, -0.6], [2.1, 0.3], [2.1, -0.3]];
-    let n = 0;
-    for (const spec of followers) {
-      let done = false;
-      for (; n < spots.length && !done; n++) {
-        const [back, side] = spots[n];
-        const at = { x: w.x - fx * back + fz * side, z: w.z - fz * back - fx * side };
-        const r = await m.people.place(spec, { kind: 'stand', at, yawDeg: m.ctx.character.yawDeg });
-        if (r.ok) { m.people.setFollow(r.id, true); done = true; }
+    for (const r of [0.6, 0.9, 1.3, 1.8, 2.4]) {
+      for (let k = 0; k < 12; k++) {
+        const a = Math.PI + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (Math.PI / 6); // 180 degrees is straight behind
+        spots.push([-Math.cos(a) * r, Math.sin(a) * r]);
       }
+    }
+    // one pass over the spots for each companion; one who finds no room (the walker stands in a cramped foyer) waits and is tried again
+    // as the walker moves on, so nobody is dropped from the walk
+    let waiting = followers.slice();
+    const pass = async (): Promise<void> => {
+      const w = m.ctx.character.position;
+      const yaw = (m.ctx.character.yawDeg * Math.PI) / 180;
+      const fx = Math.sin(yaw), fz = Math.cos(yaw);
+      const left: PersonSpec[] = [];
+      let n = 0;
+      for (const spec of waiting) {
+        let done = false;
+        for (; n < spots.length && !done; n++) {
+          const [back, side] = spots[n];
+          const at = { x: w.x - fx * back + fz * side, z: w.z - fz * back - fx * side };
+          const r = await m.people.place(spec, { kind: 'stand', at, yawDeg: m.ctx.character.yawDeg });
+          if (r.ok) { m.people.setFollow(r.id, true); done = true; }
+        }
+        if (!done) left.push(spec);
+      }
+      waiting = left;
+    };
+    await pass();
+    if (waiting.length) m.hud.toast(waiting.length === 1 ? 'There is no room for your companion yet. They join you as soon as there is.' : `There is no room for ${waiting.length} companions yet. They join you as soon as there is.`);
+    for (let tries = 0; waiting.length && tries < 40 && this.mounted === m; tries++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      if (this.mounted !== m) return;
+      await pass();
     }
   }
 
