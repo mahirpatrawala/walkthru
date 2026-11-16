@@ -38,6 +38,8 @@ const ICONS: Record<PieceCategory, string> = {
   balcony: '<path d="M12 21v-8"/><path d="M12 13c-4 0-6-3-6-7 4 0 6 3 6 7zM12 15c4 0 6-3 6-6-4 0-6 2-6 6z"/><path d="M8 21h8"/>',
   fitness: '<path d="M6 8v8M3.5 10v4M18 8v8M20.5 10v4M6 12h12"/>',
   swing: '<path d="M7 3v9M17 3v9M4.5 3h15"/><path d="M5 12h14v3H5z"/><path d="M5 15v1.5M19 15v1.5"/>',
+  amenities: '<path d="M12 3s6 6.4 6 10.4a6 6 0 0 1-12 0C6 9.4 12 3 12 3z"/><path d="M9.5 14a2.5 2.5 0 0 0 2.5 2.5"/>',
+  decor: '<path d="M12 21v-8"/><path d="M12 13c-4 0-6-3-6-7 4 0 6 3 6 7zM12 15c4 0 6-3 6-6-4 0-6 2-6 6z"/><path d="M8 21h8"/>',
 };
 export const catalogIcon = (spec: CatalogItem): string =>
   `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[categoryOf(spec.id)]}</svg>`;
