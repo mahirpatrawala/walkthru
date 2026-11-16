@@ -5,7 +5,7 @@ import os from 'node:os';
 const OUT = process.env.CDP_OUT || `${os.tmpdir()}/walkthru-cdp`;
 fs.mkdirSync(OUT, { recursive: true });
 const [url, scriptPath] = process.argv.slice(2);
-const port = 9333 + Math.floor(Math.random() * 500);
+const port = 20000 + Math.floor(Math.random() * 20000);
 const profile = fs.mkdtempSync(`${OUT}/prof-`);
 const chrome = spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', [
   '--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
