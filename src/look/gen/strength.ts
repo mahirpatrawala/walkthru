@@ -279,7 +279,18 @@ export function buildStrength(env: GenEnv, size: GenSize, p: StrengthParams, _ro
         grip(parts, [s * sx, 0.3, sz - 0.3], [s * sx - s * 0.15, 0.3, sz - 0.3], 0.02);
       }
       cylX(parts, 'mg-roller', PAD_BLACK, -0.22, 0.22, 0.25, 0.7, 0.05, 10);
-      void ACCENT_BLUE; void ACCENT_RED; void IRON; void CONSOLE; void SHROUD_LIGHT; void tubes; void q;
+      // two more stations in the cavity either side of the lat seat: a seat and back pad each, a leg-extension roller on a lever, and an accent panel on every stack
+      for (const sgn of [-1, 1]) {
+        const cx = sgn * 0.88;
+        pad(parts, 'mg-seat', PAD_BLACK, cx - 0.2, cx + 0.2, 0.42, 0.5, -0.1, 0.32, 0.04);
+        pad(parts, 'mg-back', PAD_BLACK, cx - 0.2, cx + 0.2, 0.55, 1.1, -0.26, -0.16, 0.04);
+        tube(parts, 'mg-seat-post', FRAME, [cx, 0.06, 0.12], [cx, 0.42, 0.12], 0.04);
+        tubes(parts, 'mg-lever', FRAME_GREY, [[cx - 0.16, 0.45, 0.3], [cx - 0.16, 0.22, 0.56]], 0.022);
+        tubes(parts, 'mg-lever', FRAME_GREY, [[cx + 0.16, 0.45, 0.3], [cx + 0.16, 0.22, 0.56]], 0.022);
+        cylX(parts, 'mg-roller', PAD_BLACK, cx - 0.2, cx + 0.2, 0.22, 0.58, 0.05, 10);
+      }
+      for (const [cx, cz] of [[-sx, -sz], [sx, -sz], [-sx, sz], [sx, sz]] as const) slab(parts, 'mg-accent', ACCENT_RED, cx - 0.2, cx + 0.2, 1.1, 1.4, cz + (cz > 0 ? 0.2 : -0.225), cz + (cz > 0 ? 0.225 : -0.2));
+      void ACCENT_BLUE; void IRON; void CONSOLE; void SHROUD_LIGHT; void tubes; void q;
     },
   };
   build[v]();

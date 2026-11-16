@@ -11,7 +11,7 @@ import { CATALOG, catalogItem, itemFromCatalog, setCatalogCeiling, specFor } fro
 import { roomAt } from '../core/layout-geom';
 import { categoryOf } from '../core/pieces';
 import { allowedIn, categoryIn, notHereNote, rowsFor, spaceKindOf, trayWords } from '../core/places';
-import { mountCatalogPicker, catalogIcon } from './catalog-tray';
+import { mountCatalogPicker, catalogIcon, offeredIn } from './catalog-tray';
 import { pointInBox, sideEdge } from '../core/geometry';
 import { circleFree, nearestFree } from '../core/grid-query';
 import { checkPlacement, snapToWalls } from '../core/placement';
@@ -157,7 +157,7 @@ export function replacementBox(old: Box, spec: CatalogItem): Box {
  * home is as before): in a home the same family first (a bed for a bed), in a shared space the same tray category first (cardio for cardio).
  */
 export function replacementChoices(item: Pick<FurnitureItem, 'kind' | 'label' | 'catalogId'> & { box?: { w: number; d: number } }, spaceKind?: SpaceKind): { same: CatalogItem[]; other: CatalogItem[] } {
-  const rows = rowsFor(spaceKind, CATALOG);
+  const rows = rowsFor(spaceKind, CATALOG).filter((c) => offeredIn(c, spaceKind));
   if (spaceKind && spaceKind !== 'home' && spaceKind !== 'other') {
     const mine = item.catalogId ? categoryIn(item.catalogId, spaceKind) : null;
     return { same: rows.filter((c) => mine && categoryIn(c.id, spaceKind) === mine), other: rows.filter((c) => !mine || categoryIn(c.id, spaceKind) !== mine) };
@@ -1956,7 +1956,7 @@ function installDebug(ctx: BuyerContext, mode: FurnishMode): void {
     close: () => { ctx.setMode('walk'); return ctx.mode(); },
     /** the whole catalogue; `catalogueHere()` is what this space's tray offers (SPEC 16.17) */
     catalogue: () => CATALOG.map((c) => ({ id: c.id, label: cardLabel(c) })),
-    catalogueHere: () => rowsFor(spaceKindOf(ctx.property)).map((c) => ({ id: c.id, label: cardLabel(c) })),
+    catalogueHere: () => rowsFor(spaceKindOf(ctx.property)).filter((c) => offeredIn(c, spaceKindOf(ctx.property))).map((c) => ({ id: c.id, label: cardLabel(c) })),
     spaceKind: () => spaceKindOf(ctx.property),
     /** layout helpers of a shared space: placeRow(3, 1) beside the selected piece, placeGrid('hall-chair', 4, 8, { aisleEvery: 4 }), duplicate(), fillArea('gym-floor-2x2', { x0, z0, x1, z1 }), summary() */
     placeRow: (count: number, dir?: 1 | -1) => s.placeRow(count, dir),

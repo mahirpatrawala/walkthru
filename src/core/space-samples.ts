@@ -7,13 +7,16 @@
 // A piece that would not fit the room (a smaller room than the sample was drawn for) is left out too, never squeezed: the room size is the record.
 import type { Box, FurnitureItem } from '../types';
 import { catalogItem, itemFromCatalog } from './catalog';
-import { boxCorners } from './geometry';
+import { boxCorners, pointInBox } from './geometry';
 import { rowGapM } from './space-layout';
+import { pieceRule } from './pieces';
 
 export interface RoomBounds { x0: number; z0: number; x1: number; z1: number }
 export type Wall = 'north' | 'south' | 'east' | 'west';
 export interface SampleDoor { wall: Wall; atM: number; widthM: number }
-export interface SampleOptions { doors?: SampleDoor[]; idPrefix?: string }
+/** a marked position a building's lobby leaves for one of its pieces (`LobbyAnchor` of src/building/types.ts): the piece goes there, turned as the anchor says */
+export interface SampleAnchor { role: 'reception' | 'security' | 'seating' | 'letterboxes'; at: { x: number; z: number }; yawDeg: number; footprint: { w: number; d: number } }
+export interface SampleOptions { doors?: SampleDoor[]; idPrefix?: string; /** a lobby's marked positions: reception, security, seating and letterboxes are put on them */ anchors?: SampleAnchor[] }
 export type SampleKind = 'gym' | 'lobby' | 'hall';
 
 const r3 = (v: number): number => Math.round(v * 1000) / 1000;
@@ -25,7 +28,14 @@ function frameOf(b: RoomBounds): { W: number; L: number; at(u: number, v: number
   return { W: dz, L: dx, at: (u, v) => ({ x: b.x0 + v, z: b.z1 - u }), yaw: (p) => (p + 90) % 360, turned: true };
 }
 
-interface Builder { items: FurnitureItem[]; W: number; L: number; put(id: string, u: number, v: number, psi: number): FurnitureItem | null }
+interface Builder {
+  items: FurnitureItem[]; W: number; L: number;
+  put(id: string, u: number, v: number, psi: number): FurnitureItem | null;
+  /** the same, in the scene's own frame (x, z, yaw as a furniture box has it) */
+  putAt(id: string, x: number, z: number, yawDeg: number): FurnitureItem | null;
+  /** the first of these places that is free and in the room */
+  first(id: string, places: Array<[number, number, number]>): FurnitureItem | null;
+}
 
 function builder(room: RoomBounds, o: SampleOptions, kind: SampleKind): Builder {
   const f = frameOf(room);
@@ -41,22 +51,31 @@ function builder(room: RoomBounds, o: SampleOptions, kind: SampleKind): Builder 
     else landings.push({ x0: room.x1 - 1.4, x1: room.x1, z0: room.z0 + d.atM - half, z1: room.z0 + d.atM + half });
   }
   const items: FurnitureItem[] = [];
-  const put = (id: string, u: number, v: number, psi: number): FurnitureItem | null => {
+  const putAt = (id: string, x: number, z: number, yawDeg: number): FurnitureItem | null => {
     const spec = catalogItem(id);
-    const p = f.at(u, v);
-    const box: Box = { cx: r3(p.x), cz: r3(p.z), w: spec.footprint.w, d: spec.footprint.d, yawDeg: f.yaw(psi) };
+    const box: Box = { cx: r3(x), cz: r3(z), w: spec.footprint.w, d: spec.footprint.d, yawDeg };
     const cs = boxCorners(box);
     const xs = cs.map((c) => c.x), zs = cs.map((c) => c.z);
     const inside = Math.min(...xs) >= room.x0 - 1e-6 && Math.max(...xs) <= room.x1 + 1e-6 && Math.min(...zs) >= room.z0 - 1e-6 && Math.max(...zs) <= room.z1 + 1e-6;
     if (!inside) return null;
     // flat pieces and wall pieces may lie over a doorway landing; nothing that stands may
     if (spec.heightM >= 0.06 && landings.some((l) => Math.min(...xs) < l.x1 && Math.max(...xs) > l.x0 && Math.min(...zs) < l.z1 && Math.max(...zs) > l.z0)) return null;
+    // a piece that stands does not stand inside another that stands
+    if (spec.heightM >= 0.06 && items.some((o) => o.heightM >= 0.06 && !(pieceRule(o.catalogId)?.mountY) && !pieceRule(id)?.mountY && overlaps(box, o.box))) return null;
     const item = itemFromCatalog(id, box, 'virtual');
     item.id = `${prefix}-${items.length + 1}-${id}`;
     items.push(item);
     return item;
   };
-  return { items, W: f.W, L: f.L, put };
+  const put = (id: string, u: number, v: number, psi: number): FurnitureItem | null => { const p = f.at(u, v); return putAt(id, p.x, p.z, f.yaw(psi)); };
+  const first = (id: string, places: Array<[number, number, number]>): FurnitureItem | null => { for (const [u, v, psi] of places) { const r = put(id, u, v, psi); if (r) return r; } return null; };
+  return { items, W: f.W, L: f.L, put, putAt, first };
+}
+
+/** do two footprints overlap: a corner or the middle of one inside the other, either way round */
+function overlaps(a: Box, b: Box): boolean {
+  const pts = (x: Box): Array<{ x: number; z: number }> => [...boxCorners(x), { x: x.cx, z: x.cz }];
+  return pts(a).some((p) => pointInBox(p, b, 0.01)) || pts(b).some((p) => pointInBox(p, a, 0.01));
 }
 
 /** a run of pieces along a wall, each at its own spacing: `start` is the first piece's edge, along the wall; returns where the run ends */
@@ -99,8 +118,9 @@ function gymPieces(room: RoomBounds, o: SampleOptions): FurnitureItem[] {
   // strength machines along the east wall, one after another at their own spacing
   run(b, ['gym-chest-press', 'gym-shoulder-press', 'gym-pec-fly', 'gym-lat-pulldown', 'gym-seated-row', 'gym-leg-extension'], 'east', 0.42);
   // free weights at the south end: the power rack against the wall, the bench press with its head end toward the room so a spotter has room
-  b.put('gym-power-rack', 2.2, L - 0.8 - 0.03, 180);
-  b.put('gym-bench-press', 4.95, L - 0.8 - 0.03, 0);
+  // (the first free place: a door in the south wall keeps its landing clear, so the area moves aside)
+  b.first('gym-power-rack', [[2.2, L - 0.8 - 0.03, 180], [2.0, L - 0.8 - 0.03, 180], [1.7, L - 0.8 - 0.03, 180]]);
+  b.first('gym-bench-press', [[4.95, L - 0.8 - 0.03, 0], [5.55, L - 0.8 - 0.03, 0], [6.4, L - 0.8 - 0.03, 0]]);
   // north: wall bars, kettlebells and dumbbells along the wall, two benches in front of them
   b.put('gym-wall-bars', 1.0, 0.06 + 0.03, 0);
   b.put('gym-kettlebell-rack', 2.2, 0.25 + 0.03, 0);
@@ -126,6 +146,7 @@ function gymPieces(room: RoomBounds, o: SampleOptions): FurnitureItem[] {
 /** A lobby for a room about 9 x 7 m: a reception desk and the security desk at the back, a letterbox bank and directory on a side wall, a seating group, planters, art, a notice board. */
 function lobbyPieces(room: RoomBounds, o: SampleOptions): FurnitureItem[] {
   const b = builder(room, o, 'lobby');
+  if (o.anchors && o.anchors.length > 0) return anchoredLobby(b, room, o.anchors);
   const { W, L } = b;
   // the long side is the run of the room: reception stands out from the far (north) wall so the staff have room behind it; the entry is at the south
   b.put('lobby-desk', W / 2, 0.4 + 0.8 + 0.5, 0);
@@ -142,6 +163,33 @@ function lobbyPieces(room: RoomBounds, o: SampleOptions): FurnitureItem[] {
   b.put('armchair', 2.25, L / 2 - 0.9, 180);
   b.put('side-table', 0.5, L / 2 - 1.7, 0);
   b.put('lobby-bench', 0.225 + 0.03, L - 2.0, 90);
+  return b.items;
+}
+
+/**
+ * A lobby whose building marks the positions (SPEC 18.2 `lobbyAnchors`): the reception desk, security desk, visitor seating and two letterbox banks go ON those
+ * anchors, back edge to the anchor's back edge, turned as it says; planters, a directory board and a wall panel fill the free corners. The rest of the
+ * room is left open: the marked positions are what the building's author decided.
+ */
+function anchoredLobby(b: Builder, room: RoomBounds, anchors: SampleAnchor[]): FurnitureItem[] {
+  const piece: Record<SampleAnchor['role'], string> = { reception: 'lobby-desk', security: 'lobby-security-desk', seating: 'lobby-visitor-set', letterboxes: 'lobby-letterboxes' };
+  const onAnchor = (a: SampleAnchor, id: string, along = 0): void => {
+    const s = catalogItem(id);
+    const y = (a.yawDeg * Math.PI) / 180;
+    const front = { x: Math.sin(y), z: Math.cos(y) }, right = { x: Math.cos(y), z: -Math.sin(y) };
+    const back = a.footprint.d / 2 - s.footprint.d / 2;
+    b.putAt(id, a.at.x - front.x * back + right.x * along, a.at.z - front.z * back + right.z * along, a.yawDeg);
+  };
+  for (const a of anchors) {
+    if (a.role === 'letterboxes') { onAnchor(a, piece[a.role], -0.6); onAnchor(a, piece[a.role], 0.6); }
+    else onAnchor(a, piece[a.role]);
+  }
+  const { x0, z0, x1, z1 } = room;
+  b.putAt('lobby-planter-large', x0 + 0.55, z1 - 0.6, 0);
+  b.putAt('lobby-planter-large', x1 - 0.45, z1 - 0.6, 0);
+  b.putAt('lobby-directory', x1 - 0.7, z0 + 0.025 + 0.03, 0);
+  const seating = anchors.find((a) => a.role === 'seating');
+  if (seating) b.putAt('lobby-art-panel', x0 + 0.03, seating.at.z, 90);
   return b.items;
 }
 

@@ -195,23 +195,31 @@ export function buildCardio(env: GenEnv, size: GenSize, p: CardioParams, _roles:
     },
 
     stair: () => {
-      // a step mill: a tall base housing, two large pedals on arms, a mast with the console, side rails
-      parts.box('stair-base', SHROUD, -x1, x1, 0.0, 0.22, z0, z1, { c: 0.012 });
-      parts.box('stair-base-top', SHROUD_LIGHT, -x1 + 0.1, x1 - 0.1, 0.22, 0.3, z0 + 0.2, z1 - 0.1, { c: 0.01 });
-      for (const [i, s] of [-1, 1].entries()) {
-        const up = i === 0 ? 0.0 : 0.17;
-        parts.box('stair-pedals', FRAME, s * 0.205 - 0.17, s * 0.205 + 0.17, S - 0.03 + up, S + up, z0 + 0.7, z1 - 0.05, { c: 0.01 });
-        slab(parts, 'stair-pedal-pads', RUBBER, s * 0.205 - 0.15, s * 0.205 + 0.15, S + up, S + up + 0.008, z0 + 0.74, z1 - 0.09);
-      }
-      for (const s of [-1, 1]) {
-        tube(parts, 'stair-uprights', FRAME_GREY, [s * (x1 - 0.08), 0.28, z0 + 0.14], [s * (x1 - 0.08), 1.25, z0 + 0.14], 0.03, true);
-        tubes(parts, 'stair-handrails', FRAME_GREY, [[s * (x1 - 0.08), 1.2, z0 + 0.14], [s * (x1 - 0.08), 1.14, z0 + 0.7], [s * (x1 - 0.08), 1.0, z0 + 0.95]], 0.02);
-        grip(parts, [s * (x1 - 0.08), 1.14, z0 + 0.5], [s * (x1 - 0.08), 1.05, z0 + 0.88], 0.024);
-      }
-      tube(parts, 'stair-mast', FRAME_GREY, [0, 0.28, z0 + 0.2], [0, H - 0.3, z0 + 0.14], 0.045, true);
+      // a step mill: a low base plate, a tall rear housing that carries the console, two big step platforms on arms that reach out from it (one up, one down
+      // in the stride), side handrails that sweep back to the housing
+      slab(parts, 'stair-base', FRAME, -x1, x1, 0.0, 0.08, z0, z1);
+      parts.box('stair-feet', RUBBER, -x1, x1, 0.0, 0.03, z1 - 0.12, z1, { c: 0.004 });
+      parts.box('stair-housing', SHROUD, -x1 + 0.1, x1 - 0.1, 0.08, 1.3, z0, z0 + 0.62, { c: 0.012 });
+      parts.box('stair-housing-top', SHROUD_LIGHT, -x1 + 0.16, x1 - 0.16, 1.3, 1.42, z0 + 0.04, z0 + 0.56, { c: 0.008 });
+      slab(parts, 'stair-vent', FRAME, -0.2, 0.2, 0.3, 0.9, z0 + 0.62, z0 + 0.625);
+      tube(parts, 'stair-mast', FRAME_GREY, [0, 1.4, z0 + 0.3], [0, H - 0.2, z0 + 0.24], 0.05, true);
       parts.box('stair-console', CONSOLE, -0.27, 0.27, H - 0.36, H, z0, z0 + 0.3, { c: 0.012 });
       slab(parts, 'stair-screen', SCREEN_GLASS, -0.22, 0.22, H - 0.32, H - 0.06, z0 + 0.3, z0 + 0.304);
       slab(parts, 'stair-keys', SHROUD_LIGHT, -0.22, 0.22, H - 0.05, H - 0.01, z0 + 0.14, z0 + 0.3);
+      // the two step arms, one high and one low, each ending in a platform
+      for (const [i, s] of [-1, 1].entries()) {
+        const py = i === 0 ? 0.34 : 0.52;
+        const px = s * 0.2;
+        for (const e of [-1, 1]) tube(parts, 'stair-arms', FRAME_GREY, [px + e * 0.12, py + 0.1, z0 + 0.55], [px + e * 0.12, py, z1 - 0.62], 0.024);
+        parts.box('stair-pedals', FRAME, px - 0.19, px + 0.19, py - 0.035, py + 0.02, z1 - 0.7, z1 - 0.12, { c: 0.01 });
+        slab(parts, 'stair-pedal-pads', RUBBER, px - 0.17, px + 0.17, py + 0.02, py + 0.028, z1 - 0.68, z1 - 0.14);
+      }
+      for (const s of [-1, 1]) {
+        tubes(parts, 'stair-handrails', FRAME_GREY, [[s * (x1 - 0.06), 0.9, z0 + 0.5], [s * (x1 - 0.06), 1.08, z0 + 0.95], [s * (x1 - 0.06), 1.1, z1 - 0.55]], 0.02);
+        tube(parts, 'stair-uprights', FRAME_GREY, [s * (x1 - 0.06), 0.08, z1 - 0.5], [s * (x1 - 0.06), 1.1, z1 - 0.55], 0.024, true);
+        grip(parts, [s * (x1 - 0.06), 1.1, z1 - 0.9], [s * (x1 - 0.06), 1.1, z1 - 0.55], 0.024);
+      }
+      tube(parts, 'stair-handrails', FRAME_GREY, [-(x1 - 0.06), 1.1, z1 - 0.55], [x1 - 0.06, 1.1, z1 - 0.55], 0.02);
     },
   };
   build[v]();

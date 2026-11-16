@@ -6,6 +6,10 @@ import { categoryLabel, categoryOf, pieceRule } from '../core/pieces';
 import type { PieceCategory } from '../core/pieces';
 import { allowedIn, categoriesFor, categoryIn, trayWords } from '../core/places';
 import type { CatalogItem, SpaceKind } from '../types';
+import { catalogueAllowedIn } from '../building/extension';
+
+/** offered in this kind of space: the catalogue's own places, and the rule a building installs while a space is up (src/building/walk.ts; none outside a building) */
+export const offeredIn = (c: CatalogItem, kind: SpaceKind | undefined): boolean => allowedIn(c.id, kind) && catalogueAllowedIn(c, kind ?? 'home');
 
 export type CategoryChoice = PieceCategory | 'all';
 
@@ -21,12 +25,12 @@ export function searchText(spec: CatalogItem): string {
  */
 export function filterCatalog(category: CategoryChoice, query: string, rows: readonly CatalogItem[] = CATALOG, kind?: SpaceKind): CatalogItem[] {
   const words = query.toLowerCase().split(/[\s,]+/).filter(Boolean);
-  return rows.filter((c) => allowedIn(c.id, kind) && (category === 'all' || categoryIn(c.id, kind) === category) && words.every((w) => searchText(c).includes(w)));
+  return rows.filter((c) => offeredIn(c, kind) && (category === 'all' || categoryIn(c.id, kind) === category) && words.every((w) => searchText(c).includes(w)));
 }
 
 /** how many pieces each category holds in a space of this kind (for the selector's labels) */
 export function categoryCounts(rows: readonly CatalogItem[] = CATALOG, kind?: SpaceKind): Record<CategoryChoice, number> {
-  const here = rows.filter((r) => allowedIn(r.id, kind));
+  const here = rows.filter((r) => offeredIn(r, kind));
   const out = { all: here.length } as Record<CategoryChoice, number>;
   for (const c of categoriesFor(kind)) out[c.id] = here.filter((r) => categoryIn(r.id, kind) === c.id).length;
   return out;

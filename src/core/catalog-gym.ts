@@ -214,8 +214,8 @@ export const GYM_PIECES: MorePiece[] = [
     note: 'Plate trees are 60 to 90 square and 110 to 140 cm high. It carries plates from 20 kg down to 2.5 kg.',
   }),
   gym({
-    id: 'gym-kettlebell-rack', name: 'Kettlebell rack, 8 bells', cat: 'freeweights', w: 1.2, d: 0.5, h: 0.86, s: 0.64,
-    label: '120 × 50 × 86 cm, 4 to 32 kg', look: 'freew', params: { variant: 'kettlebells' }, pose: 'dims', kw: 'kettlebell rack kettlebells kb functional free weights',
+    id: 'gym-kettlebell-rack', name: 'Kettlebell rack, 8 bells', cat: 'freeweights', w: 1.2, d: 0.5, h: 0.89, s: 0.64,
+    label: '120 × 50 × 89 cm, 4 to 32 kg', look: 'freew', params: { variant: 'kettlebells' }, pose: 'dims', kw: 'kettlebell rack kettlebells kb functional free weights',
     zones: [zone('pick', ['front'], 0.8, 'in front', '80 cm in front to lift a kettlebell off and to swing it', 'there is no room to take a kettlebell, {obs} is in the way', 'taking a kettlebell is cramped')],
     note: 'Two-tier kettlebell racks are 100 to 130 long, 45 to 60 deep and 80 to 90 cm high. Bells are drawn from 4 to 32 kg (a 24 kg bell is about 22 cm across).',
   }),

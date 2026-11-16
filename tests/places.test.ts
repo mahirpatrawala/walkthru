@@ -9,6 +9,7 @@ import { allowedIn, categoriesFor, categoryIn, notHereNote, placesOf, rowsFor, s
 import { categoryCounts, filterCatalog } from '../src/buyer/catalog-tray';
 import { replacementChoices } from '../src/buyer/furnish';
 import { validateProperty } from '../src/core/layout-validate';
+import { catalogueFilterInstalled, setCatalogueFilter } from '../src/building/extension';
 import { propertyOf, SPACES, writeScenes } from '../scripts/make-space-scenes';
 
 const HOME_ONLY = ['bed-king', 'wardrobe-2', 'fridge-1', 'wc-western', 'swing-2', 'cot', 'treadmill', 'shoe-rack', 'bathtub'];
@@ -76,6 +77,24 @@ describe('the tray follows the kind of space', () => {
     expect(trayWords('gym').title).toBe('Add equipment');
     expect(trayWords('home').title).toBe('Add furniture');
     expect(trayWords(undefined).all).toBe('All furniture');
+  });
+});
+
+describe('the rule a building installs (stage 1\'s setCatalogueFilter)', () => {
+  it('the tray follows it while a space is up, and is back to the catalogue\'s own places the moment it is cleared', () => {
+    const base = ids(filterCatalog('all', '', CATALOG, 'gym'));
+    expect(catalogueFilterInstalled()).toBe(false);
+    setCatalogueFilter((kind, item) => allowedIn(item.id, kind));
+    expect(catalogueFilterInstalled()).toBe(true);
+    expect(ids(filterCatalog('all', '', CATALOG, 'gym'))).toEqual(base);
+    // a stricter rule narrows what the tray offers, whatever the rows say
+    setCatalogueFilter((kind, item) => allowedIn(item.id, kind) && item.id !== 'gym-treadmill');
+    expect(ids(filterCatalog('all', '', CATALOG, 'gym'))).not.toContain('gym-treadmill');
+    expect(categoryCounts(CATALOG, 'gym').all).toBe(base.length - 1);
+    expect(ids(replacementChoices({ kind: 'counter', label: 'Rower', catalogId: 'gym-rower' }, 'gym').same)).not.toContain('gym-treadmill');
+    setCatalogueFilter(null);
+    expect(catalogueFilterInstalled()).toBe(false);
+    expect(ids(filterCatalog('all', '', CATALOG, 'gym'))).toEqual(base);
   });
 });
 

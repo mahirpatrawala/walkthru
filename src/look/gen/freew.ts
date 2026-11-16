@@ -196,10 +196,11 @@ export function buildFreeWeights(env: GenEnv, size: GenSize, p: FreeWParams, _ro
           body.translate(x, y + r, 0);
           parts.put('kettlebells', IRON, body);
           // handle: an arch on top, as a half ring of tube
-          const arch = new THREE.TorusGeometry(r * 0.5, 0.012, 5, Math.max(8, q.sides * 2), Math.PI);
-          arch.translate(x, y + r * 1.55, 0);
+          // the handle: a thick arch standing clear of the body (0.35 r above its top), its ends buried in the shoulders
+          const arch = new THREE.TorusGeometry(r * 0.5, 0.017, q.tier === 'low' ? 4 : 6, q.tier === 'low' ? 8 : 16, Math.PI);
+          arch.translate(x, y + r * 1.85, 0);
           parts.put('kettlebell-handles', IRON, arch);
-          for (const s of [-1, 1]) tube(parts, 'kettlebell-handles', IRON, [x + s * r * 0.5, y + r * 1.55, 0], [x + s * r * 0.45, y + r * 1.55 - r * 0.45, 0], 0.012);
+          for (const s of [-1, 1]) tube(parts, 'kettlebell-handles', IRON, [x + s * r * 0.5, y + r * 1.85, 0], [x + s * r * 0.5, y + r * 1.6, 0], 0.017);
         });
       }
       slab(parts, 'kb-top', FRAME, -x1, x1, H - 0.02, H, z0 + 0.03, z0 + 0.06);

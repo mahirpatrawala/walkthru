@@ -201,68 +201,148 @@
   },
   "furniture": [
     {
-      "id": "lobby-sofa-1",
+      "id": "lobby-1-lobby-desk",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-desk",
+      "label": "Reception desk, straight",
+      "box": {
+        "cx": 6,
+        "cz": 1.2,
+        "w": 2.4,
+        "d": 0.8,
+        "yawDeg": 0
+      },
+      "heightM": 1.15,
+      "surfaceHeightM": 1.05
+    },
+    {
+      "id": "lobby-2-lobby-security-desk",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-security-desk",
+      "label": "Security desk",
+      "box": {
+        "cx": 7.7,
+        "cz": 5.9,
+        "w": 1.6,
+        "d": 0.75,
+        "yawDeg": 270
+      },
+      "heightM": 1.45,
+      "surfaceHeightM": 0.76
+    },
+    {
+      "id": "lobby-3-lobby-visitor-set",
       "source": "virtual",
       "kind": "sofa",
-      "catalogId": "sofa-3",
-      "label": "3-seat sofa",
+      "catalogId": "lobby-visitor-set",
+      "label": "Visitor seating set",
       "box": {
-        "cx": 0.65,
-        "cz": 4.9,
-        "w": 2.1,
-        "d": 0.9,
+        "cx": 1.05,
+        "cz": 4.6,
+        "w": 2.4,
+        "d": 2,
         "yawDeg": 90
       },
       "heightM": 0.85,
-      "surfaceHeightM": 0.43
+      "surfaceHeightM": 0.45
     },
     {
-      "id": "lobby-sofa-2",
-      "source": "virtual",
-      "kind": "sofa",
-      "catalogId": "sofa-2",
-      "label": "2-seat sofa",
-      "box": {
-        "cx": 3.6,
-        "cz": 4.6,
-        "w": 1.5,
-        "d": 0.85,
-        "yawDeg": 270
-      },
-      "heightM": 0.85,
-      "surfaceHeightM": 0.43
-    },
-    {
-      "id": "lobby-table",
+      "id": "lobby-4-lobby-letterboxes",
       "source": "virtual",
       "kind": "counter",
-      "catalogId": "side-table",
-      "label": "Side table",
+      "catalogId": "lobby-letterboxes",
+      "label": "Letterbox bank, 30 boxes",
       "box": {
-        "cx": 2.1,
-        "cz": 4.75,
-        "w": 0.45,
-        "d": 0.45,
+        "cx": 0.125,
+        "cz": 2.5,
+        "w": 1.2,
+        "d": 0.15,
+        "yawDeg": 90
+      },
+      "heightM": 2,
+      "surfaceHeightM": 2
+    },
+    {
+      "id": "lobby-5-lobby-letterboxes",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-letterboxes",
+      "label": "Letterbox bank, 30 boxes",
+      "box": {
+        "cx": 0.125,
+        "cz": 1.3,
+        "w": 1.2,
+        "d": 0.15,
+        "yawDeg": 90
+      },
+      "heightM": 2,
+      "surfaceHeightM": 2
+    },
+    {
+      "id": "lobby-6-lobby-planter-large",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-planter-large",
+      "label": "Planter, large round",
+      "box": {
+        "cx": 0.55,
+        "cz": 6.4,
+        "w": 0.8,
+        "d": 0.8,
         "yawDeg": 0
       },
-      "heightM": 0.55,
+      "heightM": 1.5,
       "surfaceHeightM": 0.55
     },
     {
-      "id": "lobby-armchair",
+      "id": "lobby-7-lobby-planter-large",
       "source": "virtual",
-      "kind": "sofa",
-      "catalogId": "armchair",
-      "label": "Armchair",
+      "kind": "counter",
+      "catalogId": "lobby-planter-large",
+      "label": "Planter, large round",
       "box": {
-        "cx": 2,
-        "cz": 2.9,
+        "cx": 8.55,
+        "cz": 6.4,
         "w": 0.8,
-        "d": 0.85,
+        "d": 0.8,
         "yawDeg": 0
       },
-      "heightM": 0.85,
-      "surfaceHeightM": 0.43
+      "heightM": 1.5,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "lobby-8-lobby-directory",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-directory",
+      "label": "Name directory board",
+      "box": {
+        "cx": 8.3,
+        "cz": 0.055,
+        "w": 0.9,
+        "d": 0.05,
+        "yawDeg": 0
+      },
+      "heightM": 2.1,
+      "surfaceHeightM": 2.1
+    },
+    {
+      "id": "lobby-9-lobby-art-panel",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "lobby-art-panel",
+      "label": "Wall art panel, 180 × 100",
+      "box": {
+        "cx": 0.03,
+        "cz": 4.6,
+        "w": 1.8,
+        "d": 0.04,
+        "yawDeg": 90
+      },
+      "heightM": 2.2,
+      "surfaceHeightM": 2.2
     }
   ],
   "spawn": {

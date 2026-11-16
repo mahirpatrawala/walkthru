@@ -10,7 +10,10 @@ import { createLoadingScreen } from '../buyer/loading';
 import type { LoadingScreen } from '../buyer/loading';
 import { ARRIVAL_FROM_M, arrivalAtDoor } from './arrival';
 import { createCurtain, createLoadingCurtain } from './curtain';
-import { contextOf, setSpaceContext } from './extension';
+import { catalogueFilterInstalled, contextOf, setCatalogueFilter, setSpaceContext } from './extension';
+import { allowedIn } from '../core/places';
+import { CATALOG } from '../core/catalog';
+import { catalogueAllowedIn } from './extension';
 import { openLiftPanel } from './lift-panel';
 import type { LiftPanel } from './lift-panel';
 import { NotFound, fetchBuilding, fetchScene } from './load';
@@ -44,6 +47,8 @@ export interface BuildingWalkApi {
   openMap(): void;
   /** debug: what the page holds right now, for the leak check */
   metrics(): { geometries: number; textures: number; programs: number; calls: number; nodes: number; spaces: number; lastBootMs: number };
+  /** debug: the catalogue rule while a space is up: is one installed, which kind of space, how many pieces it offers */
+  catalogue(): { installed: boolean; kind: string | null; offered: number };
 }
 
 class BuildingWalk implements BuildingWalkApi {
@@ -114,7 +119,9 @@ class BuildingWalk implements BuildingWalkApi {
   private onMounted(m: MountedSpace, loc: Located, host: SpaceHost, followers: PersonSpec[]): void {
     this.mounted = m;
     setSpaceContext(contextOf(this.building.id, loc.space));
-    m.onDispose(() => setSpaceContext(null));
+    // stage 2: the tray offers what the kind of space allows (SPEC 16.17). The rule is installed with the space and goes with it: no stale rule in the next one.
+    setCatalogueFilter((kind, item) => allowedIn(item.id, kind));
+    m.onDispose(() => { setSpaceContext(null); setCatalogueFilter(null); });
     this.portals = mountPortals(m, loc.space.portals, (p) => { void this.usePortal(p); });
     host.tapClaim = (e) => this.portals?.tap(e) ?? false;
     m.onDispose(() => { host.tapClaim = null; this.portals?.dispose(); this.portals = null; this.closePanels(); });
@@ -291,6 +298,11 @@ class BuildingWalk implements BuildingWalkApi {
   private closeMap(): void {
     if (!this.map) return;
     this.map.off(); this.map.view.destroy(); this.map.root.remove(); this.map = null;
+  }
+
+  catalogue(): { installed: boolean; kind: string | null; offered: number } {
+    const kind = this.here?.space.kind ?? null;
+    return { installed: catalogueFilterInstalled(), kind, offered: kind ? CATALOG.filter((c) => catalogueAllowedIn(c, kind)).length : CATALOG.length };
   }
 
   metrics(): { geometries: number; textures: number; programs: number; calls: number; nodes: number; spaces: number; lastBootMs: number } {
