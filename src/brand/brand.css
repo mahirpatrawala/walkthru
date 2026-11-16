@@ -2,7 +2,9 @@
    Colour: terracotta (the action colour), teal (the "measured / trusted" colour), ochre (warmth, never text on light), warm paper and ink.
    Contrast checked (WCAG, text on its fill): white on clay 5.5, white on teal 6.2 / dark teal 7.6, ink on paper 13.9, muted on paper 5.5,
    clay on card 5.4, ochre-ink on card 5.8. The verdict colours of SPEC 2 (good, warn, bad) are unchanged.
+   Sizes, radii, glass and layers live in tokens.css (SPEC 2.7).
    Type: Bricolage Grotesque for display (wordmark, headings, chips, buttons), the system UI font for everything you read. */
+@import './tokens.css';
 :root {
   --wt-clay: #B2472B;
   --wt-clay-dark: #8F3720;

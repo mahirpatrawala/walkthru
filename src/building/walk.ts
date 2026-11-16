@@ -15,6 +15,8 @@ import { allowedIn } from '../core/places';
 import { CATALOG } from '../core/catalog';
 import { catalogueAllowedIn } from './extension';
 import { openLiftPanel } from './lift-panel';
+import { openFlatsPanel, flatLevels } from './flats';
+import type { FlatsPanel } from './flats';
 import type { LiftPanel } from './lift-panel';
 import { NotFound, fetchBuilding, fetchScene } from './load';
 import { mountBuildingMap } from './map';
@@ -29,6 +31,7 @@ import type { BuildingFile, Portal } from './types';
 import { buildingUrl, parseBuildingUrl } from './url';
 import { withViewParam } from '../buyer/views/view-modes';
 
+const FLATS_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.2"/><rect x="13" y="4" width="7" height="7" rx="1.2"/><rect x="4" y="13" width="7" height="7" rx="1.2"/><rect x="13" y="13" width="7" height="7" rx="1.2"/></svg>';
 const MAP_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21"/><path d="M3.5 21h17"/><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1M9.5 15h1M13.5 15h1"/><path d="M11 21v-3h2v3"/></svg>';
 
 interface EnterOptions {
@@ -59,6 +62,7 @@ class BuildingWalk implements BuildingWalkApi {
   private portals: PortalHandle | null = null;
   private here: Located | null = null;
   private liftPanel: LiftPanel | null = null;
+  private flatsPanel: FlatsPanel | null = null;
   private map: { root: HTMLElement; view: BuildingMap; off: () => void } | null = null;
   private busy = false;
   /** Back or Forward was pressed while a transition was running: follow the address once it is done */
@@ -90,7 +94,8 @@ class BuildingWalk implements BuildingWalkApi {
       carry,
       bare: b.bare === true,
       space: { id: loc.space.id, kind: loc.space.kind, outdoor: loc.space.outdoor === true, pack: loc.space.pack ?? null },
-      tagText: b.sample ? `${loc.space.name} · ${loc.level.label}. Sample building, not a real home.` : `${loc.space.name} · ${loc.level.label}`,
+      placeText: `${loc.space.name} · ${loc.level.label}`,
+      tagText: b.sample ? 'Sample building. Plan follows a published brochure; furniture is illustrative.' : null,
       loading: o.screen,
       doorLooks: doorLooksFor(loc.space),
       arrival: o.opening ? (layout, grid) => { const a = arrivalAtDoor(layout, grid, o.opening!, o.fromM ?? ARRIVAL_FROM_M); return a ? { x: a.x, z: a.z, yawDeg: a.yawDeg } : null; } : null,
@@ -131,15 +136,24 @@ class BuildingWalk implements BuildingWalkApi {
     m.onDispose(() => signs.dispose());
     m.onDispose(() => { host.tapClaim = null; this.portals?.dispose(); this.portals = null; this.closePanels(); });
     void this.setDownFollowers(m, followers);
-    // the "Building map" button, beside the HUD's own
-    const bar = m.hud.root.querySelector('.wt-buttons');
-    if (bar) {
-      const btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'wt-btn'; btn.dataset.ui = '1'; btn.dataset.btn = 'building';
-      btn.setAttribute('aria-label', 'Building map'); btn.title = 'Building map';
-      btn.innerHTML = MAP_ICON;
-      btn.addEventListener('click', (e) => { e.stopPropagation(); this.openMap(); btn.blur(); });
-      bar.insertBefore(btn, bar.firstChild);
+    // the way back: "Building" opens the map (top right, in every space, kept in clean view's reach by the "Controls" pill)
+    const slot = m.hud.exit;
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'wt-btn wt-tool'; btn.dataset.ui = '1'; btn.dataset.btn = 'building'; btn.dataset.testid = 'building-btn';
+    btn.setAttribute('aria-label', 'Building map'); btn.title = 'Building map';
+    btn.innerHTML = `${MAP_ICON}<span class="wt-tool-label">Building</span>`;
+    btn.addEventListener('click', (e) => { e.stopPropagation(); this.openMap(); btn.blur(); });
+    slot.appendChild(btn);
+    m.onDispose(() => btn.remove());
+    // the Flats switcher: jump to another flat from here, without the lift (a tool in the bar, first after the Tour)
+    if (flatLevels(this.building).length > 0) {
+      const fb = document.createElement('button');
+      fb.type = 'button'; fb.className = 'wt-btn wt-tool'; fb.dataset.ui = '1'; fb.dataset.btn = 'flats'; fb.dataset.testid = 'flats-btn';
+      fb.setAttribute('aria-label', 'Flats: jump to another flat'); fb.title = 'Flats: jump to another flat';
+      fb.innerHTML = `${FLATS_ICON}<span class="wt-tool-label">Flats</span>`;
+      fb.addEventListener('click', (e) => { e.stopPropagation(); this.openFlats(); fb.blur(); });
+      m.hud.tools.appendChild(fb);
+      m.onDispose(() => fb.remove());
     }
   }
 
@@ -196,6 +210,18 @@ class BuildingWalk implements BuildingWalkApi {
     const farPortal = far?.space.portals.find((x) => x.id === p.to.portal);
     if (!far || !farPortal) { m.hud.toast('That door does not lead anywhere yet.'); return; }
     await this.transition(far.space.id, { opening: farPortal.opening, kind: 'door', title: far.space.name, sub: far.level.label });
+  }
+
+  /** SPEC 18.14: the Flats panel; a choice goes to that flat's main door behind the same loading screen as a door */
+  private openFlats(): void {
+    const m = this.mounted, here = this.here;
+    if (!m || !here || this.flatsPanel || this.liftPanel || this.map) return;
+    m.block(true);
+    this.flatsPanel = openFlatsPanel(m.hud.root, {
+      building: this.building, here: here.space.id,
+      onChoose: (spaceId) => { this.flatsPanel = null; m.block(false); void this.go(spaceId); },
+      onClose: () => { this.flatsPanel = null; m.block(false); },
+    });
   }
 
   private openLift(liftId: string): void {
@@ -274,6 +300,7 @@ class BuildingWalk implements BuildingWalkApi {
 
   private closePanels(): void {
     this.liftPanel?.close(); this.liftPanel = null;
+    this.flatsPanel?.close(); this.flatsPanel = null;
     this.closeMap();
     this.mounted?.block(false);
   }
@@ -290,7 +317,7 @@ class BuildingWalk implements BuildingWalkApi {
     const point = m.ctx.character.position;
     const close = (): void => { this.closeMap(); m.block(false); };
     const view = mountBuildingMap(root, {
-      building: this.building, here: { spaceId: here.space.id, point: { x: point.x, z: point.z } }, actionLabel: 'Go here',
+      building: this.building, here: { spaceId: here.space.id, point: { x: point.x, z: point.z } }, actionLabel: 'Walk there',
       back: { label: '← Back to the walk', onClick: close },
       onAction: (id) => { close(); void this.go(id); },
       loadScene: fetchScene,

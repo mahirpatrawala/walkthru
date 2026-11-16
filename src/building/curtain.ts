@@ -1,5 +1,5 @@
-// The screen between two spaces. Through a door it is the walk's own loading screen (the plan drawing itself, the progress bar, the light
-// lines) named for where you are going; in a lift the steel doors close, the floor display counts the levels passed, and they open on the
+// The screen between two spaces. Through a door it is the walk's own loading screen (the plan drawing itself, the progress bar)
+// named for where you are going; in a lift the steel doors close, the floor display counts the levels passed, and they open on the
 // new level. Either stands in for the space being built behind it, so the walk never shows a blank or half-built view.
 import { createLoadingScreen } from '../buyer/loading';
 import type { LoadingScreen } from '../buyer/loading';
@@ -116,7 +116,9 @@ export function createLoadingCurtain(title: string, sub?: string): Curtain {
   let node: HTMLElement | null = null;
   const inner = exempt(() => { const s = createLoadingScreen(document.body); node = document.body.lastElementChild as HTMLElement; return s; });
   inner.setTitle(title, sub);
-  const covered = new Promise<void>((res) => { requestAnimationFrame(() => requestAnimationFrame(() => res())); });
+  // the screen fades in over the standing space (a quarter of a second); only then is that space taken down, so the cut is never seen
+  (node as HTMLElement | null)?.classList.add('is-curtain');
+  const covered = new Promise<void>((res) => { requestAnimationFrame(() => requestAnimationFrame(() => { bypass.setTimeout(res, 300); })); });
   const screen: LoadingScreen = {
     ...inner,
     setTitle() { /* the walk names the scene; the building names the place */ },

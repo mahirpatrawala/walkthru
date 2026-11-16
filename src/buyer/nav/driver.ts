@@ -1,12 +1,16 @@
-// The auto-walk: go to a room, and the room-by-room tour. Pure state machine, no DOM and no three: the walker, the camera, the walk grids and the
-// doors come in through `DriverDeps`, so the same code runs in the page (src/buyer/nav/mount.ts) and in a unit test on the real layout.
+// The auto-walk: go to a room, and the room-by-room tour. A state machine over pure pieces, no DOM and no three: the walker, the camera, the walk
+// grids and the doors come in through `DriverDeps`, so the same code runs in the page (src/buyer/nav/mount.ts) and in a unit test on the real layout.
 //
-// How a walk goes. A route is planned on the grid without any shut door leaf (src/buyer/nav/grid-path.ts) and cut at the first shut door it
-// goes through, at a spot outside that leaf's whole swing. The walker walks there, the door is opened through the door system (it swings
-// and refuses to touch the body, a wall or furniture as ever), and the route is planned again from where they stand, now with the open leaf
-// as a solid thing. So a route never goes through a leaf, and the leaf is never asked to open into the body. The body moves with the same
-// collision as walking by hand (`moveCircle` on the live grid); if it makes no headway for a second it plans again, and after three tries
-// the walk reports 'failed'.
+// HOW IT MOVES (SPEC 2.6). A route is planned on the grid without any shut door leaf (grid-path.ts) and cut at the first shut door it goes through,
+// at a spot outside that leaf's whole swing. The string-pulled route is rounded into a curve (glide.ts), a speed profile is worked out for it (eased
+// start and stop with a jerk limit, slower in bends and doorways, ending at rest or running on), and the walker is moved along it by time. The camera
+// looks along the path 1.2 m ahead through a critically damped follower, so it never snaps. A door ahead is opened when 1.5 m away: if it stands open
+// by the time the walker reaches it the route is planned again from where they are, at the speed they have, and the glide goes on; if not, the speed
+// profile has already eased them to a stop and they go on when it is open.
+//
+// FRAME RATE. Everything is integrated in fixed steps of 1/120 s (`SIM_DT`) from the real `dt` of the frames (a frame longer than a tenth of a second
+// counts as a tenth), the profile is a function of time, and nothing counts frames: 20, 60 and 120 frames a second give the same path and the same
+// duration. The body still moves with the same collision as walking by hand (`moveCircle` on the live grid).
 import { CHARACTER_RADIUS_M } from '../../types';
 import type { Grid, Layout, Vec2 } from '../../types';
 import { moveCircle } from '../../core/grid-query';
@@ -14,24 +18,37 @@ import { chooseSpawn } from '../../core/spawn';
 import { roomAt } from '../../core/layout-geom';
 import type { Door } from '../../core/doors';
 import { findRoute, routesFrom } from './grid-path';
-import { cutRoute, firstCrossing, isOpenEnough, planGridOf, standOffM } from './door-route';
+import { cutRoute, doorway, firstCrossing, isOpenEnough, planGridOf, standOffM } from './door-route';
 import type { LeafState } from './door-route';
 import { goDecision } from './nav-model';
 import { DWELL_S, pickNext, tourStops } from './tour-plan';
-import type { Skipped, TourStop } from './tour-plan';
+import type { Skipped, TourStop, Vantage } from './tour-plan';
+import { GO_KIN, SIM_DT, TOUR_KIN, buildProfile, dampAngle, makeCurve, profileAt, roundCorners, smootherstep, speedCap } from './glide';
+import type { Curve, Kinematics, Profile } from './glide';
 
 const DEG = Math.PI / 180;
-/** Speeds, m/s. A tour walks at an easy pace; going to a room is a brisk walk (a jog's clip, the same body). */
-export const TOUR_WALK_MPS = 1.5;
-export const GO_WALK_MPS = 3.0;
+/** Speeds, m/s. A tour glides at a gentle pace; going to a room is a brisk, eased walk. */
+export const TOUR_WALK_MPS = TOUR_KIN.vc;
+export const GO_WALK_MPS = GO_KIN.vc;
 /** A path no longer than this is walked; a longer one is a fade. */
 export const MAX_WALK_M = 12;
-const TURN_DEG_S = 330;
-const ACCEL = 5, DECEL = 8;
-const CAMERA_FOLLOW = 3.2;
+/** What the glide never exceeds (the tests hold it to these, SPEC 2.6): heading rate, deg/s, and its change, deg/s^2. */
+export const MAX_YAW_RATE_DEG_S = 60;
+/** Where the camera looks along the path: this far ahead (m). */
+const LOOK_AHEAD_M = 1.2;
+/** The camera's follower: natural frequency (rad/s) for the tour and for going to a room. */
+const OMEGA_TOUR = 2.8, OMEGA_GO = 4.0;
+/** The wanted heading is smoothed with this time constant (s) before the follower. */
+const GOAL_TAU_S = 0.5;
+/** The body turns a little quicker than the view, which is the point of a look-ahead. */
+const OMEGA_BODY = 6;
+/** A door is opened this far before the walker reaches the spot they stand at to open it (m). */
+const DOOR_AHEAD_M = 1.5;
 const STALL_S = 1.0, MAX_REPLANS = 3, MAX_DOOR_TRIES = 2, DOOR_WAIT_MAX_S = 20;
-/** The pan of a look round: half-width in degrees, and how long the eyes take to come round to the room first. */
-const LOOK_AMP_DEG = 52, LOOK_TURN_S = 0.9;
+/** The slow arc at a vantage point, degrees: never less, never more. */
+const ARC_MIN_DEG = 40, ARC_MAX_DEG = 70;
+/** A tour's camera pitch, degrees down (a few, constant). */
+export const TOUR_PITCH_DEG = 3;
 
 export interface DriverDeps {
   layout: Layout;
@@ -48,11 +65,15 @@ export interface DriverDeps {
   openDoor(doorId: string): Promise<unknown>;
   /** puts the walker at a place and heading with a cut or a fade (a long way, or no walkable path) */
   jump(to: { x: number; z: number; yawDeg: number }): Promise<void>;
-  /** no look-around sweep, no turning in place: cuts */
+  /** no glides and no pans: cuts with a fade */
   reducedMotion(): boolean;
+  /** what a room is about (bed, sofa, table, counter), where it stands: the tour looks that way. Optional. */
+  focal?(roomId: string): Vec2 | null;
+  /** the tour's own camera (first person at eye height, the body hidden, a wider lens): entered when a tour starts, left when it ends or is interrupted */
+  presentation?: { enter(): void; exit(): void };
 }
 
-export type WalkResult = 'arrived' | 'failed' | 'cancelled';
+export type WalkResult = 'arrived' | 'failed' | 'cancelled' | 'skipped';
 export type GoResult = 'walked' | 'jumped' | 'no-spot' | 'cancelled';
 export type TourPhase = 'walking' | 'door' | 'looking' | 'returning' | 'done' | 'stopped';
 
@@ -70,37 +91,49 @@ export interface TourState {
   visited: string[];
   /** how long the tour has run in the walker's own time (s) */
   elapsedS: number;
+  /** which round of a looping tour this is (1 for a tour that runs once) */
+  loop: number;
 }
+
+export interface TourOptions { loop?: boolean }
 
 interface WalkAction {
   kind: 'walk';
   target: Vec2;
-  speed: number;
+  kin: Kinematics;
   jog: boolean;
-  route: Vec2[];
-  i: number;
+  /** the speed to arrive at: 0 (a stop) or on through */
+  vEnd: number;
+  curve: Curve;
+  profile: Profile;
+  t: number;
+  /** distance along the curve now, and the speed there (from the profile) */
+  s: number;
+  v: number;
+  /** points the route passes through on the way (a passage: glided through, no stop) */
+  via: Vec2[];
   /** the shut door this leg ends at (open it, then plan again), or null when the leg ends at the target */
   door: Door | null;
-  phase: 'go' | 'door';
   doorAsked: boolean;
   doorDone: boolean;
-  /** what the door system answered when the leaf stood still */
   doorReading?: unknown;
   doorWaitS: number;
   tries: Map<string, number>;
   stallS: number;
   replans: number;
-  v: number;
+  /** a wait at a door the walker has come to rest at */
+  waiting: boolean;
   done: (r: WalkResult) => void;
 }
 interface LookAction {
   kind: 'look';
   t: number;
   dur: number;
-  baseYaw: number;
-  charFrom: number;
-  camFrom: number;
-  amp: number;
+  /** the heading to ease to over the dwell, degrees (continuous: the look starts from the heading the camera has) */
+  from: number;
+  sweep: number;
+  /** exact end heading (a go-to settles on it) or null to leave the camera where the arc ended */
+  settle: number | null;
   done: () => void;
 }
 type Action = WalkAction | LookAction;
@@ -109,7 +142,6 @@ const angleDiff = (from: number, to: number): number => {
   const d = ((((to - from) % 360) + 540) % 360) - 180;
   return d === -180 ? 180 : d;
 };
-const smooth01 = (k: number): number => { const x = Math.min(1, Math.max(0, k)); return x * x * (3 - 2 * x); };
 
 export class Driver {
   private action: Action | null = null;
@@ -118,6 +150,19 @@ export class Driver {
   private tourState: TourState | null = null;
   private listeners = new Set<() => void>();
   private tourClock = 0;
+  /** the view's heading follower and the body's: continuous across every action */
+  private cam = { yaw: 0, rate: 0 };
+  private body = { yaw: 0, rate: 0 };
+  private seeded = false;
+  private camGoal = 0;
+  /** the time left over from the last frame, s */
+  private acc = 0;
+  /** speed carried into the next leg (m/s): a skip or a door that opened on the way does not stop the glide */
+  private carryV = 0;
+  private skipAsked = false;
+  private presenting = false;
+  private dwell = 0;
+  private lastSpeed = 0;
   /** why the last walk ended in failure (for the debug hook and the tests; the buyer is told only that a room could not be reached) */
   lastFail: string | null = null;
 
@@ -131,20 +176,34 @@ export class Driver {
   get busy(): boolean { return this.action !== null || (this.tourState?.active ?? false); }
   get touring(): boolean { return this.tourState?.active ?? false; }
   get tour(): TourState | null { return this.tourState ? { ...this.tourState, skipped: [...this.tourState.skipped], visited: [...this.tourState.visited] } : null; }
+  /** how far through the dwell at the current stop the camera is, 0..1 (the tour card's line); 0 while walking */
+  get dwellProgress(): number { return this.dwell; }
+  /** the view's heading rate, deg/s, and the speed, m/s (for the motion plots and the tests) */
+  get motion(): { yawRate: number; speed: number } { return { yawRate: this.cam.rate, speed: this.lastSpeed }; }
 
   pause(): void { if (this.touring && !this.paused) { this.paused = true; this.setTour({ paused: true }); } }
   resume(): void { if (this.paused) { this.paused = false; this.setTour({ paused: false }); } }
+  /** Skips to the next room of a running tour with an eased move: the dwell or the leg ends and the next leg starts at the speed they have. */
+  next(): void { if (this.touring) this.skipAsked = true; }
 
   /** Ends whatever is running where the walker stands. */
   stop(): void {
     this.token++;
+    this.seeded = false;
     const a = this.action;
     this.action = null;
     this.paused = false;
+    this.skipAsked = false;
+    this.carryV = 0;
+    this.dwell = 0;
     if (a?.kind === 'walk') a.done('cancelled'); else a?.done();
     this.deps.character.setLocomotion(0, false, 0);
+    this.leavePresentation();
     if (this.tourState?.active) this.setTour({ active: false, paused: false, phase: 'stopped' });
   }
+
+  private enterPresentation(): void { if (!this.presenting) { this.presenting = true; this.deps.presentation?.enter(); } }
+  private leavePresentation(): void { if (this.presenting) { this.presenting = false; this.deps.presentation?.exit(); } }
 
   private setTour(patch: Partial<TourState>): void {
     if (!this.tourState) return;
@@ -156,45 +215,95 @@ export class Driver {
 
   /** Moves the walker for this frame. Returns true when the auto-walk has the walker (the caller then does not read the keys and the thumb). */
   update(dt: number): boolean {
-    if (this.tourState?.active && !this.paused) { this.tourClock += dt; this.tourState.elapsedS = this.tourClock; }
-    const a = this.action;
-    if (!a) return this.touring; // between two legs of a tour: stand still
-    if (this.paused) { this.deps.character.setLocomotion(0, false, 0); return true; }
-    if (a.kind === 'walk') this.stepWalk(a, dt); else this.stepLook(a, dt);
+    if (this.paused && this.action) { this.deps.character.setLocomotion(0, false, 0); return true; }
+    // the time of every frame is banked and spent in steps of SIM_DT; what a finished action leaves over goes to the next one (a tour's next leg
+    // is set up a moment after the last one ends, and must not lose the time in between)
+    this.acc = Math.min(this.acc + Math.min(Math.max(dt, 0), 0.1), 0.2);
+    if (!this.action) return this.touring; // between two legs of a tour: stand still
+    this.seed();
+    for (let a = this.action; a && this.acc >= SIM_DT; a = this.action) {
+      this.acc -= SIM_DT;
+      if (this.tourState?.active) { this.tourClock += SIM_DT; this.tourState.elapsedS = this.tourClock; }
+      if (a.kind === 'walk') this.stepWalk(a); else this.stepLook(a);
+    }
     return true;
+  }
+
+  /** the followers start from the view the walker has now */
+  private seed(): void {
+    if (this.seeded) return;
+    this.seeded = true;
+    this.cam = { yaw: this.deps.camera.yawDeg, rate: 0 };
+    this.camGoal = this.cam.yaw;
+    this.body = { yaw: this.deps.character.yawDeg, rate: 0 };
+  }
+
+  private applyHeading(camTarget: number, bodyTarget: number, omega: number): void {
+    // the wanted heading is eased before the follower sees it, so a new target (the end of a dwell, a corner) starts a turn gently, not with a kick
+    this.camGoal += angleDiff(this.camGoal, camTarget) * (1 - Math.exp(-SIM_DT / GOAL_TAU_S));
+    dampAngle(this.cam, this.camGoal, SIM_DT, omega, MAX_YAW_RATE_DEG_S);
+    dampAngle(this.body, bodyTarget, SIM_DT, OMEGA_BODY, 220);
+    this.deps.camera.yawDeg = this.cam.yaw;
+    this.deps.character.yawDeg = this.body.yaw;
   }
 
   // ---------------------------------------------------------------- walking a route
 
+  private doorMids(): Vec2[] {
+    return this.deps.leaves().map((l) => { const w = doorway(l.door); return { x: (w.a.x + w.b.x) / 2, z: (w.a.z + w.b.z) / 2 }; });
+  }
+
+  /** Plans (or re-plans from where the walker is) the leg of `a`: the route, its curve, its speed profile. */
   private plan(a: WalkAction): boolean {
     const statics = this.deps.staticGrid();
     const leaves = this.deps.leaves();
     const grid = planGridOf(statics, leaves);
-    const route = findRoute(grid, this.deps.character.position, a.target);
-    if (!route) return false;
+    const start = this.deps.character.position;
+    const way = [...a.via, a.target];
+    let from = start;
+    const all: Vec2[] = [{ x: start.x, z: start.z }];
+    for (const w of way) {
+      const leg = findRoute(grid, from, w);
+      if (!leg) return false;
+      all.push(...leg.points.slice(1));
+      from = w;
+    }
+    const route = { points: all };
     const shut = leaves.filter((l) => !isOpenEnough(l)).map((l) => l.door);
     const cross = firstCrossing(route.points, shut);
-    if (cross) {
-      a.route = cutRoute(route.points, standOffM(route.points, cross.atM, cross.door));
-      a.door = cross.door;
-    } else {
-      a.route = route.points;
-      a.door = null;
-    }
-    a.i = Math.min(1, a.route.length - 1);
-    a.phase = 'go';
+    let pts: Vec2[];
+    if (cross) { pts = cutRoute(route.points, standOffM(route.points, cross.atM, cross.door)); a.door = cross.door; } else { pts = route.points; a.door = null; }
+    if (pts.length < 2 || Math.hypot(pts[pts.length - 1].x - pts[0].x, pts[pts.length - 1].z - pts[0].z) < 1e-4) pts = [pts[0], { x: pts[0].x + 1e-3, z: pts[0].z }];
+    const rounded = this.deps.reducedMotion() ? pts : roundCorners(pts, grid, CHARACTER_RADIUS_M);
+    a.curve = makeCurve(rounded);
+    const vEnd = a.door ? 0 : a.vEnd;
+    a.profile = buildProfile(a.curve.length, Math.min(this.carryV, a.kin.vc), vEnd, a.kin, speedCap(a.curve, a.kin, this.doorMids()));
+    a.t = 0; a.s = 0; a.v = this.carryV;
     a.doorAsked = a.doorDone = false;
     a.doorWaitS = 0;
     a.stallS = 0;
+    a.waiting = false;
     return true;
   }
 
-  /** Walks to `target` along a planned route, opening the shut doors on the way. */
-  walkTo(target: Vec2, speed = TOUR_WALK_MPS, jog = false): Promise<WalkResult> {
+  /** After a replan, the passages already walked through are not walked to again. */
+  private dropPassedVias(a: WalkAction): void {
+    if (a.via.length === 0) return;
+    const keep: Vec2[] = [];
+    for (const v of a.via) {
+      let bi = 0, bd = Infinity;
+      for (let i = 0; i < a.curve.pts.length; i++) { const d = Math.hypot(a.curve.pts[i].x - v.x, a.curve.pts[i].z - v.z); if (d < bd) { bd = d; bi = i; } }
+      if (a.curve.cum[bi] > a.s + 0.3) keep.push(v);
+    }
+    a.via = keep;
+  }
+
+  /** Walks to `target` along a planned, rounded route, opening the shut doors on the way. `vEnd` > 0 runs on through the target. */
+  walkTo(target: Vec2, kin: Kinematics = TOUR_KIN, jog = false, vEnd = 0, via: Vec2[] = []): Promise<WalkResult> {
     return new Promise<WalkResult>((resolve) => {
       const a: WalkAction = {
-        kind: 'walk', target: { x: target.x, z: target.z }, speed, jog, route: [], i: 0, door: null, phase: 'go', doorAsked: false, doorDone: false,
-        doorWaitS: 0, tries: new Map(), stallS: 0, replans: 0, v: 0, done: resolve,
+        kind: 'walk', target: { x: target.x, z: target.z }, kin, jog, vEnd, curve: makeCurve([{ x: 0, z: 0 }, { x: 0, z: 1 }]), profile: buildProfile(1, 0, 0, kin, () => 1),
+        t: 0, s: 0, v: 0, via: via.map((p) => ({ x: p.x, z: p.z })), door: null, doorAsked: false, doorDone: false, doorWaitS: 0, tries: new Map(), stallS: 0, replans: 0, waiting: false, done: resolve,
       };
       if (!this.plan(a)) { this.lastFail = 'no route'; resolve('failed'); return; }
       this.action = a;
@@ -203,98 +312,127 @@ export class Driver {
 
   private finish(a: WalkAction, r: WalkResult): void {
     if (this.action === a) this.action = null;
+    this.carryV = r === 'skipped' ? a.v : 0;
+    this.lastSpeed = 0;
     this.deps.character.setLocomotion(0, false, 0);
     a.done(r);
   }
 
-  private stepWalk(a: WalkAction, dt: number): void {
-    const { character: ch, camera } = this.deps;
-    if (a.phase === 'door') {
+  private stepWalk(a: WalkAction): void {
+    const { character: ch } = this.deps;
+    const omega = a.kin === GO_KIN ? OMEGA_GO : OMEGA_TOUR;
+    if (this.skipAsked && this.touring) { this.skipAsked = false; this.finish(a, 'skipped'); return; }
+    const door = a.door;
+    // the door ahead: ask for it when 1.5 m from the spot to stand at (a short leg asks at once)
+    if (door && !a.doorAsked && a.curve.length - a.s <= DOOR_AHEAD_M) {
+      a.doorAsked = true;
+      const n = (a.tries.get(door.id) ?? 0) + 1;
+      a.tries.set(door.id, n);
+      if (n > MAX_DOOR_TRIES) { this.lastFail = `door ${door.id} would not open ${JSON.stringify(a.doorReading ?? null)}`; this.finish(a, 'failed'); return; }
+      void this.deps.openDoor(door.id).then((r) => { a.doorDone = true; a.doorReading = r; }, () => { a.doorDone = true; });
+    }
+    if (door && a.doorAsked && a.doorDone) {
+      // open: plan again from here, at this speed, and keep going (in this same step: no hitch)
+      this.carryV = a.v;
+      a.doorAsked = false;
+      this.dropPassedVias(a);
+      if (!this.plan(a)) { this.lastFail = `no route after ${door.id}`; this.carryV = 0; this.finish(a, 'failed'); return; }
+    }
+    if (a.waiting) {
+      // at rest at a door that is still swinging
       ch.setLocomotion(0, false, 0);
-      const door = a.door as Door;
-      if (!a.doorAsked) {
-        a.doorAsked = true;
-        const n = (a.tries.get(door.id) ?? 0) + 1;
-        a.tries.set(door.id, n);
-        if (n > MAX_DOOR_TRIES) { this.lastFail = `door ${door.id} would not open ${JSON.stringify(a.doorReading ?? null)}`; this.finish(a, 'failed'); return; }
-        void this.deps.openDoor(door.id).then((r) => { a.doorDone = true; a.doorReading = r; }, () => { a.doorDone = true; });
-      }
-      a.doorWaitS += dt;
-      if (a.doorDone || a.doorWaitS > DOOR_WAIT_MAX_S) {
-        a.doorAsked = false;
-        if (!this.plan(a)) { this.lastFail = `no route after ${door.id}`; this.finish(a, 'failed'); }
-      }
+      a.doorWaitS += SIM_DT;
+      this.applyHeading(this.cam.yaw, this.body.yaw, omega);
+      if (a.doorWaitS > DOOR_WAIT_MAX_S) { a.doorDone = true; a.doorAsked = true; }
       return;
     }
     const pos = ch.position;
-    // walk through the corners: a corner is passed within a hand, the last point is reached within a few centimetres
-    for (;;) {
-      const last = a.i >= a.route.length - 1;
-      const w = a.route[a.i];
-      if (Math.hypot(w.x - pos.x, w.z - pos.z) > (last ? 0.045 : 0.14)) break;
-      if (!last) { a.i++; continue; }
-      if (a.door) { a.phase = 'door'; a.doorAsked = false; ch.setLocomotion(0, false, 0); return; }
-      this.finish(a, 'arrived');
-      return;
-    }
-    const w = a.route[a.i];
-    const dx = w.x - pos.x, dz = w.z - pos.z;
-    const dist = Math.hypot(dx, dz);
-    const headDeg = Math.atan2(dx, dz) / DEG;
-    const diff = angleDiff(ch.yawDeg, headDeg);
-    const reduced = this.deps.reducedMotion();
-    const stepDeg = reduced ? diff : Math.max(-TURN_DEG_S * dt, Math.min(TURN_DEG_S * dt, diff));
-    ch.yawDeg += stepDeg;
-    const turnRate = Math.abs(diff) > 1.5 && dt > 0 ? (Math.abs(stepDeg) * DEG) / dt : 0;
-    const facing = 1 - smooth01((Math.abs(diff) - 30) / 60);
-    // slow into the end of the leg (the last corner, or the spot to stand at before a door)
-    let remaining = dist;
-    for (let k = a.i; k < a.route.length - 1; k++) remaining += Math.hypot(a.route[k + 1].x - a.route[k].x, a.route[k + 1].z - a.route[k].z);
-    const cap = Math.max(0.35, Math.sqrt(2 * 3 * remaining));
-    const goal = Math.min(a.speed, cap) * facing;
-    a.v = a.v < goal ? Math.min(goal, a.v + ACCEL * dt) : Math.max(goal, a.v - DECEL * dt);
-    const grid = this.deps.liveGrid();
-    const step = Math.min(dist, a.v * dt);
-    const next = moveCircle(grid, pos, { x: (dx / dist) * step, z: (dz / dist) * step }, CHARACTER_RADIUS_M);
+    // the timeline waits for a body that is held back (a person, a leaf): it never races to catch up
+    const lag = Math.hypot(a.curve.pointAt(a.s).x - pos.x, a.curve.pointAt(a.s).z - pos.z);
+    let at = { s: a.s, v: a.v, done: false };
+    if (lag <= 0.1) { a.t += SIM_DT; at = profileAt(a.profile, a.t); a.s = at.s; a.v = at.v; }
+    const want = a.curve.pointAt(a.s);
+    let dx = want.x - pos.x, dz = want.z - pos.z;
+    const step = Math.hypot(dx, dz);
+    const maxStep = Math.max(a.v, a.kin.vc * 0.5) * 1.5 * SIM_DT;
+    if (step > maxStep) { dx *= maxStep / step; dz *= maxStep / step; }
+    const next = step > 1e-9 ? moveCircle(this.deps.liveGrid(), pos, { x: dx, z: dz }, CHARACTER_RADIUS_M) : pos;
     ch.position = next;
-    const achieved = dt > 0 ? Math.hypot(next.x - pos.x, next.z - pos.z) / dt : 0;
-    ch.setLocomotion(achieved, a.jog, turnRate);
-    // the camera comes round behind the heading
-    camera.yawDeg += angleDiff(camera.yawDeg, ch.yawDeg) * (1 - Math.exp(-CAMERA_FOLLOW * dt));
-    // no headway for a second: something is in the way (a person who walked into the route): plan again
-    if (goal > 0.3 && achieved < 0.2 * goal) a.stallS += dt; else a.stallS = 0;
+    const achieved = Math.hypot(next.x - pos.x, next.z - pos.z) / SIM_DT;
+    this.lastSpeed = achieved;
+    // the camera looks 1.2 m down the path; at the end it settles on the way the path was going
+    const remaining = a.curve.length - a.s;
+    const la = a.curve.pointAt(Math.min(a.curve.length, a.s + LOOK_AHEAD_M));
+    const tan = a.curve.tangentAt(Math.min(a.curve.length, a.s + 0.05));
+    const lx = la.x - want.x, lz = la.z - want.z;
+    const farEnough = Math.hypot(lx, lz) > 0.5;
+    const bearing = farEnough ? Math.atan2(lx, lz) / DEG : Math.atan2(tan.x, tan.z) / DEG;
+    void remaining;
+    this.applyHeading(bearing, Math.atan2(tan.x, tan.z) / DEG, omega);
+    ch.setLocomotion(achieved, a.jog || achieved > 1.8, Math.abs(this.body.rate) * DEG);
+    // no headway: something is in the way (a person who walked into the route): plan again
+    if (lag > 0.3) a.stallS += SIM_DT; else a.stallS = 0;
     if (a.stallS > STALL_S) {
       a.stallS = 0;
+      this.carryV = 0;
+      this.dropPassedVias(a);
       if (++a.replans > MAX_REPLANS || !this.plan(a)) { this.lastFail = `stalled at ${pos.x.toFixed(2)},${pos.z.toFixed(2)}`; this.finish(a, 'failed'); }
+      return;
+    }
+    if (at.done) {
+      if (a.door) {
+        // at rest at the door: on as soon as it is open
+        if (a.doorAsked && a.doorDone) return; // handled at the top of the next step
+        a.waiting = true; a.doorWaitS = 0; this.carryV = 0;
+        ch.setLocomotion(0, false, 0);
+        return;
+      }
+      this.finish(a, 'arrived');
     }
   }
 
   // ---------------------------------------------------------------- standing and looking
 
-  /** Turns to face `yawDeg` and, with `amp` > 0, pans slowly either side of it for `dur` seconds. */
-  look(yawDeg: number, dur: number, amp = LOOK_AMP_DEG): Promise<void> {
+  /**
+   * Eases the view to `yawDeg` over `dur` seconds (a smootherstep), standing where the walker is. With `sweepDeg` the arc is that long and ends
+   * on `yawDeg`; the camera starts from the heading it has, so nothing snaps. `settle` finishes exactly on the heading.
+   */
+  look(yawDeg: number, dur: number, sweepDeg: number | null = null, settle = false): Promise<void> {
     return new Promise<void>((resolve) => {
+      this.seed();
       const reduced = this.deps.reducedMotion();
       const ch = this.deps.character, cam = this.deps.camera;
-      if (reduced) { ch.yawDeg = yawDeg; cam.yawDeg = yawDeg; }
-      this.action = { kind: 'look', t: 0, dur, baseYaw: yawDeg, charFrom: ch.yawDeg, camFrom: cam.yawDeg, amp: reduced ? 0 : amp, done: resolve };
+      if (reduced) { ch.yawDeg = yawDeg; cam.yawDeg = yawDeg; this.cam = { yaw: yawDeg, rate: 0 }; this.camGoal = yawDeg; this.body = { yaw: yawDeg, rate: 0 }; }
+      const from = reduced ? yawDeg : this.cam.yaw;
+      const sweep = reduced ? 0 : sweepDeg !== null ? Math.sign(angleDiff(from, yawDeg) || 1) * sweepDeg : angleDiff(from, yawDeg);
+      this.dwell = 0;
+      this.action = { kind: 'look', t: 0, dur: Math.max(0.05, dur), from, sweep, settle: settle ? yawDeg : null, done: resolve };
     });
   }
 
-  private stepLook(a: LookAction, dt: number): void {
-    const { character: ch, camera } = this.deps;
+  private stepLook(a: LookAction): void {
+    const { character: ch } = this.deps;
     ch.setLocomotion(0, false, 0);
-    a.t += dt;
-    const turnS = Math.min(LOOK_TURN_S, Math.max(0.05, a.dur * 0.5));
-    const k = smooth01(a.t / turnS);
-    ch.yawDeg = a.charFrom + angleDiff(a.charFrom, a.baseYaw) * k;
-    const pan = a.amp > 0 && a.t > turnS ? a.amp * Math.sin((2 * Math.PI * (a.t - turnS)) / Math.max(0.5, a.dur - turnS)) * smooth01((a.t - turnS) / 0.6) : 0;
-    camera.yawDeg = a.camFrom + angleDiff(a.camFrom, a.baseYaw) * k + pan;
+    this.lastSpeed = 0;
+    if (this.skipAsked && this.touring) { this.skipAsked = false; this.dwell = 0; this.endLook(a); return; }
+    a.t += SIM_DT;
+    const k = Math.min(1, a.t / a.dur);
+    this.dwell = this.tourState?.active ? k : 0;
+    const target = a.from + a.sweep * smootherstep(a.t / (a.dur * 0.94));
+    this.applyHeading(target, target, OMEGA_TOUR);
     if (a.t >= a.dur) {
-      camera.yawDeg = a.baseYaw;
-      if (this.action === a) this.action = null;
-      a.done();
+      if (a.settle !== null) {
+        this.cam = { yaw: a.settle, rate: 0 }; this.camGoal = a.settle; this.body = { yaw: a.settle, rate: 0 };
+        this.deps.camera.yawDeg = a.settle; ch.yawDeg = a.settle;
+      }
+      this.dwell = 0;
+      this.endLook(a);
     }
+  }
+
+  private endLook(a: LookAction): void {
+    if (this.action === a) this.action = null;
+    a.done();
   }
 
   // ---------------------------------------------------------------- go to a room
@@ -306,7 +444,7 @@ export class Driver {
   }
 
   /**
-   * Takes the walker to a room: along the path, briskly, when it is short (up to 12 m, doors on the way opened), otherwise a fade to a good
+   * Takes the walker to a room: along the path, eased, when it is short (up to 12 m, doors on the way opened), otherwise a fade to a good
    * standing spot facing into the room. Resolves when they are there.
    */
   async goTo(roomId: string): Promise<GoResult> {
@@ -320,92 +458,131 @@ export class Driver {
     if (!spot) return 'no-spot';
     const grid = planGridOf(this.deps.staticGrid(), this.deps.leaves());
     const route = findRoute(grid, this.deps.character.position, spot, MAX_WALK_M + 6);
-    if (route && goDecision(route.lengthM, MAX_WALK_M) === 'walk') {
-      const r = await this.walkTo(spot, GO_WALK_MPS, true);
+    if (route && !this.deps.reducedMotion() && goDecision(route.lengthM, MAX_WALK_M) === 'walk') {
+      const r = await this.walkTo(spot, GO_KIN, true);
       if (token !== this.token) return 'cancelled';
       if (r === 'arrived') {
-        await this.look(spot.yawDeg, 0.7, 0);
+        await this.look(spot.yawDeg, 2.0, null, true);
         return token !== this.token ? 'cancelled' : 'walked';
       }
       if (r === 'cancelled') return 'cancelled';
     }
     await this.deps.jump(spot);
+    this.cam = { yaw: spot.yawDeg, rate: 0 }; this.camGoal = spot.yawDeg; this.body = { yaw: spot.yawDeg, rate: 0 };
     return token !== this.token ? 'cancelled' : 'jumped';
   }
 
   // ---------------------------------------------------------------- the tour
 
   /**
-   * Starts at the walker's own room (looking round where they stand), then goes to the nearest room not yet seen, until every reachable room
-   * has been; the rooms that cannot be reached are left out and named. Ends back where it started. Resolves with the final state.
+   * Starts at the walker's own room (one slow arc toward what it is about, seen from where they are), then glides to the nearest room not yet seen,
+   * until every reachable room has been; the rooms that cannot be reached are left out and named. A passage is glided through with no stop. Ends
+   * back where it started, or with `loop` goes round again without a reset. Resolves with the final state (a looping tour only when stopped).
    */
-  async startTour(): Promise<TourState> {
-    try { return await this.runTour(); } catch (err) { console.error('[walkthru] the tour failed', err); this.stop(); return this.tour as TourState; }
+  async startTour(opts: TourOptions = {}): Promise<TourState> {
+    try { return await this.runTour(opts); } catch (err) { console.error('[walkthru] the tour failed', err); this.stop(); return this.tour as TourState; }
   }
 
-  private async runTour(): Promise<TourState> {
+  private async runTour(opts: TourOptions): Promise<TourState> {
     this.stop();
     const token = this.token;
     const alive = (): boolean => token === this.token;
     const layout = this.deps.layout;
     const start = { x: this.deps.character.position.x, z: this.deps.character.position.z, yawDeg: this.deps.camera.yawDeg };
-    const { stops, skipped } = tourStops(layout, this.deps.staticGrid());
+    const reduced = this.deps.reducedMotion();
     this.tourClock = 0;
     this.paused = false;
-    // which stops can be walked to at all from here (shut doors count as passable: they get opened)
-    const first = routesFrom(planGridOf(this.deps.staticGrid(), this.deps.leaves()), start, stops.map((s) => s.spot));
-    const reachable: TourStop[] = [];
-    for (const s of stops) {
-      if (Number.isFinite(first.lengthTo(s.spot))) reachable.push(s);
-      else skipped.push({ roomId: s.room.id, label: s.room.label, why: 'not reachable' });
-    }
-    this.tourState = { active: true, paused: false, phase: 'walking', index: 0, total: reachable.length, roomId: null, roomLabel: null, skipped, visited: [], elapsedS: 0 };
+    this.skipAsked = false;
+    this.carryV = 0;
+    this.tourState = { active: true, paused: false, phase: 'walking', index: 0, total: 0, roomId: null, roomLabel: null, skipped: [], visited: [], elapsedS: 0, loop: 1 };
+    this.enterPresentation();
     this.emit();
-    let remaining = reachable.slice();
-    // the room they stand in is the first stop, seen from where they are
-    const here = roomAt(layout, start);
-    const hereStop = here ? remaining.find((s) => s.room.id === here.id) : undefined;
-    const visit = async (s: TourStop, yaw: number): Promise<void> => {
-      const st = this.tourState as TourState;
-      this.setTour({ phase: 'looking', index: st.index + 1, roomId: s.room.id, roomLabel: s.room.label, visited: [...st.visited, s.room.id] });
-      await this.look(yaw, DWELL_S[s.kind], s.kind === 'transit' ? 0 : LOOK_AMP_DEG);
-    };
-    if (hereStop) {
-      remaining = remaining.filter((s) => s !== hereStop);
-      await visit(hereStop, start.yawDeg);
-      if (!alive()) return this.tour as TourState;
-    }
-    while (remaining.length > 0 && alive()) {
-      const field = routesFrom(planGridOf(this.deps.staticGrid(), this.deps.leaves()), this.deps.character.position, remaining.map((s) => s.spot));
-      const pick = pickNext(remaining, (p) => field.lengthTo(p));
-      for (const u of pick.unreachable) {
-        this.tourState?.skipped.push({ roomId: u.room.id, label: u.room.label, why: 'not reachable' });
-        remaining = remaining.filter((s) => s !== u);
+    for (let round = 1; alive(); round++) {
+      const { stops, skipped } = tourStops(layout, this.deps.staticGrid(), this.deps.focal);
+      const first = routesFrom(planGridOf(this.deps.staticGrid(), this.deps.leaves()), this.deps.character.position, stops.map((s) => s.spot));
+      const reachable: TourStop[] = [];
+      for (const s of stops) {
+        if (Number.isFinite(first.lengthTo(s.spot))) reachable.push(s);
+        else skipped.push({ roomId: s.room.id, label: s.room.label, why: 'not reachable' });
       }
-      if (!pick.next) break;
-      const stop = pick.next;
-      remaining = remaining.filter((s) => s !== stop);
-      this.setTour({ phase: 'walking', roomId: stop.room.id, roomLabel: stop.room.label });
-      const r = await this.walkTo(stop.spot, TOUR_WALK_MPS, false);
-      if (!alive()) return this.tour as TourState;
-      if (r !== 'arrived') {
-        console.warn(`[walkthru] tour: could not reach ${stop.room.label} (${this.lastFail ?? r})`);
-        this.tourState?.skipped.push({ roomId: stop.room.id, label: stop.room.label, why: 'not reachable', ...(this.lastFail ? { detail: this.lastFail } : {}) });
-        this.setTour({ total: Math.max(0, (this.tourState as TourState).total - 1) });
-        continue;
+      // the passages are glided through, not stopped at: they are not counted
+      const counted = reachable.filter((s) => s.kind !== 'transit').length;
+      this.tourState = { ...(this.tourState as TourState), phase: 'walking', index: 0, total: counted, roomId: null, roomLabel: null, skipped, visited: [], loop: round };
+      this.emit();
+      let remaining = reachable.slice();
+      const visit = async (s: TourStop): Promise<void> => {
+        const st = this.tourState as TourState;
+        const stopsHere = s.kind !== 'transit';
+        this.setTour({ phase: 'looking', index: stopsHere ? st.index + 1 : st.index, roomId: s.room.id, roomLabel: s.room.label, visited: [...st.visited, s.room.id] });
+        if (!stopsHere) return;
+        if (reduced) { await this.look(s.vantage.yawDeg, DWELL_S[s.kind] * 0.6, 0); return; }
+        const from = this.cam.yaw;
+        const diff = Math.abs(angleDiff(from, s.vantage.yawDeg));
+        await this.look(s.vantage.yawDeg, DWELL_S[s.kind], Math.min(ARC_MAX_DEG, Math.max(ARC_MIN_DEG, diff)));
+      };
+      // the room they stand in is the first stop, seen from where they are
+      const here = roomAt(layout, this.deps.character.position);
+      const hereStop = here ? remaining.find((s) => s.room.id === here.id) : undefined;
+      if (hereStop) {
+        remaining = remaining.filter((s) => s !== hereStop);
+        await visit(hereStop);
+        if (!alive()) return this.tour as TourState;
       }
-      await visit(stop, stop.spot.yawDeg);
+      while (remaining.length > 0 && alive()) {
+        const grid = planGridOf(this.deps.staticGrid(), this.deps.leaves());
+        // the next stop, and any passages on the way to it: they are glided through (the route runs over their standing spot), not stopped at
+        const vias: TourStop[] = [];
+        let stop: TourStop | null = null;
+        let from: Vec2 = this.deps.character.position;
+        while (remaining.length > 0) {
+          const field = routesFrom(grid, from, remaining.map((s) => s.vantage));
+          const pick = pickNext(remaining, (p) => field.lengthTo(p), (s) => s.vantage);
+          for (const u of pick.unreachable) {
+            this.tourState?.skipped.push({ roomId: u.room.id, label: u.room.label, why: 'not reachable' });
+            remaining = remaining.filter((s) => s !== u);
+          }
+          if (!pick.next) break;
+          remaining = remaining.filter((s) => s !== pick.next);
+          if (pick.next.kind === 'transit' && remaining.some((s) => s.kind !== 'transit')) { vias.push(pick.next); from = pick.next.vantage; continue; }
+          stop = pick.next;
+          break;
+        }
+        if (!stop) break;
+        this.setTour({ phase: 'walking', roomId: stop.room.id, roomLabel: stop.room.label });
+        const v = stop.vantage;
+        let r: WalkResult | 'jumped';
+        if (reduced) { await this.deps.jump({ x: v.x, z: v.z, yawDeg: v.yawDeg }); r = 'jumped'; } else r = await this.walkTo(v, TOUR_KIN, false, 0, vias.map((t) => t.vantage));
+        if (!alive()) return this.tour as TourState;
+        if (r === 'skipped') { this.setTour({ index: (this.tourState as TourState).index + (stop.kind === 'transit' ? 0 : 1) }); continue; }
+        if (r !== 'arrived' && r !== 'jumped') {
+          console.warn(`[walkthru] tour: could not reach ${stop.room.label} (${this.lastFail ?? r})`);
+          this.tourState?.skipped.push({ roomId: stop.room.id, label: stop.room.label, why: 'not reachable', ...(this.lastFail ? { detail: this.lastFail } : {}) });
+          this.setTour({ total: Math.max(0, (this.tourState as TourState).total - 1) });
+          continue;
+        }
+        for (const t of vias) this.setTour({ visited: [...(this.tourState as TourState).visited, t.room.id] });
+        await visit(stop);
+        if (!alive()) return this.tour as TourState;
+      }
+      if (!alive()) return this.tour as TourState;
+      // home again, eased: and with `loop`, round again from there
+      this.setTour({ phase: 'returning', roomId: null, roomLabel: null });
+      if (reduced) await this.deps.jump(start);
+      else {
+        const back = await this.walkTo(start, TOUR_KIN, false, 0);
+        if (!alive()) return this.tour as TourState;
+        if (back !== 'arrived' && back !== 'skipped') await this.deps.jump(start);
+      }
+      if (!alive()) return this.tour as TourState;
+      if (!opts.loop) break;
     }
-    if (!alive()) return this.tour as TourState;
-    // home again
-    this.setTour({ phase: 'returning', roomId: null, roomLabel: null });
-    const back = await this.walkTo(start, TOUR_WALK_MPS, false);
-    if (!alive()) return this.tour as TourState;
-    if (back === 'arrived') await this.look(start.yawDeg, 0.8, 0);
-    else await this.deps.jump(start);
     if (!alive()) return this.tour as TourState;
     this.action = null;
+    this.leavePresentation();
+    this.dwell = 0;
     this.setTour({ active: false, phase: 'done' });
     return this.tour as TourState;
   }
 }
+
+export type { Vantage };
