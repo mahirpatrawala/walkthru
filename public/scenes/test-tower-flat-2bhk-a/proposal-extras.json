@@ -1,0 +1,340 @@
+{
+  "version": 1,
+  "sourceFile": "drawing set",
+  "planPage": 1,
+  "scale": {
+    "ptPerM": 65,
+    "votes": [
+      {
+        "source": "room Guest Room long side",
+        "ptPerM": 64.99999140349912
+      },
+      {
+        "source": "room Master Bed Room short side",
+        "ptPerM": 64.99999140349912
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 64.99999760350295
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 64.99999760350295
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 64.99999760350295
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 64.99999760350295
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 64.99999760350295
+      },
+      {
+        "source": "dimension lines",
+        "ptPerM": 64.99999760350295
+      },
+      {
+        "source": "room Guest Room short side",
+        "ptPerM": 65
+      },
+      {
+        "source": "room Washroom 1 short side",
+        "ptPerM": 65
+      },
+      {
+        "source": "room Washroom 1 long side",
+        "ptPerM": 65
+      },
+      {
+        "source": "room Washroom 2 short side",
+        "ptPerM": 65
+      },
+      {
+        "source": "room Washroom 2 long side",
+        "ptPerM": 65
+      },
+      {
+        "source": "room Kitchen short side",
+        "ptPerM": 65
+      },
+      {
+        "source": "room Kitchen long side",
+        "ptPerM": 65
+      },
+      {
+        "source": "room Lobby short side",
+        "ptPerM": 65
+      },
+      {
+        "source": "room Lobby long side",
+        "ptPerM": 65
+      },
+      {
+        "source": "room Study Room short side",
+        "ptPerM": 65
+      },
+      {
+        "source": "room Study Room long side",
+        "ptPerM": 65
+      },
+      {
+        "source": "room Master Bed Room long side",
+        "ptPerM": 65.00000322937335
+      }
+    ],
+    "agreeing": 20,
+    "disagreementPct": 0.000018193652653490764
+  },
+  "rooms": [
+    {
+      "id": "living-dining",
+      "label": "Living/dining",
+      "roomType": "living",
+      "method": "label-rect",
+      "confidence": 0.4,
+      "labelDims": {
+        "w": 4,
+        "l": 3.55
+      },
+      "areaM2": 14.131877529659533,
+      "verified": true
+    },
+    {
+      "id": "master-bed-room",
+      "label": "Master Bed Room",
+      "roomType": "bedroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 3.78,
+        "l": 3.55
+      },
+      "areaM2": 13.418998891977077,
+      "verified": true
+    },
+    {
+      "id": "guest-room",
+      "label": "Guest Room",
+      "roomType": "bedroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 2.9,
+        "l": 3.55
+      },
+      "areaM2": 10.294998638446515,
+      "verified": true
+    },
+    {
+      "id": "study-room",
+      "label": "Study Room",
+      "roomType": "other",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 3,
+        "l": 2.85
+      },
+      "areaM2": 8.55,
+      "verified": true
+    },
+    {
+      "id": "kitchen",
+      "label": "Kitchen",
+      "roomType": "kitchen",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 2.6,
+        "l": 2.85
+      },
+      "areaM2": 7.410000000000001,
+      "verified": true
+    },
+    {
+      "id": "lobby",
+      "label": "Lobby",
+      "roomType": "other",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 1.75,
+        "l": 2.85
+      },
+      "areaM2": 4.9875,
+      "verified": true
+    },
+    {
+      "id": "washroom-1",
+      "label": "Washroom 1",
+      "roomType": "bathroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 1.6,
+        "l": 2.85
+      },
+      "areaM2": 4.56,
+      "verified": true
+    },
+    {
+      "id": "washroom-2",
+      "label": "Washroom 2",
+      "roomType": "bathroom",
+      "method": "walls",
+      "confidence": 0.9,
+      "labelDims": {
+        "w": 1.5,
+        "l": 2.85
+      },
+      "areaM2": 4.275,
+      "verified": true
+    },
+    {
+      "id": "sit-out",
+      "label": "Sit-Out",
+      "roomType": "balcony",
+      "method": "label-rect",
+      "confidence": 0.4,
+      "labelDims": {
+        "w": 3.1,
+        "l": 1.25
+      },
+      "areaM2": 3.874999999999998,
+      "verified": false,
+      "note": "size not confirmed yet"
+    }
+  ],
+  "ceiling": {
+    "heightM": 2.75,
+    "method": "default",
+    "page": null,
+    "candidatesM": [],
+    "confidence": 0.1,
+    "verified": false
+  },
+  "furniture": [
+    {
+      "id": "bed-1",
+      "source": "real",
+      "kind": "bed",
+      "label": "",
+      "box": {
+        "cx": -4.529999835674579,
+        "cz": -1.4824999295748198,
+        "w": 1.499999530498798,
+        "d": 1.8499999999999996,
+        "yawDeg": 90
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5
+    },
+    {
+      "id": "counter-1",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": -5.22999983567458,
+        "cz": -2.4874998826246997,
+        "w": 0.45,
+        "d": 0.45,
+        "yawDeg": 90
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "counter-2",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": -5.22999983567458,
+        "cz": -0.4774999765249399,
+        "w": 0.45,
+        "d": 0.44999999999999957,
+        "yawDeg": 90
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "sofa-1",
+      "source": "real",
+      "kind": "sofa",
+      "label": "",
+      "box": {
+        "cx": -0.42999983567457933,
+        "cz": -2.8074996948242186,
+        "w": 0.9,
+        "d": 2,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "bed-2",
+      "source": "real",
+      "kind": "bed",
+      "label": "",
+      "box": {
+        "cx": 3.5700001643254207,
+        "cz": -0.6324999295748197,
+        "w": 1.5,
+        "d": 1.8499995304987982,
+        "yawDeg": 180
+      },
+      "heightM": 0.9,
+      "surfaceHeightM": 0.5
+    },
+    {
+      "id": "wardrobe-1",
+      "source": "real",
+      "kind": "wardrobe",
+      "label": "",
+      "box": {
+        "cx": 3.5700001643254207,
+        "cz": -2.957499694824219,
+        "w": 1.85,
+        "d": 0.6,
+        "yawDeg": 0
+      },
+      "heightM": 2.13,
+      "surfaceHeightM": 2.13
+    },
+    {
+      "id": "counter-3",
+      "source": "real",
+      "kind": "counter",
+      "label": "",
+      "box": {
+        "cx": -1.8249996478740995,
+        "cz": 1.842507582444411,
+        "w": 2.7000154935396643,
+        "d": 0.6000000000000009,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.85
+    }
+  ],
+  "unmapped": [],
+  "spawn": {
+    "x": -0.4543320875901442,
+    "z": -1.464824969951923,
+    "yawDeg": 0
+  },
+  "warnings": [
+    "Room \"Living/dining\" is not closed by walls on the drawing. Drawn as a rectangle of its labelled size. Check it.",
+    "Room \"Sit-Out\" is not closed by walls on the drawing. Drawn as a rectangle of its labelled size. Check it.",
+    "Sit-Out has no door on the drawing and no swing arc was found. Add one in the editor.",
+    "Ceiling height not found on the elevation pages. Using 2.75 m. Confirm it.",
+    "Printed room sizes against the drawn walls: 8 of 8 rooms agree on one scale; 3 rooms checked."
+  ]
+}

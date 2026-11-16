@@ -62,10 +62,15 @@ import { buildSeats } from './seats';
 import { createWardrobes } from './wardrobe';
 import { mountDoors } from './doors';
 import { createLoadingScreen } from './loading';
+import type { LoadingScreen } from './loading';
+import { beginGuard } from '../building/guard';
+import { disposeTree } from '../building/dispose';
+import type { MountedSpace, SpaceHost, SpaceSession } from '../building/space-host';
 import { mountAiPhoto } from '../photo/mount';
 import { createMeasureMode } from './measure';
 import { mountPeople } from './people';
 import type { MountedPeople } from './people';
+import type { PersonSpec } from './people/manager';
 import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
@@ -122,16 +127,18 @@ async function fetchExtras(sceneId: string): Promise<ReturnType<typeof unverifie
 
 const params = new URLSearchParams(location.search);
 setModelsEnabled(params.get('models') !== 'off'); // ?models=off: the generated furniture and decor only (SPEC 16.15)
-// src/buyer/entry.ts only loads this file when ?scene= names a home; with no scene the start page opens instead
-const sceneId = (params.get('scene') ?? '').trim();
-const requestedRoom = params.get('room');
+// src/buyer/entry.ts only loads this file when ?scene= names a home (or ?building=&space= a space of a building, which mounts spaces itself
+// through `boot`); with neither, the start page opens instead
+const initialSceneId = (params.get('scene') ?? '').trim();
+const initialRoom = params.get('room');
 const debug = params.get('debug') === '1';
 const storage = safeStorage();
 const isTouch = ((): boolean => {
   try { return window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0; } catch { return false; }
 })();
 
-const loading = createLoadingScreen(document.body);
+// a building makes its own loading screens (src/building/walk.ts hands each space one through the host); a lone home makes its one here
+let loading: LoadingScreen = params.get('building') ? (undefined as unknown as LoadingScreen) : createLoadingScreen(document.body);
 let booted = false;
 
 function describe(err: unknown): string {
@@ -156,13 +163,13 @@ window.addEventListener('error', (e) => {
   if (BENIGN.test(e.message)) return;
   console.error('[walkthru] uncaught error', e.error ?? e.message);
   const msg = e.error ? describe(e.error) : e.message;
-  if (!booted) loading.showError('Something went wrong', msg);
+  if (!booted) loading?.showError('Something went wrong', msg);
   else showFatalBanner(msg);
 });
 window.addEventListener('unhandledrejection', (e) => {
   console.error('[walkthru] unhandled rejection', e.reason);
   const msg = describe(e.reason);
-  if (!booted) loading.showError('Something went wrong', msg);
+  if (!booted) loading?.showError('Something went wrong', msg);
   else showFatalBanner(msg);
 });
 
@@ -174,13 +181,35 @@ function guessedBodyTier(): 'low' | 'medium' {
   return isTouch || (mem !== undefined && mem <= 4) ? 'low' : 'medium';
 }
 
-async function boot(): Promise<void> {
+/**
+ * Opens one home. With `host` (a space of a building) it can be taken down again: it returns a session whose `dispose` removes everything
+ * the space put on the page, and the next space is booted in the same page. Without a host it is the lone home it always was.
+ */
+export async function boot(sceneId: string, requestedRoom: string | null, host: SpaceHost | null = null): Promise<SpaceSession | null> {
+  booted = false;
+  if (host) loading = host.loading;
+  const guard = host ? beginGuard() : null;
+  const cleanup: Array<() => void> = [];
+  let probeViewer: Viewer | null = null;
+  let disposed = false;
+  /** debug: what the renderer held when the space began to come down, to set against what it held after every explicit dispose (the leak check) */
+  let heldBefore: { geometries: number; textures: number; programs: number } | null = null;
+  /** takes everything this boot made down again: its own disposers newest first, then whatever the guard saw added to the page */
+  function teardown(): void {
+    if (disposed) return;
+    disposed = true;
+    try { const i = probeViewer?.renderer.info; if (i) heldBefore = { geometries: i.memory.geometries, textures: i.memory.textures, programs: i.programs?.length ?? 0 }; } catch { /* debug only */ }
+    for (const fn of cleanup.splice(0).reverse()) { try { fn(); } catch (err) { console.warn('[walkthru] clean-up step failed', err); } }
+    try { guard?.release(); } catch (err) { console.warn('[walkthru] guard release failed', err); }
+  }
+  const failed = (): null => { teardown(); return null; };
   // an uploaded plan (`?scene=local-...`) is a home in this browser's own store: its files are answered from there, nothing is fetched (src/upload/local-fetch.ts)
   let uploaded: Awaited<ReturnType<typeof import('../upload/local-fetch').installLocalScene>> = null;
   if (isLocalHomeId(sceneId)) {
     uploaded = await (await import('../upload/local-fetch')).installLocalScene(sceneId);
-    if (!uploaded) { loading.showError('This plan is not on this device', 'Uploaded plans stay in the browser that read them. Open Walkthru in that browser, or upload the plan again from the start page.'); return; }
+    if (!uploaded) { loading.showError('This plan is not on this device', 'Uploaded plans stay in the browser that read them. Open Walkthru in that browser, or upload the plan again from the start page.'); return failed(); }
   }
+  if (host) setCeilingTrust({ known: true }); // a space with no import sidecar must not inherit the last one's ceiling note
   // C11b: the body, its clips and the drawing's designs download while the layout and the look start up
   const early = loadPerson(storage);
   prefetchPerson(early.body, guessedBodyTier());
@@ -194,7 +223,7 @@ async function boot(): Promise<void> {
   const result = await fetchProperty(sceneId);
   if (result.kind === 'missing') {
     loading.showNotSetUp(sceneId);
-    return;
+    return failed();
   }
   const property = result.property;
   document.title = `${property.title} · walkthru`;
@@ -207,7 +236,7 @@ async function boot(): Promise<void> {
   const unverifiedRooms = await extrasP;
   if (layout.rooms.length === 0) {
     loading.showError('This home has no rooms yet.', 'The layout is empty. A broker can trace the rooms in the editor.');
-    return;
+    return failed();
   }
   const check = validateLayout(layout);
   for (const w of check.warnings) console.warn(`[walkthru] layout warning: ${w}`);
@@ -218,11 +247,21 @@ async function boot(): Promise<void> {
   if (!app) throw new Error('index.html has no #app element.');
   let viewer: Viewer;
   try {
-    viewer = createViewer(app, { hasSplat: !!property.splat });
+    viewer = createViewer(app, { hasSplat: !!property.splat, shared: !!host });
   } catch (err) {
     loading.showError('Could not start 3D.', `${describe(err)}\nTry another browser, or turn on hardware acceleration.`);
-    return;
+    return failed();
   }
+  probeViewer = viewer;
+  cleanup.push(() => {
+    // last to go: everything below is registered after it and taken down first
+    disposeTree(viewer.scene); // anything still hanging in the scene (a module that does not dispose its own parts)
+    if (host) {
+      const i = viewer.renderer.info;
+      (window as unknown as { __walkthruTeardown?: unknown }).__walkthruTeardown = { before: heldBefore, after: { geometries: i.memory.geometries, textures: i.memory.textures, programs: i.programs?.length ?? 0 } };
+    }
+    viewer.dispose();
+  });
   // the look (C11a): lights, tone mapping, materials, backdrop. It never blocks boot: assets arrive after first paint.
   let look: Look | null = null;
   try {
@@ -230,11 +269,20 @@ async function boot(): Promise<void> {
   } catch (err) {
     console.warn('[walkthru] the look could not start, using the plain scene:', err);
   }
+  if (look) {
+    const lk0 = look;
+    cleanup.push(() => lk0.dispose());
+    // the time of day and colour mode the viewer chose stay with them from space to space
+    if (host?.carry?.hour !== undefined) lk0.setHour(host.carry.hour);
+    if (host?.carry?.trueColours !== undefined) lk0.setTrueColours(host.carry.trueColours);
+  }
   const shell = buildShell(layout, look ? { materials: look.materials() } : undefined);
+  cleanup.push(() => { disposeTree(shell); });
   viewer.scene.add(shell);
   const furnitureRoot = new THREE.Group();
   furnitureRoot.name = 'furniture';
   viewer.scene.add(furnitureRoot);
+  cleanup.push(() => { disposeTree(furnitureRoot); });
   const baseGrid = rasterizeLayout(layout);
   // C11b: the real-looking furniture at the same exact sizes (SPEC 16.6.5). A scene's drawing (designs.json) may set drawn
   // heights and finish details; boxes are never changed. Textures arrive after first paint.
@@ -244,10 +292,10 @@ async function boot(): Promise<void> {
   setGenCeiling(layout.wallHeightM); // a hung swing's chains and hooks go up to this home's ceiling
   void furnitureKit.setTier(startTier).catch((err) => console.warn('[walkthru] furniture textures not loaded', err));
   // the style (SPEC 16.13): the designer's sheet when the home has one, else the default pack; the viewer's last pick wins (?style= for checks)
-  const styleKey = `walkthru:style:${sceneId}`;
+  const styleKey = `walkthru:style:${host?.styleScope ?? sceneId}`;
   const sheet = await sheetP;
   {
-    const picked = params.get('style') ?? storageGet(storage, styleKey);
+    const picked = params.get('style') ?? storageGet(storage, styleKey) ?? host?.space.pack ?? null;
     const packId: string | undefined = picked && picked !== 'designer' && PACKS.some((p) => p.id === picked) ? picked : undefined;
     setStyle({ packId, sheet });
   }
@@ -255,12 +303,14 @@ async function boot(): Promise<void> {
   const ownIds = new Set(property.furniture.map((f) => f.id));
   const fixtureItems = fixturesToItems(await fixturesP, layout, property.furniture).filter((f) => !ownIds.has(f.id));
   const initialItems = applyDesigns([...property.furniture, ...fixtureItems], designs);
-  const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage, shareCode: params.get(SHARE_PARAM), ceilingM: layout.wallHeightM });
+  const store = createFurnitureStore({ sceneId, baseGrid, initial: initialItems, parent: furnitureRoot, storage, shareCode: host ? null : params.get(SHARE_PARAM), ceilingM: layout.wallHeightM });
+  cleanup.push(() => store.dispose());
   // fittings (AC, fan, curtains, plants, the drawing's chairs ...): each planner reports what it built here, and a tap or the furnish card edits the overlay the store keeps
   const fittingRegistry = createFittingRegistry();
   const fittings = createFittingsApi({ registry: fittingRegistry, store, layout });
   const decor: Decor[] = buildDecor(designs, store.all(), startTier);
   for (const d of decor) furnitureRoot.add(d.group);
+  cleanup.push(() => { for (const d of decor) disposeTree(d.group); });
   // the drawing's chairs are sittable and block the walk grid (src/buyer/seats.ts)
   const seats = buildSeats(designs, store.all());
   store.setTemporary('seats', seats.obstacles());
@@ -290,9 +340,10 @@ async function boot(): Promise<void> {
     }
   } catch (err) {
     loading.showError('Could not load the walking figure.', describe(err));
-    return;
+    return failed();
   }
   viewer.scene.add(character.object);
+  cleanup.push(() => { viewer.scene.remove(character.object); character.dispose(); });
   if (property.splat) character.setShadowVisible(false); // SPEC 12 risk 2: no alpha-blended shadow against a splat
   look?.attach({ character: { object: character.object, setBlobVisible: (v) => character.setShadowVisible(v && !property.splat) } });
   // the sofa seat height lets a tall person sit with raised knees instead of floating (look/character: sitPlan)
@@ -322,8 +373,10 @@ async function boot(): Promise<void> {
 
   // ---- HUD, input, camera, overlays, modes, context
   const input = createInput(viewer.canvas);
+  cleanup.push(() => input.dispose());
   const camera = new FollowCamera(viewer.camera, () => store.grid(), layout.wallHeightM);
   const overlays = createOverlays(viewer.scene);
+  cleanup.push(() => overlays.dispose());
   const modes = new ModeManager();
 
   let picker: ReturnType<typeof createHeightPicker>;
@@ -340,7 +393,8 @@ async function boot(): Promise<void> {
     scan: () => setScan(!scanVisible),
   });
   hud.setVisible(false);
-  const tagText = sceneTagText(property);
+  cleanup.push(() => hud.dispose());
+  const tagText = host ? host.tagText : sceneTagText(property);
   if (tagText) mountSceneTag(hud.root, tagText);
   if (uploaded) { const up = uploaded; void import('../upload/notes-panel').then((m) => m.mountUploadNote(hud.root, up.data.notes, sceneId, up.source === 'sample')); }
   mountHomeLink(hud.root);
@@ -393,27 +447,30 @@ async function boot(): Promise<void> {
     packName: (): string => getStyle().pack.name,
     classic: (): boolean => !!getStyle().pack.classic,
   };
-  if (look) mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); }, style: stylePicker });
+  if (look) cleanup.push(mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); }, style: stylePicker }));
   // the people a buyer adds (src/buyer/people): mounted below, once the walker, the store and the HUD exist
   let people: MountedPeople | null = null;
   // C12f: the optional AI photo (SPEC 17.14). The button exists only if the server says the feature is on; nothing else loads until it is tapped.
   // never for an uploaded plan: a picture of the view would leave the device, and an upload is promised to stay on it
-  if (!uploaded) mountAiPhoto({
+  if (!uploaded) cleanup.push(mountAiPhoto({
     host: hud.root, viewer, layout, items: () => store.all(), toast: (t) => hud.toast(t),
     withoutCharacter: (fn) => { const was = character.object.visible; character.setVisible(false); livedIn?.setSuppressed(true); people?.people.setSuppressed(true); try { return fn(); } finally { character.setVisible(was); livedIn?.setSuppressed(!!scanHandle && scanVisible); people?.people.setSuppressed(false); } },
-  });
+  }).dispose);
 
   const ctx: BuyerContext = createBuyerContext({ viewer, property, character, input, camera, hud, overlays, furniture: store, shell, furnitureRoot, modes, unverifiedRooms, fittings, extraTargets: () => people?.people.objects() ?? [] });
   // openable wardrobes (drawn from designs.json, or catalogue): shutters, swing arcs, walking space
   const wardrobes = createWardrobes({ ctx, store, designs, parent: furnitureRoot });
-  const doors = mountDoors({ ctx, store, layout });
+  cleanup.push(() => wardrobes.dispose());
+  const doors = mountDoors({ ctx, store, layout, looks: host?.doorLooks });
+  cleanup.push(() => { doors.dispose(); delete (window as unknown as { __walkthruDoors?: unknown }).__walkthruDoors; });
   doors.setPanelColour(doorPanelColour());
-  onStyleChange(() => { doors.setPanelColour(doorPanelColour()); }); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
+  cleanup.push(onStyleChange(() => { doors.setPanelColour(doorPanelColour()); })); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
   const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, editNote: (item) => { const d = store.drawnItem(item.id); return d && store.isOriginal(item.id) ? editNote(d, item) : null; }, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name) + modelNote(item.id)) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));
   modes.registerLazy('furnish', () => createFurnishMode(ctx, { designedIds: new Set(Object.keys(designs?.items ?? {})) }));
+  cleanup.push(() => { try { modes.set('walk'); } catch { /* the space is going */ } }); // a mode left open (furnish, measure) closes with its own clean-up
   mountLayoutChip(hud.root, store, () => { if (!blocking() && modes.id !== 'furnish') modes.set('furnish'); });
   if (store.fromLink()) {
     try { const u = new URL(location.href); u.searchParams.delete(SHARE_PARAM); history.replaceState(null, '', u.toString()); } catch { /* ignore */ }
@@ -476,9 +533,10 @@ async function boot(): Promise<void> {
     if (announce) hud.hint(v === 'first' ? 'First person · V to see yourself' : 'See yourself · V for first person', 2500);
   }
 
+  let extBlock = false; // a building's own panel (the lift's floor list, the map) is open
   // the people a buyer adds: bodies of their own that block the walk like a body, kept in "My layout" (src/buyer/people)
   people = mountPeople({
-    ctx, hud, store, seats, modes, storage, sceneId, shareCode: params.get(SHARE_PARAM),
+    ctx, hud, store, seats, modes, storage, sceneId, shareCode: host ? null : params.get(SHARE_PARAM),
     tier: () => look?.tier ?? 'medium',
     surfaceProbe: (x, z) => character.surfaceProbe?.(x, z) ?? null,
     onBodies: () => baked?.rescan(),
@@ -502,7 +560,8 @@ async function boot(): Promise<void> {
       },
     },
   });
-  const blocking = (): boolean => picker.isOpen() || rooms.isOpen() || paintBusy || people!.ui.blocking();
+  cleanup.push(() => { people?.ui.dispose(); people?.people.dispose(); people = null; }); // their bodies, sheets and timers go with the space (their records stay in My layout)
+  const blocking = (): boolean => picker.isOpen() || rooms.isOpen() || paintBusy || extBlock || people!.ui.blocking();
 
   picker = createHeightPicker(document.body, {
     getCm: () => heightCm,
@@ -528,22 +587,25 @@ async function boot(): Promise<void> {
   design = mountDesign({
     scene: viewer.scene, layout, shell, look, store, tier: startTier, registry: fittingRegistry,
     beforeRestyle: () => { kit?.dispose(); kit = null; },
-    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store, registry: fittingRegistry }); },
+    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store, registry: fittingRegistry, ...(host?.bare || (host && host.space.kind !== 'home') ? { plain: true } : {}) }); }, // a lobby, a corridor or a gym has no flat fittings (window grills, switchboards, fans) by default
   });
+  cleanup.push(() => { design?.dispose(); kit?.dispose(); kit = null; });
   // a new style rebuilds the furniture and the openable wardrobes' shutters (the decor and rooms are rebuilt by mountDesign itself)
-  onStyleChange(() => {
+  cleanup.push(onStyleChange(() => {
     rebuildFurnitureTier(furnitureRoot, look?.tier ?? startTier);
     wardrobes.restyle();
     livedIn?.replan();
     look?.refresh(store.grid());
-  });
+  }));
   // optional "Lived-in" decor (SPEC 16.6.7): a switch in the look sheet, a label in the rooms sheet; on by default only for made-up sample homes
-  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, registry: fittingRegistry, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), models: () => (getStyle().pack.classic ? null : getStyle().pack.models ?? null), defaultOn: sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
+  livedIn = createLivedIn({ parent: furnitureRoot, layout, store, storage, tier: startTier, registry: fittingRegistry, omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug']), models: () => (getStyle().pack.classic ? null : getStyle().pack.models ?? null), defaultOn: !host?.bare && sceneOrigin({ id: property.id, subtitle: property.subtitle, hasSplat: !!property.splat }) === 'sample' }); mountLivedInToggle(hud.root, livedIn, rooms);
+  cleanup.push(() => { livedIn?.dispose(); });
 
   // SPEC 16.14: the baked lighting of this home, if it has one. Loads after first paint; a home with no bake renders as it always did.
   let baked: BakedHandle | null = null;
   if (look && params.get('bake') !== 'off' && !property.splat) {
     baked = mountBaked({ look, scene: viewer.scene, renderer: viewer.renderer, sceneId, layout, extraDynamic: () => [character.object, ...people!.people.objects()] });
+    cleanup.push(() => { baked?.dispose(); baked = null; });
     const lk = look;
     store.onChange(() => { setTimeout(() => baked?.rescan(), 150); });
     lk.onChange(() => baked?.rescan());
@@ -556,7 +618,8 @@ async function boot(): Promise<void> {
     const g = store.grid();
     const room = resolveStartRoom(layout, requestedRoom, unverifiedRooms);
     const smart = room ? chooseSpawn(layout, room.id, g) : null;
-    const sp = smart ?? property.spawn;
+    // a building lands the walker just inside the door they came through; otherwise the room's own start
+    const sp = host?.arrival?.(layout, g) ?? smart ?? property.spawn;
     let at: Vec2 = { x: sp.x, z: sp.z };
     if (!circleFree(g, at.x, at.z, CHARACTER_RADIUS_M)) {
       const free = nearestFree(g, at.x, at.z, CHARACTER_RADIUS_M, 4);
@@ -577,6 +640,7 @@ async function boot(): Promise<void> {
   // a tap on any piece or fitting while walking opens it in Furnish with that thing selected: its size, and move, resize, replace, change look or remove
   input.onTap((e) => {
     if (blocking() || modes.id !== 'walk') return;
+    if (host?.tapClaim?.(e)) return; // a tap on a building's portal door or lift is the portal's, not a piece to select
     // the same hit-test as in Furnish: the nearest thing under the tap, furniture, fitting or an added person
     const hit = ctx.pickAt?.(e) ?? null;
     if (people!.ui.handleTap(e, hit)) return; // placing a person, or a person was tapped
@@ -620,6 +684,8 @@ async function boot(): Promise<void> {
         // HEAD refused or the network hiccuped: let the loader try
       }
       scanHandle = await viewer.loadSplat(url, splat.transform, (f) => hud.setScanButton('loading', f));
+      if (disposed) { scanHandle.dispose(); scanHandle = null; return; }
+      cleanup.push(() => { scanHandle?.dispose(); scanHandle = null; });
       setScan(true);
     } catch (err) {
       console.warn('[walkthru] scan not loaded:', err);
@@ -634,6 +700,7 @@ async function boot(): Promise<void> {
   let gridDirty = false;
   if (debug) {
     gridOverlay = createGridOverlay(viewer.scene, store.grid());
+    cleanup.push(() => gridOverlay?.dispose());
     store.onChange(() => { gridDirty = true; });
   }
 
@@ -646,10 +713,11 @@ async function boot(): Promise<void> {
   let gridClock = 0;
   // debug only (SPEC 16.6.8): freeze the simulation and advance it in exact steps, so a frame sequence has even spacing
   const motionDebug = { paused: false, steps: 0, dt: 1 / 30, trace: null as null | { cam: number[]; char: number[] }[] };
-  viewer.onFrame((frameDt) => {
+  cleanup.push(viewer.onFrame((frameDt) => {
+    if (disposed) return;
     if (!motionDebug.paused) { tick(frameDt); return; }
     while (motionDebug.steps > 0) { motionDebug.steps--; tick(motionDebug.dt); }
-  });
+  }));
   function tick(dt: number): void {
     const look = input.takeLook();
     const blocked = blocking();
@@ -859,13 +927,35 @@ async function boot(): Promise<void> {
   (window as unknown as { __walkthru: typeof api }).__walkthru = api;
 
   // ---- go
+  if (disposed) return null; // the building moved on while this space was still loading
+  host?.onMounted({
+    sceneId, property, layout, ctx, hud, viewer, doors, look, blocked: blocking, block: (on) => { extBlock = on; }, people: people!.people,
+    onDispose: (fn) => { cleanup.push(fn); },
+  });
   loading.setProgress(1, 'Ready');
   booted = true;
   loading.hide();
-  picker.open(true);
+  if (!host || host.first) picker.open(true);
+  else hud.setVisible(true); // the walker is already chosen: straight into the space
+  return {
+    sceneId,
+    dispose: teardown,
+    carry: () => (look ? { hour: look.hour, trueColours: look.trueColours } : {}),
+    // the people who were following the walker leave this space's layout and come out of the portal with them
+    takeFollowers: () => {
+      const pp = people?.people;
+      if (!pp) return [];
+      const out: PersonSpec[] = [];
+      for (const r of pp.list()) if (pp.isFollowing(r.id)) { out.push({ body: r.body, tone: r.tone, heightCm: r.heightCm }); pp.remove(r.id); }
+      return out;
+    },
+  };
 }
 
-boot().catch((err) => {
-  console.error('[walkthru] boot failed', err);
-  loading.showError('Could not open this home.', describe(err));
-});
+// a lone home (or a building's space opened by ?scene=): boot it here. A building (`?building=`) is driven by src/building/walk.ts, which boots each space itself.
+if (!params.get('building')) {
+  boot(initialSceneId, initialRoom).catch((err) => {
+    console.error('[walkthru] boot failed', err);
+    loading.showError('Could not open this home.', describe(err));
+  });
+}

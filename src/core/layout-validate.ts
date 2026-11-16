@@ -83,7 +83,7 @@ function lerp(a: Vec2, b: Vec2, t: number): Vec2 {
   return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t };
 }
 
-function overlapAreaM2(a: Vec2[], b: Vec2[]): number {
+export function overlapAreaM2(a: Vec2[], b: Vec2[]): number {
   const bb = (p: Vec2[]) => ({
     x0: Math.min(...p.map((q) => q.x)), x1: Math.max(...p.map((q) => q.x)),
     z0: Math.min(...p.map((q) => q.z)), z1: Math.max(...p.map((q) => q.z)),
@@ -420,6 +420,7 @@ export function validateProperty(json: unknown): PropertyFile {
     updatedAt: strAt(json, 'updatedAt', 'property', new Date().toISOString()),
   };
   if (isStr(json.subtitle)) out.subtitle = json.subtitle;
+  if (json.spaceKind !== undefined) out.spaceKind = oneOf(json.spaceKind, ['home', 'lobby', 'corridor', 'gym', 'hall', 'pool', 'garden', 'other'] as const, 'spaceKind');
   if (json.splat !== undefined) {
     const s = json.splat;
     if (!isObj(s) || !isStr(s.file) || !isObj(s.transform)) return fail('splat', 'must have file and transform');

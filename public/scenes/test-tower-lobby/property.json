@@ -1,0 +1,276 @@
+{
+  "version": 1,
+  "id": "test-tower-lobby",
+  "title": "Entrance lobby",
+  "subtitle": "Sample building · made-up layout for demonstration",
+  "layout": {
+    "wallHeightM": 3.6,
+    "wallThicknessM": 0.12,
+    "railingHeightM": 1.1,
+    "rooms": [
+      {
+        "id": "entrance-lobby",
+        "roomType": "other",
+        "label": "Entrance lobby",
+        "polygon": [
+          {
+            "x": 0,
+            "z": 0
+          },
+          {
+            "x": 9,
+            "z": 0
+          },
+          {
+            "x": 9,
+            "z": 7
+          },
+          {
+            "x": 0,
+            "z": 7
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      },
+      {
+        "id": "lift-lobby",
+        "roomType": "other",
+        "label": "Lift lobby",
+        "polygon": [
+          {
+            "x": 9.12,
+            "z": 0
+          },
+          {
+            "x": 15.12,
+            "z": 0
+          },
+          {
+            "x": 15.12,
+            "z": 4.2
+          },
+          {
+            "x": 9.12,
+            "z": 4.2
+          }
+        ],
+        "edges": [
+          "wall",
+          "wall",
+          "wall",
+          "wall"
+        ]
+      }
+    ],
+    "openings": [
+      {
+        "id": "door-street",
+        "roomId": "entrance-lobby",
+        "edge": 2,
+        "type": "door",
+        "centreM": 4.5,
+        "widthM": 1.2,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-clubhouse",
+        "roomId": "entrance-lobby",
+        "edge": 0,
+        "type": "door",
+        "centreM": 2.2,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "in",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "opening-lobby",
+        "roomId": "lift-lobby",
+        "edge": 3,
+        "type": "opening",
+        "centreM": 1.8000000000000003,
+        "widthM": 2.6,
+        "sillM": 0,
+        "headM": 2.1
+      },
+      {
+        "id": "lift-a",
+        "roomId": "lift-lobby",
+        "edge": 1,
+        "type": "door",
+        "centreM": 1.2,
+        "widthM": 0.9,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "lift-b",
+        "roomId": "lift-lobby",
+        "edge": 1,
+        "type": "door",
+        "centreM": 3,
+        "widthM": 0.9,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "door-stairs",
+        "roomId": "lift-lobby",
+        "edge": 2,
+        "type": "door",
+        "centreM": 4.52,
+        "widthM": 1,
+        "sillM": 0,
+        "headM": 2.1,
+        "leaf": {
+          "hinge": "start",
+          "swing": "out",
+          "kind": "hinged"
+        }
+      },
+      {
+        "id": "window-s1",
+        "roomId": "entrance-lobby",
+        "edge": 2,
+        "type": "window",
+        "centreM": 7.2,
+        "widthM": 2,
+        "sillM": 0,
+        "headM": 2.6
+      },
+      {
+        "id": "window-s2",
+        "roomId": "entrance-lobby",
+        "edge": 2,
+        "type": "window",
+        "centreM": 1.7999999999999998,
+        "widthM": 2,
+        "sillM": 0,
+        "headM": 2.6
+      },
+      {
+        "id": "window-w",
+        "roomId": "entrance-lobby",
+        "edge": 3,
+        "type": "window",
+        "centreM": 4,
+        "widthM": 2.4,
+        "sillM": 0,
+        "headM": 2.6
+      }
+    ],
+    "finishes": {
+      "wallColor": "#EFE7D8",
+      "floorColor": "#C9B79C",
+      "tile": {
+        "wM": 0.8,
+        "lM": 0.8
+      },
+      "groutColor": "#B3A185",
+      "frameColor": "#A8B0B5",
+      "ceilingColor": "#F7F4EE",
+      "railingColor": "#3A3A3C",
+      "source": "default"
+    },
+    "scaleSource": "typed-sizes"
+  },
+  "furniture": [
+    {
+      "id": "lobby-sofa-1",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "sofa-3",
+      "label": "3-seat sofa",
+      "box": {
+        "cx": 0.65,
+        "cz": 4.9,
+        "w": 2.1,
+        "d": 0.9,
+        "yawDeg": 90
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "lobby-sofa-2",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "sofa-2",
+      "label": "2-seat sofa",
+      "box": {
+        "cx": 3.6,
+        "cz": 4.6,
+        "w": 1.5,
+        "d": 0.85,
+        "yawDeg": 270
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    },
+    {
+      "id": "lobby-table",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "side-table",
+      "label": "Side table",
+      "box": {
+        "cx": 2.1,
+        "cz": 4.75,
+        "w": 0.45,
+        "d": 0.45,
+        "yawDeg": 0
+      },
+      "heightM": 0.55,
+      "surfaceHeightM": 0.55
+    },
+    {
+      "id": "lobby-armchair",
+      "source": "virtual",
+      "kind": "sofa",
+      "catalogId": "armchair",
+      "label": "Armchair",
+      "box": {
+        "cx": 2,
+        "cz": 2.9,
+        "w": 0.8,
+        "d": 0.85,
+        "yawDeg": 0
+      },
+      "heightM": 0.85,
+      "surfaceHeightM": 0.43
+    }
+  ],
+  "spawn": {
+    "x": 4.5,
+    "z": 5.6,
+    "yawDeg": 0
+  },
+  "unlisted": true,
+  "spaceKind": "lobby",
+  "updatedAt": "2026-11-16T00:00:00.000Z"
+}

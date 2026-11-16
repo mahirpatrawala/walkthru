@@ -85,7 +85,7 @@ describe('the buyer page edit stays small and in one place', () => {
     expect(main.indexOf('installLocalScene(')).toBeLessThan(main.indexOf('fetchProperty(sceneId)'));
   });
   it('never mounts the AI photo (which sends a picture to a server) for an uploaded plan', () => {
-    expect(main).toMatch(/if \(!uploaded\) mountAiPhoto\(/);
+    expect(main).toMatch(/if \(!uploaded\) (?:cleanup\.push\()?mountAiPhoto\(/);
   });
   it('the buyer page loads no reader code: only the tag file and two lazy imports', () => {
     expect(main.match(/from '\.\.\/upload\/[^']+'/g)).toEqual(["from '../upload/tag'"]);

@@ -19,6 +19,8 @@ export type HingeSignals = 'both' | 'handle' | 'mark' | 'neither' | 'disagree';
 
 export interface SetOptions {
   template: Template;
+  /** another arrangement of the template's rooms (2 BHK: 1 living and master on top, 2 living, bedroom and master on top; 3 BHK: 1 the compact plan; none of them has a passage); left out, the template as it always was */
+  variant?: number;
   wallStyle: WallStyle;
   textMode: TextMode;
   font: Font;
