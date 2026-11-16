@@ -8,6 +8,7 @@ import type { AoField } from './floor-ao';
 import type { TierConfig } from './quality';
 import { GLSL_NOISE, GLSL_WOOD } from './procedural';
 import { MAX_LAMP_POOLS, MAX_WINDOW_LIGHTS } from './daylight';
+import type { RealisticFamily, RealisticSet } from './realistic';
 
 /** Mean linear luminance of each diffuse texture, measured once with scripts/derive-look-assets.ts. */
 export const TEXTURE_MEAN = {
@@ -144,6 +145,10 @@ vec3 lkLamps(vec3 p, vec3 n) {
   }
   return acc * uLkLampCol;
 }
+uniform float uLkRMix;        // 0..1: how much of the photographed material set shows over the procedural look (SPEC 16.21); 0 = Off
+uniform float uLkRMap;        // floors: 1 = per-plank mapping, 2 = continuous in metres; 0 = the old mapping
+uniform float uLkRScale;      // metres per repeat of the photographed set on a floor
+uniform float uLkRSwap;       // 1: the grain runs along the map's v (a frame member)
 uniform float uLkPlank;       // 1 on a plank floor: rows along the grid axis, each row staggered at random, grain along the plank
 uniform float uLkFine;        // 1 where the tier draws procedural fine detail (medium, high)
 uniform float uLkKitBevel;    // strength of the bevel at a tile joint
@@ -189,6 +194,20 @@ void lkSetup() {
     vec2 q = step(0.5, vec2(lkHash(id), lkHash(id + 7.3)));
     lkUV = fract(lkUVc) * 0.5 + 0.5 * q;
     lkDx = dFdx(lkUVc) * 0.5; lkDy = dFdy(lkUVc) * 0.5;
+    if (uLkKit > 0.5 && uLkRMap > 0.5) {
+      // a photographed set on a kit floor, mapped in metres: on a plank floor each board takes its own stretch of the map (random start), so no tiling shows;
+      // on a tile floor the map is continuous across tiles. The joints and the bevel are drawn over it by the procedural code.
+      if (uLkPlank > 0.5) {
+        vec2 lkPid = floor(lkUVc);
+        vec2 lkPm = fract(lkUVc) * uLkKitTile;
+        lkUV = (lkPm + vec2(lkHash(lkPid + 1.7), lkHash(lkPid + 6.1)) * (uLkRScale * 3.0)) / uLkRScale;
+        lkDx = dFdx(lkUVc * uLkKitTile) / uLkRScale; lkDy = dFdy(lkUVc * uLkKitTile) / uLkRScale;
+      } else {
+        vec2 lkPm = lkUVc * uLkKitTile;
+        lkUV = lkPm / uLkRScale;
+        lkDx = dFdx(lkPm) / uLkRScale; lkDy = dFdy(lkPm) / uLkRScale;
+      }
+    }
   } else if (uLkMode > 1.5) {
     lkUVc = vLkUv / uLkRepeat;
     lkUV = lkUVc;
@@ -202,6 +221,7 @@ void lkSetup() {
     lkUV = lkUVc;
     lkDx = dFdx(lkUVc); lkDy = dFdy(lkUVc);
   }
+  if (uLkRSwap > 0.5) { lkUV = lkUV.yx; lkDx = lkDx.yx; lkDy = lkDy.yx; }
 }
 mat3 lkTBN(vec3 eye, vec3 N, vec2 uv) {
   vec3 q0 = dFdx(eye); vec3 q1 = dFdy(eye);
@@ -220,7 +240,7 @@ lkSetup();
 float lkDet = 1.0;
 if (uLkDetailOn > 0.5 && uLkPlain < 0.5) {
   vec3 lkT = textureGrad(uLkDetail, lkUV, lkDx, lkDy).rgb;
-  lkDet = clamp(dot(lkT, vec3(0.2126, 0.7152, 0.0722)) / uLkDetailMean, uLkDetailClamp.x, uLkDetailClamp.y);
+  lkDet = mix(1.0, clamp(dot(lkT, vec3(0.2126, 0.7152, 0.0722)) / uLkDetailMean, uLkDetailClamp.x, uLkDetailClamp.y), uLkRMix);
 }
 diffuseColor.rgb *= lkDet;
 if (uLkWood > 0.5 && uLkPlain < 0.5) {
@@ -293,7 +313,7 @@ if (uLkWallAOOn > 0.5 && uLkPlain < 0.5) {
 `;
 const FRAG_ROUGH = /* glsl */ `
 if (uLkRoughOn > 0.5 && uLkPlain < 0.5) {
-  roughnessFactor = mix(uLkRoughRange.x, uLkRoughRange.y, textureGrad(uLkRough, lkUV, lkDx, lkDy).g);
+  roughnessFactor = mix(roughnessFactor, mix(uLkRoughRange.x, uLkRoughRange.y, textureGrad(uLkRough, lkUV, lkDx, lkDy).g), uLkRMix);
 }
 if (uLkKit > 0.5 && uLkPlain < 0.5) roughnessFactor = mix(max(roughnessFactor, uLkKitRoughMin), 0.92, lkGrout);
 if (uLkWallTile.x > 0.0 && uLkPlain < 0.5) roughnessFactor = mix(roughnessFactor, 0.26, lkTileIn);
@@ -301,7 +321,7 @@ if (uLkWallTile.x > 0.0 && uLkPlain < 0.5) roughnessFactor = mix(roughnessFactor
 const FRAG_NORMAL = /* glsl */ `
 if (uLkNormOn > 0.5 && uLkPlain < 0.5) {
   vec3 lkN = textureGrad(uLkNorm, lkUV, lkDx, lkDy).xyz * 2.0 - 1.0;
-  lkN.xy *= uLkNormScale;
+  lkN.xy *= uLkNormScale * uLkRMix;
   normal = normalize(lkTBN(-vViewPosition, normal, lkUVc) * lkN);
 }
 if (uLkKit > 0.5 && uLkPlain < 0.5 && uLkKitBevel > 0.0) {
@@ -391,6 +411,15 @@ export interface LookMaterials extends ShellMaterialSet {
   setReflection(mode: ReflectionMode, tex: { cube?: THREE.Texture | null; planar?: THREE.Texture | null }): void;
   /** a floor material with one room's tile grid: vitrified tiles with thin grout, aligned to the room's longest wall, never stretched */
   floorKit(spec: FloorKitSpec): THREE.Material;
+  /** SPEC 16.21: the families of the realistic-materials table that the materials made so far use, and a counter that changes when a new one is made */
+  realisticFamilies(): Set<RealisticFamily>;
+  realisticVersion(): number;
+  /** gives every material of the family the photographed set (colour, normal, roughness; `mean` is the colour map's mean luminance), at mix 0 */
+  applyRealistic(family: RealisticFamily, t: { diff: THREE.Texture; nor: THREE.Texture; rough: THREE.Texture; mean: number }, set: RealisticSet): void;
+  /** how much of the set shows, 0 (procedural) to 1 */
+  setRealisticMix(family: RealisticFamily, k: number): void;
+  /** back to the procedural look everywhere */
+  clearRealistic(): void;
   /** number of GPU textures this cache holds (stats) */
   textureCount(): number;
   dispose(): void;
@@ -429,6 +458,8 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
   };
   const records: Rec[] = [];
   const byKey = new Map<string, Rec>();
+  let recVersion = 0;
+  const realTex = new Set<THREE.Texture>();
   const tileTextures: THREE.Texture[] = [];
   const loaded = new Set<THREE.Texture>();
   let floorAoTex: THREE.DataTexture | null = null;
@@ -444,7 +475,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
     mat.userData.shared = true;
     const u: Rec['u'] = {
       uLkMode: { value: kind === 'floor' ? 0 : kind === 'frame' ? 2 : 1 },
-      uLkPaint: { value: kind === 'wall' || kind === 'ceiling' ? 1 : 0 }, uLkWood: { value: kind === 'frame' ? 1 : 0 }, uLkFine: shared.fine, uLkWinOn: shared.winOn, uLkWinA: shared.winA, uLkWinB: shared.winB, uLkWinCol: shared.winCol, uLkLampA: shared.lampA, uLkLampCol: shared.lampCol, uLkPlank: { value: 0 }, uLkKitBevel: { value: 0 }, uLkKitSpeck: { value: 0 }, uLkWallTile: { value: new THREE.Vector3(0, 0, 0) }, uLkWallJoint: { value: new THREE.Color('#999') },
+      uLkPaint: { value: kind === 'wall' || kind === 'ceiling' ? 1 : 0 }, uLkWood: { value: kind === 'frame' ? 1 : 0 }, uLkFine: shared.fine, uLkWinOn: shared.winOn, uLkWinA: shared.winA, uLkWinB: shared.winB, uLkWinCol: shared.winCol, uLkLampA: shared.lampA, uLkLampCol: shared.lampCol, uLkRMix: { value: 0 }, uLkRMap: { value: 0 }, uLkRScale: { value: 1 }, uLkRSwap: { value: 0 }, uLkPlank: { value: 0 }, uLkKitBevel: { value: 0 }, uLkKitSpeck: { value: 0 }, uLkWallTile: { value: new THREE.Vector3(0, 0, 0) }, uLkWallJoint: { value: new THREE.Color('#999') },
       uLkTile: { value: new THREE.Vector2(0.6, 0.6) },
       uLkRepeat: { value: kind === 'frame' ? 0.6 : 1.6 },
       uLkPlain: shared.plain,
@@ -481,10 +512,20 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
     const rec: Rec = { kind, balcony, mat, u, plain, look: { roughness: mat.roughness, metalness: mat.metalness }, map: null };
     records.push(rec);
     byKey.set(key, rec);
+    recVersion++;
     return rec;
   }
 
   const set = <T,>(r: Rec, k: string, v: T): void => { (r.u[k] as Uniform<T>).value = v; };
+  const set_ = set;
+  /** the family of the realistic-materials table a material belongs to, from what it is (null: stays procedural: balcony and plain floors, glazed wall tile, painted frames) */
+  const familyOf = (r: Rec): RealisticFamily | null => {
+    if (r.kind === 'floor') return (r.u.uLkKit.value as number) > 0.5 ? ((r.u.uLkPlank.value as number) > 0.5 ? 'plank' : 'tile') : null;
+    if (r.kind === 'wall') return (r.u.uLkWallTile.value as THREE.Vector3).x > 0 ? null : 'wall';
+    if (r.kind === 'ceiling') return 'wall';
+    if (r.kind === 'frame') return (r.u.uLkWood.value as number) > 0.5 ? 'veneer' : null;
+    return null;
+  };
 
   const api: LookMaterials = {
     shared,
@@ -612,7 +653,34 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
       if (tex.cube !== undefined) shared.cube.value = tex.cube;
       if (tex.planar !== undefined) shared.planar.value = tex.planar;
     },
-    textureCount() { return loaded.size + tileTextures.length + (floorAoTex ? 1 : 0) + (ceilAoTex ? 1 : 0); },
+    realisticFamilies() {
+      const out = new Set<RealisticFamily>();
+      for (const r of records) { const f = familyOf(r); if (f) out.add(f); }
+      return out;
+    },
+    realisticVersion: () => recVersion,
+    applyRealistic(family, t, set) {
+      realTex.add(t.diff); realTex.add(t.nor); realTex.add(t.rough);
+      for (const r of records) {
+        if (familyOf(r) !== family) continue;
+        set_(r, 'uLkDetail', t.diff); set_(r, 'uLkDetailMean', t.mean); set_(r, 'uLkDetailClamp', new THREE.Vector2(set.clamp[0], set.clamp[1])); set_(r, 'uLkDetailOn', 1);
+        set_(r, 'uLkNorm', t.nor); set_(r, 'uLkNormScale', set.normalScale); set_(r, 'uLkNormOn', 1);
+        set_(r, 'uLkRough', t.rough); set_(r, 'uLkRoughRange', new THREE.Vector2(set.rough[0], set.rough[1])); set_(r, 'uLkRoughOn', 1);
+        if (r.kind === 'floor') { set_(r, 'uLkRMap', family === 'plank' ? 1 : 2); set_(r, 'uLkRScale', set.tileM); } else set_(r, 'uLkRepeat', set.tileM);
+        set_(r, 'uLkRSwap', set.swap ? 1 : 0);
+        set_(r, 'uLkRMix', 0);
+      }
+      if (cfg) api.configure(cfg, { trueColours });
+    },
+    setRealisticMix(family, k) { for (const r of records) if (familyOf(r) === family) set_(r, 'uLkRMix', k); },
+    clearRealistic() {
+      for (const r of records) {
+        for (const k of ['uLkDetailOn', 'uLkNormOn', 'uLkRoughOn', 'uLkRMix', 'uLkRMap', 'uLkRSwap']) set_(r, k, 0);
+      }
+      realTex.clear();
+      if (cfg) api.configure(cfg, { trueColours });
+    },
+    textureCount() { return loaded.size + tileTextures.length + realTex.size + (floorAoTex ? 1 : 0) + (ceilAoTex ? 1 : 0); },
     dispose() {
       for (const r of records) r.mat.dispose();
       paneMat?.dispose();

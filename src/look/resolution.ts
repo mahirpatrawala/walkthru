@@ -90,6 +90,13 @@ export class ResolutionGovernor {
     return this.ratio;
   }
 
+  /** takes back the last step down (the page gave up something cheaper first, e.g. 2K textures, SPEC 16.21): the ladder goes up one rung and the window starts again */
+  undoStep(): number {
+    if (this.idx > 0) this.idx--;
+    this.resetWindow();
+    return this.ratio;
+  }
+
   /** drop the window in progress (a tier switch, a hidden tab) */
   resetWindow(): void { this.t = 0; this.n = 0; this.settle = this.o.settleFrames; }
 

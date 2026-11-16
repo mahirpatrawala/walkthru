@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'public/look/tex/realistic');
-export const SLUGS = ['oak_wood_planks', 'grey_plaster', 'painted_plaster_wall', 'oak_veneer_01'];
+export const SLUGS = ['oak_wood_planks', 'grey_plaster', 'painted_plaster_wall', 'oak_veneer_01', 'rough_linen'];
 const RES = ['1k', '2k'];
 const MAPS = [['Diffuse', 'diff'], ['nor_gl', 'nor_gl'], ['Rough', 'rough']];
 
@@ -17,6 +17,7 @@ const lock = { generated: new Date().toISOString().slice(0, 10), licence: 'CC0 1
 for (const slug of SLUGS) {
   const api = await (await fetch(`https://api.polyhaven.com/files/${slug}`)).json();
   for (const res of RES) for (const [key, tag] of MAPS) {
+    if (tag === 'rough' && res !== '1k') continue; // the roughness map is always the 1K one (SPEC 16.21)
     const f = api[key]?.[res]?.jpg;
     if (!f) throw new Error(`${slug} ${res} ${key}: not offered`);
     const dest = path.join(OUT, res, slug, `${slug}_${tag}_${res}.jpg`);

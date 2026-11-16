@@ -4,6 +4,8 @@ import { LOOK_PRESETS, PRESET_LABEL, dayPartLabel } from './grade';
 import type { LookPreset } from './grade';
 import { formatHour } from './sun';
 import type { Look, QualityMode } from './look';
+import { REALISM_CHOICE, REALISM_LABEL, REALISM_LEVELS, REALISM_NOTE } from './realistic';
+import type { RealismLevel } from './realistic';
 import { HOUR_MAX, HOUR_MIN, LABEL_FURNITURE, LABEL_LIGHTING, LABEL_VIEW } from './types';
 import './look.css';
 
@@ -119,6 +121,30 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
     segButtons.set(q, b);
   });
 
+  // realistic materials (SPEC 16.21): Off / 1K / 2K, with a small progress line while a set downloads
+  const rRow = h('div', 'wt-look-row', undefined, sheet);
+  h('span', 'wt-look-k', REALISM_LABEL, rRow);
+  const rNote = h('span', 'wt-look-v', '', rRow);
+  const rSeg = h('div', 'wt-look-seg', undefined, sheet);
+  rSeg.setAttribute('role', 'group');
+  rSeg.setAttribute('aria-label', REALISM_LABEL);
+  rSeg.dataset.testid = 'look-realism';
+  const rButtons = new Map<RealismLevel, HTMLButtonElement>();
+  for (const lv of REALISM_LEVELS) {
+    const b = h('button', 'wt-look-seg-b', REALISM_CHOICE[lv], rSeg);
+    b.type = 'button';
+    b.dataset.realism = lv;
+    b.addEventListener('click', () => { look.setRealism(lv); sync(); });
+    rButtons.set(lv, b);
+  }
+  const rNoteP = h('p', 'wt-look-note', '', sheet);
+  rNoteP.dataset.testid = 'look-realism-note';
+  const rBar = h('div', 'wt-look-progress', undefined, sheet);
+  rBar.dataset.testid = 'look-realism-progress';
+  rBar.style.cssText = 'height:3px;border-radius:2px;background:rgba(0,0,0,.08);overflow:hidden;margin:4px 0 2px';
+  const rFill = h('i', undefined, undefined, rBar);
+  rFill.style.cssText = 'display:block;height:100%;width:0;background:currentColor;opacity:.55;transition:width .25s';
+
   // style packs
   let syncStyle = (): void => {};
   let offStyle: (() => void) | null = null;
@@ -211,6 +237,13 @@ export function mountLookPanel(host: HTMLElement, look: Look, opts: LookPanelOpt
     }
     designNote.textContent = opts.style?.note() ?? '';
     designNote.hidden = !designNote.textContent;
+    for (const [lv, b] of rButtons) { const on = lv === look.realism; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+    const rp = look.realismProgress();
+    const loading = look.realism !== 'off' && rp.total > 0 && rp.done < rp.total;
+    rBar.hidden = !loading;
+    rFill.style.width = rp.total ? `${Math.round((100 * rp.done) / rp.total)}%` : '0';
+    rNote.textContent = look.realism !== look.realismEffective && look.realism !== 'off' ? `${REALISM_CHOICE[look.realismEffective]} (kept smooth)` : loading ? 'loading' : '';
+    rNoteP.textContent = REALISM_NOTE[look.realism];
     qNote.textContent = look.quality === 'auto' ? `Auto (${QUALITY_LABEL[look.tier]})` : QUALITY_LABEL[look.tier];
   };
 

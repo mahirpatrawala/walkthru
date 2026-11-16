@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import type { Tier } from './types';
 import { AssetLoader } from './assets';
+import { REALISTIC_FURNITURE_2K } from './realistic';
 
 export type MatKey =
   | 'walnut' | 'white' | 'dark' | 'linen' | 'cotton' | 'metal' | 'granite' | 'shutterWhite' | 'cover' | 'headboard' | 'sofa' | 'pad'
@@ -92,6 +93,8 @@ export interface FurnitureKit {
   tile(key: MatKey): number;
   /** choose the tier; textures are fetched for medium and high, in the background */
   setTier(t: Tier, loader?: AssetLoader): Promise<void>;
+  /** SPEC 16.21: 'off' leaves the furniture's flat colours, '1k' the 1K maps, '2k' the 2K maps where there is one (oak veneer for timber, linen for upholstery) */
+  setRealism(level: 'off' | '1k' | '2k'): Promise<void>;
   readonly tier: Tier;
   /** bytes of furniture textures fetched so far */
   readonly bytes: number;
@@ -104,6 +107,7 @@ interface Live { key: MatKey; mat: THREE.MeshStandardMaterial }
 
 export function createFurnitureKit(): FurnitureKit {
   let tier: Tier = 'medium';
+  let realism: 'off' | '1k' | '2k' = '1k';
   let loader: AssetLoader | null = null;
   let own: AssetLoader | null = null;
   const live = new Set<Live>();
@@ -118,8 +122,9 @@ export function createFurnitureKit(): FurnitureKit {
     if (!d.tex) return d.nor ? { nor: d.nor } : {};
     const name = d.tex;
     const out: { diff?: string; nor?: string; arm?: string } = {};
-    out.diff = name === 'stripe' ? 'tex/gen/stripe_diff.jpg' : `tex/${name}/${name}_diff_1k.jpg`;
-    out.nor = d.nor ?? (name === 'walnut_veneer' || name === 'stripe' ? undefined : `tex/${name}/${name}_nor_gl_1k.jpg`);
+    const two = realism === '2k' && REALISTIC_FURNITURE_2K.has(name);
+    out.diff = name === 'stripe' ? 'tex/gen/stripe_diff.jpg' : two ? `tex/realistic/2k/${name}/${name}_diff_2k.jpg` : `tex/${name}/${name}_diff_1k.jpg`;
+    out.nor = d.nor ?? (name === 'walnut_veneer' || name === 'stripe' ? undefined : two ? `tex/realistic/2k/${name}/${name}_nor_gl_2k.jpg` : `tex/${name}/${name}_nor_gl_1k.jpg`);
     if (tier === 'high' && (name === 'walnut_veneer' || name === 'oak_veneer_01' || name === 'curly_teddy_natural')) out.arm = `tex/${name}/${name}_arm_1k.jpg`;
     return out;
   }
@@ -127,7 +132,7 @@ export function createFurnitureKit(): FurnitureKit {
   function apply(l: Live): void {
     const d = DEFS[l.key];
     const m = l.mat;
-    const full = tier !== 'low' && (d.tex || d.nor) && !m.userData.flatFinish;
+    const full = tier !== 'low' && realism !== 'off' && (d.tex || d.nor) && !m.userData.flatFinish;
     const set = (k: 'map' | 'normalMap' | 'roughnessMap', t: THREE.Texture | null): void => {
       if ((m[k] ?? null) !== t) { m[k] = t; m.needsUpdate = true; }
     };
@@ -141,8 +146,8 @@ export function createFurnitureKit(): FurnitureKit {
 
   /** fetches what these kinds need that is not here yet (the other kinds are fetched when a part first asks for one) */
   async function fetchFor(keys: Iterable<MatKey>): Promise<void> {
-    if (tier === 'low') return;
-    const aniso = tier === 'high' ? 8 : 4;
+    if (tier === 'low' || realism === 'off') return;
+    const aniso = realism === '2k' ? 16 : tier === 'high' ? 8 : 4;
     const jobs: Promise<unknown>[] = [];
     const seen = new Set<string>();
     for (const k of keys) {
@@ -158,7 +163,7 @@ export function createFurnitureKit(): FurnitureKit {
   }
 
   async function load(): Promise<void> {
-    if (tier === 'low') { for (const l of live) apply(l); return; }
+    if (tier === 'low' || realism === 'off') { for (const l of live) apply(l); return; }
     // the classic set first (every home), then whatever the live parts of the style generators use
     await fetchFor(new Set<MatKey>(['walnut', 'linen', 'cotton', ...[...live].map((l) => l.key)]));
     for (const l of live) apply(l);
@@ -177,7 +182,7 @@ export function createFurnitureKit(): FurnitureKit {
       const l = { key, mat };
       live.add(l);
       mat.addEventListener('dispose', () => { live.delete(l); });
-      if (tier !== 'low' && (d.tex || d.nor)) {
+      if (tier !== 'low' && realism !== 'off' && (d.tex || d.nor)) {
         apply(l);
         // a kind that was not loaded at the tier change (a style generator's) is fetched now and applied when it arrives
         void fetchFor([key]).then(() => apply(l), () => { /* the flat colour stays */ });
@@ -185,6 +190,12 @@ export function createFurnitureKit(): FurnitureKit {
       return mat;
     },
     tile: (key) => DEFS[key].tile,
+    async setRealism(level) {
+      if (level === realism) return;
+      realism = level;
+      ready = load();
+      await ready;
+    },
     async setTier(t, ld) {
       tier = t;
       if (ld) loader = ld;
