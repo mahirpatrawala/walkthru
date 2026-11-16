@@ -1,0 +1,148 @@
+/* The view modes (src/buyer/views): the segmented control, the doll house's room names and hover tip, and the plan. Chrome in the dark glass style
+   (translucent, rounded, a white pill for the selected mode). Every class is wt-views-... so the top bar that adopts the control can restyle or drop it. */
+
+:root {
+  --wtv-glass: var(--wt-glass, rgba(26, 21, 19, 0.74));
+  --wtv-glass-border: var(--wt-glass-line, rgba(255, 255, 255, 0.14));
+  --wtv-ink: var(--wt-glass-text, #fff);
+  --wtv-muted: var(--wt-glass-dim, rgba(255, 255, 255, 0.74));
+  --wtv-pill: var(--wt-glass-on, rgba(255, 255, 255, 0.94));
+  --wtv-pill-ink: #14171c;
+  --wtv-blur: var(--wt-glass-blur, blur(calc(14 * var(--wt-u, 1px))) saturate(1.25));
+  --wtv-accent: #c0502e;
+}
+
+/* ---- the segmented control, top centre */
+.wt-views-bar {
+  position: absolute; z-index: 5; left: 50%; top: calc(calc(12 * var(--wt-u, 1px)) + var(--wt-safe-t, 0px)); transform: translateX(-50%);
+  display: flex; gap: calc(2 * var(--wt-u, 1px)); padding: calc(4 * var(--wt-u, 1px)); border-radius: calc(16 * var(--wt-u, 1px)); pointer-events: auto;
+  background: var(--wtv-glass); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur);
+  box-shadow: 0 calc(4 * var(--wt-u, 1px)) calc(18 * var(--wt-u, 1px)) rgba(8, 10, 16, 0.28);
+}
+.wt-views-seg {
+  display: inline-flex; align-items: center; gap: calc(7 * var(--wt-u, 1px)); min-height: calc(40 * var(--wt-u, 1px)); padding: 0 calc(14 * var(--wt-u, 1px)) 0 calc(12 * var(--wt-u, 1px)); border: 0; border-radius: calc(12 * var(--wt-u, 1px)); background: transparent; color: var(--wtv-muted);
+  font-family: var(--wt-font, system-ui, sans-serif); font-size: calc(14 * var(--wt-u, 1px)); font-weight: 600; letter-spacing: -0.005em; cursor: pointer; white-space: nowrap;
+  transition: background 160ms ease, color 160ms ease;
+}
+.wt-views-seg svg { display: block; flex: none; }
+.wt-views-seg:hover { color: var(--wtv-ink); background: rgba(255, 255, 255, 0.08); }
+.wt-views-seg.is-on { background: var(--wtv-pill); color: var(--wtv-pill-ink); box-shadow: 0 1px calc(6 * var(--wt-u, 1px)) rgba(0, 0, 0, 0.22); }
+.wt-views-seg:focus-visible { outline: calc(2 * var(--wt-u, 1px)) solid #fff; outline-offset: calc(2 * var(--wt-u, 1px)); }
+/* the toast and the mode bar sit under the control */
+.wt-has-views .wt-top { top: calc(calc(68 * var(--wt-u, 1px)) + var(--wt-safe-t, 0px)); }
+.wt-has-views .wt-hint { top: calc(calc(120 * var(--wt-u, 1px)) + var(--wt-safe-t, 0px)); }
+@media (max-width: 720px) {
+  /* a phone: the room chip (left) and the round buttons (right) take the top row, so the control takes the next one */
+  .wt-views-bar { top: calc(calc(66 * var(--wt-u, 1px)) + var(--wt-safe-t, 0px)); }
+  .wt-views-seg { padding: 0 calc(11 * var(--wt-u, 1px)) 0 calc(9 * var(--wt-u, 1px)); min-height: calc(38 * var(--wt-u, 1px)); font-size: calc(13 * var(--wt-u, 1px)); gap: calc(5 * var(--wt-u, 1px)); }
+  .wt-has-views .wt-top { top: calc(calc(118 * var(--wt-u, 1px)) + var(--wt-safe-t, 0px)); }
+  .wt-has-views .wt-hint { top: calc(calc(170 * var(--wt-u, 1px)) + var(--wt-safe-t, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) { .wt-views-seg { transition: none; } }
+
+/* ---- what steps aside */
+.wt-view-dollhouse .wt-btn[data-btn='measure'],
+.wt-view-plan .wt-btn[data-btn='measure'], .wt-view-plan .wt-btn[data-btn='furnish'] { display: none; }
+.wt-view-dollhouse .wt-stack .wt-pill, .wt-view-plan .wt-stack .wt-pill { display: none; }
+.wt-view-plan .wt-nav-map, .wt-view-plan .wt-nav-bar, .wt-view-plan .wt-chip, .wt-view-plan .wt-layout-chip { display: none !important; }
+.wt-view-plan .wt-stack { display: none; }
+
+/* ---- the doll house: room names floating over the rooms, and the hover tip */
+.wt-views-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.wt-views-label {
+  position: absolute; left: 0; top: 0; display: inline-flex; align-items: baseline; gap: calc(6 * var(--wt-u, 1px)); padding: calc(2 * var(--wt-u, 1px)) calc(8 * var(--wt-u, 1px)) calc(3 * var(--wt-u, 1px)); border-radius: calc(8 * var(--wt-u, 1px)); white-space: nowrap; line-height: 1.2;
+  background: rgba(26, 29, 36, 0.5); color: var(--wtv-ink); -webkit-backdrop-filter: blur(calc(5 * var(--wt-u, 1px))); backdrop-filter: blur(calc(5 * var(--wt-u, 1px)));
+  font-family: var(--wt-font, system-ui, sans-serif); will-change: transform, opacity; opacity: 0; transition: background 140ms ease;
+}
+.wt-views-label-name { font-size: calc(11.5 * var(--wt-u, 1px)); font-weight: 650; letter-spacing: -0.005em; }
+.wt-views-label-area { font-size: calc(10.5 * var(--wt-u, 1px)); font-weight: 500; color: var(--wtv-muted); }
+.wt-views-label-area[hidden] { display: none; }
+.wt-views-label.is-partial { background: rgba(70, 82, 96, 0.5); }
+/* a tiny room (a toilet, a passage) is a dot that opens to its name when the pointer is on it or the view is close */
+.wt-views-label.is-dot { padding: 0; width: calc(11 * var(--wt-u, 1px)); height: calc(11 * var(--wt-u, 1px)); border-radius: 50%; background: rgba(26, 29, 36, 0.62); border: calc(2 * var(--wt-u, 1px)) solid rgba(255, 255, 255, 0.85); box-sizing: border-box; }
+.wt-views-label.is-dot > span { display: none; }
+.wt-views-tip {
+  position: absolute; left: 0; top: 0; z-index: 3; margin: -46px 0 0 0; padding: calc(7 * var(--wt-u, 1px)) calc(12 * var(--wt-u, 1px)); border-radius: calc(12 * var(--wt-u, 1px)); pointer-events: none; white-space: nowrap; will-change: transform;
+  background: var(--wtv-glass); color: var(--wtv-ink); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur);
+  font-family: var(--wt-font, system-ui, sans-serif); font-size: calc(13 * var(--wt-u, 1px)); font-weight: 600; box-shadow: 0 calc(4 * var(--wt-u, 1px)) calc(16 * var(--wt-u, 1px)) rgba(8, 10, 16, 0.3);
+}
+.wt-views-tip::after { content: ''; position: absolute; left: calc(14 * var(--wt-u, 1px)); bottom: -5px; width: calc(10 * var(--wt-u, 1px)); height: calc(10 * var(--wt-u, 1px)); background: inherit; border-right: 1px solid var(--wtv-glass-border); border-bottom: 1px solid var(--wtv-glass-border); transform: rotate(45deg); }
+.wt-views-tip[hidden] { display: none; }
+
+/* ---- the plan */
+.wt-views-plan {
+  --wvp-bg: #f3efe7; --wvp-floor: #ffffff; --wvp-floor-dim: #f4f0e8; --wvp-pick: #fbe6da; --wvp-on: #f6d9cb;
+  --wvp-wall: #2d3139; --wvp-sill: #a0a7b1; --wvp-rail: #707985; --wvp-window: #2e8a93; --wvp-door: #c77c3a;
+  --wvp-ink: #23282f; --wvp-muted: #5d6671; --wvp-halo: #ffffff; --wvp-furn: #8d96a3; --wvp-furn-fill: rgba(40, 46, 56, 0.045);
+  --wvp-dim: #66707c; --wvp-swing: #aab1bb; --wvp-water: #bfe1e6; --wvp-grid: rgba(40, 46, 56, 0.05);
+  position: fixed; inset: 0; z-index: 9; background: var(--wvp-bg); touch-action: none; cursor: grab; overflow: hidden; -webkit-user-select: none; user-select: none;
+  background-image: linear-gradient(var(--wvp-grid) 1px, transparent 1px), linear-gradient(90deg, var(--wvp-grid) 1px, transparent 1px); background-size: calc(32 * var(--wt-u, 1px)) calc(32 * var(--wt-u, 1px));
+}
+.wt-views-plan[hidden] { display: none; }
+.wt-views-plan.is-dragging { cursor: grabbing; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-wt-theme='light']) .wt-views-plan {
+    --wvp-bg: #14171c; --wvp-floor: #222831; --wvp-floor-dim: #1b2027; --wvp-pick: #3a2a26; --wvp-on: #4a2f27;
+    --wvp-wall: #e7ebf1; --wvp-sill: #7c8591; --wvp-rail: #9aa3ae; --wvp-window: #5cc0cb; --wvp-door: #e8a05c;
+    --wvp-ink: #eef1f5; --wvp-muted: #aab2bd; --wvp-halo: #14171c; --wvp-furn: #7b8593; --wvp-furn-fill: rgba(255, 255, 255, 0.05);
+    --wvp-dim: #9aa3ae; --wvp-swing: #5b6571; --wvp-water: #1d4a52; --wvp-grid: rgba(255, 255, 255, 0.04);
+  }
+}
+:root[data-wt-theme='dark'] .wt-views-plan {
+  --wvp-bg: #14171c; --wvp-floor: #222831; --wvp-floor-dim: #1b2027; --wvp-pick: #3a2a26; --wvp-on: #4a2f27;
+  --wvp-wall: #e7ebf1; --wvp-sill: #7c8591; --wvp-rail: #9aa3ae; --wvp-window: #5cc0cb; --wvp-door: #e8a05c;
+  --wvp-ink: #eef1f5; --wvp-muted: #aab2bd; --wvp-halo: #14171c; --wvp-furn: #7b8593; --wvp-furn-fill: rgba(255, 255, 255, 0.05);
+  --wvp-dim: #9aa3ae; --wvp-swing: #5b6571; --wvp-water: #1d4a52; --wvp-grid: rgba(255, 255, 255, 0.04);
+}
+.wt-views-plan-svg { position: absolute; inset: calc(124 * var(--wt-u, 1px)) calc(20 * var(--wt-u, 1px)) calc(28 * var(--wt-u, 1px)) calc(20 * var(--wt-u, 1px)); width: calc(100% - calc(40 * var(--wt-u, 1px))); height: calc(100% - calc(152 * var(--wt-u, 1px))); display: block; overflow: visible; font-family: var(--wt-font, system-ui, sans-serif); }
+@media (max-width: 720px) { .wt-views-plan-svg { inset: calc(172 * var(--wt-u, 1px)) calc(76 * var(--wt-u, 1px)) calc(24 * var(--wt-u, 1px)) calc(8 * var(--wt-u, 1px)); width: calc(100% - calc(84 * var(--wt-u, 1px))); height: calc(100% - calc(196 * var(--wt-u, 1px))); } }
+.wt-views-plan .plan-floor { fill: var(--wvp-floor); stroke: none; }
+.wt-views-plan .plan-room.is-partial .plan-floor { fill: var(--wvp-floor-dim); stroke: var(--wvp-muted); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-dasharray: 4 3; }
+.wt-views-plan .plan-hatch { stroke: var(--wvp-muted); opacity: 0.5; }
+.wt-views-plan .plan-room.is-pick { cursor: pointer; }
+.wt-views-plan .plan-room.is-pick:hover .plan-floor { fill: var(--wvp-pick); }
+.wt-views-plan .plan-room.is-dim .plan-floor { fill: var(--wvp-floor-dim); }
+.wt-views-plan .plan-room.is-pick:focus-visible { outline: none; }
+.wt-views-plan .plan-room.is-pick:focus-visible .plan-floor { stroke: var(--wtv-accent); stroke-width: calc(2 * var(--wt-u, 1px)); vector-effect: non-scaling-stroke; }
+.wt-views-plan .plan-wall { fill: var(--wvp-wall); }
+.wt-views-plan .plan-wall.is-partial { fill: var(--wvp-sill); }
+.wt-views-plan .plan-sill { fill: var(--wvp-sill); }
+.wt-views-plan .plan-rail { fill: var(--wvp-rail); }
+.wt-views-plan .plan-window { fill: var(--wvp-floor); stroke: var(--wvp-window); stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
+.wt-views-plan .plan-window-line { stroke: var(--wvp-window); stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
+.wt-views-plan .plan-door { stroke: var(--wvp-door); stroke-width: calc(2.6 * var(--wt-u, 1px)); stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.wt-views-plan .plan-label { fill: var(--wvp-ink); stroke: var(--wvp-halo); paint-order: stroke; stroke-linejoin: round; pointer-events: none; }
+.wt-views-plan .plan-name { font-weight: 700; }
+.wt-views-plan .plan-size { font-weight: 500; fill: var(--wvp-muted); }
+.wt-views-plan .plan-label.is-dim { fill: var(--wvp-muted); }
+.wt-views-plan .wt-views-water { fill: var(--wvp-water); stroke: var(--wvp-window); stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.wt-views-plan .wt-views-piece { fill: var(--wvp-furn-fill); stroke: var(--wvp-furn); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.wt-views-plan .wt-views-leaf { stroke: var(--wvp-door); stroke-width: 1.4px; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.wt-views-plan .wt-views-arc { fill: none; stroke: var(--wvp-swing); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-dasharray: 3 3; }
+.wt-views-plan .wt-views-dim { stroke: var(--wvp-dim); stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.wt-views-plan .wt-views-dim-text { fill: var(--wvp-dim); font-weight: 600; }
+.wt-views-plan .wt-views-north-arrow { fill: var(--wvp-ink); }
+.wt-views-plan .wt-views-north-n { fill: var(--wvp-ink); font-size: 0.9px; font-weight: 800; }
+.wt-views-plan .wt-views-cone { fill: rgba(192, 80, 46, 0.3); stroke: none; }
+.wt-views-plan .wt-views-dot { fill: var(--wtv-accent); stroke: #fff; }
+.wt-views-plan-ctl {
+  position: absolute; right: calc(calc(16 * var(--wt-u, 1px)) + var(--wt-safe-r, 0px)); bottom: calc(calc(22 * var(--wt-u, 1px)) + var(--wt-safe-b, 0px)); display: flex; flex-direction: column; gap: calc(2 * var(--wt-u, 1px)); padding: calc(4 * var(--wt-u, 1px)); border-radius: calc(14 * var(--wt-u, 1px));
+  background: var(--wtv-glass); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur); cursor: default;
+}
+.wt-views-plan-ctl button { width: calc(40 * var(--wt-u, 1px)); height: calc(40 * var(--wt-u, 1px)); border: 0; border-radius: calc(10 * var(--wt-u, 1px)); background: transparent; color: var(--wtv-ink); font-size: calc(20 * var(--wt-u, 1px)); line-height: 1; cursor: pointer; font-family: inherit; }
+.wt-views-plan-ctl button:hover { background: rgba(255, 255, 255, 0.12); }
+.wt-views-plan-ctl button:focus-visible { outline: calc(2 * var(--wt-u, 1px)) solid #fff; outline-offset: 1px; }
+.wt-views-plan-hint {
+  position: absolute; left: 50%; bottom: calc(calc(22 * var(--wt-u, 1px)) + var(--wt-safe-b, 0px)); transform: translateX(-50%); padding: calc(8 * var(--wt-u, 1px)) calc(14 * var(--wt-u, 1px)); border-radius: calc(999 * var(--wt-u, 1px)); pointer-events: none; white-space: nowrap;
+  background: var(--wtv-glass); color: var(--wtv-ink); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur); font-size: calc(13 * var(--wt-u, 1px)); font-weight: 600;
+}
+@media (max-width: 720px) { .wt-views-plan-hint { bottom: calc(80px + var(--wt-safe-b, 0px)); } }
+
+/* a phone: the names are smaller and carry no size (the room strip below has it), and what belongs to the walk steps aside */
+@media (max-width: 720px) {
+  .wt-views-label { padding: calc(2 * var(--wt-u, 1px)) calc(7 * var(--wt-u, 1px)); border-radius: calc(8 * var(--wt-u, 1px)); }
+  .wt-views-label-name { font-size: calc(10.5 * var(--wt-u, 1px)); }
+  .wt-views-label-area { display: none; }
+}
+.wt-view-dollhouse .wtw-bar, .wt-view-plan .wt-slot { display: none; }
+.wt-view-dollhouse .wt-hint-chips, .wt-view-plan .wt-hint-chips { display: none; }
