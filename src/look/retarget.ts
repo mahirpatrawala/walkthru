@@ -383,6 +383,36 @@ export function idleVariants(clips: THREE.AnimationClip[], target: RestRig, name
   return [lookClip, reachClip];
 }
 
+// ---------------------------------------------------------------- hands that rest on the thigh, not in it
+
+/** Degrees the sitting clip bends the elbows and lifts the arms more (SPEC 16.6.11c): the library's hands rest 4 to 6 cm inside the thigh of our bodies. */
+export const SIT_ELBOW_DEG = 36;
+export const SIT_ARM_DEG = 12;
+
+/**
+ * The sitting clips (`Sitting_Idle_Loop`, and the end of `Sitting_Enter` and the start of `Sitting_Exit`) with the hands lifted out of the thighs: the elbows
+ * bent a little more and the upper arms swung a little forward, so the hands lie on the trousers instead of showing through them. Names and lengths are kept.
+ */
+export function sitHandsUp(clips: THREE.AnimationClip[], target: RestRig): THREE.AnimationClip[] {
+  const need = ['upperarm_l', 'upperarm_r', 'lowerarm_l', 'lowerarm_r'];
+  if (!need.every((n) => target.has(n))) return clips;
+  const X = new THREE.Vector3(1, 0, 0);
+  const smooth = (x: number): number => { const k = Math.min(1, Math.max(0, x)); return k * k * (3 - 2 * k); };
+  // the lift is full in the loop, grows over the middle of sitting down and fades over the first half of getting up
+  const amount = (name: string, dur: number): ((t: number) => number) | null =>
+    name === 'Sitting_Idle_Loop' ? () => 1 : name === 'Sitting_Enter' ? (t) => smooth((t / dur - 0.15) / 0.45) : name === 'Sitting_Exit' ? (t) => 1 - smooth(t / dur / 0.55) : null;
+  return clips.map((c) => {
+    const f = amount(c.name, c.duration);
+    if (!f) return c;
+    return idleVariant(c.name, c, target, c.duration, [
+      { bone: 'upperarm_l', axis: X, deg: (t) => -SIT_ARM_DEG * f(t) },
+      { bone: 'upperarm_r', axis: X, deg: (t) => -SIT_ARM_DEG * f(t) },
+      { bone: 'lowerarm_l', axis: X, deg: (t) => -SIT_ELBOW_DEG * f(t) },
+      { bone: 'lowerarm_r', axis: X, deg: (t) => -SIT_ELBOW_DEG * f(t) },
+    ]);
+  });
+}
+
 // ---------------------------------------------------------------- turning on the spot
 
 /** Name of the clip a person marches in while turning on the spot with no step to take (look at `Character.setLocomotion`). */

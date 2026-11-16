@@ -21,25 +21,25 @@ export const SKIN_ALBEDO_GAIN = [0.95, 0.91, 0.86] as const;
 type Body = 'man' | 'woman' | 'elder' | 'child';
 
 /** The fixed colours of each person. The top's colour comes from the height preset (`setTop`, `TOP_TINTS`).
- * `bottom` is never tinted: man charcoal trousers, woman beige trousers, child denim shorts, elder the saree. `trim` is the man's belt, the
- * woman's neck piping, the child's crew-neck rib and the saree's border; `wrap` is the man's shirt buttons and the saree's pallu. */
+ * `bottom` is never tinted: man charcoal trousers, woman beige trousers, child denim shorts, elder navy trousers. `trim` is the man's belt, the
+ * neck piping of the woman and the elder, the child's crew-neck rib; `wrap` is the man's shirt buttons (and a saree's pallu, if one is ever built again). */
 export const OUTFITS: Record<Body, { bottom: string; wrap: string; trim: string; hair: string; brows: string; shoes: string; eyes: string; pupil: string }> = {
   man: { bottom: '#565C68', wrap: '#EFEBE0', trim: '#2B1D15', hair: '#1D1815', brows: '#1A1512', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
   woman: { bottom: '#CBB994', wrap: '#CBB994', trim: '#EDE4CF', hair: '#1A1513', brows: '#1A1512', shoes: '#5A4232', eyes: '#F3F0EA', pupil: '#1B1311' },
-  elder: { bottom: '#A4453C', wrap: '#A4453C', trim: '#D2AE5C', hair: '#D9D5CD', brows: '#B9B4AB', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
+  elder: { bottom: '#3E4A6B', wrap: '#3E4A6B', trim: '#E8E0D0', hair: '#D9D5CD', brows: '#B9B4AB', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
   child: { bottom: '#3F5F8F', wrap: '#3F5F8F', trim: '#F2F0EA', hair: '#1D1815', brows: '#1A1512', shoes: '#C0563A', eyes: '#F3F0EA', pupil: '#1B1311' },
 };
 
 /**
  * The three colours of each person's top, for their three quick heights in order (`tintForPerson`). The middle one is the person's
  * first impression at their default height (man 175 cm, child 120 cm; the woman's and the elder's default is the first), so it is a
- * believable one: a light blue shirt, a muted teal top, a bright green T-shirt. Every older tint (teal, crimson, violet, `HEIGHT_TINTS`)
- * is still on offer: the elder keeps all three, the others keep two of them and the woman the third.
+ * believable one: a light blue shirt, a muted teal top, a bright green T-shirt, a soft lavender tunic. Every older tint (teal, crimson,
+ * violet, `HEIGHT_TINTS`) is still on offer: teal to the man and the child, crimson to the woman and the elder, violet to all four.
  */
 export const TOP_TINTS: Record<Body, readonly [string, string, string]> = {
   man: ['#1FA3A3', '#7FA7D8', '#7A5AF0'],
   woman: ['#4FA3A0', '#B71C6C', '#7A5AF0'],
-  elder: ['#1FA3A3', '#B71C6C', '#7A5AF0'],
+  elder: ['#B2A3D1', '#B71C6C', '#7A5AF0'],
   child: ['#1FA3A3', '#3BAA5C', '#7A5AF0'],
 };
 
@@ -72,7 +72,7 @@ export interface PersonLook {
   materials: THREE.MeshStandardMaterial[];
 }
 
-const ROUGHNESS: Record<string, number> = { skin: 0.62, eyes: 0.25, pupil: 0.12, brows: 0.8, hair: 0.62, shoes: 0.7, top: 0.9, bottom: 0.9, wrap: 0.9, trim: 0.7 };
+const ROUGHNESS: Record<string, number> = { skin: 0.62, eyes: 0.25, pupil: 0.12, brows: 0.8, hair: 0.9, shoes: 0.7, top: 0.9, bottom: 0.9, wrap: 0.9, trim: 0.7 };
 
 /**
  * Prepares the materials of a freshly parsed person. Every skinned mesh gets its own material (tint and tone never leak

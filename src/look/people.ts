@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { REACH_CLIP, buildNameMap, idleVariants, liePoseClip, readRest, retargetClipsAuto, turnStepClip } from './retarget';
+import { REACH_CLIP, buildNameMap, idleVariants, liePoseClip, readRest, retargetClipsAuto, sitHandsUp, turnStepClip } from './retarget';
 
 /** The family (SPEC 16.6.2): a man, a woman, an elderly parent and a child. `mannequin` is the test rig and the fallback. */
 export type PersonBody = 'man' | 'woman' | 'elder' | 'child';
@@ -92,6 +92,7 @@ export function retargetOnto(gltf: GLTF, src: GLTF): void {
   const srcRest = readRest(src.scene, new Set([...srcBones]));
   const tgtRest = readRest(gltf.scene, new Set(boneNames));
   const r = retargetClipsAuto(src.animations, srcRest, tgtRest, nameMap);
+  r.clips = sitHandsUp(r.clips, tgtRest);
   const idles = idleVariants(r.clips, tgtRest, nameMap);
   // the reach for a wardrobe or a door is the library's own Interact (an animator's arm lift, hold and lower); the made-up arm lift stays as the fallback
   const interact = r.clips.find((c) => c.name === 'Interact');

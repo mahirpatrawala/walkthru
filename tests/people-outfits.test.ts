@@ -41,7 +41,7 @@ function verts(s: THREE.SkinnedMesh): number[][] {
 
 describe.skipIf(!have)('outfits (16.6.11)', () => {
   for (const tier of ['', '-low']) {
-    for (const body of ['man', 'woman', 'child'] as const) {
+    for (const body of BODIES) {
       it(`${body}${tier}: a top that ends at the hip and two separate legs, nothing hangs between them`, async () => {
         const p = parts(await parse(`person-${body}${tier}.glb`));
         const skin = verts(p.get('skin')!);
@@ -49,7 +49,7 @@ describe.skipIf(!have)('outfits (16.6.11)', () => {
         const rel = (v: number[]) => (v[1] - y0) / H;
         // the top ends at the hip joint (0.50 to 0.54 of the height, the crotch is at about 0.45): no kurta, no kameez, no dress
         const top = verts(p.get('top')!);
-        expect(Math.min(...top.map(rel))).toBeGreaterThan(0.495);
+        expect(Math.min(...top.map(rel))).toBeGreaterThan(body === 'elder' ? 0.46 : 0.495);   // (the elder's tunic is cut to mid-hip and she stoops)
         // the bottom is trousers or shorts: between 0.18 and 0.40 of the height no vertex sits on the midline at the front or the back, so no cloth hangs between the legs
         const bottom = verts(p.get('bottom')!);
         const mid = bottom.filter((v) => rel(v) > 0.18 && rel(v) < 0.4);
@@ -57,27 +57,19 @@ describe.skipIf(!have)('outfits (16.6.11)', () => {
         // (the legs may touch at the knees: the vertices on the midline are then between the legs, not at the front or the back of a skirt)
         const zc = mid.reduce((a, v) => a + v[2], 0) / mid.length;
         for (const v of mid) if (Math.abs(v[0]) / H < 0.006) expect(Math.abs(v[2] - zc) / H).toBeLessThan(0.035);
-        // and every vertex of a part below the hem of the top is a leg's: no wrap (dupatta) beyond the shirt buttons, no skirt panel
+        // (only the man has a wrap part at all, his shirt buttons: nobody has a dupatta or a pallu)
         const wrap = p.get('wrap');
-        if (wrap) expect(Math.min(...verts(wrap).map(rel))).toBeGreaterThan(0.495);
+        if (body === 'man') expect(Math.min(...verts(wrap!).map(rel))).toBeGreaterThan(0.495);
+        else expect(wrap).toBeUndefined();
         // the legs reach the shoes (trousers) or sit just above the knee (the child's shorts)
         const low = Math.min(...bottom.map(rel));
         if (body === 'child') { expect(low).toBeGreaterThan(0.28); expect(low).toBeLessThan(0.36); } else expect(low).toBeLessThan(0.1);
       });
     }
-    it(`elder${tier}: keeps the saree, a skirt down to the ankle`, async () => {
-      const p = parts(await parse(`person-elder${tier}.glb`));
-      const skin = verts(p.get('skin')!);
-      const y0 = Math.min(...verts(p.get('shoes')!).map((v) => v[1])), H = Math.max(...skin.map((v) => v[1])) - y0;
-      const bottom = verts(p.get('bottom')!);
-      const between = bottom.filter((v) => (v[1] - y0) / H > 0.2 && (v[1] - y0) / H < 0.4 && Math.abs(v[0]) / H < 0.01);
-      expect(between.length).toBeGreaterThan(5);
-      expect(p.get('wrap')).toBeTruthy();
-    });
   }
 
   for (const body of BODIES) {
-    it(`${body}: the top takes the viewer's tint, the trousers, shorts or saree skirt never do`, async () => {
+    it(`${body}: the top takes the viewer's tint, the trousers and shorts never do`, async () => {
       const gltf = await parse(`person-${body}.glb`);
       const p = parts(gltf);
       const look = stylePerson([...p.values()], body, 2);
