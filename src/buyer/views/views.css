@@ -59,7 +59,7 @@
 .wt-views-label-area[hidden] { display: none; }
 .wt-views-label.is-partial { background: rgba(70, 82, 96, 0.5); }
 /* a tiny room (a toilet, a passage) is a dot that opens to its name when the pointer is on it or the view is close */
-.wt-views-label.is-dot { padding: 0; width: calc(11 * var(--wt-u, 1px)); height: calc(11 * var(--wt-u, 1px)); border-radius: 50%; background: rgba(26, 29, 36, 0.62); border: 2px solid rgba(255, 255, 255, 0.85); box-sizing: border-box; }
+.wt-views-label.is-dot { padding: 0; width: calc(11 * var(--wt-u, 1px)); height: calc(11 * var(--wt-u, 1px)); border-radius: 50%; background: rgba(26, 29, 36, 0.62); border: calc(2 * var(--wt-u, 1px)) solid rgba(255, 255, 255, 0.85); box-sizing: border-box; }
 .wt-views-label.is-dot > span { display: none; }
 .wt-views-tip {
   position: absolute; left: 0; top: 0; z-index: 3; margin: -46px 0 0 0; padding: calc(7 * var(--wt-u, 1px)) calc(12 * var(--wt-u, 1px)); border-radius: calc(12 * var(--wt-u, 1px)); pointer-events: none; white-space: nowrap; will-change: transform;
