@@ -148,11 +148,19 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     lifts: ['lift-a', 'lift-b'].map((id, i) => ({ id, name: `Lift ${i === 0 ? 'A' : 'B'}`, car: { ...LIFT_CAR }, serves: levels.map((l) => l.id) })),
     levels,
     startSpace: 'lobby',
-    ...(empty ? { bare: true } : {}),
+    ...(empty ? { bare: true } : { brand: { ...SAMPLE_BRAND } }),
   };
 }
 
 /** The lines of a flat's card on the building map: where the plan comes from, what its carpet area is, what the furniture is. */
+/**
+ * The demonstration brand of the furnished sample (SPEC 18.15): an invented, plainly generic name and a mark drawn here, so the white
+ * label is seen working. The empty twin carries none, which shows the chrome without a brand.
+ */
+export const SAMPLE_BRAND = { name: 'Sample Developers', logo: 'brand.svg', accent: '#1F6F5C', tagline: 'A demonstration brand. Yours goes here.' } as const;
+/** A simple mark: three rising blocks in a rounded square. No letters, no likeness to any firm's logo. */
+export const SAMPLE_BRAND_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${SAMPLE_BRAND.accent}"/><path d="M14 48V34h10v14zM27 48V24h10v24zM40 48V15h10v33z" fill="#FFFDF8"/><path d="M11 50.5h42" stroke="#FFFDF8" stroke-width="3" stroke-linecap="round"/></svg>\n`;
+
 function flatNotes(d: FlatDesign, empty: boolean, rotDeg: number): string[] {
   const a = d.authored, r = d.report.area;
   const sqft = (m2: number): string => Math.round(m2 * 10.764).toLocaleString('en-IN');
@@ -182,7 +190,10 @@ export function writeAll(b: Built, root = ROOT): void {
     if (s.look) writeIf(path.join(dir, 'look.json'), json(s.look));
     if (s.outdoor) writeIf(path.join(dir, 'outdoor.json'), json(s.outdoor));
   }
-  for (const bd of b.buildings) writeIf(path.join(root, 'public', 'buildings', bd.id, 'building.json'), json(bd));
+  for (const bd of b.buildings) {
+    writeIf(path.join(root, 'public', 'buildings', bd.id, 'building.json'), json(bd));
+    if (bd.brand?.logo === SAMPLE_BRAND.logo) writeIf(path.join(root, 'public', 'buildings', bd.id, bd.brand.logo), SAMPLE_BRAND_SVG);
+  }
 }
 
 export function lookupOf(b: Built): (sceneId: string) => PropertyFile | undefined {

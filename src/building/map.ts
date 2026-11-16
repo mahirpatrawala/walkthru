@@ -8,6 +8,7 @@ import { fetchScene } from './load';
 import type { SceneInfo } from './load';
 import type { BuildingFile, Level, Space } from './types';
 import type { Vec2 } from '../types';
+import { CREDIT_TEXT, applyBrandAccent, brandMarkEl, shownBrand } from '../brand/builder-brand';
 
 function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string, parent?: HTMLElement): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -60,7 +61,19 @@ export function mountBuildingMap(host: HTMLElement, o: MapOptions): BuildingMap 
   back.dataset.testid = 'map-back';
   if (o.back.onClick) back.addEventListener('click', (e) => { e.preventDefault(); o.back.onClick!(); });
 
+  // the builder's brand: its colour on this page's buttons and marks, its logo and name over the project's name
+  applyBrandAccent(root, b.brand);
   const head = h('div', 'bm-head', undefined, root);
+  const brand = shownBrand(b.id, b.brand);
+  if (brand) {
+    const row = h('div', 'bm-brand', undefined, head);
+    row.dataset.testid = 'map-brand';
+    row.appendChild(brandMarkEl(document, brand, 'bm-brand-logo'));
+    const words = h('div', 'bm-brand-words', undefined, row);
+    h('span', 'bm-brand-name', brand.name, words);
+    if (brand.tagline) h('span', 'bm-brand-tag', brand.tagline, words);
+    if (brand.credit) h('span', 'bm-brand-credit', CREDIT_TEXT, row).dataset.testid = 'map-credit';
+  }
   h('h1', undefined, b.name, head);
   if (b.subtitle) h('p', 'bm-sub-line', firstSentence(b.subtitle), head);
   if (b.sample) h('p', 'bm-quiet', 'Sample building. Plans follow a published brochure.', head);

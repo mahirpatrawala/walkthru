@@ -89,6 +89,23 @@ export interface Lift {
   serves: string[];
 }
 
+/**
+ * The builder's own brand on this building (white label): shown where the generic icon was (the walk's identity card, the map page,
+ * the loading screens), and its colour becomes the accent of the building's chrome when it reads well (src/brand/builder-brand.ts).
+ */
+export interface BuilderBrand {
+  /** the builder or the project brand, as it should be read: up to 60 characters */
+  name: string;
+  /** a file in the building's own folder (public/buildings/<id>/): an SVG or a PNG, a plain file name */
+  logo?: string;
+  /** "#RRGGBB" */
+  accent?: string;
+  /** one short line under the name, up to 80 characters */
+  tagline?: string;
+  /** true takes the small "powered by walkthru" line away */
+  hideCredit?: boolean;
+}
+
 export interface BuildingFile {
   version: 1;
   id: string;
@@ -107,6 +124,8 @@ export interface BuildingFile {
   startSpace?: string;
   /** true keeps it out of the start page's list: it opens by its link */
   unlisted?: boolean;
+  /** the builder's brand, when the building carries one */
+  brand?: BuilderBrand;
   /** a bare building: no added decor in any space (a builder starting from nothing) */
   bare?: boolean;
 }

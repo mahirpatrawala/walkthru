@@ -371,3 +371,15 @@ a.wt-home-link { text-decoration: none; }
 @media (prefers-reduced-motion: reduce) {
   .wt-id, .wt-topbar, .wt-exit, .wt-nav-map, .wt-nav-bar, .wt-hint-chips, .wt-seg.wt-eye { transition: none !important; }
 }
+
+/* a builder's brand on a building (SPEC 18.15): the logo tile in the identity card, the brand's name over the place, the small credit */
+.wt-id.has-brand .wt-id-icon { background: #FFFDF8; overflow: hidden; }
+.wt-id-logo { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--wt-display); font-weight: 800; font-size: calc(14 * var(--wt-u)); letter-spacing: -0.02em; color: var(--wt-clay); }
+.wt-id-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.wt-id-brand { font-size: calc(11 * var(--wt-u)); font-weight: 650; line-height: 1.2; letter-spacing: 0.08em; text-transform: uppercase; color: var(--wt-accent-on-glass); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wt-credit { margin-top: calc(3 * var(--wt-u)); font-size: calc(10.5 * var(--wt-u)); font-weight: 500; line-height: 1.3; letter-spacing: 0.04em; color: var(--wt-glass-dim); }
+.wt-screen-brand { display: flex; align-items: center; justify-content: center; gap: calc(10 * var(--wt-u)); margin-bottom: calc(14 * var(--wt-u)); font-family: var(--wt-display); font-weight: 700; font-size: calc(15 * var(--wt-u)); letter-spacing: 0.01em; }
+.wt-screen-brand[hidden] { display: none; }
+.wt-screen-logo { flex: none; width: calc(34 * var(--wt-u)); height: calc(34 * var(--wt-u)); border-radius: calc(9 * var(--wt-u)); background: #FFFDF8; overflow: hidden; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: calc(13 * var(--wt-u)); color: var(--wt-clay); }
+.wt-screen-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.wt-screen-credit { position: absolute; left: 0; right: 0; bottom: calc(calc(14 * var(--wt-u)) + var(--wt-safe-b, 0px)); margin: 0; text-align: center; font-size: calc(11 * var(--wt-u)); letter-spacing: 0.04em; opacity: 0.7; }

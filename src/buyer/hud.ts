@@ -1,6 +1,8 @@
 // Owned by C3. The in-game HUD: room chip, round buttons, prompt pill, verdict card, mode bar, toast, hint,
 // joystick ring, debug text. Plain DOM, text always via textContent (labels come from property.json).
 import type { CheckCard, Tone } from '../types';
+import { CREDIT_TEXT, brandMarkEl } from '../brand/builder-brand';
+import type { ShownBrand } from '../brand/builder-brand';
 import type { Hud } from './context';
 import type { JoystickView } from '../engine/controls';
 
@@ -24,6 +26,8 @@ export interface HudImpl extends Hud {
   setScanButton(state: ScanButtonState, progress?: number): void;
   /** the place's own name, the first line of the identity card ("Sample Tower, Level 2") */
   setPlace(text: string | null): void;
+  /** a builder's brand on this building: its logo where the generic icon was, its name over the place, and the small credit (SPEC 18.15) */
+  setBrand(brand: ShownBrand | null): void;
   /** which half of the first / third person toggle is lit */
   setView(v: HudView): void;
   /** wires the Walk / Doll house / Plan control to the views module; with none, only Walk is offered (and the control hides itself) */
@@ -107,6 +111,33 @@ export function swipeOutcome(dx: number, dy: number, dt: number, width: number, 
   return Math.abs(dx) > down ? { x: dx < 0 ? -1 : 1, y: 0 } : { x: 0, y: 1 };
 }
 
+/** The pieces of the identity card a brand changes. */
+export interface IdentityParts { card: HTMLElement; icon: HTMLElement; name: HTMLElement; /** the column of lines: the credit goes at its foot */ text: HTMLElement; credit: HTMLElement | null }
+/**
+ * A builder's brand on the identity card (SPEC 18.15): its logo where the generic icon was, its name over the place, and the small
+ * "powered by walkthru" line at the foot of the card unless the brand turns it off. Null puts the plain card back.
+ */
+export function showIdentityBrand(doc: Document, p: IdentityParts, brand: ShownBrand | null, plainIcon: (icon: HTMLElement) => void): void {
+  p.card.classList.toggle('has-brand', !!brand);
+  p.icon.replaceChildren();
+  p.credit?.remove();
+  p.credit = null;
+  p.name.hidden = !brand;
+  p.name.textContent = brand?.name ?? '';
+  if (!brand) { plainIcon(p.icon); return; }
+  const mark = brandMarkEl(doc, brand, 'wt-id-logo');
+  mark.setAttribute('data-testid', 'brand-logo');
+  p.icon.appendChild(mark);
+  if (brand.credit) {
+    const credit = doc.createElement('div');
+    credit.className = 'wt-credit';
+    credit.textContent = CREDIT_TEXT;
+    credit.setAttribute('data-testid', 'brand-credit');
+    p.text.appendChild(credit);
+    p.credit = credit;
+  }
+}
+
 export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const root = el('div', 'wt-hud', undefined, parent);
   root.dataset.testid = 'hud';
@@ -117,6 +148,10 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const idIcon = el('span', 'wt-id-icon', undefined, id);
   idIcon.innerHTML = EXTRA_ICONS.place;
   const idText = el('div', 'wt-id-text', undefined, id);
+  const brandName = el('div', 'wt-id-brand', undefined, idText);
+  brandName.dataset.testid = 'brand-name';
+  brandName.hidden = true;
+  const brandParts: IdentityParts = { card: id, icon: idIcon, name: brandName, text: idText, credit: null };
   const place = el('div', 'wt-id-place', undefined, idText);
   place.dataset.testid = 'place';
   place.hidden = true;
@@ -398,6 +433,7 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
     root,
     tools: bar,
     exit,
+    setBrand(brand) { showIdentityBrand(document, brandParts, brand, (icon) => { icon.innerHTML = EXTRA_ICONS.place; }); },
     setPlace(text) {
       place.hidden = text === null || text === '';
       if (text !== null && place.textContent !== text) place.textContent = text;

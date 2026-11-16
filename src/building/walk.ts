@@ -30,6 +30,7 @@ import type { MountedSpace, SpaceHost, SpaceSession } from './space-host';
 import type { BuildingFile, Portal } from './types';
 import { buildingUrl, parseBuildingUrl } from './url';
 import { withViewParam } from '../buyer/views/view-modes';
+import { applyBrandAccent, shownBrand } from '../brand/builder-brand';
 
 const FLATS_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.2"/><rect x="13" y="4" width="7" height="7" rx="1.2"/><rect x="4" y="13" width="7" height="7" rx="1.2"/><rect x="13" y="13" width="7" height="7" rx="1.2"/></svg>';
 const MAP_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21"/><path d="M3.5 21h17"/><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1M9.5 15h1M13.5 15h1"/><path d="M11 21v-3h2v3"/></svg>';
@@ -95,6 +96,7 @@ class BuildingWalk implements BuildingWalkApi {
       bare: b.bare === true,
       space: { id: loc.space.id, kind: loc.space.kind, outdoor: loc.space.outdoor === true, pack: loc.space.pack ?? null },
       placeText: `${loc.space.name} · ${loc.level.label}`,
+      brand: shownBrand(b.id, b.brand),
       tagText: b.sample ? 'Sample building. Plan follows a published brochure; furniture is illustrative.' : null,
       loading: o.screen,
       doorLooks: doorLooksFor(loc.space),
@@ -256,7 +258,7 @@ class BuildingWalk implements BuildingWalkApi {
     if (this.busy) return;
     this.busy = true;
     try {
-      const curtain = t.kind === 'lift' ? createCurtain({ kind: 'lift', title: t.title, sub: t.sub, floors: t.floors }) : createLoadingCurtain(t.title, t.sub);
+      const curtain = t.kind === 'lift' ? createCurtain({ kind: 'lift', title: t.title, sub: t.sub, floors: t.floors, brand: shownBrand(this.building.id, this.building.brand) }) : createLoadingCurtain(t.title, t.sub, shownBrand(this.building.id, this.building.brand));
       await curtain.covered;
       await this.enter(spaceId, { opening: t.opening, fromM: t.fromM, screen: curtain.screen, first: false, history: 'push' });
     } finally { this.busy = false; this.followAddress(); }
@@ -284,7 +286,7 @@ class BuildingWalk implements BuildingWalkApi {
     if (this.busy) { this.popAgain = true; return; }
     this.busy = true;
     try {
-      const curtain = createLoadingCurtain(loc.space.name, loc.level.label);
+      const curtain = createLoadingCurtain(loc.space.name, loc.level.label, shownBrand(this.building.id, this.building.brand));
       await curtain.covered;
       await this.enter(loc.space.id, { opening: loc.space.portals[0]?.opening ?? null, screen: curtain.screen, first: false, history: 'none' });
     } finally { this.busy = false; this.followAddress(); }
@@ -353,6 +355,9 @@ export async function startBuildingWalk(): Promise<void> {
   try {
     loading.setProgress(0.04, 'Loading the building…');
     building = await fetchBuilding(u.building);
+    // the builder's brand: its colour on all of this building's chrome, its logo on the screen already up
+    applyBrandAccent(document.documentElement, building.brand);
+    loading.setBrand(shownBrand(building.id, building.brand));
   } catch (err) {
     if (err instanceof NotFound) { loading.showError('This building is not available.', `There is no building called "${u.building}" here.`); return; }
     loading.showError('Could not open this building.', err instanceof Error ? err.message : String(err));
