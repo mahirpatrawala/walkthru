@@ -24,10 +24,10 @@ type Body = 'man' | 'woman' | 'elder' | 'child';
  * `bottom` is never tinted: man charcoal trousers, woman beige trousers, child denim shorts, elder navy trousers. `trim` is the man's belt, the
  * neck piping of the woman and the elder, the child's crew-neck rib; `wrap` is the man's shirt buttons (and a saree's pallu, if one is ever built again). */
 export const OUTFITS: Record<Body, { bottom: string; wrap: string; trim: string; hair: string; brows: string; shoes: string; eyes: string; pupil: string }> = {
-  man: { bottom: '#565C68', wrap: '#EFEBE0', trim: '#2B1D15', hair: '#1D1815', brows: '#1A1512', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
-  woman: { bottom: '#CBB994', wrap: '#CBB994', trim: '#EDE4CF', hair: '#1A1513', brows: '#1A1512', shoes: '#5A4232', eyes: '#F3F0EA', pupil: '#1B1311' },
+  man: { bottom: '#565C68', wrap: '#EFEBE0', trim: '#2B1D15', hair: '#2D2119', brows: '#221A15', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
+  woman: { bottom: '#CBB994', wrap: '#CBB994', trim: '#EDE4CF', hair: '#2B1F19', brows: '#221A15', shoes: '#5A4232', eyes: '#F3F0EA', pupil: '#1B1311' },
   elder: { bottom: '#3E4A6B', wrap: '#3E4A6B', trim: '#E8E0D0', hair: '#D9D5CD', brows: '#B9B4AB', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
-  child: { bottom: '#3F5F8F', wrap: '#3F5F8F', trim: '#F2F0EA', hair: '#1D1815', brows: '#1A1512', shoes: '#C0563A', eyes: '#F3F0EA', pupil: '#1B1311' },
+  child: { bottom: '#3F5F8F', wrap: '#3F5F8F', trim: '#F2F0EA', hair: '#3A2A20', brows: '#2A2019', shoes: '#C0563A', eyes: '#F3F0EA', pupil: '#1B1311' },
 };
 
 /**
@@ -86,6 +86,19 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
   const o = OUTFITS[body];
   const fixed: Record<string, string> = { bottom: o.bottom, wrap: o.wrap, trim: o.trim, hair: o.hair, brows: o.brows, shoes: o.shoes, eyes: o.eyes, pupil: o.pupil };
   for (const s of skinned) {
+    if (s.name === 'hair') {
+      // hair is very dark brown, not black, with a soft sheen band that catches a window or a lamp (SPEC 16.20): it read as a hard black cap from behind
+      const old = s.material as THREE.MeshStandardMaterial;
+      const hm = new THREE.MeshPhysicalMaterial({
+        color: fixed.hair, roughness: 0.5, metalness: 0, sheen: 0.9, sheenRoughness: 0.42,
+        sheenColor: new THREE.Color(body === 'elder' ? '#FFFFFF' : '#8A6F5C'), side: old.side,
+      });
+      old.dispose();
+      s.material = hm;
+      mats.push(hm);
+      s.castShadow = false;
+      continue;
+    }
     const mat = (s.material as THREE.MeshStandardMaterial).clone();
     s.material = mat;
     mats.push(mat);

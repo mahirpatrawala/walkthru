@@ -24,7 +24,7 @@ export interface StylePack {
   /** per look kind, params that differ from the generator's own defaults */
   generators: Partial<Record<LookKind, Record<string, unknown>>>;
   /** finishes of the room itself, used where the drawing and the video gave none */
-  room: { wall?: string; floor?: string; ceiling?: string; /** a bathroom with no finish of its own: tiled walls and a matt tiled floor (SPEC 16.19) */ wet?: { wall?: string; floor?: string } };
+  room: { wall?: string; floor?: string; ceiling?: string; /** a bathroom with no finish of its own: tiled walls and a matt tiled floor (SPEC 16.19) */ wet?: { wall?: string; floor?: string }; /** floor finish by room type, used where nothing names a floor for the room (SPEC 16.20: planks in living rooms, bedrooms and passages) */ floorByType?: Partial<Record<string, string>> };
   /** typical decor this pack adds to rooms that have no design sheet */
   decor: { rug?: boolean; curtains?: boolean };
   /** the dark or warm accents of the shell itself: skirting, door frames and architraves, door handles (finish ids; SPEC 16.18). Absent = the wall's own colour, the layout's frame colour, brushed steel */
@@ -65,6 +65,12 @@ export function loadPack(raw: unknown): { pack: StylePack | null; dropped: strin
     const wet: { wall?: string; floor?: string } = {};
     for (const k of ['wall', 'floor'] as const) { const v = rawWet[k]; if (typeof v === 'string') { if (knownFinish(v)) wet[k] = v; else dropped.push(`room.wet.${k}: unknown finish ${v}`); } }
     room.wet = wet;
+  }
+  const rawByType = (o.room as Record<string, unknown> | undefined)?.floorByType as Record<string, unknown> | undefined;
+  if (rawByType && typeof rawByType === 'object') {
+    const byType: Record<string, string> = {};
+    for (const [t, v] of Object.entries(rawByType)) { if (typeof v === 'string' && knownFinish(v)) byType[t] = v; else dropped.push(`room.floorByType.${t}: unknown finish ${String(v)}`); }
+    room.floorByType = byType;
   }
   let models: ModelPolicy | undefined;
   if (o.models && typeof o.models === 'object' && !o.classic) {

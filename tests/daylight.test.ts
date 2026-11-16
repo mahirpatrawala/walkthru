@@ -110,6 +110,8 @@ describe('calm signs', () => {
     expect(calm.scale).toBeLessThan(0.8);
     expect(calm.bg).toBe('#F6F4F0');
     setStyle({ packId: 'light-scandinavian' });
+    expect(signLook().scale).toBeLessThan(0.8); // every pack but Classic
+    setStyle({ packId: 'classic' });
     expect(signLook().scale).toBe(1);
     resetStyle();
   });

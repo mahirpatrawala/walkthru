@@ -10,10 +10,11 @@ import { addBoard, addFanStatic, addTube, buildBuckets, fanRotorGeometry, newBuc
 import type { Acc, BucketName } from './build';
 import { createKitMaterials } from './materials';
 import type { KitMaterials, LightKind } from './materials';
-import { KIT_NOTE, kitPlan } from './rules';
+import { KIT_NOTE, kitPlan, plankSpec } from './rules';
 import type { KitPlan } from './rules';
 import { kitFittings } from './fittings';
-import { getStyle, trimColours } from '../style';
+import { getStyle, roomFinishIds, trimColours } from '../style';
+import { finishDef } from '../finishes';
 import type { KitFittings } from './fittings';
 import type { FittingRecord, FittingRegistry, FittingsOverlay } from '../fittings';
 import { PRISTINE_CHECKSUM_KEY, geometryChecksum } from '../baked/assign';
@@ -290,10 +291,15 @@ export function mountKit(o: KitOptions): KitHandle {
       if (!spec || !room || room.partial) return;
       const mat = mesh.material as THREE.Material;
       if (Array.isArray(mat) || mat.userData.partialLook) return;
+      // a floor whose finish is a wood-look vitrified plank (the pack's, or the design sheet's) is planks, aligned the same way
+      const floorId = layout.finishes.source === 'sampled' ? undefined : roomFinishIds(room.id, style, room.roomType).floor?.[0];
+      const fdef = floorId ? finishDef(floorId) : null;
+      // only where the room's colour IS the finish's (a room with a colour of its own keeps it)
+      const sp = fdef && fdef.kind === 'plank' && fdef.colour.toLowerCase() === (room.floorColor ?? '').toLowerCase() && !spec.drawn && !spec.antiSkid && !spec.matt ? plankSpec(spec) : spec;
       const kit = lm.floorKit({
         color: room.floorColor ?? layout.finishes.floorColor, groutColor: layout.finishes.groutColor,
-        tileU: spec.tileU, tileV: spec.tileV, axisX: spec.axisX, axisZ: spec.axisZ, originX: spec.originX, originZ: spec.originZ,
-        groutM: spec.groutM, antiSkid: spec.antiSkid, matt: spec.matt,
+        tileU: sp.tileU, tileV: sp.tileV, axisX: sp.axisX, axisZ: sp.axisZ, originX: sp.originX, originZ: sp.originZ,
+        groutM: sp.groutM, antiSkid: sp.antiSkid, matt: sp.matt, plank: sp.plank,
       });
       floorSwaps.push({ mesh, original: mesh.material, kit });
     });

@@ -1,26 +1,99 @@
 {
   "version": 1,
-  "pack": "walnut-white",
+  "pack": "clean-contrast",
   "source": "typical",
-  "note": "A typical walnut and white scheme for this sample home, to show a second pack on the same generators: finishes and decor only.",
+  "note": "A typical clean scheme for this sample home (the gallery default): sheer curtains, rugs and downlights on the Clean Contrast pack; finishes and decor only.",
   "items": {
-    "wardrobe-1": { "params": { "shutterStyle": "framed", "handle": "bar" } },
-    "wardrobe-2": { "params": { "shutterStyle": "louvred", "handle": "knob" } },
-    "bed-1": { "params": { "base": "box", "headboard": "upholstered", "cushions": 2 } },
-    "bed-2": { "params": { "base": "legs", "headboard": "slatted", "cushions": 1 }, "roles": { "headboard": "walnut" } },
-    "sofa-1": { "params": { "arms": "box", "legs": "metal" }, "roles": { "fabric": "weave-sage" } }
+    "bed-1": {
+      "params": {
+        "base": "legs",
+        "headboard": "slatted",
+        "cushions": 1
+      }
+    },
+    "bed-2": {
+      "params": {
+        "base": "legs",
+        "headboard": "upholstered",
+        "cushions": 1
+      }
+    },
+    "sofa-1": {
+      "params": {
+        "arms": "box",
+        "legs": "wood"
+      }
+    }
   },
-  "rooms": {
-    "m-bed-room": { "wall": "wall-cream", "floor": "tile-ivory-gloss" },
-    "bed-room": { "wall": "wall-greige", "floor": "tile-sand" },
-    "living-dining": { "wall": "wall-greige", "floor": "tile-ivory-gloss" }
-  },
+  "rooms": {},
   "fixtures": [
-    { "kind": "curtain", "roomId": "m-bed-room", "edge": 3, "u0": 0.8, "u1": 2.6, "sheer": true, "drape": "sides" },
-    { "kind": "curtain", "roomId": "bed-room", "edge": 0, "u0": 0.9, "u1": 2.5, "sheer": true, "drape": "left" },
-    { "kind": "rug", "roomId": "m-bed-room", "aroundItem": "bed-1", "margin": { "head": 0.0, "foot": 0.7, "side": 0.5 } },
-    { "kind": "rug", "roomId": "bed-room", "aroundItem": "bed-2", "margin": { "head": 0.0, "foot": 0.7, "side": 0.5 } },
-    { "kind": "panelling", "roomId": "m-bed-room", "edge": 3, "u0": 0.0, "u1": 0.75, "pitchM": 0.25, "y0M": 0.9, "y1M": 2.3 },
-    { "kind": "downlights", "roomId": "living-dining", "points": [[-1.5, -3.0], [0.0, -3.0], [1.5, -3.0], [-1.5, -1.5], [0.0, -1.5], [1.5, -1.5]] }
+    {
+      "kind": "curtain",
+      "roomId": "m-bed-room",
+      "edge": 3,
+      "u0": 0.8,
+      "u1": 2.6,
+      "sheer": true,
+      "drape": "sides"
+    },
+    {
+      "kind": "curtain",
+      "roomId": "bed-room",
+      "edge": 0,
+      "u0": 0.9,
+      "u1": 2.5,
+      "sheer": true,
+      "drape": "left"
+    },
+    {
+      "kind": "rug",
+      "roomId": "m-bed-room",
+      "aroundItem": "bed-1",
+      "margin": {
+        "head": 0.0,
+        "foot": 0.7,
+        "side": 0.5
+      }
+    },
+    {
+      "kind": "rug",
+      "roomId": "bed-room",
+      "aroundItem": "bed-2",
+      "margin": {
+        "head": 0.0,
+        "foot": 0.7,
+        "side": 0.5
+      }
+    },
+    {
+      "kind": "downlights",
+      "roomId": "living-dining",
+      "points": [
+        [
+          -1.5,
+          -3.0
+        ],
+        [
+          0.0,
+          -3.0
+        ],
+        [
+          1.5,
+          -3.0
+        ],
+        [
+          -1.5,
+          -1.5
+        ],
+        [
+          0.0,
+          -1.5
+        ],
+        [
+          1.5,
+          -1.5
+        ]
+      ]
+    }
   ]
 }

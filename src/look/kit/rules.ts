@@ -8,7 +8,7 @@ import { computeEdgeFrames, computeTunnels, computeWallPieces } from '../../core
 import { planDownlights } from '../baked/lights';
 
 /** The one line that says what this is (rooms sheet and look panel). */
-export const KIT_NOTE = 'Fan, lights, switches, grills and tiles are typical fittings, not from your drawing.';
+export const KIT_NOTE = 'Fan, lights, switches, grills, tiles and wood-look vitrified planks are typical fittings and finishes, not from your drawing.';
 
 // ---- numbers (all visual conventions of an Indian flat, none of them measured)
 export const FAN_MIN_ROOM_M2 = 7;
@@ -430,9 +430,18 @@ export interface FloorSpec {
   matt: boolean;
   /** the drawing gave the tile: its size is used as is */
   drawn: boolean;
+  /** a wood-look vitrified plank floor (200 x 1200 mm, random stagger): the finish says so, the layout does not (SPEC 16.20) */
+  plank?: boolean;
 }
 
 export const DEFAULT_TILE_M = 0.6;
+/** wood-look vitrified plank: 200 x 1200 mm, a 1.2 mm joint */
+export const PLANK_W_M = 0.2, PLANK_L_M = 1.2, PLANK_JOINT_M = 0.0012;
+
+/** the spec of a plank floor in a room whose tile grid was planned: the same axis and corner, planks instead of tiles */
+export function plankSpec(spec: FloorSpec): FloorSpec {
+  return { ...spec, tileU: PLANK_L_M, tileV: PLANK_W_M, groutM: PLANK_JOINT_M, plank: true };
+}
 
 /** The drawing gave a tile when it is not the 600 x 600 default (or says the floor is plain). */
 export function drawnTile(layout: Layout): { wM: number; lM: number } | null {

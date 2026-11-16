@@ -144,6 +144,7 @@ vec3 lkLamps(vec3 p, vec3 n) {
   }
   return acc * uLkLampCol;
 }
+uniform float uLkPlank;       // 1 on a plank floor: rows along the grid axis, each row staggered at random, grain along the plank
 uniform float uLkFine;        // 1 where the tier draws procedural fine detail (medium, high)
 uniform float uLkKitBevel;    // strength of the bevel at a tile joint
 uniform float uLkKitSpeck;    // strength of the fine speckle and cloud in the tile
@@ -180,7 +181,9 @@ void lkSetup() {
     if (uLkKit > 0.5) {
       // look-kit: the room's own tile grid, aligned to its longest wall and anchored at its corner (SPEC 16.5 floors)
       vec2 d = vLkPos.xz - uLkKitOrigin;
-      lkUVc = vec2(dot(d, uLkKitAxis), dot(d, vec2(-uLkKitAxis.y, uLkKitAxis.x))) / uLkKitTile;
+      vec2 lkPm0 = vec2(dot(d, uLkKitAxis), dot(d, vec2(-uLkKitAxis.y, uLkKitAxis.x)));
+      lkUVc = lkPm0 / uLkKitTile;
+      if (uLkPlank > 0.5) lkUVc.x += lkHash(vec2(floor(lkUVc.y), 4.7));   // each row of planks starts somewhere else along its length
     }
     vec2 id = floor(lkUVc);
     vec2 q = step(0.5, vec2(lkHash(id), lkHash(id + 7.3)));
@@ -253,6 +256,15 @@ if (uLkKit > 0.5) {
   lkGrout = max(lkM.x, lkM.y);
   if (uLkPlain < 0.5) {
     diffuseColor.rgb *= 1.0 + (lkHash(floor(lkUVc) + 3.1) - 0.5) * uLkKitVar;
+    if (uLkPlank > 0.5) {
+      // board to board: a warmer or greyer oak, and a faint grain along the board (computed in metres on the board, so it is sharp at any distance)
+      vec2 lkPid = floor(lkUVc);
+      float lkH1 = lkHash(lkPid + 8.1), lkH2 = lkHash(lkPid + 2.9);
+      diffuseColor.rgb *= vec3(1.0 + (lkH1 - 0.5) * 0.07, 1.0 + (lkH1 - 0.5) * 0.045 - (lkH2 - 0.5) * 0.02, 1.0 - (lkH1 - 0.5) * 0.05 + (lkH2 - 0.5) * 0.04);
+      vec2 lkG = vec2(fract(lkUVc.x) * uLkKitTile.x + lkH2 * 7.0, fract(lkUVc.y) * uLkKitTile.y);
+      float lkWt = lkWoodTone(lkG, max(fwidth(lkG.x), fwidth(lkG.y)));
+      diffuseColor.rgb *= mix(1.0, lkWt, 0.55);
+    }
     if (uLkFine > 0.5 && uLkKitSpeck > 0.0) {
       // fine speckle and a soft cloud, in metres so it is the same size on every tile; faded where a pixel is wider than the grain
       float lkFade = 1.0 - smoothstep(0.0025, 0.009, max(fwidth(vLkPos.x), fwidth(vLkPos.z)));
@@ -359,6 +371,8 @@ export interface FloorKitSpec {
   color: string; groutColor: string;
   tileU: number; tileV: number; axisX: number; axisZ: number; originX: number; originZ: number;
   groutM: number; antiSkid: boolean; matt: boolean;
+  /** a wood-look plank floor (SPEC 16.20) */
+  plank?: boolean;
 }
 
 export interface LookMaterials extends ShellMaterialSet {
@@ -430,7 +444,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
     mat.userData.shared = true;
     const u: Rec['u'] = {
       uLkMode: { value: kind === 'floor' ? 0 : kind === 'frame' ? 2 : 1 },
-      uLkPaint: { value: kind === 'wall' || kind === 'ceiling' ? 1 : 0 }, uLkWood: { value: kind === 'frame' ? 1 : 0 }, uLkFine: shared.fine, uLkWinOn: shared.winOn, uLkWinA: shared.winA, uLkWinB: shared.winB, uLkWinCol: shared.winCol, uLkLampA: shared.lampA, uLkLampCol: shared.lampCol, uLkKitBevel: { value: 0 }, uLkKitSpeck: { value: 0 }, uLkWallTile: { value: new THREE.Vector3(0, 0, 0) }, uLkWallJoint: { value: new THREE.Color('#999') },
+      uLkPaint: { value: kind === 'wall' || kind === 'ceiling' ? 1 : 0 }, uLkWood: { value: kind === 'frame' ? 1 : 0 }, uLkFine: shared.fine, uLkWinOn: shared.winOn, uLkWinA: shared.winA, uLkWinB: shared.winB, uLkWinCol: shared.winCol, uLkLampA: shared.lampA, uLkLampCol: shared.lampCol, uLkPlank: { value: 0 }, uLkKitBevel: { value: 0 }, uLkKitSpeck: { value: 0 }, uLkWallTile: { value: new THREE.Vector3(0, 0, 0) }, uLkWallJoint: { value: new THREE.Color('#999') },
       uLkTile: { value: new THREE.Vector2(0.6, 0.6) },
       uLkRepeat: { value: kind === 'frame' ? 0.6 : 1.6 },
       uLkPlain: shared.plain,
@@ -463,7 +477,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${FRAG_NORMAL}`)
         .replace('#include <aomap_fragment>', `#include <aomap_fragment>\n${FRAG_AO}`);
     };
-    mat.customProgramCacheKey = () => 'walkthru-look-v5';
+    mat.customProgramCacheKey = () => 'walkthru-look-v6';
     const rec: Rec = { kind, balcony, mat, u, plain, look: { roughness: mat.roughness, metalness: mat.metalness }, map: null };
     records.push(rec);
     byKey.set(key, rec);
@@ -486,20 +500,21 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
       return r.mat;
     },
     floorKit(spec) {
-      const key = `floorkit|${spec.color}|${spec.groutColor}|${spec.tileU}x${spec.tileV}|${spec.axisX.toFixed(4)},${spec.axisZ.toFixed(4)}|${spec.originX.toFixed(3)},${spec.originZ.toFixed(3)}|${spec.antiSkid}|${spec.matt}`;
+      const key = `floorkit|${spec.plank ? 'plank|' : ''}${spec.color}|${spec.groutColor}|${spec.tileU}x${spec.tileV}|${spec.axisX.toFixed(4)},${spec.axisZ.toFixed(4)}|${spec.originX.toFixed(3)},${spec.originZ.toFixed(3)}|${spec.antiSkid}|${spec.matt}`;
       const had = byKey.has(key);
       const r = make('floor', key, { color: spec.color, roughness: spec.matt ? BALCONY_ROUGHNESS : FLOOR_ROUGHNESS_FLAT, metalness: 0 }, { roughness: 0.35, metalness: 0 }, spec.matt);
       if (!had) {
         set(r, 'uLkKit', 1);
+        set(r, 'uLkPlank', spec.plank ? 1 : 0);
         set(r, 'uLkKitAxis', new THREE.Vector2(spec.axisX, spec.axisZ));
         set(r, 'uLkKitOrigin', new THREE.Vector2(spec.originX, spec.originZ));
         set(r, 'uLkKitTile', new THREE.Vector2(spec.tileU, spec.tileV));
         set(r, 'uLkKitGrout', spec.groutM);
         // the joint is the tile's own colour, a little deeper and a little towards the drawing's grout colour: a hairline you can see, not a dark rule
-        set(r, 'uLkKitGroutCol', new THREE.Color(spec.color).lerp(new THREE.Color(spec.groutColor), 0.3).multiplyScalar(0.62));
+        set(r, 'uLkKitGroutCol', spec.plank ? new THREE.Color(spec.color).multiplyScalar(0.55) : new THREE.Color(spec.color).lerp(new THREE.Color(spec.groutColor), 0.3).multiplyScalar(0.62));
         if (!spec.matt) { set(r, 'uLkKitBevel', spec.antiSkid ? 0.35 : 0.9); set(r, 'uLkKitSpeck', spec.antiSkid ? 1.4 : 1); } else set(r, 'uLkKitSpeck', 1.6);
-        set(r, 'uLkKitVar', spec.antiSkid ? 0.12 : 0.06);
-        set(r, 'uLkKitRoughMin', spec.antiSkid ? 0.72 : spec.matt ? 0.6 : 0);
+        set(r, 'uLkKitVar', spec.plank ? 0.05 : spec.antiSkid ? 0.12 : 0.06);
+        set(r, 'uLkKitRoughMin', spec.plank ? 0.42 : spec.antiSkid ? 0.72 : spec.matt ? 0.6 : 0);
         // maps that arrived before this room's floor was made
         const donor = records.find((o) => o !== r && o.kind === 'floor' && o.u.uLkNormOn.value);
         if (donor) for (const k of ['uLkNorm', 'uLkNormScale', 'uLkNormOn', 'uLkDetail', 'uLkDetailMean', 'uLkDetailClamp', 'uLkDetailOn', 'uLkRough', 'uLkRoughRange', 'uLkRoughOn']) {
