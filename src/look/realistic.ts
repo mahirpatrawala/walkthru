@@ -50,7 +50,7 @@ export interface RealisticSet {
 
 export const REALISTIC_SETS: Record<RealisticFamily, RealisticSet> = {
   plank: { slug: 'oak_wood_planks', use: 'wood-look vitrified plank floor (grain per plank; the 200 x 1200 mm layout and joints stay procedural)', tileM: 1.0, normalScale: 0.32, rough: [0.34, 0.66], clamp: [0.6, 1.55] },
-  tile: { slug: 'grey_plaster', use: 'stone and vitrified tile (surface variation under the procedural joints and bevel)', tileM: 1.2, normalScale: 0.16, rough: [0.1, 0.3], clamp: [0.82, 1.22] },
+  tile: { slug: 'grey_plaster', use: 'stone and vitrified tile (surface variation under the procedural joints and bevel)', tileM: 1.2, normalScale: 0.16, rough: [0.1, 0.3], clamp: [0.95, 1.06] },
   wall: { slug: 'painted_plaster_wall', use: 'wall paint and ceilings (a fine plaster normal)', tileM: 1.6, normalScale: 0.3, rough: [0.78, 0.95], clamp: [0.975, 1.025] },
   veneer: { slug: 'oak_veneer_01', use: 'timber for frames (and the furniture carcasses: the furniture kit loads the same set)', tileM: 0.6, normalScale: 0.38, rough: [0.3, 0.62], clamp: [0.62, 1.5], swap: true },
 };

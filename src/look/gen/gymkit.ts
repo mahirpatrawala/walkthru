@@ -18,7 +18,7 @@ export const ACCENT_RED: MatSpec = { key: 'paint', tint: '#B3322B' };
 export const ACCENT_BLUE: MatSpec = { key: 'paint', tint: '#2F5F9E' };
 export const STACK_STEEL: MatSpec = { key: 'metal', tint: '#B2B7BD' };
 export const IRON: MatSpec = { key: 'laminate', tint: '#484B51' };
-export const SCREEN_GLASS: MatSpec = { key: 'granite', tint: '#0D1722' };
+export const SCREEN_GLASS: MatSpec = { key: 'granite', tint: '#24374A' };
 export const WOOD_ASH: MatSpec = { key: 'wood', tint: '#C8A06B' };
 export { CHROME, RUBBER };
 

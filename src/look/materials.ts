@@ -588,7 +588,10 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
       return r.mat;
     },
     railing(color) {
-      return make('railing', `railing|${color}`, { color, roughness: 0.4, metalness: 0.2 }, { roughness: 0.6, metalness: 0 }).mat;
+      // a near-black rail reads as a black pole against a bright wall: it becomes a mid-tone powder-coated grey (a pale rail keeps its colour)
+      const c0 = new THREE.Color(color);
+      if (c0.getHSL({ h: 0, s: 0, l: 0 }).l < 0.22) c0.lerp(new THREE.Color('#8A9094'), 0.6);
+      return make('railing', `railing|${color}`, { color: c0, roughness: 0.4, metalness: 0.2 }, { roughness: 0.6, metalness: 0 }).mat;
     },
     pane() {
       if (!paneMat) {

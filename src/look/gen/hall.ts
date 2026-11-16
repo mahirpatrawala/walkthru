@@ -11,6 +11,8 @@ export type HallVariant = (typeof HALL_VARIANTS)[number];
 export interface HallParams { variant: HallVariant; liftM: number }
 /** a banquet table's cloth: white cotton unless a pack names a `tablecloth` role */
 const CLOTH: MatSpec = { key: 'cotton', tint: '#F3F0EA' };
+/** a pool table's timber is a dark walnut whatever the pack's case colour (a white pool table reads as a toy) */
+const POOL_WOOD: MatSpec = { key: 'wood', tint: '#5B4333' };
 export const HALL_DEFAULTS: HallParams = { variant: 'chair', liftM: 0 };
 
 export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Roles): THREE.Group {
@@ -143,13 +145,13 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
     pool: () => {
       // a pool table: a wooden body with six pockets, cloth in green, cushion rails, four turned legs; fifteen balls racked at one end and the cue ball
       const bt = S, rail = 0.1;
-      parts.box('pool-body', wood, -x1, x1, bt - 0.2, bt - 0.0, z0, z1, { c: 0.01 });
+      parts.box('pool-body', POOL_WOOD, -x1, x1, bt - 0.2, bt - 0.0, z0, z1, { c: 0.01 });
       slab(parts, 'pool-cloth', { key: 'felt', tint: '#1F6B46' }, -x1 + rail, x1 - rail, bt - 0.0, bt + 0.0006, z0 + rail, z1 - rail);
       for (const [x, z, l, dd] of [[0, z0 + rail / 2, w - 2 * rail, rail], [0, z1 - rail / 2, w - 2 * rail, rail], [-x1 + rail / 2, 0, rail, d - 2 * rail], [x1 - rail / 2, 0, rail, d - 2 * rail]] as const)
         parts.box('pool-cushions', { key: 'felt', tint: '#17573A' }, x - l / 2, x + l / 2, bt, bt + 0.06, z - dd / 2, z + dd / 2, { c: 0.01 });
       for (const [cx, cz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1]] as const) cylY(parts, 'pool-pockets', IRON, cx * (x1 - rail * 0.6), cz * (z1 - rail * 0.6), bt - 0.0, bt + 0.045, 0.045, 12);
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        cylY(parts, 'pool-legs', wood, sx * (x1 - 0.17), sz * (z1 - 0.17), 0, bt - 0.2, 0.08, 10);
+        cylY(parts, 'pool-legs', POOL_WOOD, sx * (x1 - 0.17), sz * (z1 - 0.17), 0, bt - 0.2, 0.08, 10);
         cylY(parts, 'pool-feet', IRON, sx * (x1 - 0.17), sz * (z1 - 0.17), 0, 0.03, 0.095, 10);
       }
       if (q.tier !== 'low') {

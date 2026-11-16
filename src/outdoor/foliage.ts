@@ -52,7 +52,7 @@ export function sprayTexture(sp: Species, seed: number): THREE.Texture | null {
   const [mid, lite, dark] = sp.leaf;
   // small-leaved trees (neem, gulmohar) get many small leaflets, big-leaved plants (frangipani, croton) a few large leaves
   const ls = LEAF_SCALE[sp.id] ?? 1;
-  const n = Math.round((sp.form === 'bush' ? 9 : 16) / (ls * ls) * (ls < 0.7 ? 0.55 : 1));
+  const n = Math.round((sp.form === 'bush' ? 9 : 16) / (ls * ls) * (ls < 0.7 ? 0.8 : 1));
   for (let i = 0; i < n; i++) {
     const a = (r() - 0.5) * (sp.form === 'bush' ? 2.2 : 2.6);
     const len = (80 + r() * 90) * ls, wid = ((sp.form === 'bush' ? 26 : 20) + r() * 14) * ls;
