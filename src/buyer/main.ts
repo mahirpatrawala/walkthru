@@ -666,7 +666,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   }
 
   // ---- input events
-  camera.firstPerson = view === 'first';
+  camera.setView(view === 'first', { instant: true }); // the page opens in its view, no glide
   input.on('view', () => { if (!blocking()) applyView(view === 'first' ? 'third' : 'first'); });
   input.on('interact', () => { if (!blocking()) void interactions.interact(); });
   input.on('measure', () => toggleMode('measure'));

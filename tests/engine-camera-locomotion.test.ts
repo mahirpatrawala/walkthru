@@ -76,32 +76,51 @@ describe('FollowCamera', () => {
     cam.pitchDeg = 5;
     cam.setTarget({ x: 3.4, z: 2.5 }, 1.75);
     cam.update(1 / 60, NO_LOOK);
-    console.log('camera boom against the east wall:', cam.boom.toFixed(3), 'camera x', camera.position.x.toFixed(3));
     expect(cam.boom).toBeLessThan(0.6);
     expect(camera.position.x).toBeLessThan(4 - 0.15);
-    // right up against it
-    cam.setTarget({ x: 3.8, z: 2.5 }, 1.75);
-    cam.update(1 / 60, NO_LOOK);
-    expect(cam.boom).toBeLessThan(0.1); // 0.2 m from the wall, minus the 0.2 stop, within the 4 cm march step
+    // right up against it: walking in at 1.5 m/s, the camera is never in the wall on any frame (the smoothed boom may pass the collision length by 10 cm at most)
+    let x = 3.4;
+    for (let i = 0; i < 40; i++) { x = Math.min(3.8, x + 1.5 / 60); cam.setTarget({ x, z: 2.5 }, 1.75); cam.update(1 / 60, NO_LOOK); expect(camera.position.x).toBeLessThan(4 - 0.04); }
+    for (let i = 0; i < 60; i++) cam.update(1 / 60, NO_LOOK);
+    expect(cam.boom).toBeLessThan(0.15); // 0.2 m from the wall, minus the 0.2 stop, within the 4 cm march step
     expect(camera.position.x).toBeLessThan(4);
   });
 
-  it('shortens instantly and lengthens at 2 m/s', () => {
+  it('the boom is critically damped (SPEC 16.18): it never pops in either direction, whatever the frame rate, and ends at the same length', () => {
+    const run = (fps: number): { end: number; worst: number } => {
+      const { cam } = makeCam(empty);
+      cam.yawDeg = 270;
+      cam.pitchDeg = 5;
+      cam.setTarget({ x: 3.4, z: 2.5 }, 1.75);
+      cam.update(1 / fps, NO_LOOK);
+      for (let i = 0; i < fps; i++) cam.update(1 / fps, NO_LOOK);
+      const short = cam.boom;
+      cam.setTarget({ x: 1.4, z: 2.5 }, 1.75); // out in the open again: lengthens smoothly
+      let prev = short, worst = 0;
+      for (let i = 0; i < fps * 2; i++) {
+        cam.update(1 / fps, NO_LOOK);
+        expect(cam.boom).toBeGreaterThanOrEqual(prev - 1e-9); // monotone: no overshoot
+        worst = Math.max(worst, cam.boom - prev);
+        prev = cam.boom;
+      }
+      return { end: cam.boom, worst: worst * fps };
+    };
+    const a = run(30), b = run(120);
+    expect(a.end).toBeGreaterThan(1.97);
+    expect(b.end).toBeGreaterThan(1.97);
+    expect(Math.abs(a.worst - b.worst)).toBeLessThan(0.3); // the same peak speed (m/s) at 30 and 120 fps
+    expect(b.worst).toBeLessThan(3); // a glide: about 2 m/s at its fastest
+  });
+
+  it('shortening is a glide too: walking into the wall changes the boom by at most 12 cm a frame', () => {
     const { cam } = makeCam(empty);
     cam.yawDeg = 270;
     cam.pitchDeg = 5;
-    cam.setTarget({ x: 3.4, z: 2.5 }, 1.75);
-    cam.update(1 / 60, NO_LOOK);
-    const short = cam.boom;
-    cam.setTarget({ x: 1.4, z: 2.5 }, 1.75); // out in the open again
-    cam.update(0.05, NO_LOOK);
-    expect(cam.boom).toBeCloseTo(short + 0.1, 6);
-    for (let i = 0; i < 100; i++) cam.update(0.05, NO_LOOK);
-    expect(cam.boom).toBeCloseTo(2.0, 6);
-    // and back in: instant
-    cam.setTarget({ x: 3.4, z: 2.5 }, 1.75);
-    cam.update(0.05, NO_LOOK);
-    expect(cam.boom).toBeCloseTo(short, 6);
+    cam.setTarget({ x: 1.4, z: 2.5 }, 1.75);
+    for (let i = 0; i < 30; i++) cam.update(1 / 60, NO_LOOK);
+    let prev = cam.boom, worst = 0;
+    for (let i = 0; i < 90; i++) { cam.setTarget({ x: Math.min(3.8, 1.4 + i * 0.04), z: 2.5 }, 1.75); cam.update(1 / 60, NO_LOOK); worst = Math.max(worst, Math.abs(cam.boom - prev)); prev = cam.boom; }
+    expect(worst).toBeLessThan(0.12);
   });
 
   it('low furniture blocks only below its top plus 15 cm: the boom passes over the bed at eye height but not at knee height', () => {
@@ -124,7 +143,7 @@ describe('FollowCamera', () => {
     cam.focusOn(centre, 2.2, 50, 270);
     for (let i = 0; i < 20; i++) cam.update(1 / 60, NO_LOOK); // 0.33 s: mid-swing
     const mid = camera.position.clone();
-    for (let i = 0; i < 20; i++) cam.update(1 / 60, NO_LOOK); // 0.67 s: done
+    for (let i = 0; i < 220; i++) cam.update(1 / 60, NO_LOOK); // the swing is 0.5 s, the smoothed heading and boom settle in about half a second more
     const pos = camera.position.clone();
     const pr = 50 * Math.PI / 180;
     expect(pos.distanceTo(new THREE.Vector3(centre.x, centre.y, centre.z))).toBeCloseTo(2.2, 3);
@@ -135,7 +154,7 @@ describe('FollowCamera', () => {
 
     cam.releaseFocus();
     cam.setTarget({ x: 1.5, z: 2.5 }, 1.75); // somewhere the boom has room at yaw 270
-    for (let i = 0; i < 90; i++) cam.update(1 / 60, NO_LOOK);
+    for (let i = 0; i < 240; i++) cam.update(1 / 60, NO_LOOK);
     expect(cam.yawDeg).toBeCloseTo(270, 6); // keeps the heading it had
     expect(cam.pitchDeg).toBeCloseTo(12, 6);
     expect((((cam.viewYawDeg % 360) + 360) % 360)).toBeCloseTo(270, 6);
@@ -180,8 +199,8 @@ describe('stepLocomotion', () => {
     const ch = fakeChar(2, 1);
     const v = frames(ch, fakeInput(0, 1), 0, empty, 60);
     expect(v).toBeCloseTo(1.4, 6);
-    // the speed builds up at 4.2 m/s^2 (a third of a second to 1.4), so the first second covers 1.4 - 1.4^2 / (2 * 4.2) metres
-    expect(ch.position.z).toBeCloseTo(1 + 1.4 - (1.4 * 1.4) / (2 * 4.2), 1);
+    // the speed builds up at 5.8 m/s^2 (a quarter of a second to 1.4), so the first second covers 1.4 - 1.4^2 / (2 * 5.8) metres
+    expect(ch.position.z).toBeCloseTo(1 + 1.4 - (1.4 * 1.4) / (2 * 5.8), 1);
     expect(ch.position.x).toBeCloseTo(2, 6);
     const ch2 = fakeChar(2, 0.6);
     const v2 = frames(ch2, fakeInput(0, 1, true), 0, empty, 90);
@@ -288,7 +307,7 @@ describe('FollowCamera first person (SPEC 16.6.8)', () => {
     const thirdFov = camera.fov;
     cam.yawDeg = 90; // looking +x
     cam.setTarget({ x: 2, z: 2.5 }, 1.75);
-    cam.firstPerson = true;
+    cam.setView(true, { instant: true });
     cam.setEye({ x: 2.05, y: 1.62, z: 2.5 });
     cam.update(1 / 60, NO_LOOK);
     expect(camera.position.x).toBeCloseTo(2.05, 9);
@@ -300,20 +319,25 @@ describe('FollowCamera first person (SPEC 16.6.8)', () => {
     expect(Math.abs(dir.y)).toBeLessThan(1e-6); // level to begin with
     // dragging down looks down, dragging up looks up, both stop short of straight up and down
     cam.update(1 / 60, { dx: 0, dy: 40, zoom: 0 });
+    for (let i = 0; i < 30; i++) cam.update(1 / 60, NO_LOOK); // the smoothed look settles in a few tenths of a second
     expect(camera.getWorldDirection(new THREE.Vector3()).y).toBeLessThan(-0.1);
     cam.update(1 / 60, { dx: 0, dy: -4000, zoom: 0 });
+    for (let i = 0; i < 60; i++) cam.update(1 / 60, NO_LOOK);
     expect(camera.getWorldDirection(new THREE.Vector3()).y).toBeGreaterThan(0.95);
     expect(camera.getWorldDirection(new THREE.Vector3()).y).toBeLessThan(0.99);
-    cam.firstPerson = false;
+    cam.firstPerson = false; // a cross-fade, not a cut
     cam.update(1 / 60, NO_LOOK);
-    expect(camera.fov).toBe(thirdFov);
-    expect(cam.boom).toBeGreaterThan(1.9);
+    expect(cam.viewBlend).toBeGreaterThan(0.9);
+    expect(cam.viewBlend).toBeLessThan(1);
     expect(cam.firstPerson).toBe(false);
+    for (let i = 0; i < 40; i++) cam.update(1 / 60, NO_LOOK);
+    expect(camera.fov).toBeCloseTo(thirdFov, 6);
+    expect(cam.boom).toBeGreaterThan(1.9);
   });
 
   it('on a bed (a steep focus) it looks up at the ceiling, on a sofa straight ahead, and turns to the way a seat points', () => {
     const { cam, camera } = makeCam(empty);
-    cam.firstPerson = true;
+    cam.setView(true, { instant: true });
     cam.setTarget({ x: 2, z: 2.5 }, 1.75);
     cam.setEye({ x: 2, y: 0.9, z: 2.5 });
     cam.focusOn({ x: 2, y: 0.5, z: 2.5 }, 3, 50);
