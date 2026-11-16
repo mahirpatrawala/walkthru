@@ -29,15 +29,15 @@ function flat(): Layout {
 describe('view machine', () => {
   it('starts in the mode it is given and defaults to walk', () => {
     expect(createViewMachine().mode()).toBe('walk');
-    const m = createViewMachine('dollhouse');
-    expect(m.mode()).toBe('dollhouse');
+    const m = createViewMachine('doll');
+    expect(m.mode()).toBe('doll');
     expect(m.flight().amount).toBe(1);
     expect(createViewMachine('plan').planAmount()).toBe(1);
   });
   it('flies up in FLIGHT_S seconds whatever the frame size, and back down', () => {
     for (const dt of [1 / 144, 1 / 60, 1 / 20]) {
       const m = createViewMachine('walk');
-      expect(m.set('dollhouse')).toBe(true);
+      expect(m.set('doll')).toBe(true);
       let t = 0;
       while (m.flight().moving) { m.tick(dt); t += dt; if (t > 5) break; }
       expect(t).toBeGreaterThanOrEqual(FLIGHT_S - 1e-9);
@@ -55,7 +55,7 @@ describe('view machine', () => {
   });
   it('turns round mid-flight without a jump', () => {
     const m = createViewMachine('walk');
-    m.set('dollhouse');
+    m.set('doll');
     m.tick(0.3);
     const a = m.flight().raw;
     m.set('walk');
@@ -77,7 +77,7 @@ describe('view machine', () => {
     expect(m.rendering3D()).toBe(true);
   });
   it('the plan from the doll house keeps the doll house camera, from walk it keeps the walker', () => {
-    const a = createViewMachine('dollhouse');
+    const a = createViewMachine('doll');
     a.set('plan'); a.tick(2);
     expect(a.flight().amount).toBe(1);
     const b = createViewMachine('walk');
@@ -89,12 +89,12 @@ describe('view machine', () => {
     const seen: string[] = [];
     m.onChange((n, p) => seen.push(`${p}>${n}`));
     expect(m.set('walk')).toBe(false);
-    m.set('plan'); m.set('dollhouse');
-    expect(seen).toEqual(['walk>plan', 'plan>dollhouse']);
+    m.set('plan'); m.set('doll');
+    expect(seen).toEqual(['walk>plan', 'plan>doll']);
   });
   it('instant jumps land at once', () => {
     const m = createViewMachine('walk');
-    m.set('dollhouse', { instant: true });
+    m.set('doll', { instant: true });
     expect(m.flight().amount).toBe(1);
     expect(m.flight().moving).toBe(false);
   });
@@ -102,16 +102,17 @@ describe('view machine', () => {
 
 describe('the ?view= address', () => {
   it('reads dollhouse, plan and walk, and falls back to walk', () => {
-    expect(parseViewParam('?view=dollhouse')).toBe('dollhouse');
+    expect(parseViewParam('?view=doll')).toBe('doll');
+    expect(parseViewParam('?view=dollhouse')).toBe('doll');
     expect(parseViewParam('?scene=x&view=plan&debug=1')).toBe('plan');
     expect(parseViewParam('?view=walk')).toBe('walk');
     expect(parseViewParam('?view=sideways')).toBe('walk');
     expect(parseViewParam('')).toBe('walk');
   });
   it('keeps every other parameter and drops the parameter for walk', () => {
-    expect(withViewParam('/?building=sample-tower&space=f2-204&debug=1', 'dollhouse')).toBe('/?building=sample-tower&space=f2-204&debug=1&view=dollhouse');
+    expect(withViewParam('/?building=sample-tower&space=f2-204&debug=1', 'doll')).toBe('/?building=sample-tower&space=f2-204&debug=1&view=doll');
     expect(withViewParam('/?scene=a&view=plan', 'walk')).toBe('/?scene=a');
-    expect(withViewParam('/?scene=a&view=plan#top', 'dollhouse')).toBe('/?scene=a&view=dollhouse#top');
+    expect(withViewParam('/?scene=a&view=plan#top', 'doll')).toBe('/?scene=a&view=doll#top');
     expect(withViewParam('/', 'walk')).toBe('/');
   });
   it('smootherstep is flat at both ends', () => {
@@ -316,5 +317,19 @@ describe('room tags', () => {
     const p = labelPoint(L);
     const inside = (p.x >= 0 && p.x <= 6 && p.z >= 0 && p.z <= 1) || (p.x >= 0 && p.x <= 1 && p.z >= 0 && p.z <= 6);
     expect(inside).toBe(true);
+  });
+});
+
+describe('the views stylesheet is sized in tokens', () => {
+  it('has no raw pixel size over 1.5 px outside a media query', async () => {
+    const fs = await import('node:fs');
+    const bad: string[] = [];
+    fs.readFileSync('src/buyer/views/views.css', 'utf8').split('\n').forEach((line, i) => {
+      const t = line.trimStart();
+      if (t.startsWith('@media') || t.startsWith('/*') || t.startsWith('*')) return;
+      const code = line.split('/*')[0];
+      for (const m of code.matchAll(/(?<![\w.#-])(\d+(?:\.\d+)?)px\b/g)) if (Number(m[1]) > 1.5) bad.push(`${i + 1} ${m[0]}`);
+    });
+    expect(bad).toEqual([]);
   });
 });

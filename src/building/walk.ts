@@ -116,7 +116,7 @@ class BuildingWalk implements BuildingWalkApi {
     this.session = session;
     this.here = loc;
     this.count += 1;
-    // the view the space opened in (`?view=dollhouse|plan`) stays in the address, so a shared link opens the same way
+    // the view the space opened in (`?view=doll|plan`) stays in the address, so a shared link opens the same way
     const url = withViewParam(buildingUrl({ building: b.id, space: spaceId }), (this.mounted as MountedSpace | null)?.ctx.views?.mode() ?? 'walk');
     if (o.history === 'push') history.pushState({ wb: spaceId }, '', url);
     else if (o.history === 'replace') history.replaceState({ wb: spaceId }, '', url);

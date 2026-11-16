@@ -2,9 +2,9 @@
 // orbiting) and Plan (a flat 2D drawing). This file is the pure state machine: which mode is wanted, how far the camera has flown
 // between the walker and the doll house, how far the plan has faded in, the `?view=` address. No DOM, no three, so it is unit-tested.
 
-export type ViewMode = 'walk' | 'dollhouse' | 'plan';
-export const VIEW_MODES: readonly ViewMode[] = ['walk', 'dollhouse', 'plan'];
-export const VIEW_LABELS: Record<ViewMode, string> = { walk: 'Walk', dollhouse: 'Doll house', plan: 'Plan' };
+export type ViewMode = 'walk' | 'doll' | 'plan';
+export const VIEW_MODES: readonly ViewMode[] = ['walk', 'doll', 'plan'];
+export const VIEW_LABELS: Record<ViewMode, string> = { walk: 'Walk', doll: 'Doll house', plan: 'Plan' };
 export const DEFAULT_VIEW: ViewMode = 'walk';
 export const VIEW_PARAM = 'view';
 
@@ -14,14 +14,14 @@ export const FLIGHT_S = 0.9;
 export const PLAN_FADE_S = 0.28;
 
 export function isViewMode(v: unknown): v is ViewMode {
-  return v === 'walk' || v === 'dollhouse' || v === 'plan';
+  return v === 'walk' || v === 'doll' || v === 'plan';
 }
 
 /** The mode a query string asks for: `?view=dollhouse|plan|walk`. Anything else (and no parameter) is Walk. */
 export function parseViewParam(search: string): ViewMode {
   try {
     const v = (new URLSearchParams(search).get(VIEW_PARAM) ?? '').trim().toLowerCase();
-    if (v === 'doll' || v === 'dollhouse' || v === 'doll-house') return 'dollhouse';
+    if (v === 'doll' || v === 'dollhouse' || v === 'doll-house') return 'doll';
     return isViewMode(v) ? v : DEFAULT_VIEW;
   } catch { return DEFAULT_VIEW; }
 }
@@ -75,12 +75,12 @@ export function createViewMachine(initial: ViewMode = DEFAULT_VIEW, opts: { flig
   const planS = Math.max(0.01, opts.planFadeS ?? PLAN_FADE_S);
   let mode: ViewMode = initial;
   // the raw flight progress and where it is heading
-  let p = initial === 'dollhouse' ? 1 : 0;
+  let p = initial === 'doll' ? 1 : 0;
   let pTarget = p;
   let plan = initial === 'plan' ? 1 : 0;
   const listeners = new Set<(m: ViewMode, prev: ViewMode) => void>();
 
-  const flightTargetFor = (m: ViewMode): number => (m === 'dollhouse' ? 1 : m === 'walk' ? 0 : p >= 0.5 ? 1 : 0);
+  const flightTargetFor = (m: ViewMode): number => (m === 'doll' ? 1 : m === 'walk' ? 0 : p >= 0.5 ? 1 : 0);
 
   return {
     mode: () => mode,

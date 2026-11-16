@@ -75,7 +75,7 @@ export interface Census {
 
 const ICONS: Record<ViewMode, string> = {
   walk: '<circle cx="13" cy="4.5" r="1.8"/><path d="M9.5 21l2.2-6-2.6-3 1.2-4.2 3.4 1.6 2.3 2.8"/><path d="M13.4 8.9l-3.9 1.7L7.4 14M11.7 15l3.3 2.2L16 21"/>',
-  dollhouse: '<path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z"/><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21"/>',
+  doll: '<path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z"/><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21"/>',
   plan: '<path d="M4 4h16v16H4z"/><path d="M4 12h6.5M10.5 4v8M14.5 12V20M10.5 16.5h4"/>',
 };
 const icon = (m: ViewMode): string => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[m]}</svg>`;
@@ -200,7 +200,7 @@ export function mountViews(d: ViewsDeps): MountedViews {
   // ---- the machine and what a change means for the rest of the page
   const body = document.body;
   const syncBody = (m: ViewMode): void => {
-    body.classList.toggle('wt-view-dollhouse', m === 'dollhouse');
+    body.classList.toggle('wt-view-dollhouse', m === 'doll');
     body.classList.toggle('wt-view-plan', m === 'plan');
   };
   const syncUrl = (m: ViewMode): void => {
@@ -215,7 +215,7 @@ export function mountViews(d: ViewsDeps): MountedViews {
       d.nav.debug.stop();
       ctx.hud.setPrompt(null);
     }
-    if (prev === 'dollhouse' && m !== 'dollhouse') dollhouse.clearSelection();
+    if (prev === 'doll' && m !== 'doll') dollhouse.clearSelection();
     if (m === 'plan') ctx.hud.hideCard();
   });
 
@@ -235,7 +235,7 @@ export function mountViews(d: ViewsDeps): MountedViews {
 
   // the nav aids' go-to from above: a tap on a chip, a room of the mini plan or the Tour button first returns to Walk (the aids then do their own walking)
   const toWalk = (e: Event): void => {
-    if (machine.mode() !== 'dollhouse') return;
+    if (machine.mode() !== 'doll') return;
     const t = e.target as Element | null;
     if (t?.closest?.('.wt-nav-chip:not(.is-partial), .wt-nav-plan g[data-room], .wt-nav-tourbtn')) machine.set('walk');
   };
