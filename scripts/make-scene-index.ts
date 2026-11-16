@@ -8,11 +8,12 @@ import type { SceneFiles, SceneIndex } from '../src/start/manifest';
 
 /**
  * Homes kept in the repo (they still open by ?scene=<id>) but taken off the gallery.
- * The six made-up sample homes (test-sample-*) came off on 17 Nov 2026, when the four flats that follow a published brochure took their
+ * Five of the six made-up sample homes (test-sample-*) came off on 17 Nov 2026, when the four flats that follow a published brochure took their
  * place. To list them again, remove their line here.
  */
 export const GALLERY_HIDDEN: RegExp[] = [
-  /^test-sample-/,
+  // every made-up sample home except the first (the 1 BHK, kept on the gallery at the owner's wish)
+  /^test-sample-(?!1$)/,
   // the phone-video scenes (all of them made-up samples today), off the gallery with them
   /^video-/,
 ];
