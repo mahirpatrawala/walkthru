@@ -298,7 +298,7 @@ export const GYM_PIECES: MorePiece[] = [
     note: 'Steel gym lockers are 30 cm wide, 45 cm deep and 180 cm high in two tiers of 90 cm; a bank of twelve is 6 wide by 2 high.',
   }),
   gym({
-    id: 'gym-locker-bench', name: 'Changing-room bench', cat: 'amenities', kind: 'sofa', w: 1.5, d: 0.35, h: 0.45, s: 0.45, places: ['gym', 'pool', 'corridor', 'lobby'],
+    id: 'gym-locker-bench', name: 'Changing-room bench', cat: 'amenities', w: 1.5, d: 0.35, h: 0.45, s: 0.45, places: ['gym', 'pool', 'corridor', 'lobby'],
     label: '150 × 35 × 45 cm', look: 'studio', params: { variant: 'locker-bench' }, pose: 'sit', kw: 'bench changing room locker room seat wooden amenities',
     prompt: 'Sit on the bench', up: 'Get up', sideWords: { front: 'in front' },
     note: 'A changing-room bench is 120 to 200 long, 30 to 40 deep and 42 to 46 cm high.',

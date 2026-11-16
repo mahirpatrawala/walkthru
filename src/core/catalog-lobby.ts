@@ -65,7 +65,7 @@ export const LOBBY_PIECES: MorePiece[] = [
     note: 'A directory board is 60 to 120 wide and 90 to 150 high, its names between 100 and 200 cm. It is fixed to a wall.',
   }),
   lobby({
-    id: 'lobby-bench', name: 'Lift-lobby bench', cat: 'seating', kind: 'sofa', w: 1.5, d: 0.45, h: 0.45, s: 0.45, places: ['lobby', 'corridor'], family: 'sofa',
+    id: 'lobby-bench', name: 'Lift-lobby bench', cat: 'seating', w: 1.5, d: 0.45, h: 0.45, s: 0.45, places: ['lobby', 'corridor'], family: 'sofa',
     label: '150 × 45 × 45 cm, padded seat', look: 'lobby', params: { variant: 'bench' }, pose: 'sit', kw: 'bench lift lobby waiting seat padded corridor',
     prompt: 'Sit on the bench', up: 'Get up', sideWords: { front: 'in front' },
     note: 'A waiting bench is 120 to 180 long, 40 to 50 deep and 44 to 47 cm high.',

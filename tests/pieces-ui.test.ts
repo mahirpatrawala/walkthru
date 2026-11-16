@@ -33,7 +33,7 @@ describe('prompts and poses', () => {
     for (const c of CATALOG.slice(14)) {
       const a = pieceAction({ catalogId: c.id })!;
       expect(a, c.id).not.toBeNull();
-      expect(['lie', 'sit', 'stand', 'dims']).toContain(a.action);
+      expect(['lie', 'sit', 'stand', 'dims', 'walk']).toContain(a.action);
       expect(a.prompt.length).toBeGreaterThan(3);
     }
     expect(pieceAction({ catalogId: 'swing-2' })).toEqual({ action: 'sit', prompt: 'Sit on the swing', upPrompt: 'Get up' });

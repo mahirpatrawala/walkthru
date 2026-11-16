@@ -175,7 +175,6 @@ export function walkwayReport(layout: Layout, items: FurnitureItem[], widthM: nu
     return { clear: false, widthM, between: null, message: `Walkway blocked at ${missing[0]}: no ${Math.round(widthM * 100)} cm wide path reaches it.` };
   }
   // nodes in a region too narrow for the walkway are in no component: the door is boxed in
-  if (typeof process !== 'undefined' && process.env?.WALK_DEBUG) console.log(nodes.map((n) => `${n.label} comp ${n.comp} at ${n.p.x.toFixed(1)},${n.p.z.toFixed(1)}`), sizes);
   const boxed = nodes.find((n) => n.comp < 0);
   const main = nodes.length ? nodes[0].comp : -1;
   const apart = nodes.find((n) => n.comp !== main);

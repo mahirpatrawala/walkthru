@@ -24,9 +24,10 @@ export const ORIGIN_TAG: Record<SceneOrigin, string> = {
 };
 
 /** The label for a test or synthetic scene, or null for a real home. */
-export function sceneTagText(p: Pick<PropertyFile, 'id' | 'subtitle'>): string | null {
+export function sceneTagText(p: Pick<PropertyFile, 'id' | 'subtitle'> & { spaceKind?: PropertyFile['spaceKind'] }): string | null {
   if (isLocalHomeId(p.id)) return /made-up/i.test(p.subtitle ?? '') ? SAMPLE_UPLOAD_TAG : UPLOAD_TAG;
-  if (/^test-/.test(p.id)) return 'Test scene. Made-up flat, not a real home.';
+  // a shared space of a building (a gym, a lobby, a hall) is a room, not a flat
+  if (/^test-/.test(p.id)) return p.spaceKind && p.spaceKind !== 'home' ? 'Test scene. Made-up room, not a real space.' : 'Test scene. Made-up flat, not a real home.';
   if (/synthetic|sample/i.test(p.subtitle ?? '')) return 'Sample scene. Not a real home.';
   return null;
 }

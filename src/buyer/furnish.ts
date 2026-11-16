@@ -190,6 +190,8 @@ export interface FurnishSelection {
   sizeText: string;
   /** true for a piece that came with the home, false for one the viewer placed */
   home: boolean;
+  /** a piece the builder staged in a shared space (a virtual piece of the scene's own file, SPEC 16.17): it came with the space, but it is not drawn, so it is checked like any piece */
+  staged: boolean;
   /** a fixed built-in of a real drawing: hiding it needs the explicit note */
   builtIn: boolean;
   family: FinishFamily | null;
@@ -532,7 +534,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     const edit = d ? editNote(d, item) : null;
     const dd = d ? sizeValues(d) : null, cc = sizeValues(item);
     return {
-      id: item.id, name: pieceName(item), sizeText: sizeText(item), home: isHome(item.id), builtIn: builtIn(item), family,
+      id: item.id, name: pieceName(item), sizeText: sizeText(item), home: isHome(item.id), staged: isHome(item.id) && item.source === 'virtual' && spaceKind() !== 'home', builtIn: builtIn(item), family,
       finish: item.finish ? { ...item.finish } : null, finishText: family ? describeFinish(family, item.finish) : '',
       edit, sizes: sizesOf(item),
       canBackSize: !!dd && (Math.abs(dd.w - cc.w) > 0.0005 || Math.abs(dd.d - cc.d) > 0.0005 || Math.abs(dd.h - cc.h) > 0.0005),
@@ -631,7 +633,7 @@ export function createFurnishSession(ctx: BuyerContext, ui: FurnishUi, options: 
     if (sel.home) {
       const note = sel.builtIn ? ` ${BUILT_IN_NOTE}.` : '';
       // a piece as drawn is not checked (it is the record); one the viewer moved or resized gets the same live verdict as any placed piece
-      if (!sel.edit) return { phase: 'selected', message: realItemNote() + note, tone: null, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, fitting: null, ...ex };
+      if (!sel.edit && !sel.staged) return { phase: 'selected', message: realItemNote() + note, tone: null, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, fitting: null, ...ex };
       const r = check(s);
       const editNoteText = sel.builtIn ? ` ${BUILT_IN_EDIT_NOTE}.` : '';
       return { phase: 'selected', message: withSwingNote(r.message, s.box, s.id) + editNoteText, tone: r.tone, canPlace: false, canRotate: true, canMove: true, canRemove: true, buyerCount: bc, workKind: null, selection: sel, fitting: null, ...ex };
@@ -1488,7 +1490,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
         plus.type = 'button'; plus.dataset.ui = '1'; plus.dataset.step = `${key}+`; plus.setAttribute('aria-label', `${label} more`); plus.disabled = rowState[key] >= max;
         plus.addEventListener('click', (e) => { e.stopPropagation(); rowState[key] = Math.min(max, rowState[key] + 1); renderPanel(); });
       };
-      h('div', 'wtf-sub', panel, `A row along ${sel.name.toLowerCase()}'s width, ${gapCm} cm apart`);
+      h('div', 'wtf-sub', panel, `Along its width, ${gapCm} cm apart`);
       const steps = h('div', 'wtf-steps', panel);
       stepRow(steps, 'How many more', 'count', 1, 20);
       const tools = h('div', 'wtf-panel-tools', panel);
@@ -1628,7 +1630,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
 
   // the pieces in this home, as chips, and the originals removed from it
   const piecesWrap = h('div', 'wtf-pieces-wrap', tray);
-  h('div', 'wtf-sub', piecesWrap, 'In this home');
+  h('div', 'wtf-sub', piecesWrap, trayWords(spaceKindOf(ctx.property)).here);
   const pieces = h('div', 'wtf-pieces', piecesWrap);
   pieces.dataset.ui = '1';
   pieces.dataset.testid = 'furnish-pieces';
@@ -1766,7 +1768,7 @@ export function createFurnishMode(ctx: BuyerContext, modeOpts: FurnishModeOption
       if (fit && selId === lastSelId && fit.id === lastFitId && fit.at !== lastFitAt && !fit.moving && active) focusFitting(fit.id);
       lastFitId = fit?.id ?? null; lastFitAt = fit?.at ?? '';
       barName.textContent = v.selection
-        ? `${v.selection.name} · ${v.selection.sizeText}${v.selection.home ? (v.selection.edit ? ' · in your layout' : ' · as drawn') : ''}${v.selection.finishText ? ` · ${v.selection.finishText}` : ''}`
+        ? `${v.selection.name} · ${v.selection.sizeText}${v.selection.home && !v.selection.staged ? (v.selection.edit ? ' · in your layout' : ' · as drawn') : ''}${v.selection.finishText ? ` · ${v.selection.finishText}` : ''}`
         : fit ? `${fit.name} · ${fit.sizeText}${fit.edit ? ' · in your layout' : ''}` : '';
       barName.hidden = !v.selection && !fit;
       const note = v.selection?.edit ?? fit?.edit ?? null;
@@ -1952,7 +1954,16 @@ function installDebug(ctx: BuyerContext, mode: FurnishMode): void {
     /** switch to furnish mode */
     open: () => { ctx.setMode('furnish'); return ctx.mode(); },
     close: () => { ctx.setMode('walk'); return ctx.mode(); },
+    /** the whole catalogue; `catalogueHere()` is what this space's tray offers (SPEC 16.17) */
     catalogue: () => CATALOG.map((c) => ({ id: c.id, label: cardLabel(c) })),
+    catalogueHere: () => rowsFor(spaceKindOf(ctx.property)).map((c) => ({ id: c.id, label: cardLabel(c) })),
+    spaceKind: () => spaceKindOf(ctx.property),
+    /** layout helpers of a shared space: placeRow(3, 1) beside the selected piece, placeGrid('hall-chair', 4, 8, { aisleEvery: 4 }), duplicate(), fillArea('gym-floor-2x2', { x0, z0, x1, z1 }), summary() */
+    placeRow: (count: number, dir?: 1 | -1) => s.placeRow(count, dir),
+    placeGrid: (catalogId: string, rows: number, cols: number, opts?: Parameters<FurnishSession['placeGrid']>[3]) => s.placeGrid(catalogId, rows, cols, opts),
+    duplicate: () => s.duplicateSelected(),
+    fillArea: (catalogId: string, rect: { x0: number; z0: number; x1: number; z1: number }) => s.fillArea(catalogId, rect),
+    summary: () => s.view().summary,
     spawn: (catalogId: string) => s.spawn(catalogId),
     moveTo: (cx: number, cz: number) => s.moveTo(cx, cz),
     /** what letting go of a drag does: square up to the wall */

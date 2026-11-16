@@ -89,7 +89,7 @@ export function buildStudio(env: GenEnv, size: GenSize, p: StudioParams, roles: 
     },
     mirror: () => {
       // a wall mirror panel on a thin frame, its underside `liftM` above the floor
-      parts.box('mirror-frame', FRAME_GREY, -x1, x1, lift, H, z0, z1, { c: 0.004 });
+      parts.box('mirror-frame', FRAME_GREY, -x1, x1, lift, H, z0, z1 - 0.004, { c: 0.002 });
       slab(parts, 'mirror-glass', MIRROR_GLASS, -x1 + 0.012, x1 - 0.012, lift + 0.012, H - 0.012, z1 - 0.004, z1 + 0.0);
     },
     water: () => {

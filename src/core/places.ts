@@ -69,16 +69,16 @@ export function categoryIn(id: string, kind: SpaceKind | undefined): PieceCatego
 }
 
 /** The words of the selector's first option and the tray's heading for a kind of space. */
-export function trayWords(kind: SpaceKind | undefined): { all: string; title: string; noun: string } {
+export function trayWords(kind: SpaceKind | undefined): { all: string; title: string; noun: string; here: string } {
   switch (kind ?? 'home') {
-    case 'gym': return { all: 'All equipment', title: 'Add equipment', noun: 'equipment' };
-    case 'lobby': return { all: 'All lobby pieces', title: 'Add to the lobby', noun: 'lobby piece' };
-    case 'hall': return { all: 'All hall pieces', title: 'Add to the hall', noun: 'hall piece' };
-    case 'corridor': return { all: 'All corridor pieces', title: 'Add to the corridor', noun: 'corridor piece' };
-    case 'pool': return { all: 'All pool-side pieces', title: 'Add pool-side pieces', noun: 'pool-side piece' };
-    case 'garden': return { all: 'All garden pieces', title: 'Add to the garden', noun: 'garden piece' };
-    case 'other': return { all: 'All pieces', title: 'Add a piece', noun: 'piece' };
-    default: return { all: 'All furniture', title: 'Add furniture', noun: 'furniture' };
+    case 'gym': return { all: 'All equipment', title: 'Add equipment', noun: 'equipment', here: 'In this gym' };
+    case 'lobby': return { all: 'All lobby pieces', title: 'Add to the lobby', noun: 'lobby piece', here: 'In this lobby' };
+    case 'hall': return { all: 'All hall pieces', title: 'Add to the hall', noun: 'hall piece', here: 'In this hall' };
+    case 'corridor': return { all: 'All corridor pieces', title: 'Add to the corridor', noun: 'corridor piece', here: 'In this corridor' };
+    case 'pool': return { all: 'All pool-side pieces', title: 'Add pool-side pieces', noun: 'pool-side piece', here: 'In this pool area' };
+    case 'garden': return { all: 'All garden pieces', title: 'Add to the garden', noun: 'garden piece', here: 'In this garden' };
+    case 'other': return { all: 'All pieces', title: 'Add a piece', noun: 'piece', here: 'In this space' };
+    default: return { all: 'All furniture', title: 'Add furniture', noun: 'furniture', here: 'In this home' };
   }
 }
 
