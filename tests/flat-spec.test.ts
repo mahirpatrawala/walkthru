@@ -7,7 +7,7 @@ import { polygonArea } from '../src/core/geometry';
 
 /** A small two-room flat: a living room and a bedroom side by side, a door between them, the main door on the living room's north wall. */
 const base = (): AuthoredFlat => ({
-  typeId: 't', name: 'T', sceneId: 'test-tower-flat-t', title: 'T', origin: 'typed', carpetAreaM2: 30, carpetToleranceFrac: 0.03, northDeg: 0, wallHeightM: 2.75,
+  typeId: 't', name: 'T', sceneId: 'test-tower-flat-t', title: 'T', origin: 'typed', carpetAreaM2: 30, carpetToleranceFrac: 0.03, northDeg: 0, brochureFacing: 'W', wallHeightM: 2.75,
   mainDoor: 'door-main', spawn: { x: 1, z: 1, yawDeg: 0 },
   rooms: [
     { id: 'living', label: 'Living', type: 'living', finish: 'dry', parts: [{ x: 0, z: 0, w: 4, d: 4, printed: pl(4, 4) }] },

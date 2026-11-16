@@ -20,7 +20,7 @@
         "w": 3.81,
         "l": 5.55
       },
-      "areaM2": 21.1455,
+      "areaM2": 21.145500000000006,
       "verified": true
     },
     {
@@ -72,7 +72,7 @@
         "w": 2.42,
         "l": 3.1
       },
-      "areaM2": 7.501999999999998,
+      "areaM2": 7.501999999999999,
       "verified": true
     },
     {
@@ -215,7 +215,7 @@
         "w": 1.3716,
         "l": 3.6068000000000002
       },
-      "areaM2": 4.945699999999995,
+      "areaM2": 4.945700000000002,
       "verified": true
     }
   ],
@@ -238,8 +238,8 @@
     "statedM2": 103.76,
     "usableM2": 110.93,
     "roomsM2": 94.98,
-    "partitionsM2": 5.92,
-    "deviationPct": -2.75,
+    "partitionsM2": 5.78,
+    "deviationPct": -2.89,
     "tolerancePct": 3
   },
   "assumptions": [

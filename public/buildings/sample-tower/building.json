@@ -497,6 +497,7 @@
           },
           "notes": [
             "Plan follows a published builder brochure. Stated RERA carpet area 59.85 sq m (644 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 58.8 sq m.",
+            "The brochure's own plan faces east (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces east.",
             "Furniture is the plan's artist's conception: illustrative sample pieces you can move or delete."
           ],
           "portals": [
@@ -528,6 +529,7 @@
           },
           "notes": [
             "Plan follows a published builder brochure. Stated RERA carpet area 54.74 sq m (589 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 54.2 sq m.",
+            "The brochure's own plan faces east (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces east.",
             "Furniture is the plan's artist's conception: illustrative sample pieces you can move or delete."
           ],
           "portals": [
@@ -554,11 +556,12 @@
           "type": "3bhk-b",
           "placement": {
             "x": -1.2,
-            "z": 5.12,
+            "z": 5.14,
             "rotDeg": 90
           },
           "notes": [
             "Plan follows a published builder brochure. Stated RERA carpet area 86.4 sq m (930 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 85.3 sq m.",
+            "The brochure's own plan faces west (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces west.",
             "Furniture is the plan's artist's conception: illustrative sample pieces you can move or delete."
           ],
           "portals": [
@@ -585,11 +588,12 @@
           "type": "3bhk-a",
           "placement": {
             "x": 0.63,
-            "z": 4.86,
+            "z": 4.88,
             "rotDeg": 180
           },
           "notes": [
-            "Plan follows a published builder brochure. Stated RERA carpet area 103.76 sq m (1,117 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 100.9 sq m.",
+            "Plan follows a published builder brochure. Stated RERA carpet area 103.76 sq m (1,117 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 100.8 sq m.",
+            "The brochure's own plan faces west (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces north.",
             "Furniture is the plan's artist's conception: illustrative sample pieces you can move or delete."
           ],
           "portals": [
@@ -715,6 +719,7 @@
           },
           "notes": [
             "Plan follows a published builder brochure. Stated RERA carpet area 59.85 sq m (644 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 58.8 sq m.",
+            "The brochure's own plan faces east (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces east.",
             "Furniture is the plan's artist's conception: illustrative sample pieces you can move or delete."
           ],
           "portals": [
@@ -746,6 +751,7 @@
           },
           "notes": [
             "Plan follows a published builder brochure. Stated RERA carpet area 54.74 sq m (589 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 54.2 sq m.",
+            "The brochure's own plan faces east (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces east.",
             "Furniture is the plan's artist's conception: illustrative sample pieces you can move or delete."
           ],
           "portals": [
@@ -772,11 +778,12 @@
           "type": "3bhk-b",
           "placement": {
             "x": -1.2,
-            "z": 5.12,
+            "z": 5.14,
             "rotDeg": 90
           },
           "notes": [
             "Plan follows a published builder brochure. Stated RERA carpet area 86.4 sq m (930 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 85.3 sq m.",
+            "The brochure's own plan faces west (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces west.",
             "Furniture is the plan's artist's conception: illustrative sample pieces you can move or delete."
           ],
           "portals": [
@@ -803,11 +810,12 @@
           "type": "3bhk-a",
           "placement": {
             "x": 0.63,
-            "z": 4.86,
+            "z": 4.88,
             "rotDeg": 180
           },
           "notes": [
-            "Plan follows a published builder brochure. Stated RERA carpet area 103.76 sq m (1,117 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 100.9 sq m.",
+            "Plan follows a published builder brochure. Stated RERA carpet area 103.76 sq m (1,117 sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to 100.8 sq m.",
+            "The brochure's own plan faces west (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces north.",
             "Furniture is the plan's artist's conception: illustrative sample pieces you can move or delete."
           ],
           "portals": [

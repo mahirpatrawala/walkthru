@@ -36,6 +36,12 @@ const TYPICAL: { slot: string; side: 'E' | 'W' | 'N'; type: string; mirror?: boo
   { slot: '03', side: 'W', type: '3bhk-b' },
   { slot: '04', side: 'N', type: '3bhk-a' },
 ];
+/** Which way north lies on the typical floor's plan: up the plan (towards the corridor's end where Flat x04 is entered). The floor arrangement is ours, so the sun follows this plate, not each brochure page's own compass. */
+const PLATE_NORTH_DEG = 0;
+const COMPASS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+const compassWord = (deg: number): string => COMPASS[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+/** a flat scene's north on OUR plate: the plan's -z direction, turned with the flat by its placement (the scene is shared by every floor, and every floor has the same plate) */
+const lookOf = (rotDeg: number): { version: 1; northDeg: number } => ({ version: 1, northDeg: (PLATE_NORTH_DEG + rotDeg) % 360 });
 const ARRANGEMENT_NOTE = 'Flat plans follow a published builder brochure. The floor arrangement around the lift lobby is ours.';
 /** The typical floors above the clubhouse level. */
 const TYPICAL_FLOORS = [2, 3];
@@ -69,11 +75,11 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     const t = TYPICAL.find((x) => x.slot === f.key)!.type;
     const d = designs[t];
     const plain = (p: PropertyFile, id: string): PropertyFile => withFixedDate({ ...p, id, furniture: empty ? [] : p.furniture });
-    if (!scenes.has(flatScene(t, false))) add(flatScene(t, false), { property: plain(d.property, flatScene(t, false)), designs: empty ? null : d.designs, extras: d.extras, design: empty ? d.designBare : d.design, look: d.look });
+    if (!scenes.has(flatScene(t, false))) add(flatScene(t, false), { property: plain(d.property, flatScene(t, false)), designs: empty ? null : d.designs, extras: d.extras, design: empty ? d.designBare : d.design, look: lookOf(f.placement.rotDeg) });
     if (f.mirrored) {
       mirroredTypes.add(t);
       const id = flatScene(t, true);
-      if (!scenes.has(id)) add(id, { property: plain(f.property, id), designs: empty ? null : f.designs, extras: d.extras, design: empty ? d.designBare : d.design, look: d.look });
+      if (!scenes.has(id)) add(id, { property: plain(f.property, id), designs: empty ? null : f.designs, extras: d.extras, design: empty ? d.designBare : d.design, look: lookOf(f.placement.rotDeg) });
     }
   }
   // the typical floor's corridor (bare, shared by both variants)
@@ -151,7 +157,7 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
       cportals.push({ id: `flat-${num}`, kind: 'door', opening: corridor.flatDoor[t.slot], to: { space: `f${n}-${num}`, portal: 'main' }, label: `Flat ${num}`, prompt: `Enter Flat ${num}`, look: 'main', plate: num });
       flatSpaces.push({
         id: `f${n}-${num}`, kind: 'home', name: `Flat ${num} · ${d.spec.name}`, sceneId, type: t.type, ...(f.mirrored ? { mirrored: true } : {}),
-        placement: f.placement, notes: flatNotes(d, empty),
+        placement: f.placement, notes: flatNotes(d, empty, f.placement.rotDeg),
         portals: [{ id: 'main', kind: 'door', opening: d.mainOpening, to: { space: cid, portal: `flat-${num}` }, label: 'The corridor', prompt: 'To the corridor', look: 'main', plate: num }],
       });
     }
@@ -178,11 +184,12 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
 }
 
 /** The lines of a flat's card on the building map: where the plan comes from, what its carpet area is, what the furniture is. */
-function flatNotes(d: FlatDesign, empty: boolean): string[] {
+function flatNotes(d: FlatDesign, empty: boolean, rotDeg: number): string[] {
   const a = d.authored, r = d.report.area;
   const sqft = (m2: number): string => Math.round(m2 * 10.764).toLocaleString('en-IN');
   return [
     `${a.origin}. Stated RERA carpet area ${a.carpetAreaM2} sq m (${sqft(a.carpetAreaM2)} sq ft), which counts the walls between rooms. The carpet line above adds up the rooms alone (the utility included, a balcony not), so it is smaller; the rooms and the walls between them come to ${(r.roomsM2 + r.partitionsM2).toFixed(1)} sq m.`,
+    `The brochure's own plan faces ${compassWord(d.authored.brochureFacing === 'N' ? 0 : d.authored.brochureFacing === 'E' ? 90 : d.authored.brochureFacing === 'S' ? 180 : 270)} (information only). In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces ${compassWord(lookOf(rotDeg).northDeg + 180)}.`,
     empty ? 'Unfurnished.' : "Furniture is the plan's artist's conception: illustrative sample pieces you can move or delete.",
   ];
 }

@@ -393,7 +393,7 @@
         "edge": 2,
         "type": "door",
         "centreM": 1.56,
-        "widthM": 2.5,
+        "widthM": 2,
         "sillM": 0,
         "headM": 2.1,
         "leaf": {

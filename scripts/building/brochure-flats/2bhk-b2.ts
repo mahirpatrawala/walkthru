@@ -1,5 +1,5 @@
 // A 2 BHK of 589 sq ft RERA carpet area, authored from the printed room sizes of a published builder brochure (its plan and its table).
-// Positions are scaled off the plan's picture (about 10 cm); sizes are the printed ones. North is up the page, as printed. See flat-spec.ts.
+// Positions are scaled off the plan's picture (about 10 cm); sizes are the printed ones. The page's compass has its N to the right of the rose, so north is to the right of the page and the plan faces east (bottom of the page). See flat-spec.ts.
 import { printedPlan as pl, printedTable as tb } from '../flat-spec';
 import type { AuthoredFlat } from '../flat-spec';
 
@@ -12,7 +12,8 @@ export const flat2bhkB2: AuthoredFlat = {
   carpetAreaM2: 54.74,
   carpetToleranceFrac: 0.03,
   usableAreaM2: 59.36,
-  northDeg: 0,
+  northDeg: 270,
+  brochureFacing: 'E',
   wallHeightM: 2.75,
   mainDoor: 'door-main',
   spawn: { x: -0.85, z: 1.5, yawDeg: 180 },

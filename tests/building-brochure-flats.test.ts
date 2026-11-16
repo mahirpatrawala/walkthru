@@ -10,10 +10,12 @@ import { composeTypicalFloor, plateProblems } from '../scripts/building/plate';
 import { parseDesignSheet } from '../src/look/design-sheet';
 import { knownFinish } from '../src/look/finishes';
 import { ceilingTrustFromExtras, unverifiedRoomsFromExtras } from '../src/core/room-trust';
-import { resolveDoors } from '../src/core/doors';
+import { resolveDoors, freePos } from '../src/core/doors';
+import { buildDoorModel } from '../src/buyer/doors-model';
 import { stampFurniture, rasterizeLayout } from '../src/core/layout-raster';
 import { arrivalAtDoor, reachable } from '../src/building/arrival';
 import { doorFrame, dirToLevel, toLevel } from '../src/building/geom';
+import { sunState } from '../src/look/sun';
 import { polygonCentroid } from '../src/core/spawn';
 import { nearestFree } from '../src/core/grid-query';
 import { pointInPolygon, polygonArea } from '../src/core/geometry';
@@ -83,6 +85,22 @@ describe('the four brochure flats', () => {
         });
       }
 
+      it('has doors that open: a hinged leaf at least 60 % of its swing before it meets a wall or a piece, a sliding leaf all the way, and a sliding leaf is built as glass', () => {
+        const grid = stampFurniture(rasterizeLayout(scene.layout), scene.furniture);
+        const doors = resolveDoors(scene.layout);
+        for (const d of doors) {
+          if (d.kind === 'sliding') {
+            expect(d.maxPos, `${a.typeId} ${d.id} has a wall to slide along`).toBeGreaterThan(0.4);
+            expect(freePos(grid, d).pos, `${a.typeId} ${d.id} slides open`).toBeGreaterThanOrEqual(d.maxPos - 1e-6);
+            const names: string[] = [];
+            buildDoorModel(d, '#4A3528').group.traverse((o) => { names.push(o.name); });
+            expect(names, `${a.typeId} ${d.id}`).toContain('door-glass');
+            expect(names, `${a.typeId} ${d.id}`).not.toContain('door-panel');
+          } else expect(freePos(grid, d).pos, `${a.typeId} ${d.id}`).toBeGreaterThanOrEqual(0.6 * d.maxPos);
+        }
+        expect(doors.some((d) => d.kind === 'sliding')).toBe(true);
+      });
+
       it('has its main door on an outside wall, 1.0 m class, and the check proves no door opens into another room', () => {
         const d = scene.layout.openings.find((o) => o.id === a.mainDoor)!;
         expect(d.type).toBe('door');
@@ -102,7 +120,7 @@ describe('the four brochure flats', () => {
         expect(a.notes.length).toBeGreaterThan(0);
       });
 
-      it('carries the specification as finishes of the look\'s own table, and its north', () => {
+      it('carries the specification as finishes of the look\'s own table, and a look.json', () => {
         const sheet = parseDesignSheet(json(a.sceneId, 'design.json'))!;
         expect(sheet.pack).toBe('light-scandinavian');
         expect(sheet.source).toBe('typical');
@@ -114,7 +132,7 @@ describe('the four brochure flats', () => {
         expect(sheet.fixtures.length).toBeGreaterThanOrEqual(3); // an AC point for the living room and every bedroom
         expect(sheet.fixtures.every((f) => f.kind === 'ac')).toBe(true);
         expect(sheet.items.decor?.roles?.door).toBe('white-laminate');
-        expect(json(a.sceneId, 'look.json')).toEqual({ version: 1, northDeg: 0 });
+        expect(json(a.sceneId, 'look.json')).toMatchObject({ version: 1 });
       });
 
       it('is the same flat unfurnished in the empty twin, with the specification but none of the decor', () => {
@@ -137,6 +155,43 @@ describe('the four brochure flats', () => {
       });
     });
   }
+});
+
+const bearingOf = (v: { x: number; z: number }): number => (((Math.atan2(v.x, -v.z) * 180) / Math.PI) % 360 + 360) % 360;
+const WORD: Record<string, number> = { N: 0, E: 90, S: 180, W: 270 };
+
+describe('north', () => {
+  it("reads each page's compass: the letter N sits on one side of the rose and that side is north, which agrees with the page's FACING label", () => {
+    const want: Record<string, { northDeg: number; facing: 'E' | 'W' }> = { '3bhk-a': { northDeg: 90, facing: 'W' }, '3bhk-b': { northDeg: 90, facing: 'W' }, '2bhk-b2': { northDeg: 270, facing: 'E' }, '2bhk-b4': { northDeg: 270, facing: 'E' } };
+    for (const a of AUTHORED) {
+      expect(a.northDeg, a.typeId).toBe(want[a.typeId].northDeg);
+      expect(a.brochureFacing, a.typeId).toBe(want[a.typeId].facing);
+      // the bottom of the page (the plan's +z, the balcony side) looks to the side the page says the plan faces
+      expect((a.northDeg + 180) % 360, a.typeId).toBe(WORD[a.brochureFacing]);
+    }
+  });
+
+  it('in the building the sun follows OUR plate: each flat scene\'s north is its plan turned with the flat on the floor, north up the plan', () => {
+    const b = readBuilding('sample-tower');
+    for (const id of ['sample-tower', 'sample-tower-empty']) for (const lv of readBuilding(id).levels) for (const sp of lv.spaces.filter((x) => x.kind === 'home')) {
+      const look = json(sp.sceneId, 'look.json') as { version: number; northDeg: number };
+      // the plan's -z direction, turned by the placement, as a bearing on a plate whose north is up
+      expect(look.northDeg, `${id}/${sp.id}`).toBeCloseTo(bearingOf(dirToLevel({ x: 0, z: -1 }, sp.placement)), 6);
+      const flat = readScene(sp.sceneId)!;
+      // so the sun of the walk (src/look/sun.ts) comes from the same side on the plate for every flat: turn its direction by the placement and read the bearing
+      const st = sunState(flat.layout, { northDeg: look.northDeg }, 16.5);
+      expect(st.known).toBe(true);
+      expect(bearingOf(dirToLevel({ x: st.toSun[0], z: st.toSun[2] }, sp.placement)), `${id}/${sp.id} sun`).toBeCloseTo(st.bearingDeg!, 3);
+    }
+    // all four brochure orientations (two face west, two east on their own pages) are placed as the plate puts them: each card says the brochure's facing and the plate's
+    for (const sp of b.levels.find((l) => l.id === 'l2')!.spaces.filter((x) => x.kind === 'home')) {
+      const note = sp.notes!.join(' ');
+      expect(note, sp.id).toMatch(/The brochure's own plan faces (east|west) \(information only\)\. In this tower the sun follows the floor plan, which is ours: this flat's balcony side faces (north|east|south|west)\./);
+      const side = (note.match(/balcony side faces (\w+)/) ?? [])[1];
+      const bearing = bearingOf(dirToLevel({ x: 0, z: 1 }, sp.placement));
+      expect(['north', 'east', 'south', 'west'].indexOf(side) * 90, sp.id).toBe(bearing);
+    }
+  });
 });
 
 describe('the typical floor of the brochure flats', () => {

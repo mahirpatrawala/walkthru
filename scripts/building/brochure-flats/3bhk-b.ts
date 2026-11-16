@@ -1,5 +1,5 @@
 // A 3 BHK of 930 sq ft RERA carpet area, authored from the printed room sizes of a published builder brochure (its plan and its table).
-// Positions are scaled off the plan's picture (about 10 cm); sizes are the printed ones. North is up the page, as printed. See flat-spec.ts.
+// Positions are scaled off the plan's picture (about 10 cm); sizes are the printed ones. The page's compass has its N to the left of the rose, so north is to the left of the page and the plan faces west (bottom of the page). See flat-spec.ts.
 import { printedPlan as pl, printedTable as tb } from '../flat-spec';
 import type { AuthoredFlat } from '../flat-spec';
 
@@ -12,7 +12,8 @@ export const flat3bhkB: AuthoredFlat = {
   carpetAreaM2: 86.4,
   carpetToleranceFrac: 0.03,
   usableAreaM2: 89.81,
-  northDeg: 0,
+  northDeg: 90,
+  brochureFacing: 'W',
   wallHeightM: 2.75,
   mainDoor: 'door-main',
   spawn: { x: 10.74, z: 1.9, yawDeg: 180 },
@@ -32,7 +33,7 @@ export const flat3bhkB: AuthoredFlat = {
   ],
   openings: [
     { id: 'door-main', room: 'living', wall: 'N', at: 10.74, widthM: 1.0, kind: 'door', hinge: 'E', swing: 'in' },
-    { id: 'slide-balcony', room: 'living', wall: 'S', at: 10.0, widthM: 2.5, kind: 'sliding', hinge: 'W', swing: 'in' },
+    { id: 'slide-balcony', room: 'living', wall: 'S', at: 10.0, widthM: 2.0, kind: 'sliding', hinge: 'W', swing: 'in' },
     { id: 'open-master-passage', room: 'master-bedroom', wall: 'E', at: 2.1, widthM: 1.0, kind: 'opening' },
     { id: 'open-kitchen', room: 'kitchen', wall: 'N', at: 7.1, widthM: 1.15, kind: 'opening' },
     { id: 'door-master-toilet', room: 'master-toilet', wall: 'S', at: 2.19, widthM: 0.78, kind: 'door', hinge: 'E', swing: 'in' },
@@ -59,7 +60,7 @@ export const flat3bhkB: AuthoredFlat = {
     { id: 'tv-1', kind: 'counter', label: 'TV unit', at: { x: 11.86, z: 4.2 }, facing: 'E', w: 1.5, d: 0.3, h: 0.5 },
     // living and dining
     { id: 'sofa-1', kind: 'sofa', catalogId: 'sofa-3', label: 'Sofa', at: { x: 8.96, z: 4.36 }, facing: 'E' },
-    { id: 'ottoman-1', kind: 'sofa', label: 'Ottoman', at: { x: 9.5, z: 5.2 }, facing: 'E', w: 0.75, d: 0.55, h: 0.4 },
+    { id: 'ottoman-1', kind: 'sofa', label: 'Ottoman', at: { x: 9.5, z: 5.05 }, facing: 'E', w: 0.75, d: 0.55, h: 0.4 },
     { id: 'table-centre', kind: 'counter', catalogId: 'coffee-rect', label: 'Centre table', at: { x: 9.81, z: 3.99 }, facing: 'E' },
     { id: 'ottoman-2', kind: 'sofa', label: 'Ottoman', at: { x: 9.93, z: 2.81 }, facing: 'E', w: 0.7, d: 0.7, h: 0.4 },
     { id: 'tv-living', kind: 'counter', catalogId: 'tv-unit-150', label: 'TV unit', at: { x: 11.36, z: 4.57 }, facing: 'W' },

@@ -1,5 +1,5 @@
 // A 2 BHK of 644 sq ft RERA carpet area, authored from the printed room sizes of a published builder brochure (its plan and its table).
-// Positions are scaled off the plan's picture (about 10 cm); sizes are the printed ones. North is up the page, as printed. See flat-spec.ts.
+// Positions are scaled off the plan's picture (about 10 cm); sizes are the printed ones. The page's compass has its N to the right of the rose, so north is to the right of the page and the plan faces east (bottom of the page). See flat-spec.ts.
 import { printedPlan as pl, printedTable as tb } from '../flat-spec';
 import type { AuthoredFlat } from '../flat-spec';
 
@@ -12,14 +12,15 @@ export const flat2bhkB4: AuthoredFlat = {
   carpetAreaM2: 59.85,
   carpetToleranceFrac: 0.03,
   usableAreaM2: 64.85,
-  northDeg: 0,
+  northDeg: 270,
+  brochureFacing: 'E',
   wallHeightM: 2.75,
   mainDoor: 'door-main',
   spawn: { x: 0.9, z: 0.9, yawDeg: 180 },
   rooms: [
     { id: 'living', label: 'Living with foyer', type: 'living', finish: 'dry', openTo: ['dining'], parts: [{ x: 0, z: 0, w: 3.05, d: 4.83, printed: pl(3.05, 4.83) }, { x: 0, z: -0.6, w: 1.39, d: 0.6, printed: pl(1.39, 0.6) }] },
     { id: 'dining', label: 'Dining', type: 'living', finish: 'dry', openTo: ['living', 'passage'], parts: [{ x: 3.05, z: 0, w: 2.22, d: 2.46, printed: pl(2.22, 2.46) }] },
-    { id: 'kitchen', label: 'Kitchen', type: 'kitchen', finish: 'kitchen', parts: [{ x: 3.05, z: 2.58, w: 2.12, d: 2.52, printed: pl(2.12, 2.52) }] },
+    { id: 'kitchen', label: 'Kitchen', type: 'kitchen', finish: 'kitchen', parts: [{ x: 3.05, z: 2.57, w: 2.12, d: 2.52, printed: pl(2.12, 2.52) }] },
     { id: 'utility', label: 'Utility', type: 'other', finish: 'utility', parts: [{ x: 3.2, z: 5.22, w: 1.96, d: 0.69, printed: tb([6, 5], [2, 3]) }] },
     { id: 'toilet-1', label: 'Toilet 1', type: 'bathroom', finish: 'wet', parts: [{ x: 5.38, z: -0.52, w: 1.37, d: 1.97, printed: pl(1.37, 1.97) }] },
     { id: 'cupboard', label: 'Cupboard', type: 'other', finish: 'dry', openTo: ['master-passage', 'master-bedroom'], parts: [{ x: 6.87, z: 1.07, w: 3.0, d: 0.5, printed: tb([9, 10], [1, 8]) }] },
@@ -51,10 +52,10 @@ export const flat2bhkB4: AuthoredFlat = {
     { id: 'table-centre', kind: 'counter', catalogId: 'coffee-rect', label: 'Centre table', at: { x: 1.31, z: 3.22 }, facing: 'E' },
     { id: 'dining-1', kind: 'dining', catalogId: 'dining-6', label: 'Dining table with six chairs', at: { x: 3.43, z: 0.98 }, facing: 'S' },
     // kitchen and utility
-    { id: 'counter-k-west', kind: 'counter', label: 'Kitchen counter', at: { x: 3.37, z: 3.33 }, facing: 'E', w: 1.41, d: 0.5 },
-    { id: 'sink-1', kind: 'counter', catalogId: 'sink-single', label: 'Kitchen sink', at: { x: 3.39, z: 4.55 }, facing: 'E' },
-    { id: 'fridge-1', kind: 'counter', catalogId: 'fridge-1', label: 'Fridge', at: { x: 4.84, z: 2.95 }, facing: 'W' },
-    { id: 'counter-k-east', kind: 'counter', label: 'Kitchen counter with hob', at: { x: 4.89, z: 4.19 }, facing: 'W', w: 1.68, d: 0.55 },
+    { id: 'counter-k-west', kind: 'counter', label: 'Kitchen counter', at: { x: 3.37, z: 3.24 }, facing: 'E', w: 1.26, d: 0.5 },
+    { id: 'sink-1', kind: 'counter', catalogId: 'sink-single', label: 'Kitchen sink', at: { x: 3.39, z: 4.39 }, facing: 'E' },
+    { id: 'fridge-1', kind: 'counter', catalogId: 'fridge-1', label: 'Fridge', at: { x: 4.84, z: 2.94 }, facing: 'W' },
+    { id: 'counter-k-east', kind: 'counter', label: 'Kitchen counter with hob', at: { x: 4.89, z: 4.18 }, facing: 'W', w: 1.68, d: 0.55 },
     { id: 'washer-1', kind: 'counter', catalogId: 'washer-front', label: 'Washing machine', at: { x: 3.57, z: 5.565 }, facing: 'E' },
     // bedroom 1
     { id: 'bed-1', kind: 'bed', label: 'Bed', at: { x: 7.245, z: 4.25 }, facing: 'W', w: 1.6, d: 1.95 },

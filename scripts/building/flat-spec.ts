@@ -86,8 +86,13 @@ export interface AuthoredFlat {
   carpetAreaM2: number;
   carpetToleranceFrac: number;
   usableAreaM2?: number;
-  /** compass bearing of the plan's -z direction (the plan as printed has north up: 0) */
+  /**
+   * the source's own north: the compass bearing of the plan's -z direction (up the page). The letter N of a page's compass sits on one side of the rose and that
+   * side is north: north to the left of the page puts east up the page (90), north to the right puts west up the page (270).
+   */
   northDeg: number;
+  /** the side of the compass the source says the plan faces ("facing west": the side the balcony and the main windows, at the bottom of the page, look to) */
+  brochureFacing: 'N' | 'E' | 'S' | 'W';
   wallHeightM: number;
   rooms: RoomSpec[];
   openings: OpeningSpec[];
@@ -281,6 +286,23 @@ export function buildLayout(spec: Pick<AuthoredFlat, 'rooms' | 'openings'>): Bui
   return { rooms, openings, placed, errors };
 }
 
+/** A wall between two rooms (the stretch where their edges face each other) thicker than this is two walls with a void between: a 230 mm double brick wall at most. */
+export const MAX_WALL_M = 0.23;
+export interface WallGap { a: string; b: string; gapM: number; lengthM: number }
+/** The gaps between rooms that face each other across a wall (not the open stretches, which touch). */
+export function wallGaps(spec: Pick<AuthoredFlat, 'rooms' | 'openings'>): WallGap[] {
+  const built = buildLayout(spec);
+  const out: WallGap[] = [];
+  const segs = built.rooms.map((r) => r.polygon.map((a, k) => ({ a, b: r.polygon[(k + 1) % r.polygon.length], kind: r.edges[k] })));
+  for (let i = 0; i < built.rooms.length; i++) for (let j = i + 1; j < built.rooms.length; j++) {
+    for (const e of segs[i]) for (const f of segs[j]) {
+      const h = faceOverlap(e, f);
+      if (h && h.gap > 0.02) out.push({ a: built.rooms[i].id, b: built.rooms[j].id, gapM: h.gap, lengthM: h.hi - h.lo });
+    }
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- furniture
 
 const KIND_DEFAULTS: Record<FurnitureKind, { h: number; s: number }> = {
@@ -337,6 +359,8 @@ export function checkFlat(spec: AuthoredFlat): FlatReport {
     const room = built.rooms.find((x) => x.id === r.id)!;
     rooms.push({ id: r.id, label: r.label, parts, areaM2: Math.abs(polygonArea(room.polygon)), carpet: isCarpet(r) });
   }
+  // a wall between two rooms of the flat is one wall, 230 mm at the most: more is two walls with a void between
+  for (const g of wallGaps(spec)) if (g.gapM > MAX_WALL_M + 1e-9 && g.lengthM > 0.5) warnings.push(`${nameOf(g.a)} and ${nameOf(g.b)} are ${(g.gapM * 100).toFixed(0)} cm apart over ${g.lengthM.toFixed(1)} m: two walls with a void between, not one`);
   // 2 overlaps (the rooms of one flat may touch, not overlap)
   for (let i = 0; i < built.rooms.length; i++) for (let j = i + 1; j < built.rooms.length; j++) {
     const ov = overlapAreaM2(built.rooms[i].polygon, built.rooms[j].polygon);
