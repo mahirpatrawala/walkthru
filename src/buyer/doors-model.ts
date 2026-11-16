@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLSL_NOISE, GLSL_WOOD } from '../look/procedural';
+import { furnitureKit } from '../look/furniture-materials';
 import { DOOR_FLOOR_GAP_M, DOOR_THICKNESS_M, leafSegment } from '../core/doors';
 import type { Door } from '../core/doors';
 import type { DoorStyle } from '../building/space-host';
@@ -57,7 +58,9 @@ function woodLeafMaterial(color: THREE.Color, roughness: number): { mat: THREE.M
     shader.uniforms.uWood = grain;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWoodP;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWoodP = position;');
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWoodP = position;')
+      // the leaf's UV runs 0..1 over a face: the (optional) realistic normal map repeats 0.6 m, grain running up the leaf
+      .replace('#include <uv_vertex>', '#include <uv_vertex>\n#ifdef USE_NORMALMAP\nvNormalMapUv *= vec2(1.5, 3.5);\n#endif');
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\nvarying vec3 vWoodP;\nuniform float uWood;\n${GLSL_NOISE}\n${GLSL_WOOD}`)
       .replace('#include <map_fragment>', `#include <map_fragment>
@@ -66,7 +69,7 @@ if (uWood > 0.5) {
   diffuseColor.rgb *= lkWoodTone(g, max(fwidth(g.x), fwidth(g.y)));
 }`);
   };
-  mat.customProgramCacheKey = () => 'walkthru-door-wood-v2';
+  mat.customProgramCacheKey = () => 'walkthru-door-wood-v3';
   return { mat, grain };
 }
 
@@ -117,8 +120,10 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   panelMat.metalness = kind === 'lift' ? 0.3 : kind === 'glass' ? 0.6 : 0;
   // a plain flush door is wood or laminate (grain on by default); a lift, glass or stairs door is a plain colour
   wood.grain.value = kind === 'plain' || kind === 'main' ? 1 : 0;
+  // SPEC 16.21: with the Realistic materials layer on, a laminate or veneer leaf gets a fine photographed grain in its normal map, which the clear coat turns into a soft sheen
+  if (kind === 'plain' && !glazed) furnitureKit.adopt(panelMat, 'laminate', 0.9);
   // the dark groove round the leaf's face: a slab the leaf's own size, a hair behind the face, under a core a little smaller
-  const gapMat = new THREE.MeshStandardMaterial({ color: '#241E1A', roughness: 0.9 });
+  const gapMat = new THREE.MeshStandardMaterial({ color: '#8C847A', roughness: 0.9 });
   const styled = kind !== 'plain';
   const extra: THREE.Material[] = [];
   const textures: THREE.Texture[] = [];
@@ -167,6 +172,18 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
     // two leaves meeting in the middle, a dark joint and a pair of call-button plates beside the opening are drawn by the lobby
     const dark = mat(new THREE.MeshStandardMaterial({ color: '#2A2C2E', roughness: 0.6 }));
     for (const sd of [1, -1]) add(new THREE.BoxGeometry(0.008, H - 0.02, 0.004), dark, 'door-joint', W / 2, DOOR_FLOOR_GAP_M + H / 2, sd * (T / 2 + 0.002));
+    // a brushed-steel surround (10 cm wide, a head 10 cm deep, standing 16 mm proud of the wall on both faces) and a call-button plate beside it at 1.05 m
+    const steel = mat(new THREE.MeshStandardMaterial({ color: '#B4B8BB', roughness: 0.36, metalness: 0.4 }));
+    const lit = mat(new THREE.MeshStandardMaterial({ color: '#E9E6DF', roughness: 0.3, metalness: 0.2, emissive: new THREE.Color('#FFD9A0'), emissiveIntensity: 0.35 }));
+    const wd = Math.max(0.12, d.depth) + 0.032, headTop = Math.max(d.headM, d.topM) + 0.1;
+    add(new THREE.BoxGeometry(0.1, headTop, wd), steel, 'lift-surround', -0.1, headTop / 2, 0);
+    add(new THREE.BoxGeometry(0.1, headTop, wd), steel, 'lift-surround', W + 0.1, headTop / 2, 0);
+    add(new THREE.BoxGeometry(W + 0.3, 0.1, wd), steel, 'lift-surround', W / 2, headTop - 0.05, 0);
+    for (const sd of [1, -1]) {
+      const zf = sd * (Math.max(0.12, d.depth) / 2 + 0.004);
+      add(new THREE.BoxGeometry(0.09, 0.2, 0.008), steel, 'lift-call-plate', W + 0.28, 1.05, zf);
+      for (const by of [1.1, 1.0]) add(new THREE.CylinderGeometry(0.014, 0.014, 0.006, 16).rotateX(Math.PI / 2), lit, 'lift-call-button', W + 0.28, by, zf + sd * 0.006);
+    }
   } else if (kind === 'stairs') {
     const glass = mat(new THREE.MeshStandardMaterial({ color: '#BFDDE2', roughness: 0.1, transparent: true, opacity: 0.45 }));
     for (const sd of [1, -1]) add(new THREE.BoxGeometry(0.22, 0.55, 0.004), glass, 'door-vision', W / 2, 1.55, sd * (T / 2 + 0.002));

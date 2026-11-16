@@ -27,7 +27,7 @@ export function buildLobby(env: GenEnv, size: GenSize, p: LobbyParams, roles: Ro
   /** a reception counter block: a front panel in wood with a vertical groove pattern, a stone transaction top, a raised ledge and a lower staff desk behind */
   const counter = (xa: number, xb: number, za: number, zb: number, deskSide: 'back' | 'none'): void => {
     parts.box('desk-body', wood, xa, xb, 0, 1.03, za, zb, { c: 0.006, grain: 'y' });
-    if (q.flutes) for (let x = xa + 0.06; x < xb - 0.04; x += 0.06) slab(parts, 'desk-flutes', { key: 'dark', tint: '#241B14' }, x, x + 0.012, 0.08, 0.98, zb, zb + 0.004);
+    if (q.flutes) for (let x = xa + 0.06; x < xb - 0.04; x += 0.06) slab(parts, 'desk-flutes', { key: 'dark', tint: '#7A6A58' }, x, x + 0.012, 0.08, 0.98, zb, zb + 0.004);
     parts.box('desk-top', stone, xa - 0.02, xb + 0.02, 1.03, 1.07, za, zb + 0.03, { c: 0.004 });
     // the raised ledge at the front: a sloped lip the visitor leans on, at 1.15
     parts.box('desk-ledge', stone, xa - 0.02, xb + 0.02, 1.07, S + 0.1, zb - 0.22, zb + 0.03, { c: 0.004 });
@@ -77,7 +77,7 @@ export function buildLobby(env: GenEnv, size: GenSize, p: LobbyParams, roles: Ro
       const r = w / 2, potH = 0.55;
       cylY(parts, 'planter-pot', roleOr(roles, CERAMIC, 'pot'), 0, 0, 0.02, potH, r, seg);
       cylY(parts, 'planter-pot', roleOr(roles, CERAMIC, 'pot'), 0, 0, 0, 0.02, r - 0.04, seg);
-      cylY(parts, 'planter-soil', SOIL, 0, 0, potH - 0.02, potH, r - 0.03, seg);
+      cylY(parts, 'planter-soil', SOIL, 0, 0, potH - 0.02, potH + 0.004, r - 0.03, seg);
       const blob = (cx: number, cy: number, cz: number, rx: number, ry: number, rz: number): void => { parts.put('plant-leaves', LEAF, new THREE.SphereGeometry(1, wseg, 6).scale(rx, ry, rz).translate(cx, cy, cz), { tile: 0.3 }); };
       // a tall plant with several lobes of leaves; the top lobe reaches exactly the item's height
       tube(parts, 'plant-stems', { key: 'wood', tint: '#6B5640' }, [0, potH, 0], [0, H - 0.28, 0], 0.025);

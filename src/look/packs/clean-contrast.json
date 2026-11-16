@@ -17,7 +17,7 @@
     "duvet": "quilt-white",
     "pillow": "cotton-white",
     "cushion": "weave-terracotta",
-    "handle": "charcoal-matte",
+    "handle": "steel",
     "plinth": "charcoal-matte",
     "slatBack": "grey-matte",
     "lampMetal": "brass",
@@ -97,6 +97,18 @@
     "wet": {
       "wall": "tile-wet-white",
       "floor": "tile-wet-grey"
+    },
+    "floorByType": {
+      "living": "plank-oak",
+      "bedroom": "plank-oak",
+      "other": "plank-oak"
+    },
+    "floorBySpace": {
+      "hall": "plank-oak",
+      "games": "plank-oak",
+      "lobby": "tile-lobby",
+      "corridor": "tile-lobby",
+      "gym": "rubber-grey"
     }
   },
   "decor": {
@@ -113,7 +125,7 @@
   "trim": {
     "skirting": "white-laminate",
     "frame": "white-laminate",
-    "handle": "charcoal-matte",
+    "handle": "steel",
     "grill": "white-laminate"
   },
   "tiles": {

@@ -14,8 +14,19 @@ export class AssetLoader {
   constructor(private readonly base: string = LOOK_BASE) {}
 
   private async bytesOf(path: string): Promise<ArrayBuffer> {
-    const res = await fetch(this.base + path);
-    if (!res.ok) throw new Error(`look asset ${path}: HTTP ${res.status}`);
+    // the realistic-material sets (SPEC 16.21) are kept in the Cache API as well as the HTTP cache: a second visit, even offline or after the HTTP
+    // cache was cleared by the browser, reads them from disk (the files never change: a name carries its content)
+    const cacheable = path.startsWith('tex/realistic/') && typeof caches !== 'undefined';
+    let res: Response | undefined;
+    let cache: Cache | null = null;
+    if (cacheable) {
+      try { cache = await caches.open('walkthru-realistic-v1'); res = await cache.match(this.base + path); } catch { cache = null; }
+    }
+    if (!res) {
+      res = await fetch(this.base + path);
+      if (!res.ok) throw new Error(`look asset ${path}: HTTP ${res.status}`);
+      if (cache) { try { await cache.put(this.base + path, res.clone()); } catch { /* quota: the HTTP cache still has it */ } }
+    }
     const buf = await res.arrayBuffer();
     this.bytes += buf.byteLength;
     return buf;

@@ -321,7 +321,7 @@ export function describeFinish(family: FinishFamily, finish: Finish | undefined)
 // all resolve to one colour + material, and the pack ids can be written as the viewer's ids (aliases below).
 import type { MatKey } from './furniture-materials';
 
-export type FinishKind = 'wood' | 'laminate' | 'paint' | 'fabric' | 'metal' | 'stone' | 'tile' | 'sheer';
+export type FinishKind = 'wood' | 'laminate' | 'paint' | 'fabric' | 'metal' | 'stone' | 'tile' | 'plank' | 'sheer';
 export interface FinishDef {
   id: string;
   name: string;
@@ -379,12 +379,15 @@ export const FINISH_LIST: FinishDef[] = [
   F('brass', 'Brushed brass', '#D4AD66', 'brass', 'metal'),
   F('steel', 'Brushed steel', '#B8B8B8', 'metal', 'metal'),
   F('black-stone', 'Black stone', '#1B1B1D', 'granite', 'stone'),
-  F('white-stone', 'White stone', '#E9E6E0', 'gloss', 'stone'),
+  F('white-stone', 'White stone', '#E9E6E0', 'quartz', 'stone'),
   F('tile-beige-gloss', 'Glossy beige tile', '#F2E3CA', 'gloss', 'tile'),
   F('tile-ivory-gloss', 'Glossy ivory tile', '#ECE4D6', 'gloss', 'tile'),
   F('tile-grey', 'Soft grey tile', '#C9C6C0', 'gloss', 'tile'),
   F('tile-wet-white', 'Pale glazed wall tile', '#ECEEED', 'gloss', 'tile'),
   F('tile-wet-grey', 'Matt grey floor tile', '#B4B2AD', 'gloss', 'tile'),
+  F('tile-lobby', 'Polished large-format lobby tile', '#C6C1B7', 'gloss', 'tile'),
+  F('rubber-grey', 'Grey rubber gym floor', '#575A5F', 'gloss', 'tile'),
+  F('plank-oak', 'Wood-look vitrified plank, light oak', '#CBAB80', 'gloss', 'plank'),
   F('tile-stone', 'Light stone tile', '#C9C6BD', 'gloss', 'tile'),
   F('tile-stone-grey', 'Mid stone-grey tile', '#A9A7A1', 'gloss', 'tile'),
   F('tile-sand', 'Sand tile', '#D8C9AE', 'gloss', 'tile'),

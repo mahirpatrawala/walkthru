@@ -503,6 +503,15 @@ class Planner {
       if (!this.wallFree(f, u - w / 2, u + w / 2, bottom)) continue;
       this.wallPiece('frame', room, f, u, bottom, w, 0.03, w * 0.75);
       used.push({ f, u0: u - w / 2 - 0.1, u1: u + w / 2 + 0.1 });
+      // pictures hang in pairs: a smaller one beside the first, on the side with room
+      const w2 = w * 0.7;
+      for (const du of [w / 2 + w2 / 2 + 0.12, -(w / 2 + w2 / 2 + 0.12)]) {
+        const u2 = u + du;
+        if (u2 - w2 / 2 < 0.2 || u2 + w2 / 2 > f.length - 0.2 || !this.wallFree(f, u2 - w2 / 2, u2 + w2 / 2, bottom)) continue;
+        this.wallPiece('frame', room, f, u2, bottom, w2, 0.03, w2 * 0.75);
+        used.push({ f, u0: u2 - w2 / 2 - 0.1, u1: u2 + w2 / 2 + 0.1 });
+        break;
+      }
       break;
     }
     if (room.roomType !== 'living') return;
@@ -542,6 +551,19 @@ class Planner {
 
   // ---- surface pieces
 
+  private mainSofa = new Map<string, string>();
+  /** the id of the widest sofa in a room (the one that gets the room's cushions) */
+  private mainSofaOf(room: RoomTag): string | undefined {
+    let id = this.mainSofa.get(room.id);
+    if (id === undefined) {
+      let best: FurnitureItem | null = null;
+      for (const o of this.items) if (o.kind === 'sofa' && o.box.w >= 1.2 && o.box.d <= 1.3 && this.itemRoom(o)?.id === room.id && (!best || o.box.w > best.box.w)) best = o;
+      id = best?.id ?? '';
+      this.mainSofa.set(room.id, id);
+    }
+    return id || undefined;
+  }
+
   private dress(it: FurnitureItem): void {
     // swings, appliances, fixtures and the rest of the second catalogue table have their own shapes: no throws or lamps are put on them
     if (pieceRule(it.catalogId)) return;
@@ -569,9 +591,15 @@ class Planner {
       const seatTop = S + 0.03;
       const aw = 0.16;
       const e = w / 2 - aw - 0.22;
-      on('cushion', -e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, 8, 14);
-      on('cushion', e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, -8, 14);
-      if (w >= 1.8) on('throw', 0.02, d / 2 - 0.3, seatTop, 0.52, 0.34, 0.04, 6, undefined, 3);
+      // one colour accent per room (SPEC 16.20): the room's largest sofa carries the pair of cushions in the room's accent tone and the throw;
+      // any other sofa gets one cream cushion (tone 6), never another stack in the same saturated colour
+      if (this.mainSofaOf(room) === it.id) {
+        on('cushion', -e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, 8, 14);
+        on('cushion', e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, -8, 14);
+        if (w >= 1.8) on('throw', 0.02, d / 2 - 0.3, seatTop, 0.52, 0.34, 0.04, 6, undefined, 3);
+      } else {
+        on('cushion', e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, -8, 14, (6 - hostTone + 8) % 8);
+      }
       return;
     }
     if (it.kind === 'dining') {

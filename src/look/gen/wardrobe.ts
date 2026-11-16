@@ -142,12 +142,12 @@ export function addLeaf(p: Parts, s: LeafSpec, face: MatSpec, handle: MatSpec, f
     const bandMid = s.style === 'fluted-strip' ? s.y0 + h * (s.fluteBand[0] + s.fluteBand[1]) / 2 : s.y0 + h * 0.48;
     const mid = s.handleYM > 0 ? s.handleYM : long ? bandMid : s.y0 + h * 0.48;
     // a long bar is long by style: the drawing's measured length is for a plain bar handle
-    const len = long ? Math.min(0.95, h * 0.36) : s.handleLenM > 0 ? s.handleLenM : 0.3;
-    const r = long ? 0.0085 : 0.006;
+    const len = long ? Math.min(0.5, h * 0.2) : s.handleLenM > 0 ? s.handleLenM : 0.3;
+    const r = long ? 0.0055 : 0.006;
     const y0 = Math.max(s.y0 + 0.05, mid - len / 2), y1 = Math.min(s.y1 - 0.05, mid + len / 2);
     p.put(nHandle, handle, rod({ x: hx, y: y0, z: zh }, { x: hx, y: y1, z: zh }, r, q.sides));
-    const postR = long ? 0.0045 : 0.0035;
-    const posts = long ? 3 : 2;
+    const postR = long ? 0.003 : 0.0035;
+    const posts = 2;
     for (let i = 0; i < posts; i++) {
       const y = y0 + 0.04 + ((y1 - y0 - 0.08) * i) / (posts - 1);
       p.put(nHandle, handle, rod({ x: hx, y, z: zF }, { x: hx, y, z: zh }, postR, 6));

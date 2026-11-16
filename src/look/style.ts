@@ -225,6 +225,10 @@ export function finishNote(r: ResolvedLook | null, packName: string): string {
 }
 
 /** the room finish ids in force for a room: sheet room > pack room, with the provenance of each */
+/** the kind of space on screen ('home', 'lobby', 'gym', 'hall', ...), set by the page; the pack's floors by room type are for homes only (SPEC 16.20) */
+let spaceKind = 'home';
+export function setSpaceKind(k: string | undefined): void { spaceKind = k ?? 'home'; }
+
 export function roomFinishIds(roomId: string, st: StyleState = state, roomType?: string): { wall?: [string, Prov]; floor?: [string, Prov]; ceiling?: [string, Prov] } {
   const out: { wall?: [string, Prov]; floor?: [string, Prov]; ceiling?: [string, Prov] } = {};
   if (st.pack.classic) return out;
@@ -233,6 +237,8 @@ export function roomFinishIds(roomId: string, st: StyleState = state, roomType?:
     const s = sheetRoom?.[k];
     if (s) out[k] = [s, 'sheet'];
     else if (roomType === 'bathroom' && (k === 'wall' || k === 'floor') && st.pack.room.wet?.[k]) out[k] = [st.pack.room.wet[k] as string, 'pack'];
+    else if (k === 'floor' && spaceKind !== 'home' && st.pack.room.floorBySpace?.[spaceKind]) out[k] = [st.pack.room.floorBySpace[spaceKind] as string, 'pack'];
+    else if (k === 'floor' && spaceKind === 'home' && roomType && st.pack.room.floorByType?.[roomType]) out[k] = [st.pack.room.floorByType[roomType] as string, 'pack'];
     else if (st.pack.room[k]) out[k] = [st.pack.room[k] as string, 'pack'];
   }
   return out;
@@ -246,10 +252,13 @@ export function doorPanelFinish(st: StyleState = getStyle()): { colour: string; 
   return f ? { colour: f.colour, grain: f.kind === 'wood' } : null;
 }
 
+const DEFAULT_TRIM = { skirting: 'white-laminate', frame: 'white-laminate', handle: 'steel', grill: 'white-laminate' } as const;
+
 /** The pack's accents of the shell itself (SPEC 16.18): skirting, frame and handle colours; every field null where the pack names none (and always in Classic). */
 export function trimColours(st: StyleState = getStyle()): { skirting: string | null; frame: string | null; handle: string | null; /** a thin light window grill, null = the kit's dark one */ grill: string | null; /** the frame is a wood (its grain shows), not paint */ frameGrain: boolean } {
   if (st.pack.classic) return { skirting: null, frame: null, handle: null, grill: null, frameGrain: true };
-  const t = st.pack.trim ?? {};
+  // a pack that names no trim of its own gets the calm default (white frames and skirting, small dark handles, thin white grills): the dark thick frames were the complaint
+  const t = st.pack.trim ?? DEFAULT_TRIM;
   const frame = finishDef(t.frame);
   return { skirting: finishDef(t.skirting)?.colour ?? null, frame: frame?.colour ?? null, handle: finishDef(t.handle)?.colour ?? null, grill: finishDef(t.grill)?.colour ?? null, frameGrain: frame ? frame.kind === 'wood' : true };
 }

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "pack": "clean-contrast",
+  "source": "typical",
+  "note": "A typical clean scheme for this shared space (the gallery default): timber or polished floor, bright walls. Finishes and decor only.",
+  "items": {},
+  "rooms": {
+    "corridor": {
+      "floor": "tile-lobby",
+      "wall": "wall-bright"
+    },
+    "lift-lobby": {
+      "floor": "tile-lobby",
+      "wall": "wall-bright"
+    }
+  },
+  "fixtures": []
+}

@@ -45,7 +45,7 @@ const STAMP = '2026-11-16T00:00:00.000Z';
  * the toilets' walls take the tile colour whole (the format has no dado height); a quartz platform; flush doors with a laminate finish.
  */
 export const SPEC_FINISHES = {
-  dry: { floor: 'tile-ivory-gloss' },
+  dry: { floor: 'plank-oak' },
   kitchen: { floor: 'tile-ivory-gloss' },
   wet: { floor: 'tile-grey', wall: 'tile-grey' },
   utility: { floor: 'tile-sand' },

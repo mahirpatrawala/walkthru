@@ -10,15 +10,16 @@ import { addBoard, addFanStatic, addTube, buildBuckets, fanRotorGeometry, newBuc
 import type { Acc, BucketName } from './build';
 import { createKitMaterials } from './materials';
 import type { KitMaterials, LightKind } from './materials';
-import { KIT_NOTE, kitPlan } from './rules';
+import { KIT_NOTE, PLANK_NOTE, kitPlan, plankSpec } from './rules';
 import type { KitPlan } from './rules';
 import { kitFittings } from './fittings';
-import { getStyle, trimColours } from '../style';
+import { getStyle, roomFinishIds, trimColours } from '../style';
+import { finishDef } from '../finishes';
 import type { KitFittings } from './fittings';
 import type { FittingRecord, FittingRegistry, FittingsOverlay } from '../fittings';
 import { PRISTINE_CHECKSUM_KEY, geometryChecksum } from '../baked/assign';
 
-export { KIT_NOTE } from './rules';
+export { KIT_NOTE, PLANK_NOTE } from './rules';
 export type { LightKind } from './materials';
 
 export interface KitStore {
@@ -38,6 +39,8 @@ export interface KitOptions {
   store?: KitStore;
   /** starts without the kit (also `?kit=off` in the URL) */
   plain?: boolean;
+  /** a shared space of a building (SPEC 16.20): the kit plans only skirting, floor tiles, downlights and a gym's mirror wall; the value is the space's kind */
+  shared?: string;
   /** an open-air space: the kit plans nothing (SPEC 19.1), whatever the Plain switch says */
   outdoor?: boolean;
   /** where the fans, tubes and switchboards report themselves (tappable, movable) */
@@ -76,7 +79,7 @@ export function mountKit(o: KitOptions): KitHandle {
   const { layout } = o;
   const furniture = o.store?.pristine?.() ?? o.store?.all() ?? [];
   const style = getStyle();
-  const plan = kitPlan(layout, furniture, o.outdoor === true, style.pack.classic ? {} : style.pack.tiles ?? {});
+  const plan = kitPlan(layout, furniture, o.outdoor === true, style.pack.classic ? {} : style.pack.tiles ?? {}, o.shared);
   // a design sheet that draws its own downlights in a room keeps them: the kit's rings are for rooms without
   const sheetDownlit = new Set((style.sheet && style.designerLook ? style.sheet.fixtures : []).filter((f) => f.kind === 'downlights').map((f) => (f as { roomId?: string }).roomId ?? ''));
   plan.downlights = plan.downlights.filter((d) => !sheetDownlit.has(d.roomId));
@@ -276,6 +279,7 @@ export function mountKit(o: KitOptions): KitHandle {
   o.viewer.scene.add(group);
 
   // ---- floors: each room gets its own tile grid. The shell's floor meshes keep their geometry (areas are unchanged); only the material swaps.
+  let plankRooms = 0;
   const floorSwaps: { mesh: THREE.Mesh; original: THREE.Material | THREE.Material[]; kit: THREE.Material }[] = [];
   if (o.look && plan.floors.length) {
     const lm = o.look.materials();
@@ -290,11 +294,17 @@ export function mountKit(o: KitOptions): KitHandle {
       if (!spec || !room || room.partial) return;
       const mat = mesh.material as THREE.Material;
       if (Array.isArray(mat) || mat.userData.partialLook) return;
+      // a floor whose finish is a wood-look vitrified plank (the pack's, or the design sheet's) is planks, aligned the same way
+      const floorId = layout.finishes.source === 'sampled' ? undefined : roomFinishIds(room.id, style, room.roomType).floor?.[0];
+      const fdef = floorId ? finishDef(floorId) : null;
+      // only where the room's colour IS the finish's (a room with a colour of its own keeps it)
+      const sp = fdef && fdef.kind === 'plank' && fdef.colour.toLowerCase() === (room.floorColor ?? '').toLowerCase() && (!spec.drawn || !!o.shared) && !spec.antiSkid && !spec.matt ? plankSpec(spec) : spec;
       const kit = lm.floorKit({
         color: room.floorColor ?? layout.finishes.floorColor, groutColor: layout.finishes.groutColor,
-        tileU: spec.tileU, tileV: spec.tileV, axisX: spec.axisX, axisZ: spec.axisZ, originX: spec.originX, originZ: spec.originZ,
-        groutM: spec.groutM, antiSkid: spec.antiSkid, matt: spec.matt,
+        tileU: sp.tileU, tileV: sp.tileV, axisX: sp.axisX, axisZ: sp.axisZ, originX: sp.originX, originZ: sp.originZ,
+        groutM: sp.groutM, antiSkid: sp.antiSkid, matt: sp.matt || floorId === 'rubber-grey', plank: sp.plank, // rubber is matt
       });
+      if (sp.plank && c.name.startsWith('floor:')) plankRooms++;
       floorSwaps.push({ mesh, original: mesh.material, kit });
     });
   }
@@ -353,7 +363,13 @@ export function mountKit(o: KitOptions): KitHandle {
       p.dataset.testid = 'look-label-kit';
       p.textContent = KIT_NOTE;
       labels.append(p);
-      dom.push(() => { row.remove(); p.remove(); });
+      const pl = document.createElement('p');
+      pl.dataset.testid = 'look-label-planks';
+      pl.textContent = PLANK_NOTE;
+      pl.hidden = !plankRooms;
+      labels.append(pl);
+      listeners.add(() => { pl.hidden = !plankRooms || !group.visible; });
+      dom.push(() => { row.remove(); p.remove(); pl.remove(); });
     }));
     dom.push(whenFound('[data-testid="rooms-sheet"] .wt-rooms-card', (card) => {
       const p = document.createElement('p');
@@ -362,8 +378,13 @@ export function mountKit(o: KitOptions): KitHandle {
       p.dataset.testid = 'rooms-kit-note';
       p.textContent = KIT_NOTE;
       card.append(p);
-      listeners.add(() => { p.hidden = !group.visible; });
-      dom.push(() => p.remove());
+      const pl = document.createElement('p');
+      pl.className = 'wt-rooms-foot';
+      pl.dataset.testid = 'rooms-plank-note';
+      pl.textContent = PLANK_NOTE;
+      card.append(pl);
+      listeners.add(() => { p.hidden = !group.visible; pl.hidden = !plankRooms || !group.visible; });
+      dom.push(() => { p.remove(); pl.remove(); });
     }));
   }
 

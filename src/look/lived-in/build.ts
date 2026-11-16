@@ -21,6 +21,8 @@ const WARM_TONES = ['#C4623F', '#D9A23F', '#2E7D84', '#3A4A7A', '#7E9A78', '#B84
 const CALM_TONES = ['#B97A62', '#C9A86A', '#8C98A6', '#7D8CA0', '#9AA593', '#B3A39A', '#EFE8DC', '#C58E6B'] as const;
 export const tones = (): readonly string[] => (getStyle().pack.id.startsWith('clean-contrast') ? CALM_TONES : WARM_TONES);
 export const TONES = WARM_TONES;
+/** the warm palette's index 6 is cream, which a cushion or a throw may not be (it would vanish on a sofa); the calm palette's cream is wanted (one neutral cushion beside the accent pair) */
+const noCream = (): boolean => tones() === WARM_TONES;
 const CREAM = '#F1E6D2';
 const STEEL = '#B9BDC2';
 const BRASS = '#C79A3C';
@@ -205,7 +207,7 @@ const tone = (p: DecorPiece, shift = 0): string => tones()[(p.tone + shift) % to
 
 const BUILD: Record<DecorPiece['kind'], Builder> = {
   cushion(p, parts, _kit, seg) {
-    const main = tone(p) === tones()[6] ? tone(p, 1) : tone(p);
+    const main = (noCream() && tone(p) === tones()[6] ? tone(p, 1) : tone(p));
     const g = pillow(p.w, p.height, p.d, seg.s > 8 ? 8 : 5);
     // the cushion leans back against the pillow or backrest, pivoting on its bottom edge
     g.rotateX(-(p.tiltDeg ?? 0) * DEG);
@@ -218,8 +220,8 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
   },
   throw(p, parts) {
     // a folded woollen throw: a thick body in one colour, a cream and a second stripe near each end, and a short fringe
-    const main = tone(p) === tones()[6] ? tone(p, 1) : tone(p);
-    const second = tone(p, 3) === tones()[6] ? tone(p, 4) : tone(p, 3);
+    const main = (noCream() && tone(p) === tones()[6] ? tone(p, 1) : tone(p));
+    const second = (noCream() && tone(p, 3) === tones()[6] ? tone(p, 4) : tone(p, 3));
     const h = Math.max(0.035, p.height);
     parts.add(box(-p.w / 2, p.w / 2, 0, h, -p.d / 2, p.d / 2), main, 0.98);
     for (const sx of [-1, 1]) {

@@ -8,6 +8,13 @@ for (let i = 0; i < 1600; i++) { if (await ev('!!(window.__walkthru && window.__
 await ev('window.__walkthru.start()');
 await ev('window.__walkthru.look.ready');
 await ev('window.__walkthru.models.idle()');
+// with "Realistic materials" on, wait until the maps of every family in view are in and cross-faded (SPEC 16.21)
+for (let i = 0; i < 1200; i++) {
+  const r = JSON.parse(await ev(`JSON.stringify((() => { const l = window.__walkthru.look.instance; const p = l.realismProgress(); return { eff: l.realismEffective, done: p.done, total: p.total }; })())`));
+  if (r.eff === 'off' || (r.total > 0 && r.done >= r.total)) break;
+  await sleep(500);
+}
+await sleep(2500);
 await sleep(2000);
 await ev("(() => { const g = window.__walkthru.ctx.viewer.scene.getObjectByName('debug-grid'); if (g) { g.visible = false; g.removeFromParent(); } })()");
 if (!process.env.HUD) await ev("document.querySelectorAll('body > *:not(#app)').forEach((e) => { e.style.display = 'none'; })");
@@ -43,6 +50,27 @@ if (set === 'flat') {
   views.deck = ahead(lookAt([2.0, 1.6, 6.6], [1.9, 1.3, 10.7]));
   views.master = ahead(lookAt([8.6, 1.6, 6.2], [11.0, 1.1, 4.2]));
   views.kitchen = ahead(lookAt([4.4, 1.6, 4.5], [5.8, 1.0, 2.2]));
+  // the materials sheet (SPEC 16.21): crops at about 40 cm, and one grazing view of the floor
+  views.rfloor = lookAt([7.3, 0.4, 7.85], [7.55, 0.0, 8.05]);
+  views.rgraze = lookAt([0.9, 0.42, 6.0], [3.4, 0.12, 8.2]);
+  views.rwall = lookAt([9.1, 1.45, 4.25], [9.1, 1.35, 3.68]);
+  { const d = await doorInfo('door-bedroom-1'); const e = d.u1 - 0.1; const c = { x: d.a.x + d.dir.x * e, z: d.a.z + d.dir.z * e };
+    views.rdoor = { eye: [c.x + d.out.x * 0.42, 1.05, c.z + d.out.z * 0.42], target: [c.x - d.dir.x * 0.05, 1.0, c.z - d.dir.z * 0.05], yaw: 0, at: { x: c.x + d.out.x * 0.42, z: c.z + d.out.z * 0.42 } }; }
+  {
+    const sofa = JSON.parse(await ev(`JSON.stringify((() => { const i = window.__walkthru.store.all().find((x) => x.id === 'sofa-1'); return i ? i.box : null; })())`));
+    if (sofa) {
+      // the arm at the sofa's +x end, looked at from outside, 0.45 m away and 0.7 m up
+      const r = sofa.yawDeg * Math.PI / 180, ax = Math.cos(r), az = -Math.sin(r);
+      const hx = sofa.cx + ax * (sofa.w / 2), hz = sofa.cz + az * (sofa.w / 2);
+      views.rsofa = { eye: [hx + ax * 0.45, 0.75, hz + az * 0.45], target: [hx, 0.52, hz], yaw: 0, at: { x: hx + ax * 0.45, z: hz + az * 0.45 } };
+    }
+  }
+  // round 3 extension of the materials sheet: a door leaf at 55 cm, the wardrobe fronts and handles, the kitchen worktop, a wet-room tiled wall
+  { const d = await doorInfo('door-bedroom-1'); const um = (d.u0 + d.u1) / 2; const c = { x: d.a.x + d.dir.x * um, z: d.a.z + d.dir.z * um };
+    views.rleaf = { eye: [c.x + d.out.x * 0.55, 1.35, c.z + d.out.z * 0.55], target: [c.x, 1.2, c.z], yaw: 0, at: { x: c.x + d.out.x * 0.55, z: c.z + d.out.z * 0.55 } }; }
+  views.rwardrobe = lookAt([10.3, 1.4, 5.55], [10.76, 1.1, 6.47]);
+  views.rcounter = lookAt([4.55, 1.45, 3.1], [4.6, 0.9, 2.2]);
+  views.rwet = lookAt([7.35, 1.5, 4.7], [7.0, 1.25, 3.95]);
   // the zoom test (30 cm from the surface): a floor with joints, a wall with its skirting, a door's edge with its frame
   views.zoomfloor = lookAt([1.4, 0.32, 7.5], [1.55, 0.0, 7.6]);
   views.zoomfloor2 = lookAt([7.3, 0.34, 7.85], [7.55, 0.0, 8.0]);
@@ -69,7 +97,7 @@ if (set === 'flat') {
 } else if (set === 'club') {
   views.stairs = await doorView('door-stairs');
   views.sign = await signView('door-stairs');
-} else if (set === 'space') {
+} else if (set === 'space' || set === 'scene') {
   // a shared space (lobby, clubhouse, gym, games, hall, pool deck): the walker's own start and the three other quarter turns, in first person
   const st0 = JSON.parse(await ev(`JSON.stringify(window.__walkthru.state())`));
   const p0 = st0.pos, y0 = st0.yawDeg;
@@ -77,13 +105,8 @@ if (set === 'flat') {
     const r = (y0 + dy) * Math.PI / 180;
     views[name] = { eye: [p0.x, 1.6, p0.z], target: [p0.x + Math.sin(r) * 4, 1.45, p0.z + Math.cos(r) * 4], yaw: y0 + dy, at: { x: p0.x, z: p0.z } };
   }
-} else if (set === 'home') {
-  // the standalone sample home (/?scene=test-sample-3)
-  views.door = await doorView('door-4');
-  views.passage = lookAt([-4.6, 1.6, 0.4], [4.5, 1.5, 0.45]);
-  views.floor = lookAt([-1.6, 1.6, -0.9], [0.9, 0.0, -3.0]);
-  views.corner = lookAt([0.6, 1.6, -1.0], [2.17, 2.3, -3.69]);
 }
+// (the old `home` set, hand-placed views for test-sample-3, hung under software GL and is dropped: a standalone home is captured as `scene`, from its spawn)
 const want = (process.env.VIEWS || Object.keys(views).join(',')).split(',');
 const out = [];
 for (const v of want) {

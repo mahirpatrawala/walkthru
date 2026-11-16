@@ -22,36 +22,36 @@
   },
   "rooms": {
     "master-bedroom": {
-      "floor": "tile-ivory-gloss"
+      "floor": "plank-oak"
     },
     "master-toilet": {
       "floor": "tile-grey",
       "wall": "tile-grey"
     },
     "master-passage": {
-      "floor": "tile-ivory-gloss"
+      "floor": "plank-oak"
     },
     "passage": {
-      "floor": "tile-ivory-gloss"
+      "floor": "plank-oak"
     },
     "toilet-2": {
       "floor": "tile-grey",
       "wall": "tile-grey"
     },
     "dining": {
-      "floor": "tile-ivory-gloss"
+      "floor": "plank-oak"
     },
     "living": {
-      "floor": "tile-ivory-gloss"
+      "floor": "plank-oak"
     },
     "bedroom-2": {
-      "floor": "tile-ivory-gloss"
+      "floor": "plank-oak"
     },
     "kitchen": {
       "floor": "tile-ivory-gloss"
     },
     "bedroom-1": {
-      "floor": "tile-ivory-gloss"
+      "floor": "plank-oak"
     },
     "toilet-1": {
       "floor": "tile-grey",

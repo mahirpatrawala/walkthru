@@ -8,6 +8,6 @@ const PLATE: SignLook = { bg: '#23292E', fg: '#F6F2E8', border: '#C9A657', scale
 const CALM: SignLook = { bg: '#F6F4F0', fg: '#2B2D31', border: '#CFCBC3', scale: 0.7, weight: 500 };
 
 export function signLook(): SignLook {
-  const id = getStyle().pack.id;
-  return id.startsWith('clean-contrast') ? CALM : PLATE;
+  // every pack but Classic (today's look) gets the small light plate
+  return getStyle().pack.classic ? PLATE : CALM;
 }

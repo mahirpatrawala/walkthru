@@ -76,7 +76,8 @@ const wallPaint = (ctx: BuildCtx, colour: string): THREE.MeshStandardMaterial =>
   patchGround(m, { mean: 1, strength: 0, noise: 0.07, dry: 0, stripes: false, lumps: false });
   return m;
 });
-const metal = (ctx: BuildCtx, colour = '#2F3236'): THREE.MeshStandardMaterial => ctx.mats.plain(`metal:${colour}`, () => new THREE.MeshStandardMaterial({ color: colour, roughness: 0.42, metalness: 0.7 }));
+// powder-coated mid-grey, part diffuse: a dark steel rail with high metalness and no environment to reflect reads as a black pole against the bright deck
+const metal = (ctx: BuildCtx, colour = '#8C9296'): THREE.MeshStandardMaterial => ctx.mats.plain(`metal:${colour}`, () => new THREE.MeshStandardMaterial({ color: colour, roughness: 0.45, metalness: 0.25 }));
 const glassMat = (ctx: BuildCtx): THREE.MeshStandardMaterial => ctx.mats.plain('glass', () => new THREE.MeshStandardMaterial({ color: '#BFE0E3', roughness: 0.04, metalness: 0.05, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide }));
 
 export interface BoundaryBuild { group: THREE.Group; hedges: HedgeSeg[] }

@@ -24,10 +24,10 @@ type Body = 'man' | 'woman' | 'elder' | 'child';
  * `bottom` is never tinted: man charcoal trousers, woman beige trousers, child denim shorts, elder navy trousers. `trim` is the man's belt, the
  * neck piping of the woman and the elder, the child's crew-neck rib; `wrap` is the man's shirt buttons (and a saree's pallu, if one is ever built again). */
 export const OUTFITS: Record<Body, { bottom: string; wrap: string; trim: string; hair: string; brows: string; shoes: string; eyes: string; pupil: string }> = {
-  man: { bottom: '#565C68', wrap: '#EFEBE0', trim: '#2B1D15', hair: '#1D1815', brows: '#1A1512', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
-  woman: { bottom: '#CBB994', wrap: '#CBB994', trim: '#EDE4CF', hair: '#1A1513', brows: '#1A1512', shoes: '#5A4232', eyes: '#F3F0EA', pupil: '#1B1311' },
+  man: { bottom: '#565C68', wrap: '#EFEBE0', trim: '#2B1D15', hair: '#2D2119', brows: '#221A15', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
+  woman: { bottom: '#CBB994', wrap: '#CBB994', trim: '#EDE4CF', hair: '#2B1F19', brows: '#221A15', shoes: '#5A4232', eyes: '#F3F0EA', pupil: '#1B1311' },
   elder: { bottom: '#3E4A6B', wrap: '#3E4A6B', trim: '#E8E0D0', hair: '#D9D5CD', brows: '#B9B4AB', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
-  child: { bottom: '#3F5F8F', wrap: '#3F5F8F', trim: '#F2F0EA', hair: '#1D1815', brows: '#1A1512', shoes: '#C0563A', eyes: '#F3F0EA', pupil: '#1B1311' },
+  child: { bottom: '#3F5F8F', wrap: '#3F5F8F', trim: '#F2F0EA', hair: '#3A2A20', brows: '#2A2019', shoes: '#C0563A', eyes: '#F3F0EA', pupil: '#1B1311' },
 };
 
 /**
@@ -78,6 +78,41 @@ const ROUGHNESS: Record<string, number> = { skin: 0.62, eyes: 0.25, pupil: 0.12,
  * Prepares the materials of a freshly parsed person. Every skinned mesh gets its own material (tint and tone never leak
  * between characters). Call once per parsed GLB.
  */
+/**
+ * SPEC 16.20: the hair is a cap with a hard lower edge; a real hairline is irregular and soft at the nape and the sideburns. The lowest few centimetres of the
+ * cap (a fraction of its own height, so it follows any body's scale) dissolve into the skin through a stable hash (alpha hash, so no sorting and no blend
+ * halo), per strand-sized cell. The crown and the forehead edge, which sit higher, are untouched, so the bald-spot cover (a geometry test) is unchanged.
+ */
+function softenHairline(m: THREE.MeshPhysicalMaterial): void {
+  const u = { uHairY: { value: 0 }, uHairBand: { value: 1 } };
+  m.alphaHash = true;
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uHairY = u.uHairY;
+    shader.uniforms.uHairBand = u.uHairBand;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vHairP;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvHairP = position;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vHairP;\nuniform float uHairY;\nuniform float uHairBand;')
+      .replace('#include <map_fragment>', `#include <map_fragment>
+{
+  vec3 c = floor(vHairP * (60.0 / max(uHairBand, 1e-4) * 0.02));
+  float n = fract(sin(dot(c, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+  float k = (vHairP.y - uHairY) / uHairBand;
+  diffuseColor.a *= clamp(k * 1.6 + (n - 0.5) * 1.1, 0.0, 1.0);
+}`);
+  };
+  m.customProgramCacheKey = () => 'walkthru-hair-soft-v1';
+  m.onBeforeRender = (_r, _s, _c, geometry) => {
+    const g = geometry as THREE.BufferGeometry;
+    if (!g.boundingBox) g.computeBoundingBox();
+    const b = g.boundingBox;
+    if (!b) return;
+    u.uHairY.value = b.min.y;
+    u.uHairBand.value = Math.max(1e-4, (b.max.y - b.min.y) * 0.1);
+  };
+}
+
 export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: number): PersonLook {
   const mats: THREE.MeshStandardMaterial[] = [];
   const skinMats: THREE.MeshStandardMaterial[] = [];
@@ -86,6 +121,20 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
   const o = OUTFITS[body];
   const fixed: Record<string, string> = { bottom: o.bottom, wrap: o.wrap, trim: o.trim, hair: o.hair, brows: o.brows, shoes: o.shoes, eyes: o.eyes, pupil: o.pupil };
   for (const s of skinned) {
+    if (s.name === 'hair') {
+      // hair is very dark brown, not black, with a soft sheen band that catches a window or a lamp (SPEC 16.20): it read as a hard black cap from behind
+      const old = s.material as THREE.MeshStandardMaterial;
+      const hm = new THREE.MeshPhysicalMaterial({
+        color: fixed.hair, roughness: 0.5, metalness: 0, sheen: 0.9, sheenRoughness: 0.42,
+        sheenColor: new THREE.Color(body === 'elder' ? '#FFFFFF' : '#8A6F5C'), side: old.side,
+      });
+      old.dispose();
+      softenHairline(hm);
+      s.material = hm;
+      mats.push(hm);
+      s.castShadow = false;
+      continue;
+    }
     const mat = (s.material as THREE.MeshStandardMaterial).clone();
     s.material = mat;
     mats.push(mat);

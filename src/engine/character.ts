@@ -1037,19 +1037,18 @@ export class Character {
   private static makeShadow(): THREE.Mesh | null {
     if (typeof document === 'undefined') return null;
     const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 64;
+    canvas.width = canvas.height = 128;
     const g = canvas.getContext('2d');
     if (!g) return null;
-    const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-    grad.addColorStop(0, 'rgba(0,0,0,0.55)');
-    grad.addColorStop(0.6, 'rgba(0,0,0,0.25)');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    // a wide, soft pool (SPEC 16.20): a smooth falloff of nine stops (a gaussian), not a hard disc
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    for (let i = 0; i <= 8; i++) { const t = i / 8; grad.addColorStop(t, `rgba(0,0,0,${(0.34 * Math.exp(-4.2 * t * t) * (1 - t * t * t)).toFixed(4)})`); }
     g.fillStyle = grad;
-    g.fillRect(0, 0, 64, 64);
+    g.fillRect(0, 0, 128, 128);
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), mat);
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 1.25), mat);
     mesh.name = 'contact-shadow';
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.y = 0.012;

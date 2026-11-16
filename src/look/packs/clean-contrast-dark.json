@@ -97,6 +97,18 @@
     "wet": {
       "wall": "tile-wet-white",
       "floor": "tile-wet-grey"
+    },
+    "floorByType": {
+      "living": "plank-oak",
+      "bedroom": "plank-oak",
+      "other": "plank-oak"
+    },
+    "floorBySpace": {
+      "hall": "plank-oak",
+      "games": "plank-oak",
+      "lobby": "tile-lobby",
+      "corridor": "tile-lobby",
+      "gym": "rubber-grey"
     }
   },
   "decor": {

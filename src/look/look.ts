@@ -14,6 +14,9 @@ import { createPostChain } from './post';
 import type { PostChain } from './post';
 import { TIERS, clampAnisotropy, lowerTier, loadSavedTier, readDevice, guessTier, saveTier, stepDown, tierFromQuery, postWanted, tierPixelCap, toneMapperFromQuery } from './quality';
 import { ResolutionGovernor } from './resolution';
+import { REALISM_KEY, REALISTIC_SETS, defaultRealism, effectiveRealism, parseRealism, realismFromQuery, realisticPaths } from './realistic';
+import type { RealismLevel, RealisticFamily } from './realistic';
+import { furnitureKit } from './furniture-materials';
 import { MAX_LAMP_POOLS, MAX_WINDOW_LIGHTS, lampColour, lampSources, nearestTo, skylightColour, windowSources } from './daylight';
 import type { LampSource, WindowSource } from './daylight';
 import type { TierConfig, ToneMapperName } from './quality';
@@ -72,6 +75,13 @@ export interface Look {
   sun(): SunState;
   /** 'auto' re-runs the device guess and frame timing; a tier forces it */
   setQuality(q: QualityMode): Promise<void>;
+  /** SPEC 16.21 "Realistic materials": the viewer's choice (off, 1k, 2k), persisted; `?materials=` wins for a check */
+  readonly realism: RealismLevel;
+  /** what is drawn now: low tier, a scan and an outdoor space are always off; the governor may have dropped 2k to 1k */
+  readonly realismEffective: RealismLevel;
+  setRealism(level: RealismLevel, persist?: boolean): void;
+  /** textures of the level being loaded: `done` of `total` (0 of 0 when nothing is loading) */
+  realismProgress(): { level: RealismLevel; done: number; total: number };
   /** Hooks for the rest of the scene. Safe to call any time, any number of times. */
   attach(parts: LookAttachments): void;
   /** the new layout (the editor preview rebuilds its shell often) */
@@ -559,6 +569,85 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     cubeTimer = setTimeout(() => { cubeTimer = null; if (!disposed) reflections.updateCube(); }, 150);
   }
 
+  // ---- realistic materials (SPEC 16.21): photographed sets over the procedural shell, loaded lazily per family actually in view, cross-faded in
+  let realismChosen: RealismLevel = realismFromQuery(typeof location !== 'undefined' ? location.search : '') ?? parseRealism((() => { try { return storage?.getItem(REALISM_KEY) ?? null; } catch { return null; } })()) ?? defaultRealism({ touch: device.touch, tier });
+  let realismDropped = false; // the governor gave up 2k for 1k before it lowered the pixel ratio
+  let realismApplied: RealismLevel | 'init' = 'init'; // 'init': nothing decided yet (the first sync sets the furniture kit's level too)
+  let realismVer = -1;
+  const realismFam = new Map<RealisticFamily, { level: RealismLevel; mix: number; target: number }>();
+  const realismLoading = new Map<string, Promise<void>>();
+  let realismProg = { level: 'off' as RealismLevel, done: 0, total: 0 };
+  const wantedRealism = (): RealismLevel => (cfg.tier === 'low' || scanVisible || outdoor ? 'off' : effectiveRealism(realismChosen, realismDropped));
+
+  /** mean linear luminance of a colour map (a 32 px copy), so the map only modulates around the pack's colour */
+  function meanLuminance(t: THREE.Texture): number {
+    try {
+      const img = t.image as CanvasImageSource & { width: number; height: number };
+      const c = document.createElement('canvas'); c.width = c.height = 32;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      if (!g) return 0.3;
+      g.drawImage(img, 0, 0, 32, 32);
+      const d = g.getImageData(0, 0, 32, 32).data;
+      const lin = (v: number): number => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
+      let sum = 0;
+      for (let i = 0; i < d.length; i += 4) sum += 0.2126 * lin(d[i]) + 0.7152 * lin(d[i + 1]) + 0.0722 * lin(d[i + 2]);
+      return Math.max(0.02, sum / (d.length / 4));
+    } catch { return 0.3; }
+  }
+
+  function loadRealistic(fam: RealisticFamily, level: Exclude<RealismLevel, 'off'>): void {
+    const key = `${fam}|${level}`;
+    if (realismLoading.has(key)) return;
+    const set = REALISTIC_SETS[fam];
+    const paths = realisticPaths(set.slug, level);
+    const aniso = Math.min(16, gpuAniso);
+    realismProg = { level, done: realismProg.level === level ? realismProg.done : 0, total: (realismProg.level === level ? realismProg.total : 0) + 3 };
+    const tick = (): void => { realismProg.done++; notify(); };
+    const p = Promise.all([
+      loader.texture(paths.diff, { srgb: true, anisotropy: aniso }).then((t) => { tick(); return t; }),
+      loader.texture(paths.nor, { srgb: false, anisotropy: aniso }).then((t) => { tick(); return t; }),
+      loader.texture(paths.rough, { srgb: false, anisotropy: aniso }).then((t) => { tick(); return t; }),
+    ]).then(([diff, nor, rough]) => {
+      if (disposed || wantedRealism() !== level) return;
+      const was = realismFam.get(fam);
+      materials.applyRealistic(fam, { diff, nor, rough, mean: meanLuminance(diff) }, set);
+      // a set replacing another (1k to 2k) keeps showing: only the first one fades in
+      const startMix = was && was.level !== 'off' ? 1 : 0;
+      materials.setRealisticMix(fam, startMix);
+      realismFam.set(fam, { level, mix: startMix, target: 1 });
+      notify();
+    }).catch((e) => { realismLoading.delete(key); console.warn(`[walkthru] realistic material ${set.slug} (${level}) not loaded: the procedural look stays`, e); });
+    realismLoading.set(key, p);
+  }
+
+  function syncRealism(): void {
+    const lvl = wantedRealism();
+    const ver = materials.realisticVersion();
+    if (lvl === realismApplied && ver === realismVer) return;
+    if (lvl !== realismApplied) {
+      void furnitureKit.setRealism(lvl);
+      if (lvl === 'off') { materials.clearRealistic(); realismFam.clear(); realismLoading.clear(); realismProg = { level: 'off', done: 0, total: 0 }; notify(); }
+      else realismProg = { level: lvl, done: 0, total: 0 };
+      realismApplied = lvl;
+    }
+    realismVer = ver;
+    if (lvl === 'off') return;
+    // only the families some material of the current space really uses are fetched
+    for (const fam of materials.realisticFamilies()) {
+      const have = realismFam.get(fam);
+      if (!have || have.level !== lvl) loadRealistic(fam, lvl);
+      else if (have.level === lvl && materials.realisticVersion() !== realismVer) { /* new materials of a loaded family: apply again */ }
+    }
+  }
+  let realismClock = 0;
+  function updateRealism(dt: number): void {
+    realismClock += dt;
+    if (realismClock > 0.25) { realismClock = 0; syncRealism(); }
+    for (const [fam, st] of realismFam) {
+      if (st.mix < st.target) { st.mix = Math.min(st.target, st.mix + dt / 0.7); materials.setRealisticMix(fam, st.mix); }
+    }
+  }
+
   // ---- auto quality: resolution first, then the tier (SPEC 16.18)
   // The first guess is the device's. A window of slow frames takes one rung off the pixel-ratio ladder (2 -> 1.75 -> 1.5 -> 1.25); only
   // when the ladder is spent and the window is still slow does the tier step down, once, and it is remembered. After a stretch of fast
@@ -568,14 +657,18 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   const offFrame = viewer.onFrame((frameDt) => {
     renderer.info.reset();
     if (!disposed && !scanVisible) interior.update(frameDt, { x: camera.position.x, z: camera.position.z });
-    if (!disposed) updateDaylight();
+    if (!disposed) { updateDaylight(); updateRealism(frameDt); }
     const now = performance.now();
     const dt = lastNow ? (now - lastNow) / 1000 : 0;
     lastNow = now;
     if (disposed || quality !== 'auto' || loadingTier || document.hidden) { governor.resetWindow(); return; }
     const ev = governor.frame(dt);
     if (!ev) return;
-    if (ev.type === 'ratio') { viewer.setPixelRatioCap(ev.ratio); notify(); return; }
+    if (ev.type === 'ratio') {
+      // the cheapest thing to give up first is the 2K textures (SPEC 16.21): the step down is taken back and the maps drop to 1K
+      if (ev.reason === 'slow' && realismApplied === '2k') { realismDropped = true; governor.undoStep(); syncRealism(); notify(); return; }
+      viewer.setPixelRatioCap(ev.ratio); notify(); return;
+    }
     if (cfg.shadow === 'live' && cfg.shadowMapSize > 2048) {
       // the cheapest thing left to give up on the high tier: the 4096 shadow map, drawn every frame, goes to 2048 before the tier steps down
       cfg = { ...cfg, shadowMapSize: 2048 };
@@ -602,6 +695,16 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     get trueColours() { return trueColours; },
     get outdoor() { return outdoor; },
     get quality() { return quality; },
+    get realism() { return realismChosen; },
+    get realismEffective() { return realismApplied === 'init' ? wantedRealism() : realismApplied; },
+    setRealism(level, persist = true) {
+      realismChosen = level;
+      realismDropped = false;
+      if (persist) { try { storage?.setItem(REALISM_KEY, level); } catch { /* private mode */ } }
+      syncRealism();
+      notify();
+    },
+    realismProgress: () => ({ ...realismProg }),
     get tierConfig() { return cfg; },
     get lookFile() { return lookFile; },
     get finishes() { return layout.finishes; },
