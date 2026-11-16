@@ -448,8 +448,9 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
         marker.setVisible(k > 0.02);
         marker.set(d.character.position.x, d.character.position.z, ctx.camera.viewYawDeg, cur.dist * 0.04 * k);
       }
+      // the name tags' wall tests are a few rays each: twice as seldom on the low tier
       occludeClock += dt;
-      if (occludeClock > 0.2) { occludeClock = 0; updateOcclusion(); }
+      if (occludeClock > (d.tier() === 'low' ? 0.5 : 0.2)) { occludeClock = 0; updateOcclusion(); }
       updateLabels(dt, flight.amount > 0.6);
       updateHover(dt);
       if (outline?.active) {

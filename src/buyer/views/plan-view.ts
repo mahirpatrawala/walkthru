@@ -188,10 +188,10 @@ export function createPlanView(d: PlanViewDeps): PlanViewApi {
     dot.style.strokeWidth = `${2 / pxPerM}px`;
     lastDrawn = null;
     drawMe();
-    // the north arrow sits in the top right corner of what is on screen
+    // the north arrow sits in the bottom left corner of what is on screen (the top and the right are the chrome's)
     const s = 22 / pxPerM;
     const rot = hasNorth ? -(d.northDeg as number) : 0;
-    north.setAttribute('transform', `translate(${n3(view.cx + view.w / 2 - 44 / pxPerM)} ${n3(view.cz - h / 2 + 62 / pxPerM)}) rotate(${n3(rot)}) scale(${n3(s)})`);
+    north.setAttribute('transform', `translate(${n3(view.cx - view.w / 2 + 52 / pxPerM)} ${n3(view.cz + h / 2 - 84 / pxPerM)}) rotate(${n3(rot)}) scale(${n3(s)})`);
     for (const t of dimTexts) t.style.removeProperty('font-size');
   }
   let lastDrawn: { x: number; z: number; yaw: number } | null = null;
@@ -202,7 +202,7 @@ export function createPlanView(d: PlanViewDeps): PlanViewApi {
     lastDrawn = { x: p.x, z: p.z, yaw };
     dot.setAttribute('cx', n3(p.x));
     dot.setAttribute('cy', n3(p.z));
-    cone.setAttribute('d', conePath(p, yaw, 46 / pxPerM, 36));
+    cone.setAttribute('d', conePath(p, yaw, 62 / pxPerM, 36));
   }
 
   const toPlan = (clientX: number, clientY: number): Vec2 => {
