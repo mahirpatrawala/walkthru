@@ -12,7 +12,7 @@ import { buildShell } from '../src/engine/shell';
 import { kitPlan } from '../src/look/kit/rules';
 import { PEOPLE_PRESETS, depthCardModel, sectionSvg } from '../src/outdoor/depth-card';
 import { ownedEdges } from '../src/outdoor/load';
-import { mountFoliage, speciesTriangles } from '../src/outdoor/foliage';
+import { hedgeBlockTriangles, mountFoliage, speciesTriangles } from '../src/outdoor/foliage';
 import { outdoorPlanArt } from '../src/outdoor/plan-art';
 import { ADULT, CHILD, TODDLER, depthAt, depthSentence, floorY, levelAgainst, markerStations, profileDepth, stepRects, waterAt, waterLevelY, waterObstacles } from '../src/outdoor/pool';
 import { allHedges, allPlants, plantBudget, plantRow, plantsForTier, scatterBed } from '../src/outdoor/plants';
@@ -310,7 +310,7 @@ describe('the planting', () => {
       expect(inst.length).toBe(h.counts.instanced);
       let tris = 0;
       for (const m of inst) tris += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3 * m.count;
-      const est = plantBudget(garden, tier, speciesTriangles).triangles;
+      const est = plantBudget(garden, tier, speciesTriangles, hedgeBlockTriangles).triangles;
       expect(Math.abs(tris - est) / est).toBeLessThan(0.02);
       // wind only where the tier has it
       let windy = 0;

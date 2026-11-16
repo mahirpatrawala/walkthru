@@ -280,8 +280,11 @@ export function speciesTriangles(id: SpeciesId, tier: Tier): number {
 }
 
 /** a rounded, slightly lumpy block of unit size (1 x 1 x 1 about the base centre) for a clipped hedge; UV repeats the leaf mat */
-export function hedgeBlock(): THREE.BufferGeometry {
-  const g = new THREE.BoxGeometry(1, 1, 1, 10, 8, 6);
+/** facets of a hedge block by tier: low 5 x 4 x 3 (188 triangles), medium 8 x 6 x 4 (416), high 10 x 8 x 6 (752) */
+export const HEDGE_SEGS: Record<Tier, [number, number, number]> = { low: [5, 4, 3], medium: [8, 6, 4], high: [10, 8, 6] };
+export const hedgeBlockTriangles = (tier: Tier): number => { const [a, b, c] = HEDGE_SEGS[tier]; return 4 * (a * b + a * c + b * c); };
+export function hedgeBlock(tier: Tier = 'high'): THREE.BufferGeometry {
+  const g = new THREE.BoxGeometry(1, 1, 1, ...HEDGE_SEGS[tier]);
   const p = g.attributes.position;
   const v = new THREE.Vector3();
   for (let i = 0; i < p.count; i++) {
@@ -382,7 +385,7 @@ export function mountFoliage(spots: PlantSpot[], hedges: HedgeSeg[], tier: Tier,
     const sp = SPECIES[id];
     const tex = hedgeTexture(sp, seed + 31);
     const mat = new THREE.MeshStandardMaterial({ map: tex ?? undefined, color: tex ? '#ffffff' : sp.leaf[2], roughness: 0.9 });
-    const g = hedgeBlock();
+    const g = hedgeBlock(tier);
     const im = new THREE.InstancedMesh(g, mat, list.length);
     im.name = `hedge:${id}`; im.userData.outdoor = im.name; im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false;
     list.forEach((h, i) => {
