@@ -11,13 +11,13 @@
     },
     "lobby-3-lobby-visitor-set": {
       "roles": {
-        "fabric": "weave-terracotta",
-        "top": "black-stone"
+        "fabric": "weave-sand",
+        "top": "walnut-deep"
       }
     },
     "decor": {
       "roles": {
-        "rug": "weave-charcoal"
+        "rug": "weave-bluegrey"
       }
     }
   },

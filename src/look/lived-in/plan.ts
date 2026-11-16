@@ -621,7 +621,7 @@ class Planner {
       const S = h.surfaceHeightM;
       const w = h.box.w;
       // the backsplash between the counter and the cabinets, the counter's whole length
-      if (this.wallFree(f, u - w / 2, u + w / 2, S + 0.12)) this.wallPiece('dado', room, f, u, S, w, 0.012, 0.62);
+      if (this.wallFree(f, u - w / 2, u + w / 2, S + 0.9)) this.wallPiece('dado', room, f, u, S, w, 0.012, 0.62);
       // the hood over the hob (the hob sits 0.45 from the counter's left end, seen from the front)
       let hoodU: number | null = null;
       if (h.id === hobId && w >= 1.2) {

@@ -27,6 +27,8 @@ export interface KitMaterials {
 /** Peak emissive strength of each light kind when lit. */
 export const LIT: Record<LightKind, number> = { tube: 2.4, cove: 2.0, fan: 2.0 };
 const WARM: Record<LightKind, string> = { tube: '#fff4de', cove: '#ffd9a8', fan: '#ffe7bd' };
+/** the cove's LED strip lies in the slot behind the fascia, in the fascia's own shadow: a little glow when off keeps it from reading as a hard black line */
+const COVE_OFF_GLOW = 0.55;
 const OFF: Record<LightKind, string> = { tube: '#c8c6c0', cove: '#e0dcd4', fan: '#d3d0ca' };
 
 /** A 32 px tile of fine mesh: transparent cells, a faint wire along two edges. Null without a DOM (Node). */
@@ -61,7 +63,7 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
   const lens = {} as Record<LightKind, THREE.MeshStandardMaterial>;
   const lit = { tube: false, cove: false, fan: false };
   for (const k of ['tube', 'cove', 'fan'] as LightKind[]) {
-    lens[k] = new THREE.MeshStandardMaterial({ color: OFF[k], roughness: 0.45, emissive: WARM[k], emissiveIntensity: 0 });
+    lens[k] = new THREE.MeshStandardMaterial({ color: OFF[k], roughness: 0.45, emissive: WARM[k], emissiveIntensity: k === 'cove' ? COVE_OFF_GLOW : 0 });
     lens[k].side = k === 'cove' ? THREE.DoubleSide : THREE.FrontSide;
   }
   const coveMat = std(`#${new THREE.Color(fin.ceilingColor).multiplyScalar(0.8).getHexString()}`, 1);
@@ -78,7 +80,7 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
     downlight,
     mirror: new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.12, metalness: 0.35 }),
     lens,
-    setLit(kind, on) { lit[kind] = on; lens[kind].emissiveIntensity = on ? LIT[kind] : 0; lens[kind].color.set(on ? '#ffffff' : OFF[kind]); },
+    setLit(kind, on) { lit[kind] = on; lens[kind].emissiveIntensity = on ? LIT[kind] : kind === 'cove' ? COVE_OFF_GLOW : 0; lens[kind].color.set(on ? '#ffffff' : OFF[kind]); },
     isLit: (kind) => lit[kind],
     dispose() {
       for (const mat of [m.grill, m.alu, m.veil, m.railing, m.fixtures, m.fan, ...Object.values(lens)]) { mat.map?.dispose(); mat.dispose(); }
