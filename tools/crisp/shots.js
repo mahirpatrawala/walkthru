@@ -38,6 +38,7 @@ if (set === 'flat') {
   views.toilet = lookAt([7.4, 1.6, 5.55], [7.4, 0.8, 3.9]);
   // the zoom test (30 cm from the surface): a floor with joints, a wall with its skirting, a door's edge with its frame
   views.zoomfloor = lookAt([1.4, 0.32, 7.5], [1.55, 0.0, 7.6]);
+  views.zoomfloor2 = lookAt([7.3, 0.34, 7.85], [7.55, 0.0, 8.0]);
   views.zoomwall = lookAt([0.38, 0.4, 8.0], [0.08, 0.1, 8.0]);
   { const d = await doorInfo('door-bedroom-1'); const e = d.u1 - 0.02; const c = { x: d.a.x + d.dir.x * e, z: d.a.z + d.dir.z * e };
     views.zoomdoor = { eye: [c.x + d.out.x * 0.32, 1.0, c.z + d.out.z * 0.32], target: [c.x, 0.95, c.z], yaw: 0, at: { x: c.x + d.out.x * 0.32, z: c.z + d.out.z * 0.32 } }; }

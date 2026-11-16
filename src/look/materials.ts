@@ -178,7 +178,7 @@ if (uLkKit > 0.5) {
   vec2 lkDist = min(lkCell, 1.0 - lkCell);
   vec2 lkReal = vec2(uLkKitGrout * 0.5) / uLkKitTile;
   vec2 lkHalf = max(lkReal, lkFw * 0.55);
-  vec2 lkM = (1.0 - smoothstep(lkHalf - lkFw * 0.5, lkHalf + lkFw * 0.5, lkDist)) * (lkReal / lkHalf);
+  vec2 lkM = (1.0 - smoothstep(lkHalf - lkFw * 0.5, lkHalf + lkFw * 0.5, lkDist)) * max(lkReal / lkHalf, vec2(0.4));
   lkGrout = max(lkM.x, lkM.y);
   if (uLkPlain < 0.5) {
     diffuseColor.rgb *= 1.0 + (lkHash(floor(lkUVc) + 3.1) - 0.5) * uLkKitVar;
@@ -413,7 +413,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         set(r, 'uLkKitTile', new THREE.Vector2(spec.tileU, spec.tileV));
         set(r, 'uLkKitGrout', spec.groutM);
         // the joint is the tile's own colour, a little deeper and a little towards the drawing's grout colour: a hairline you can see, not a dark rule
-        set(r, 'uLkKitGroutCol', new THREE.Color(spec.color).lerp(new THREE.Color(spec.groutColor), 0.3).multiplyScalar(0.66));
+        set(r, 'uLkKitGroutCol', new THREE.Color(spec.color).lerp(new THREE.Color(spec.groutColor), 0.3).multiplyScalar(0.62));
         if (!spec.matt) { set(r, 'uLkKitBevel', spec.antiSkid ? 0.35 : 0.9); set(r, 'uLkKitSpeck', spec.antiSkid ? 1.4 : 1); } else set(r, 'uLkKitSpeck', 1.6);
         set(r, 'uLkKitVar', spec.antiSkid ? 0.12 : 0.06);
         set(r, 'uLkKitRoughMin', spec.antiSkid ? 0.72 : spec.matt ? 0.6 : 0);

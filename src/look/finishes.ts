@@ -379,7 +379,7 @@ export const FINISH_LIST: FinishDef[] = [
   F('tile-beige-gloss', 'Glossy beige tile', '#F2E3CA', 'gloss', 'tile'),
   F('tile-ivory-gloss', 'Glossy ivory tile', '#ECE4D6', 'gloss', 'tile'),
   F('tile-grey', 'Soft grey tile', '#C9C6C0', 'gloss', 'tile'),
-  F('tile-stone', 'Light stone tile', '#C4C1B8', 'gloss', 'tile'),
+  F('tile-stone', 'Light stone tile', '#B6B3AA', 'gloss', 'tile'),
   F('tile-stone-grey', 'Mid stone-grey tile', '#A9A7A1', 'gloss', 'tile'),
   F('tile-sand', 'Sand tile', '#D8C9AE', 'gloss', 'tile'),
 ];
