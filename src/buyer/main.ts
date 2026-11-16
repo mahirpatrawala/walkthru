@@ -428,6 +428,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   hud.setVisible(false);
   cleanup.push(() => hud.dispose());
   hud.setPlace(host?.placeText ?? property.title);
+  if (host?.brand) hud.setBrand(host.brand);
   const tagText = host ? host.tagText : sceneTagText(property);
   if (tagText) mountSceneTag(hud.root, tagText);
   if (uploaded) { const up = uploaded; void import('../upload/notes-panel').then((m) => m.mountUploadNote(hud.root, up.data.notes, sceneId, up.source === 'sample')); }

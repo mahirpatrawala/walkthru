@@ -78,7 +78,8 @@ export async function renderBuildingPage(root: HTMLElement, id: string, go: (url
     back.addEventListener('click', (e) => { e.preventDefault(); go('/'); });
     return;
   }
-  document.title = `${b.name} · walkthru`;
+  document.title = b.brand ? `${b.name} · ${b.brand.name}` : `${b.name} · walkthru`;
+  if (b.brand) top.remove();
   mountBuildingMap(holder, {
     building: b, actionLabel: 'Walk in',
     back: { label: '← All homes', href: '/', onClick: () => go('/') },

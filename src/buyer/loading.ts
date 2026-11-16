@@ -1,5 +1,7 @@
 // Owned by C3. B1: the loading screen, and the on-screen error states (SPEC 2.1).
 import { el } from './hud';
+import { CREDIT_TEXT, brandMarkEl } from '../brand/builder-brand';
+import type { ShownBrand } from '../brand/builder-brand';
 
 /** A small floor plan that draws itself, with a measuring line sliding under it (CSS in buyer.css). Fixed markup, no page data. */
 const PLAN_ART =
@@ -15,6 +17,8 @@ const PLAN_ART =
 
 export interface LoadingScreen {
   setTitle(title: string, subtitle?: string): void;
+  /** a builder's brand over the title: its logo and name, and the small credit (SPEC 18.15) */
+  setBrand(brand: ShownBrand | null): void;
   /** the fine print under the tagline */
   setNote(text: string): void;
   setProgress(fraction: number, status?: string): void;
@@ -36,6 +40,9 @@ export function createLoadingScreen(parent: HTMLElement): LoadingScreen {
   const card = el('div', 'wt-screen-card', undefined, screen);
   const art = el('div', undefined, undefined, card);
   art.innerHTML = PLAN_ART;
+  const brandRow = el('div', 'wt-screen-brand', undefined, card);
+  brandRow.dataset.testid = 'loading-brand';
+  brandRow.hidden = true;
   const h1 = el('h1', undefined, 'walkthru', card);
   const sub = el('p', 'wt-sub', 'Opening the home…', card);
   const bar = el('div', 'wt-progress', undefined, card);
@@ -67,6 +74,15 @@ export function createLoadingScreen(parent: HTMLElement): LoadingScreen {
   };
 
   return {
+    setBrand(brand) {
+      brandRow.replaceChildren();
+      brandRow.hidden = !brand;
+      screen.querySelector('.wt-screen-credit')?.remove();
+      if (!brand) return;
+      brandRow.appendChild(brandMarkEl(document, brand, 'wt-screen-logo'));
+      el('span', undefined, brand.name, brandRow);
+      if (brand.credit) el('p', 'wt-screen-credit', CREDIT_TEXT, screen);
+    },
     setTitle(title, subtitle) {
       h1.textContent = title;
       sub.textContent = subtitle ?? '';

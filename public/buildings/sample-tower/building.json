@@ -1210,5 +1210,11 @@
       ]
     }
   ],
-  "startSpace": "lobby"
+  "startSpace": "lobby",
+  "brand": {
+    "name": "Sample Developers",
+    "logo": "brand.svg",
+    "accent": "#1F6F5C",
+    "tagline": "A demonstration brand. Yours goes here."
+  }
 }

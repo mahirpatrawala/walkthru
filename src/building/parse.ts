@@ -1,7 +1,7 @@
 // Reads and checks a building.json. Throws an Error with a readable message that names where the problem is.
 // Shape first (types, ids, ranges), then the links between parts (portals pair up, lifts serve real levels, flat types exist).
 import { SPACE_KINDS } from './types';
-import type { BuildingFile, DoorLook, FlatType, Level, Lift, LobbyAnchor, Placement, Portal, Space, SpaceKind } from './types';
+import type { BuilderBrand, BuildingFile, DoorLook, FlatType, Level, Lift, LobbyAnchor, Placement, Portal, Space, SpaceKind } from './types';
 
 export const BUILDING_ID_RE = /^[a-z0-9-]{1,40}$/;
 export const SPACE_ID_RE = /^[a-z0-9-]{1,40}$/;
@@ -188,6 +188,32 @@ export function checkLinks(b: BuildingFile): string[] {
 }
 
 /** Parses and checks a building.json. Throws an Error naming the first problem. */
+export const BRAND_LOGO_RE = /^[a-z0-9][a-z0-9._-]{0,60}\.(svg|png)$/;
+/** The optional `brand` block. Everything in it is checked: a file that names a brand gets exactly that brand or an error that says where. */
+export function parseBrand(v: unknown): BuilderBrand {
+  if (!isObj(v)) return fail('brand', 'must be an object');
+  const name = typeof v.name === 'string' ? v.name.trim() : '';
+  if (!name || name.length > 60) fail('brand.name', 'must be 1 to 60 characters');
+  const out: BuilderBrand = { name };
+  if (v.logo !== undefined) {
+    if (typeof v.logo !== 'string' || !BRAND_LOGO_RE.test(v.logo)) fail('brand.logo', 'must be the name of an .svg or .png file in the building\'s folder (lower-case letters, digits, dots and hyphens; no path)');
+    out.logo = v.logo as string;
+  }
+  if (v.accent !== undefined) {
+    if (typeof v.accent !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(v.accent)) fail('brand.accent', 'must be a colour written "#RRGGBB"');
+    out.accent = (v.accent as string).toUpperCase();
+  }
+  if (v.tagline !== undefined) {
+    if (typeof v.tagline !== 'string' || !v.tagline.trim() || v.tagline.length > 80) fail('brand.tagline', 'must be 1 to 80 characters');
+    out.tagline = (v.tagline as string).trim();
+  }
+  if (v.hideCredit !== undefined) {
+    if (typeof v.hideCredit !== 'boolean') fail('brand.hideCredit', 'must be true or false');
+    if (v.hideCredit) out.hideCredit = true;
+  }
+  return out;
+}
+
 export function parseBuilding(json: unknown): BuildingFile {
   if (!isObj(json)) return fail('the file', 'must be a JSON object');
   if (json.version !== 1) fail('version', 'must be 1');
@@ -213,6 +239,7 @@ export function parseBuilding(json: unknown): BuildingFile {
   if (typeof json.startSpace === 'string') b.startSpace = json.startSpace;
   if (json.unlisted === true) b.unlisted = true;
   if (json.bare === true) b.bare = true;
+  if (json.brand !== undefined) b.brand = parseBrand(json.brand);
   if (b.sample && !b.note) b.note = 'Sample layout for demonstration';
   const problems = checkLinks(b);
   if (problems.length) throw new BuildingFormatError('links', `${problems[0]}${problems.length > 1 ? ` (and ${problems.length - 1} more)` : ''}`);
