@@ -27,8 +27,8 @@ interface GroundSpec {
 }
 
 export const GROUND: Record<GroundKind, GroundSpec> = {
-  lawn: { tex: 'leafy_grass', mean: 0.2389, tile: 1.6, tint: '#548C35', roughness: 0.95, normalScale: 0.9, strength: 0.85, noise: 0.2, dry: 0.28 },
-  deck: { tex: 'wood_floor_deck', mean: 0.06, tile: 2.0, tint: '#8F6B4B', roughness: 0.62, normalScale: 0.8, strength: 1.0, noise: 0.1, dry: 0 },
+  lawn: { tex: 'leafy_grass', mean: 0.2389, tile: 1.6, tint: '#588C3A', roughness: 0.95, normalScale: 0.9, strength: 0.85, noise: 0.27, dry: 0.42 },
+  deck: { tex: 'wood_floor_deck', mean: 0.06, tile: 2.0, tint: '#9C7857', roughness: 0.62, normalScale: 0.8, strength: 1.0, noise: 0.1, dry: 0 },
   paving: { tex: 'red_sandstone_pavement', mean: 0.1068, tile: 1.8, tint: '#C9B49A', roughness: 0.88, normalScale: 0.9, strength: 0.9, noise: 0.1, dry: 0 },
   path: { tex: 'interlocking_concrete_pavers', mean: 0.0912, tile: 1.2, tint: '#B6AFA6', roughness: 0.9, normalScale: 0.9, strength: 0.9, noise: 0.08, dry: 0 },
   gravel: { tex: 'gravel_floor_02', mean: 0.3875, tile: 1.1, tint: '#D4CAB6', roughness: 0.97, normalScale: 1.0, strength: 0.9, noise: 0.1, dry: 0 },
@@ -67,7 +67,7 @@ export function patchGround(mat: THREE.MeshStandardMaterial, spec: { mean: numbe
   float owN = owN1 * 0.55 + owN2 * 0.3 + owN3 * 0.15;
   diffuseColor.rgb *= 1.0 + (owN - 0.5) * 2.0 * uNoise;
   diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.18, 1.02, 0.62), smoothstep(0.52, 0.85, owN1) * uDry);
-  if (uStripe > 0.5) { float st = smoothstep(0.42, 0.58, abs(fract(vOW.x / 2.4) - 0.5) * 2.0); diffuseColor.rgb *= mix(0.9, 1.1, st); }
+  if (uStripe > 0.5) { float st = smoothstep(0.44, 0.56, abs(fract(vOW.x / 3.4) - 0.5) * 2.0); diffuseColor.rgb *= mix(0.84, 1.13, st); }
 `);
     if (spec.lumps) {
       shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
@@ -135,7 +135,12 @@ export class OutdoorMaterials {
 
   dispose(): void {
     this.disposed = true;
-    for (const m of this.made) m.dispose();
+    for (const m of this.made) {
+      // the textures of a finish go with it, whether or not its mesh is still in the scene
+      const std = m as THREE.MeshStandardMaterial;
+      std.map?.dispose(); std.normalMap?.dispose();
+      m.dispose();
+    }
     this.made.clear();
     this.cache.clear();
     this.loader.dispose();

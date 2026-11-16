@@ -19,5 +19,6 @@ export function outdoorSunScale(tierScale: number): number { return Math.max(tie
  */
 export function outdoorHemiBoost(g: Pick<Grade, 'sunIntensity' | 'night'>): number {
   if (g.night) return 2.2;
-  return 1 + 0.8 * (1 - Math.min(1, g.sunIntensity / 5.4));
+  // by day the open sky fills the shade (a quarter to a third of the sun), so a shadow outdoors is never black
+  return 1.3 + 0.5 * (1 - Math.min(1, g.sunIntensity / 5.4));
 }

@@ -87,9 +87,9 @@ export const allHedges = (f: OutdoorFile): HedgeSeg[] => f.rows.filter((r) => r.
 
 /** the share of a bed's shrubs a tier draws (trees and palms are always all drawn), and how many leaf cards a clump of foliage gets */
 export const VEG_TIER: Record<Tier, { shrubShare: number; cardsPerClump: number; wind: boolean; clumpsPerTree: number }> = {
-  low: { shrubShare: 0.55, cardsPerClump: 7, wind: false, clumpsPerTree: 8 },
-  medium: { shrubShare: 1, cardsPerClump: 16, wind: true, clumpsPerTree: 16 },
-  high: { shrubShare: 1, cardsPerClump: 22, wind: true, clumpsPerTree: 24 },
+  low: { shrubShare: 0.55, cardsPerClump: 9, wind: false, clumpsPerTree: 9 },
+  medium: { shrubShare: 1, cardsPerClump: 22, wind: true, clumpsPerTree: 18 },
+  high: { shrubShare: 1, cardsPerClump: 30, wind: true, clumpsPerTree: 26 },
 };
 const isShrub = (s: SpeciesId): boolean => { const f = speciesOf(s).form; return f === 'shrub' || f === 'bush'; };
 

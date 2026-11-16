@@ -16,7 +16,7 @@ export const POOL_DEFAULTS: PoolParams = { variant: 'lounger', canopyM: 2.5, tex
 export const TEAK: MatSpec = { key: 'wood', tint: '#A66F3A' };
 export const RESIN: MatSpec = { key: 'laminate', tint: '#F1EFE9' };
 export const CANVAS: MatSpec = { key: 'cotton', tint: '#E9E2D2' };
-export const NAVY: MatSpec = { key: 'cotton', tint: '#2E4A6E' };
+export const NAVY: MatSpec = { key: 'cotton', tint: '#3D6291' };
 export const POOL_BLUE: MatSpec = { key: 'paint', tint: '#1E73A8' };
 export const SIGN_RED: MatSpec = { key: 'paint', tint: '#C93A2E' };
 export const WHITE_PAINT: MatSpec = { key: 'paint', tint: '#F2F2EE' };
@@ -179,8 +179,17 @@ function depthSign(P: Parts, { w, d, h }: GenSize, text: string): void {
   P.box('base', CHROME, -0.09, 0.09, 0, 0.03, -d / 2, d / 2, { c: 0.004 });
 }
 
+/** one texture a numeral, kept for the session (a disposed texture is simply uploaded again when it is next drawn): a piece that is rebuilt does not orphan a canvas */
+const signCache = new Map<string, THREE.Texture>();
 function signTexture(text: string): THREE.Texture | null {
   if (typeof document === 'undefined') return null;
+  const hit = signCache.get(text);
+  if (hit) return hit;
+  const t = paintSign(text);
+  if (t && signCache.size < 16) signCache.set(text, t);
+  return t;
+}
+function paintSign(text: string): THREE.Texture | null {
   const c = document.createElement('canvas');
   c.width = 256; c.height = 150;
   const g = c.getContext('2d');

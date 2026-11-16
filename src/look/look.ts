@@ -135,6 +135,8 @@ const EXPOSURE_TRUE = 1.0;
 const HEMI_REFERENCE = 1.25;
 /** the screen-space AO of the high tier on top of a bake: the bake has the corners, so this only adds the contact detail of furniture (SPEC 16.14) */
 const BAKED_SSAO_STRENGTH = 0.55;
+/** in the open there are no corners to darken: the screen-space AO only needs to seat a lounger or a bench on the ground */
+const OUTDOOR_SSAO_STRENGTH = 0.4;
 
 export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: LookFile | null, opts: { tier?: Tier; storage?: Storage | null; hasSplat?: boolean; /** an open-air space (SPEC 19): outdoor exposure, no room lamps, no floor reflection */ outdoor?: boolean; /** false keeps the flat background colour (the editor's orbit preview) */ backdrop?: boolean } = {}): Promise<Look> {
   const { renderer, scene, camera } = viewer;
@@ -338,7 +340,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     bakedApplied = on;
     interior.setPoolSize(on ? 0 : cfg.interiorLights);
     materials.setBakedMode(on);
-    post?.setAoStrength(on ? BAKED_SSAO_STRENGTH : 1);
+    post?.setAoStrength(on ? BAKED_SSAO_STRENGTH : outdoor ? OUTDOOR_SSAO_STRENGTH : 1);
     if (grid) rebuildAo(grid);
   }
 
@@ -408,7 +410,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
           .then((p) => {
             if (disposed || !TIERS[tier].post) { p.dispose(); return; }
             post = p;
-            post.setAoStrength(bakedApplied ? BAKED_SSAO_STRENGTH : 1);
+            post.setAoStrength(bakedApplied ? BAKED_SSAO_STRENGTH : outdoor ? OUTDOOR_SSAO_STRENGTH : 1);
             syncAo();
             applyLighting();
             applyRenderPath();
@@ -709,6 +711,9 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       renderer.shadowMap.enabled = false;
       renderer.info.autoReset = true;
       sunLight.castShadow = false;
+      // the sun's shadow map is a render target: a space that is taken down must free it (it was kept alive by the light, one per space)
+      sunLight.shadow.map?.dispose();
+      sunLight.shadow.map = null;
       scene.remove(sunLight.target);
       hemi.color.copy(oldLights.hemiColour); hemi.groundColor.copy(oldLights.hemiGround); hemi.intensity = oldLights.hemiIntensity;
       sunLight.color.copy(oldLights.sunColour); sunLight.intensity = oldLights.sunIntensity; sunLight.position.copy(oldLights.sunPosition);

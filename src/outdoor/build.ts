@@ -203,7 +203,7 @@ export function buildFacadeDecor(ctx: BuildCtx): THREE.Group {
   group.name = 'outdoor-facade';
   const frames = frameMap(ctx.layout);
   const H = ctx.layout.wallHeightM;
-  const glass = ctx.mats.plain('facade-glass', () => new THREE.MeshStandardMaterial({ color: '#2C4655', roughness: 0.08, metalness: 0.6 }));
+  const glass = ctx.mats.plain('facade-glass', () => new THREE.MeshStandardMaterial({ color: '#5E8296', roughness: 0.12, metalness: 0.25 }));
   const frame = metal(ctx, '#D8D8D4');
   const paint = wallPaint(ctx, '#F1EADB');
   const gl: THREE.BufferGeometry[] = [], fr: THREE.BufferGeometry[] = [], pn: THREE.BufferGeometry[] = [];
