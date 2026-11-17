@@ -47,6 +47,10 @@ export function mountMaterialsTool(root: HTMLElement, tools: HTMLElement, look: 
   const head = h('div', 'wt-mat-head', undefined, pop);
   h('b', undefined, REALISM_LABEL, head);
   const state = h('span', 'wt-mat-state', '', head);
+  const close = h('button', 'wt-mat-x', '×', head);
+  close.type = 'button';
+  close.setAttribute('aria-label', 'Close');
+  close.addEventListener('click', (e) => { e.stopPropagation(); setOpen(false); });
   const seg = h('div', 'wt-look-seg wt-mat-seg', undefined, pop);
   seg.setAttribute('role', 'group');
   seg.setAttribute('aria-label', REALISM_LABEL);
@@ -71,7 +75,7 @@ export function mountMaterialsTool(root: HTMLElement, tools: HTMLElement, look: 
     const chosen = look.realism, eff = look.realismEffective;
     const b = materialsBadge(chosen, eff);
     badge.textContent = b.text;
-    badge.classList.toggle('is-off', chosen === 'off');
+    badge.classList.toggle('is-off', eff === 'off'); // what is drawn is Off (chosen, or kept so on a low tier): no badge
     btn.dataset.level = chosen;
     btn.setAttribute('aria-label', `${REALISM_LABEL}: ${b.text}${b.kept ? ' (kept smooth on this device)' : ''}`);
     for (const [lv, el] of levels) { const on = lv === chosen; el.classList.toggle('is-on', on); el.setAttribute('aria-pressed', on ? 'true' : 'false'); }

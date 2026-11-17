@@ -23,7 +23,8 @@ export function buildShareUrl(s: ShareState): string {
   u.searchParams.set('at', `${r2(s.at.x)},${r2(s.at.z)},${Math.round(((s.at.yawDeg % 360) + 360) % 360)}`);
   u.searchParams.set('cam', s.cam);
   if (s.view && s.view !== 'walk') u.searchParams.set('view', s.view); else u.searchParams.delete('view');
-  u.searchParams.delete('debug');
+  // a link for someone else: not the display's own settings (a kiosk's loop, a pinned chrome, the debug switch)
+  for (const k of ['debug', 'kiosk', 'idle', 'chrome', 'autohide']) u.searchParams.delete(k);
   const out = u.toString();
   return s.withLayout ? s.withLayout(out) : out;
 }

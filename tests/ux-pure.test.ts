@@ -82,6 +82,9 @@ describe('the share link', () => {
     const old = new URL(buildShareUrl({ ...state, href: `${state.href}${state.href.includes('?') ? '&' : '?'}view=first`, cam: 'first', view: 'walk' }));
     expect(old.searchParams.get('cam')).toBe('first');
     expect(old.searchParams.has('view')).toBe(false);
+    // a link for someone else is not the kiosk's own settings
+    const kiosk = new URL(buildShareUrl({ ...state, href: `${state.href}${state.href.includes('?') ? '&' : '?'}kiosk=1&idle=5&chrome=hidden` }));
+    for (const k of ['kiosk', 'idle', 'chrome']) expect(kiosk.searchParams.has(k)).toBe(false);
     expect(new URL(buildShareUrl({ ...state, withLayout: (h) => `${h}&my=abc` })).searchParams.get('my')).toBe('abc');
   });
   it('reads it back, and drops anything malformed or out of range', () => {

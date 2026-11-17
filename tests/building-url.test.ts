@@ -26,3 +26,11 @@ describe('the address of a place in a building', () => {
     expect(parseBuildingUrl('?scene=test-tower-lobby')).toBeNull();
   });
 });
+
+describe('the display parameters go with the viewer (a kiosk that reloads is still a kiosk)', () => {
+  it('carries kiosk, idle, chrome, autohide, units and the switches, and nothing about the place', () => {
+    const carry = '?building=old&space=old-space&at=1,2,3&cam=first&view=doll&kiosk=1&idle=5&chrome=always&units=m2&debug=1&junk=1';
+    expect(buildingUrl({ building: 'sample-tower', space: 'f3-302' }, carry)).toBe('/?building=sample-tower&space=f3-302&kiosk=1&idle=5&chrome=always&units=m2&debug=1');
+    expect(buildingUrl({ building: 'sample-tower', space: null }, '')).toBe('/?building=sample-tower');
+  });
+});

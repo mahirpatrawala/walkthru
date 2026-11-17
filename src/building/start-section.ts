@@ -85,6 +85,6 @@ export async function renderBuildingPage(root: HTMLElement, id: string, go: (url
     building: b, actionLabel: 'Walk in',
     back: { label: '← All homes', href: '/', onClick: () => go('/') },
     // a walk is its own page load: the lazy chunk with three.js
-    onAction: (spaceId) => { location.assign(buildingUrl({ building: b.id, space: spaceId })); },
+    onAction: (spaceId) => { location.assign(buildingUrl({ building: b.id, space: spaceId }, location.search)); },
   });
 }
