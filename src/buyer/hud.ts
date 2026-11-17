@@ -326,17 +326,27 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const peek = (): void => {
     let phone = false;
     try { phone = window.matchMedia('(max-width: 760px), (pointer: coarse) and (max-height: 520px) and (min-width: 761px)').matches; } catch { /* no matchMedia */ }
-    bar.style.maxWidth = '';
-    if (!phone || !bar.parentElement || bar.scrollWidth <= bar.clientWidth + 1) return;
-    const first = bar.querySelector<HTMLElement>('.wt-btn, .wt-tool');
-    const cell = (first?.offsetWidth ?? 44) + 2;
-    const room = bar.clientWidth - 8;
-    const n = Math.max(1, Math.floor(room / cell - 0.35));
-    bar.style.maxWidth = `${Math.round(8 + (n + 0.5) * cell)}px`;
+    const parent = bar.parentElement;
+    if (!phone || !parent) { if (bar.style.maxWidth) bar.style.maxWidth = ''; return; }
+    // a button that is only an icon (the Flats button carries its name and is wider): the width of the last one
+    const btns = [...bar.querySelectorAll<HTMLElement>('.wt-btn, .wt-tool')].filter((b) => b.offsetWidth > 0);
+    const icon = btns[btns.length - 1];
+    const cell = (icon?.offsetWidth ?? 44) + 2;
+    const labelled = btns.reduce((sum, b) => sum + Math.max(0, b.offsetWidth - (icon?.offsetWidth ?? 44)), 0);
+    // what the row has: the whole group's width on a phone held upright (the tools are on a row of their own), what the view switch, the camera and the Tour leave when held sideways
+    const row = parent.clientWidth;
+    const sibs = [...parent.children].filter((c) => c !== bar && (c as HTMLElement).offsetWidth > 0) as HTMLElement[];
+    const used = sibs.reduce((sum, c) => sum + c.offsetWidth + 6, 0);
+    const avail = used + 8 + 9 * 46 > row ? row : row - used;
+    const want = bar.scrollWidth;
+    if (want <= avail + 1) { if (bar.style.maxWidth) bar.style.maxWidth = ''; return; }
+    const n = Math.max(1, Math.floor((avail - 8 - labelled) / cell - 0.35));
+    const w = `${Math.round(8 + labelled + (n + 0.5) * cell)}px`;
+    if (bar.style.maxWidth !== w) bar.style.maxWidth = w;
   };
-  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => { peek(); }).observe(topbar);
+  if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(() => { peek(); }); ro.observe(topbar); ro.observe(bar); }
   window.addEventListener('resize', peek);
-  if (typeof MutationObserver !== 'undefined') new MutationObserver(() => { peek(); syncEnd(); }).observe(bar, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+  if (typeof MutationObserver !== 'undefined') new MutationObserver(() => { peek(); syncEnd(); }).observe(bar, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class'] });
   const buttons = {} as Record<HudButtonId, HTMLButtonElement>;
   (['rooms', 'measure', 'furnish', 'person', 'scan'] as HudButtonId[]).forEach((bid) => {
     const b = el('button', 'wt-btn wt-tool', undefined, bar);
@@ -568,7 +578,7 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const ro = typeof ResizeObserver !== 'undefined'
     ? new ResizeObserver(() => {
       // the height of what is IN the slot (a bare slot is 12 px of padding and margin, which pushed the phone's tools 12 px up off the room strip)
-      const filled = [...slot.children].some((c) => c.getBoundingClientRect().height > 0);
+      const filled = [...slot.children].some((c) => [...c.children].some((g) => g.getBoundingClientRect().height > 0));
       root.style.setProperty('--wt-slot-h', `${filled ? slot.offsetHeight : 0}px`);
     })
     : null;

@@ -364,6 +364,7 @@ class Planner {
   private rugFor(room: RoomTag): DecorPiece | null {
     const sofa = this.items.find((i) => i.kind === 'sofa' && i.box.w >= 1.2 && i.box.d <= 1.3 && this.itemRoom(i)?.id === room.id);
     // a centre table stands ON the rug, so it is not one of the things the rug keeps clear of
+    const tables = this.items.filter((i) => /^coffee/.test(i.catalogId ?? '')).map((i) => i.box);
     const others = this.items.filter((i) => i !== sofa && !/^coffee/.test(i.catalogId ?? '')).map((i) => i.box);
     const tryBox = (box: Box, allow: Box[]): boolean => {
       if (!this.onFreeFloor(box, room, allow)) return false;
@@ -387,7 +388,7 @@ class Planner {
       for (const k of [1, 0.8, 0.65]) cands.push({ cx: c.x, cz: c.z, w: 1.9 * k, d: 1.3 * k, yawDeg: yaw });
     }
     for (const box of cands) {
-      if (!tryBox(box, sofa ? [sofa.box] : [])) continue;
+      if (!tryBox(box, sofa ? [sofa.box, ...tables] : tables)) continue;
       return this.push({ kind: 'rug', roomId: room.id, place: 'floor', x: box.cx, y: 0.008, z: box.cz, yawDeg: box.yawDeg, w: box.w, d: box.d, height: 0.012 }, 'rug');
     }
     return null;
