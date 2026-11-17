@@ -7,7 +7,7 @@ import { rasterizeLayout, stampFurniture } from '../src/core/layout-raster';
 import { resolveDoors } from '../src/core/doors';
 import { findRoute, lineFree, routeLength, routesFrom, PLAN_RADIUS_TIGHT_M } from '../src/buyer/nav/grid-path';
 import { crossesDoorway, cutRoute, firstCrossing, planGridOf, pointAlong, standOffM } from '../src/buyer/nav/door-route';
-import { chipCaption, conePath, goDecision, liftAbove, roomChips, roomNear } from '../src/buyer/nav/nav-model';
+import { chipCaption, conePath, goPlan, pointAlongRoute, liftAbove, roomChips, roomNear } from '../src/buyer/nav/nav-model';
 import { ORDER_PENALTY_M, pickNext, roomKind, skippedNote, tourStops } from '../src/buyer/nav/tour-plan';
 import type { TourStop } from '../src/buyer/nav/tour-plan';
 
@@ -135,12 +135,22 @@ describe('the minimap geometry', () => {
     expect(roomNear(lay, { x: 10, z: 10 }, 0.3)).toBeNull();
     expect(roomNear(lay, { x: 3, z: 4.5 }, 0.3)).toBeNull();
   });
-  it('walks a path up to 12 m and fades for a longer one or none', () => {
-    expect(goDecision(4)).toBe('walk');
-    expect(goDecision(12)).toBe('walk');
-    expect(goDecision(12.5)).toBe('fade');
-    expect(goDecision(null)).toBe('fade');
-    expect(goDecision(Infinity)).toBe('fade');
+  it('walks a path up to 8 m, takes the shortcut for a longer one, and fades only when there is no path', () => {
+    expect(goPlan(4)).toBe('walk');
+    expect(goPlan(8)).toBe('walk');
+    expect(goPlan(8.5)).toBe('shortcut');
+    expect(goPlan(23)).toBe('shortcut');
+    expect(goPlan(null)).toBe('fade');
+    expect(goPlan(Infinity)).toBe('fade');
+  });
+  it('finds the point a given way along a route, clamped to its ends', () => {
+    const pts = [{ x: 0, z: 0 }, { x: 3, z: 0 }, { x: 3, z: 4 }];
+    expect(pointAlongRoute(pts, 0)).toEqual({ x: 0, z: 0 });
+    expect(pointAlongRoute(pts, 2)).toEqual({ x: 2, z: 0 });
+    expect(pointAlongRoute(pts, 5)).toEqual({ x: 3, z: 2 });
+    expect(pointAlongRoute(pts, 7)).toEqual({ x: 3, z: 4 });
+    expect(pointAlongRoute(pts, 99)).toEqual({ x: 3, z: 4 });
+    expect(pointAlongRoute(pts, -1)).toEqual({ x: 0, z: 0 });
   });
 });
 

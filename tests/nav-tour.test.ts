@@ -4,6 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { CHARACTER_RADIUS_M } from '../src/types';
 import { circleFree } from '../src/core/grid-query';
 import { makeSim, inRoom, loadScene } from './helpers/nav-sim';
+import { findRoute } from '../src/buyer/nav/grid-path';
+import { planGridOf } from '../src/buyer/nav/door-route';
+import { SHORTCUT_FROM_M } from '../src/buyer/nav/nav-model';
 
 const FLAT_204 = 'test-tower-flat-3bhk-a';
 
@@ -76,7 +79,67 @@ describe('going to a room', () => {
     expect(Math.abs((((sim.cam.yawDeg - spot.yawDeg) % 360) + 540) % 360 - 180)).toBeLessThan(2);
   }, 60000);
 
-  it('fades (a jump to the standing spot) when the path is over 12 m, and for a room it cannot walk to', async () => {
+  it('is a calm walk: never the jog clip, never faster than 1.5 m/s, eased in and out, to every room of the flat', async () => {
+    let longRoutes = 0;
+    for (const room of loadScene(FLAT_204).layout.rooms) {
+      const sim = makeSim(FLAT_204, 'living');
+      const spot = sim.driver.spotIn(room.id);
+      if (!spot || room.id === 'living') continue;
+      const p = sim.driver.goTo(room.id);
+      let bad = 0;
+      await sim.run(() => !sim.driver.busy, 90, (live) => { if (!circleFree(live, sim.ch.position.x, sim.ch.position.z, CHARACTER_RADIUS_M - 0.03)) bad++; });
+      const r = await p;
+      expect(['walked', 'jumped']).toContain(r);
+      expect(bad).toBe(0);
+      expect(sim.ch.gaits.some((g) => g.jog)).toBe(false);
+      const speeds = sim.ch.gaits.map((g) => g.speed);
+      expect(Math.max(...speeds)).toBeLessThanOrEqual(1.5);
+      // eased start: the first half second never exceeds what 1.5 m/s^2 would reach (the driver steps at 120 Hz: one call per step)
+      expect(speeds.slice(0, 60).every((v, i) => v <= 1.5 * ((i + 1) / 120) + 0.05)).toBe(true);
+      if (r === 'jumped') continue;
+      expect(Math.hypot(sim.ch.position.x - spot.x, sim.ch.position.z - spot.z)).toBeLessThan(0.06);
+      expect(inRoom(sim.layout, sim.ch.position)).toBe(room.id);
+      if (sim.jumps.length > 0) longRoutes++;
+    }
+    expect(longRoutes).toBeGreaterThan(0);
+  }, 240000);
+
+  it('a way over 8 m is walked for 1.5 s, cut once to a spot 2 m of walking before the standing spot, and ends at the same spot as the full walk', async () => {
+    const scene = loadScene(FLAT_204);
+    let tried = 0;
+    for (const room of scene.layout.rooms) {
+      const probe = makeSim(FLAT_204, 'living');
+      const spot = probe.driver.spotIn(room.id);
+      if (!spot || room.id === 'living') continue;
+      const route = findRoute(planGridOf(probe.statics, probe.doors.leaves()), probe.ch.position, spot, 150);
+      if (!route || route.lengthM <= SHORTCUT_FROM_M) continue;
+      tried++;
+      const sim = makeSim(FLAT_204, 'living');
+      const p = sim.driver.goTo(room.id);
+      let tCut = -1, t = 0;
+      await sim.run(() => !sim.driver.busy, 90, () => { t += 1 / 30; if (tCut < 0 && sim.jumps.length > 0) tCut = t; });
+      expect(await p).toBe('walked');
+      expect(sim.jumps).toHaveLength(1);
+      // the cut came after about 1.5 s of walking
+      expect(tCut).toBeGreaterThan(1.3);
+      expect(tCut).toBeLessThan(2.4);
+      // it landed 2 m of route from the spot
+      const j = sim.jumps[0];
+      const rest = findRoute(planGridOf(sim.statics, sim.doors.leaves()), { x: j.x, z: j.z }, spot, 150)!;
+      expect(rest.lengthM).toBeGreaterThan(1.7);
+      expect(rest.lengthM).toBeLessThan(2.4);
+      expect(Math.hypot(sim.ch.position.x - spot.x, sim.ch.position.z - spot.z)).toBeLessThan(0.06);
+      expect(sim.ch.gaits.some((g) => g.jog)).toBe(false);
+      expect(Math.max(...sim.ch.gaits.map((g) => g.speed))).toBeLessThanOrEqual(1.5);
+      // the walk on from the cut did not start from rest: it carried the speed it had
+      const after = sim.ch.gaits.slice(Math.round(tCut * 120));
+      expect(after[3].speed).toBeGreaterThan(0.4);
+      if (tried >= 3) break;
+    }
+    expect(tried).toBeGreaterThan(0);
+  }, 240000);
+
+  it('goes a long way by the shortcut, not a plain fade: the 23 m hall is one cut and the walk in', async () => {
     // a 24 m hall with a room at each end: the walk is 23 m
     const { DEFAULT_FINISHES } = await import('../src/types');
     const rect = (id: string, x0: number, z0: number, x1: number, z1: number, type: 'bedroom' | 'other', label: string) => ({ id, roomType: type, label, polygon: [{ x: x0, z: z0 }, { x: x1, z: z0 }, { x: x1, z: z1 }, { x: x0, z: z1 }], edges: ['wall', 'wall', 'wall', 'wall'] as ('wall')[] });
@@ -87,11 +150,20 @@ describe('going to a room', () => {
     const sim = makeSim(prop, 'w');
     const spot = sim.driver.spotIn('e')!;
     const p = sim.driver.goTo('e');
-    await sim.run(() => !sim.driver.busy, 20);
-    expect(await p).toBe('jumped');
+    await sim.run(() => !sim.driver.busy, 60);
+    expect(await p).toBe('walked');
     expect(sim.jumps).toHaveLength(1);
-    expect(Math.hypot(sim.ch.position.x - spot.x, sim.ch.position.z - spot.z)).toBeLessThan(1e-6);
+    expect(Math.hypot(sim.jumps[0].x - spot.x, sim.jumps[0].z - spot.z)).toBeGreaterThan(1.7);
+    expect(Math.hypot(sim.jumps[0].x - spot.x, sim.jumps[0].z - spot.z)).toBeLessThan(2.4);
+    expect(Math.hypot(sim.ch.position.x - spot.x, sim.ch.position.z - spot.z)).toBeLessThan(0.06);
+    expect(sim.ch.gaits.some((g) => g.jog)).toBe(false);
     expect(inRoom(layout as never, sim.ch.position)).toBe('e');
+    // with reduced motion there is no walk to cut: a plain jump to the spot
+    const calm = makeSim(prop, 'w', { reduced: true });
+    const p2 = calm.driver.goTo('e');
+    await calm.run(() => !calm.driver.busy, 5);
+    expect(await p2).toBe('jumped');
+    expect(Math.hypot(calm.ch.position.x - spot.x, calm.ch.position.z - spot.z)).toBeLessThan(1e-6);
   }, 60000);
 
   it('answers "no-spot" for a room only partly on the drawing, and does not move', async () => {

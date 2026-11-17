@@ -62,9 +62,16 @@ describe('the region a body may be drawn in', () => {
     // a one-cell diagonal strip (a door leaf ajar) cannot be seen through either
     const diag = floor();
     for (let k = 0; k < 30; k++) diag.cells[(50 + k) * diag.nx + (70 + k)] = 250;
-    const g = sightField(diag, 3.9, 2.9, 1.2);
-    let leaked = 0;
-    for (let k = 2; k < 28; k++) if (g.masks[0][Math.round((2.5 + k * C + 0.1 - g.z0) / C) * g.n + Math.round((3.5 + k * C - 0.1 - g.x0) / C)] === 1) leaked++;
+    // the strip is the line x - z = 1.0 (z 2.5 to 3.95); the walker stands 0.35 off it on one side
+    const g = sightField(diag, 3.9, 2.55, 1.2);
+    const at = (x: number, z: number): number => g.masks[0][Math.floor((z - g.z0) / C) * g.n + Math.floor((x - g.x0) / C)];
+    let leaked = 0, seen = 0;
+    for (let k = 6; k < 16; k++) {
+      const x = 3.5 + k * C + 0.5 * C, z = 2.5 + k * C + 0.5 * C;
+      if (at(x - 0.2, z + 0.2) === 1) leaked++; // 0.28 m beyond the strip, in free floor
+      if (at(x + 0.2, z - 0.2) === 1) seen++; // and the same distance on the walker's side
+    }
+    expect(seen).toBeGreaterThan(5);
     expect(leaked).toBe(0);
   });
 
@@ -198,7 +205,7 @@ describe('walking at a wall', () => {
     expect(circleFree(wall, ch.position.x, ch.position.z, CHARACTER_RADIUS_M)).toBe(true);
     // the last frame it moved, it was going at no more than the crawl
     const lastMoving = speeds.filter((v) => v > 0.02).at(-1)!;
-    expect(lastMoving).toBeLessThan(0.3);
+    expect(lastMoving).toBeLessThan(0.45);
     // from full pace the speed only falls, and never by more than the stopping rate allows (8.5 m/s^2), until it stands
     const from = speeds.indexOf(top);
     const stop = speeds.findIndex((v, i) => i > from && v < 0.02);

@@ -62,7 +62,7 @@ export interface Sim {
   driver: Driver;
   layout: Layout;
   doors: DoorSim;
-  ch: { position: Vec2; yawDeg: number; moving: number };
+  ch: { position: Vec2; yawDeg: number; moving: number; /** every setLocomotion call: the speed and whether the jog clip was asked for */ gaits: { speed: number; jog: boolean }[] };
   cam: { yawDeg: number };
   statics: Grid;
   /** runs frames until `until()` or `maxS` seconds; calls `each` after every frame */
@@ -71,14 +71,17 @@ export interface Sim {
   positions: Vec2[];
 }
 
-export function makeSim(scene: string | PropertyFile, startRoom: string, opts: { startOpen?: (d: Door) => boolean; reduced?: boolean; focal?: (roomId: string) => Vec2 | null } = {}): Sim {
+export function makeSim(scene: string | PropertyFile, startRoom: string, opts: { startOpen?: (d: Door) => boolean; reduced?: boolean; focal?: (roomId: string) => Vec2 | null; /** a real body to drive instead of the recording stand-in (it is put on the spawn) */ character?: DriverDeps['character'] } = {}): Sim {
   const prop = typeof scene === 'string' ? loadScene(scene) : scene;
   const layout = prop.layout;
   const statics = stampFurniture(rasterizeLayout(layout), prop.furniture);
   const doors = new DoorSim(layout, statics, opts.startOpen);
   const spawn = chooseSpawn(layout, startRoom, statics);
   if (!spawn) throw new Error(`no spawn in ${startRoom}`);
-  const ch = { position: { x: spawn.x, z: spawn.z }, yawDeg: spawn.yawDeg, moving: 0, setLocomotion(speed: number) { this.moving = speed; } };
+  const gaits: { speed: number; jog: boolean }[] = [];
+  const fake = { position: { x: spawn.x, z: spawn.z }, yawDeg: spawn.yawDeg, moving: 0, gaits, setLocomotion(speed: number, jog = false) { this.moving = speed; gaits.push({ speed, jog }); } };
+  if (opts.character) { opts.character.position = { x: spawn.x, z: spawn.z }; opts.character.yawDeg = spawn.yawDeg; }
+  const ch = (opts.character ?? fake) as typeof fake;
   const cam = { yawDeg: spawn.yawDeg };
   const jumps: Sim['jumps'] = [];
   let live = doors.stamp(statics);

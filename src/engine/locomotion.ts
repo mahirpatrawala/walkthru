@@ -24,7 +24,9 @@ const FACE_NONE_DEG = 90;
  * SPEC 4.12, walking at a wall. The walker looks this far ahead along its heading and slows so that it can stop where the way ends
  * (v^2 = 2 a d, with the stopping rate above): it arrives at a wall or a shut door at a crawl, standing, not in mid-stride.
  */
-const LOOK_AHEAD_M = 0.8;
+const LOOK_AHEAD_M = 1.0;
+/** The look-ahead plans to stop at this share of the stopping rate: a frame of lag in the speed then still leaves a crawl at the wall, not a stride. */
+const BRAKE_SHARE = 0.8;
 /** The last of the way is taken at this pace, m/s, so the walker does reach the wall; under `ARRIVED_M` of free way it stands. */
 const CREEP_MPS = 0.18;
 const ARRIVED_M = 0.012;
@@ -116,7 +118,7 @@ export function stepLocomotion(ch: Character, input: Input, cameraYawDeg: number
   // the way ends ahead: slow down in time to stop there
   const ahead = wayAhead(grid, ch.position, ux, uz);
   mem.open = ahead >= LOOK_AHEAD_M;
-  if (ahead < LOOK_AHEAD_M) goal = Math.min(goal, ahead < ARRIVED_M ? 0 : Math.sqrt(2 * DECEL_MPS2 * scale * ahead) + CREEP_MPS * scale);
+  if (ahead < LOOK_AHEAD_M) goal = Math.min(goal, ahead < ARRIVED_M ? 0 : Math.sqrt(2 * BRAKE_SHARE * DECEL_MPS2 * scale * (ahead - ARRIVED_M)) + CREEP_MPS * scale);
   mem.v = mem.v < goal ? Math.min(goal, mem.v + ACCEL_MPS2 * scale * dt) : Math.max(goal, mem.v - DECEL_MPS2 * scale * dt);
   mem.ux = ux; mem.uz = uz; mem.jog = jog;
   return glide(ch, mem, grid, dt, turnRate, scale);
@@ -134,10 +136,11 @@ function wayAhead(grid: Grid, from: { x: number; z: number }, ux: number, uz: nu
   // the last step, finer
   let lo = d, hi = d + STEP;
   for (let k = 0; k < 4; k++) { const mid = (lo + hi) / 2; if (circleFree(grid, from.x + ux * mid, from.z + uz * mid, CHARACTER_RADIUS_M)) lo = mid; else hi = mid; }
-  const at = { x: from.x + ux * lo, z: from.z + uz * lo };
+  // whether it slides on from there: the move is tried from where the walker is (the way the walk itself would take it), not from the contact spot,
+  // where the wall's cells are met a millimetre at a time and the answer flickers with the lattice
   const probe = 0.12;
-  const slid = moveCircle(grid, at, { x: ux * probe, z: uz * probe }, CHARACTER_RADIUS_M);
-  return Math.hypot(slid.x - at.x, slid.z - at.z) >= SLIDE_MIN * probe ? LOOK_AHEAD_M : lo;
+  const slid = moveCircle(grid, from, { x: ux * (lo + probe), z: uz * (lo + probe) }, CHARACTER_RADIUS_M);
+  return Math.hypot(slid.x - from.x, slid.z - from.z) - lo >= SLIDE_MIN * probe ? LOOK_AHEAD_M : lo;
 }
 
 /** Moves along the remembered heading at the remembered speed, rescuing a character found inside something first. */

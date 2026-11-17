@@ -69,7 +69,8 @@ function solidAt(tr: Truth, x: number, y: number, z: number): 0 | 1 | 2 {
   if (v === 0) return 0;
   if (v === 1) return y < tr.layout.wallHeightM ? 1 : 0;
   const h = tr.holes[v - 2];
-  if (y < h.t.sillM || y > h.t.headM) return 1;
+  // a sole drawn a millimetre under the floor is not under a door's (zero) sill: 3 cm of give on the sill
+  if (y < h.t.sillM - 0.03 || y > h.t.headM) return 1;
   if (h.door) {
     const u = (x - h.f.a.x) * h.f.dir.x + (z - h.f.a.z) * h.f.dir.z;
     const w = Math.min(DOOR_POST_M, (h.t.u1 - h.t.u0) / 2);
@@ -96,6 +97,13 @@ export function penetration(tr: Truth, x: number, y: number, z: number, root: Ve
     for (let k = 1; k <= n; k++) {
       const s = solidAt(tr, root.x + (dx * k) / n, y, root.z + (dz * k) / n);
       if (s === 0) continue;
+      // a seam: wall that is under 7 cm thick along an axis with air on both sides of it (a door hole is mapped to its frame's depth, the room beside it to
+      // its polygon, and the two can leave a few centimetres between them) is not a wall: the ray goes on
+      if (s === 1 && here === 0) {
+        const px = root.x + (dx * k) / n, pz = root.z + (dz * k) / n, e = 0.035;
+        const air = (x: number, z: number): boolean => solidAt(tr, x, y, z) === 0;
+        if ((air(px - e, pz) && air(px + e, pz)) || (air(px, pz - e) && air(px, pz + e))) continue;
+      }
       let depth = len * (1 - (k - 1) / n);
       if (here === 1) {
         let d = Infinity;

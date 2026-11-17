@@ -20,7 +20,7 @@ import type { Door } from '../../core/doors';
 import { findRoute, routesFrom } from './grid-path';
 import { cutRoute, doorway, firstCrossing, isOpenEnough, planGridOf, standOffM } from './door-route';
 import type { LeafState } from './door-route';
-import { goDecision } from './nav-model';
+import { SHORTCUT_LAST_M, SHORTCUT_WALK_S, goPlan, pointAlongRoute } from './nav-model';
 import { DWELL_S, pickNext, tourStops } from './tour-plan';
 import type { Skipped, TourStop, Vantage } from './tour-plan';
 import { GO_KIN, SIM_DT, TOUR_KIN, buildProfile, dampAngle, makeCurve, profileAt, roundCorners, smootherstep, speedCap } from './glide';
@@ -31,12 +31,13 @@ const DEG = Math.PI / 180;
 export const TOUR_WALK_MPS = TOUR_KIN.vc;
 export const GO_WALK_MPS = GO_KIN.vc;
 /** A path no longer than this is walked; a longer one is a fade. */
-export const MAX_WALK_M = 12;
 /** What the glide never exceeds (the tests hold it to these, SPEC 2.6): heading rate, deg/s, and its change, deg/s^2. */
 export const MAX_YAW_RATE_DEG_S = 60;
 /** Where the camera looks along the path: this far ahead (m). */
 const LOOK_AHEAD_M = 1.2;
 /** The camera's follower: natural frequency (rad/s) for the tour and for going to a room. */
+/** The longest route a go-to looks for, metres (a whole building floor). */
+const ROUTE_MAX_M = 150;
 const OMEGA_TOUR = 2.8, OMEGA_GO = 4.0;
 /** The wanted heading is smoothed with this time constant (s) before the follower. */
 const GOAL_TAU_S = 0.5;
@@ -73,7 +74,7 @@ export interface DriverDeps {
   presentation?: { enter(): void; exit(): void };
 }
 
-export type WalkResult = 'arrived' | 'failed' | 'cancelled' | 'skipped';
+export type WalkResult = 'arrived' | 'failed' | 'cancelled' | 'skipped' | 'cut';
 export type GoResult = 'walked' | 'jumped' | 'no-spot' | 'cancelled';
 export type TourPhase = 'walking' | 'door' | 'looking' | 'returning' | 'done' | 'stopped';
 
@@ -101,7 +102,10 @@ interface WalkAction {
   kind: 'walk';
   target: Vec2;
   kin: Kinematics;
-  jog: boolean;
+  /** end the walk after this many seconds of walking (a long go-to: the page fades on from there), or Infinity */
+  cutAfterS: number;
+  /** seconds spent walking so far, over every leg a door replanned (a.t starts again at each plan) */
+  walkedS: number;
   /** the speed to arrive at: 0 (a stop) or on through */
   vEnd: number;
   curve: Curve;
@@ -299,10 +303,11 @@ export class Driver {
   }
 
   /** Walks to `target` along a planned, rounded route, opening the shut doors on the way. `vEnd` > 0 runs on through the target. */
-  walkTo(target: Vec2, kin: Kinematics = TOUR_KIN, jog = false, vEnd = 0, via: Vec2[] = []): Promise<WalkResult> {
+  walkTo(target: Vec2, kin: Kinematics = TOUR_KIN, opts: { vEnd?: number; via?: Vec2[]; cutAfterS?: number } = {}): Promise<WalkResult> {
+    const vEnd = opts.vEnd ?? 0, via = opts.via ?? [];
     return new Promise<WalkResult>((resolve) => {
       const a: WalkAction = {
-        kind: 'walk', target: { x: target.x, z: target.z }, kin, jog, vEnd, curve: makeCurve([{ x: 0, z: 0 }, { x: 0, z: 1 }]), profile: buildProfile(1, 0, 0, kin, () => 1),
+        kind: 'walk', target: { x: target.x, z: target.z }, kin, cutAfterS: opts.cutAfterS ?? Infinity, walkedS: 0, vEnd, curve: makeCurve([{ x: 0, z: 0 }, { x: 0, z: 1 }]), profile: buildProfile(1, 0, 0, kin, () => 1),
         t: 0, s: 0, v: 0, via: via.map((p) => ({ x: p.x, z: p.z })), door: null, doorAsked: false, doorDone: false, doorWaitS: 0, tries: new Map(), stallS: 0, replans: 0, waiting: false, done: resolve,
       };
       if (!this.plan(a)) { this.lastFail = 'no route'; resolve('failed'); return; }
@@ -312,9 +317,11 @@ export class Driver {
 
   private finish(a: WalkAction, r: WalkResult): void {
     if (this.action === a) this.action = null;
-    this.carryV = r === 'skipped' ? a.v : 0;
-    this.lastSpeed = 0;
-    this.deps.character.setLocomotion(0, false, 0);
+    // a skip and a cut go on at the speed they have: the next leg takes it over without a step
+    const on = r === 'skipped' || r === 'cut';
+    this.carryV = on ? a.v : 0;
+    this.lastSpeed = on ? this.lastSpeed : 0;
+    if (!on) this.deps.character.setLocomotion(0, false, 0);
     a.done(r);
   }
 
@@ -369,7 +376,10 @@ export class Driver {
     const bearing = farEnough ? Math.atan2(lx, lz) / DEG : Math.atan2(tan.x, tan.z) / DEG;
     void remaining;
     this.applyHeading(bearing, Math.atan2(tan.x, tan.z) / DEG, omega);
-    ch.setLocomotion(achieved, a.jog || achieved > 1.8, Math.abs(this.body.rate) * DEG);
+    // an automatic walk is always the walk clip, never the jog (a run through a flat looks silly in third person); its stride follows the speed
+    ch.setLocomotion(achieved, false, Math.abs(this.body.rate) * DEG);
+    a.walkedS += SIM_DT;
+    if (a.walkedS >= a.cutAfterS && !(a.doorAsked && !a.doorDone)) { this.finish(a, 'cut'); return; }
     // no headway: something is in the way (a person who walked into the route): plan again
     if (lag > 0.3) a.stallS += SIM_DT; else a.stallS = 0;
     if (a.stallS > STALL_S) {
@@ -444,8 +454,10 @@ export class Driver {
   }
 
   /**
-   * Takes the walker to a room: along the path, eased, when it is short (up to 12 m, doors on the way opened), otherwise a fade to a good
-   * standing spot facing into the room. Resolves when they are there.
+   * Takes the walker to a room, on foot and calmly (GO_KIN: a brisk walk, the walk clip, eased start and stop, slower through doors and bends).
+   * A route up to `SHORTCUT_FROM_M` is walked all the way, shut doors on the way opened; a longer one is walked for `SHORTCUT_WALK_S`, then the
+   * page fades to a spot `SHORTCUT_LAST_M` before the end of the route and the walker walks the rest in at the speed it had. With no route, or with
+   * reduced motion, a fade to the standing spot. Resolves when they are there.
    */
   async goTo(roomId: string): Promise<GoResult> {
     try { return await this.runGoTo(roomId); } catch (err) { console.error('[walkthru] going to a room failed', err); this.stop(); return 'cancelled'; }
@@ -457,10 +469,25 @@ export class Driver {
     const spot = this.spotIn(roomId);
     if (!spot) return 'no-spot';
     const grid = planGridOf(this.deps.staticGrid(), this.deps.leaves());
-    const route = findRoute(grid, this.deps.character.position, spot, MAX_WALK_M + 6);
-    if (route && !this.deps.reducedMotion() && goDecision(route.lengthM, MAX_WALK_M) === 'walk') {
-      const r = await this.walkTo(spot, GO_KIN, true);
+    const route = findRoute(grid, this.deps.character.position, spot, ROUTE_MAX_M);
+    const plan = route && !this.deps.reducedMotion() ? goPlan(route.lengthM) : 'fade';
+    if (route && plan !== 'fade') {
+      let r = await this.walkTo(spot, GO_KIN, plan === 'shortcut' ? { cutAfterS: SHORTCUT_WALK_S } : {});
       if (token !== this.token) return 'cancelled';
+      if (r === 'cut') {
+        // the walker has set off; the viewer does not wait for the rest of a long way
+        const rest = findRoute(grid, this.deps.character.position, spot, ROUTE_MAX_M);
+        if (rest && rest.lengthM > SHORTCUT_LAST_M + 0.5) {
+          const near = pointAlongRoute(rest.points, rest.lengthM - SHORTCUT_LAST_M);
+          const ahead = pointAlongRoute(rest.points, rest.lengthM - SHORTCUT_LAST_M + 0.3);
+          const yawDeg = Math.atan2(ahead.x - near.x, ahead.z - near.z) / DEG;
+          await this.deps.jump({ x: near.x, z: near.z, yawDeg });
+          if (token !== this.token) return 'cancelled';
+          this.cam = { yaw: yawDeg, rate: 0 }; this.camGoal = yawDeg; this.body = { yaw: yawDeg, rate: 0 };
+          r = await this.walkTo(spot, GO_KIN);
+          if (token !== this.token) return 'cancelled';
+        } else r = await this.walkTo(spot, GO_KIN);
+      }
       if (r === 'arrived') {
         await this.look(spot.yawDeg, 2.0, null, true);
         return token !== this.token ? 'cancelled' : 'walked';
@@ -551,7 +578,7 @@ export class Driver {
         this.setTour({ phase: 'walking', roomId: stop.room.id, roomLabel: stop.room.label });
         const v = stop.vantage;
         let r: WalkResult | 'jumped';
-        if (reduced) { await this.deps.jump({ x: v.x, z: v.z, yawDeg: v.yawDeg }); r = 'jumped'; } else r = await this.walkTo(v, TOUR_KIN, false, 0, vias.map((t) => t.vantage));
+        if (reduced) { await this.deps.jump({ x: v.x, z: v.z, yawDeg: v.yawDeg }); r = 'jumped'; } else r = await this.walkTo(v, TOUR_KIN, { via: vias.map((t) => t.vantage) });
         if (!alive()) return this.tour as TourState;
         if (r === 'skipped') { this.setTour({ index: (this.tourState as TourState).index + (stop.kind === 'transit' ? 0 : 1) }); continue; }
         if (r !== 'arrived' && r !== 'jumped') {
@@ -569,7 +596,7 @@ export class Driver {
       this.setTour({ phase: 'returning', roomId: null, roomLabel: null });
       if (reduced) await this.deps.jump(start);
       else {
-        const back = await this.walkTo(start, TOUR_KIN, false, 0);
+        const back = await this.walkTo(start, TOUR_KIN);
         if (!alive()) return this.tour as TourState;
         if (back !== 'arrived' && back !== 'skipped') await this.deps.jump(start);
       }

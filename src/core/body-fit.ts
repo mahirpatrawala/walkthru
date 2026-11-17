@@ -20,7 +20,7 @@ import type { Grid } from '../types';
  * half a cell (2.5 cm) nearer than the cell's edge; the rest (2 cm) is the gap one sees, and covers what projects from a wall without being
  * in the grid (an architrave 8 mm, its bead 16 mm, a skirting).
  */
-export const BODY_FIT_MARGIN_M = 0.045;
+export const BODY_FIT_MARGIN_M = 0.06;
 /** The drawn body never moves further than this from the spot the walker stands on. */
 export const BODY_FIT_MAX_SHIFT_M = 0.3;
 /** Heights (metres) the region is worked out at: a point of the body is checked against everything taller than the band it is in. */

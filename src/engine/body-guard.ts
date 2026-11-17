@@ -4,7 +4,8 @@
 //   1. a few hundred points of the body's own skin (picked once per body: the outermost vertices of every bone, carried rigidly by that
 //      bone) are placed in the world;
 //   2. an arm that would touch something is held in, by as much as it would touch (swung down to the side, eased in and out);
-//   3. a standing body that still has no room is drawn up (feet under the hips, upright) by as much as it lacks;
+//   3. a body that still has no room (standing, or walking where the passage is narrower than a stride) is drawn up (feet under the hips, upright)
+//      by as much as it lacks: in a gap too tight for a stride it shuffles, it does not put a foot through the wall;
 //   4. the drawn body is shifted on the floor, by the least that keeps every point a margin clear (`solveBodyFit`). The shift is applied the
 //      frame it is needed (nothing is ever drawn through a wall while a filter catches up) and eased away when it is not.
 // The collision spot (`Character.position`) is never touched: walking, doors, the camera and the tour all still see the same walker.
@@ -16,7 +17,7 @@ import type { Grid } from '../types';
 const FINGER = /(index|middle|pinky|ring|thumb)/i;
 /** An arm that would be this far into the margin is held fully in; less, in proportion. */
 const ARM_FULL_M = 0.05;
-/** A standing body this short of room is drawn fully up; less, in proportion. */
+/** A body this short of room (after the shift and the arms) is drawn fully up; less, in proportion. */
 const STANCE_FULL_M = 0.06;
 /** How fast the arms come in and go back out, and the stance, seconds (time constants). */
 const TUCK_IN_S = 0.07;
@@ -29,7 +30,11 @@ const REACH_RATIO = 0.56;
 const ARM_OUT_DEG = 2.5;
 const FOREARM_FWD_DEG = 8;
 
-interface Probe { bone: THREE.Bone; p: THREE.Vector3; arm: -1 | 0 | 1; leg: boolean }
+/**
+ * A point of the skin: a vertex of the body, followed exactly as the renderer skins it (every one of its up to four bones with its weight, from its
+ * own bind-space position). Carrying it rigidly with its main bone instead put it up to 35 cm from the drawn skin near a swinging hip or knee.
+ */
+interface Probe { bone: THREE.Bone; refs: { bone: THREE.Bone; inv: THREE.Matrix4; w: number }[]; base: THREE.Vector3; arm: -1 | 0 | 1; leg: boolean }
 interface Kept { bone: THREE.Bone; base: THREE.Quaternion; out: THREE.Quaternion }
 interface Arm { upper: THREE.Bone; fore: THREE.Bone; hand: THREE.Bone; side: 1 | -1 }
 interface Leg { thigh: THREE.Bone; calf: THREE.Bone; foot: THREE.Bone }
@@ -66,6 +71,8 @@ export class BodyGuard {
   private legs: Leg[] = [];
   private pelvis: THREE.Bone | null = null;
   private lift = 0;
+  /** the first frame after a reset (a teleport, a new body): the held-in arms and the stance go to where they are needed at once, they are not eased in from a pose that was never drawn */
+  private snap = true;
   private last: { grid: Grid; x: number; z: number; r: number; field: SightField } | null = null;
 
   constructor(private readonly root: THREE.Object3D, private readonly carrier: THREE.Object3D, private readonly shadow: THREE.Object3D | null) {}
@@ -85,7 +92,7 @@ export class BodyGuard {
       return c as THREE.Bone;
     };
     // per bone, per direction: the vertex furthest that way in the rest pose
-    const best = new Map<THREE.Bone, { score: Float32Array; at: THREE.Vector3[]; inv: THREE.Matrix4 }>();
+    const best = new Map<THREE.Bone, { score: Float32Array; at: THREE.Vector3[]; src: { s: THREE.SkinnedMesh; k: number }[] }>();
     const m = new THREE.Vector3();
     for (const s of skinned) {
       const pos = s.geometry.attributes.position, si = s.geometry.attributes.skinIndex, sw = s.geometry.attributes.skinWeight;
@@ -103,13 +110,13 @@ export class BodyGuard {
         if (!e) {
           const idx = bones.indexOf(bone);
           if (idx < 0) continue;
-          e = { score: new Float32Array(DIRS.length).fill(-Infinity), at: DIRS.map(() => new THREE.Vector3()), inv: s.skeleton.boneInverses[idx] };
+          e = { score: new Float32Array(DIRS.length).fill(-Infinity), at: DIRS.map(() => new THREE.Vector3()), src: DIRS.map(() => ({ s, k })) };
           best.set(bone, e);
         }
         m.fromBufferAttribute(pos, k).applyMatrix4(s.bindMatrix);
         for (let d = 0; d < DIRS.length; d++) {
           const sc = m.dot(DIRS[d]);
-          if (sc > e.score[d]) { e.score[d] = sc; e.at[d].copy(m); }
+          if (sc > e.score[d]) { e.score[d] = sc; e.at[d].copy(m); e.src[d] = { s, k }; }
         }
       }
     }
@@ -136,7 +143,17 @@ export class BodyGuard {
         const key = `${bone.uuid}:${Math.round(p.x * 500)}:${Math.round(p.y * 500)}:${Math.round(p.z * 500)}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        this.probes.push({ bone, p: p.clone().applyMatrix4(e.inv), arm: armOf(bone), leg: legBones.has(bone) });
+        const { s: mesh, k } = e.src[d];
+        const si = mesh.geometry.attributes.skinIndex, sw = mesh.geometry.attributes.skinWeight;
+        const refs: Probe['refs'] = [];
+        for (let c = 0; c < 4; c++) {
+          const w = [sw.getX(k), sw.getY(k), sw.getZ(k), sw.getW(k)][c];
+          const j = [si.getX(k), si.getY(k), si.getZ(k), si.getW(k)][c];
+          if (w > 1e-4 && mesh.skeleton.bones[j]) refs.push({ bone: mesh.skeleton.bones[j], inv: mesh.skeleton.boneInverses[j], w });
+        }
+        const tot = refs.reduce((a, r) => a + r.w, 0) || 1;
+        for (const r of refs) r.w /= tot;
+        this.probes.push({ bone, refs, base: p.clone(), arm: armOf(bone), leg: legBones.has(bone) });
       }
     }
     this.pts = new Float32Array(this.probes.length * 3);
@@ -156,12 +173,13 @@ export class BodyGuard {
     this.stance = 0;
     this.lift = 0;
     this.residual = 0;
+    this.snap = true;
     this.place();
   }
 
   /**
    * Run once per frame after the mixer. `active` is false while the body is posed (sitting, lying, standing at something, on its way there):
-   * the shift and the held-in pose then ease away. `standing` allows the stance to be drawn up (never mid-stride).
+   * the shift and the held-in pose then ease away. `standing` is kept for callers and tests: a body that lacks room is drawn up whether it stands or walks.
    */
   update(dt: number, active: boolean, standing: boolean, heightM: number): void {
     // the mixer writes a bone only when its clip value changed: where last frame's swing is still there, put the clip's value back first
@@ -181,6 +199,7 @@ export class BodyGuard {
     }
     const idle = !field && this.arm[0] < 0.002 && this.arm[1] < 0.002 && this.stance < 0.002;
     if (idle) {
+      this.snap = false;
       this.arm[0] = this.arm[1] = this.stance = 0;
       this.lift = 0;
       this.residual = 0;
@@ -199,7 +218,7 @@ export class BodyGuard {
     if (field) {
       for (const pr of this.probes) {
         if (pr.arm < 0) continue;
-        V_A.copy(pr.p).applyMatrix4(pr.bone.matrixWorld);
+        worldOf(pr, V_A);
         const d = sightPush(field, bandOf(V_A.y - this.root.position.y), V_A.x, V_A.z, BODY_FIT_MARGIN_M);
         const side = pr.arm as 0 | 1;
         if (d > want[side]) want[side] = d;
@@ -207,18 +226,19 @@ export class BodyGuard {
     }
     for (let i = 0; i < 2; i++) {
       const goal = Math.min(1, want[i] / ARM_FULL_M);
-      this.arm[i] = ease(this.arm[i], goal, dt);
+      this.arm[i] = this.snap ? goal : ease(this.arm[i], goal, dt);
       if (this.arm[i] > 0.002 && this.arms[i]) this.tuckArm(this.arms[i], this.arm[i]);
     }
 
     // 3. the stance: what a standing body still lacks with its arms in
     let lack = 0;
-    if (field && standing && this.legs.length === 2) {
+    if (field && this.legs.length === 2) {
       this.collect();
       const fit = solveBodyFit(field, this.pts, this.probes.length, BODY_FIT_MARGIN_M, 0, 0);
       lack = fit.residual;
     }
-    this.stance = ease(this.stance, standing ? Math.min(1, lack / STANCE_FULL_M) : 0, dt);
+    const stanceGoal = Math.min(1, lack / STANCE_FULL_M);
+    this.stance = this.snap ? stanceGoal : ease(this.stance, stanceGoal, dt);
     if (this.stance > 0.002 && this.legs.length === 2) this.drawUp(this.stance);
     else this.lift = 0;
 
@@ -233,6 +253,7 @@ export class BodyGuard {
       this.shift.x *= k; this.shift.z *= k;
       this.residual = 0;
     }
+    this.snap = false;
     this.place();
   }
 
@@ -252,7 +273,7 @@ export class BodyGuard {
     const y0 = this.root.position.y;
     for (let i = 0; i < this.probes.length; i++) {
       const pr = this.probes[i];
-      V_A.copy(pr.p).applyMatrix4(pr.bone.matrixWorld);
+      worldOf(pr, V_A);
       this.pts[3 * i] = V_A.x;
       this.pts[3 * i + 1] = V_A.z;
       this.pts[3 * i + 2] = bandOf(V_A.y - y0);
@@ -323,6 +344,14 @@ export class BodyGuard {
     this.carrier.position.y = drop;
     this.root.updateMatrixWorld(true);
   }
+}
+
+const V_W = new THREE.Vector3();
+/** where the renderer draws the probe's vertex now (the bones' world matrices must be current) */
+function worldOf(pr: Probe, out: THREE.Vector3): THREE.Vector3 {
+  out.set(0, 0, 0);
+  for (const r of pr.refs) out.addScaledVector(V_W.copy(pr.base).applyMatrix4(r.inv).applyMatrix4(r.bone.matrixWorld), r.w);
+  return out;
 }
 
 function ease(now: number, goal: number, dt: number): number {
