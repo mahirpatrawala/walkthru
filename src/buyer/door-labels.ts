@@ -20,9 +20,22 @@ export function doorLabelWidthM(text: string): number {
 
 export interface DoorLabel { doorId: string; /** 1: the board hangs in the door's own room, -1: on the other side */ side: 1 | -1; text: string }
 
+/** a drawing's shorthand, spelled out on a signboard (the room keeps its own label everywhere else) */
+const SIGN_WORDS: Record<string, string> = {
+  mbr: 'Master Bedroom', br: 'Bedroom', bedrm: 'Bedroom', kit: 'Kitchen', wc: 'WC', toi: 'Toilet', bal: 'Balcony', balc: 'Balcony',
+  liv: 'Living', lvg: 'Living', din: 'Dining', dng: 'Dining', pass: 'Passage', util: 'Utility', utl: 'Utility',
+};
+/**
+ * The words a signboard shows for a room label: a plan's abbreviations ("Mbr", "Kit", "W.c.") are spelled out, word by word, so a sign
+ * never reads as a code; any other label is shown as it is. Pure.
+ */
+export function signText(label: string): string {
+  return label.trim().split(/\s+/).map((w) => SIGN_WORDS[w.toLowerCase().replace(/\./g, '')] ?? w).join(' ');
+}
+
 /** What each side of each door says. Pure. */
 export function doorLabels(layout: Layout, spaceKind: SpaceKind = 'home'): DoorLabel[] {
-  const name = (id: string | null): string | null => (id ? layout.rooms.find((r) => r.id === id)?.label?.trim() || null : null);
+  const name = (id: string | null): string | null => { const l = id ? layout.rooms.find((r) => r.id === id)?.label?.trim() : ''; return l ? signText(l) : null; };
   const out: DoorLabel[] = [];
   for (const d of resolveDoors(layout)) {
     const other = d.rooms[0] === d.roomId ? d.rooms[1] : d.rooms[0];

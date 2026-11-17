@@ -5,7 +5,7 @@
   "note": "Styling choices read from a designer's renders of this room: finishes, wall treatments and decor only. Sizes, bays and heights stay the drawing's.",
   "items": {
     "wardrobe-1": { "params": { "shutterStyle": "fluted-strip", "handle": "long-bar", "fluteBand": [0.4, 0.58] } },
-    "bed-1": { "params": { "base": "platform", "headboard": "panel", "duvet": "quilted", "cushions": 2 } },
+    "bed-1": { "params": { "base": "platform", "headboard": "panel", "duvet": "quilted" } },
     "counter-3": { "params": { "top": "slab", "pedestal": "right", "drawers": 3, "handle": "groove" } }
   },
   "rooms": {

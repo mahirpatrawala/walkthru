@@ -149,7 +149,7 @@ export function createLivedIn(opts: LivedInOpts): LivedIn {
       const g = built.byId.get(p0.id);
       if (!g) continue;
       const p = eff.get(p0.id) ?? p0;
-      // decor that sits on a piece (cushions on a bed, a throw on a sofa) goes with it when My layout removes or replaces that piece, and moves with it
+      // decor that sits on a piece (cushions on a sofa, a lamp on a table) goes with it when My layout removes or replaces that piece, and moves with it
       if (p.place === 'surface') {
         const host = p.hostId ? present.get(p.hostId) : undefined;
         const dh = p.hostId ? drawn.get(p.hostId) : undefined;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildTruthProperty } from '../scripts/make-test-room';
+import { HEAD_CENTRE_M, bedLayout } from '../src/core/bed-layout';
 import { liePose, seatPose, standPose } from '../src/core/poses';
 import { SIT_HIP_BACK_RATIO, SIT_SEAT_RATIO } from '../src/types';
 import type { FurnitureItem } from '../src/types';
@@ -9,15 +10,16 @@ const bed = items.find((i) => i.kind === 'bed')!;
 const sofa = items.find((i) => i.kind === 'sofa')!;
 
 describe('liePose (acceptance)', () => {
-  it('truth bed, H = 1.75, approach (2.5, 1.0): head x 0.05, feet x 1.80, z = 1.875 (the -Z half), yaw 90', () => {
+  // the truth bed is one box 2.0 m long (no mattress size): the sleeping area starts 0.075 m in, clear of a headboard, and the crown lies 0.05 m inside it
+  it('truth bed, H = 1.75, approach (2.5, 1.0): head x 0.125, feet x 1.875, z = 1.875 (the -Z half), yaw 90', () => {
     const p = liePose(bed, 1.75, { x: 2.5, z: 1.0 });
     console.log('liePose', JSON.stringify(p));
-    expect(p.feet.x).toBeCloseTo(1.8, 6);
+    expect(p.feet.x).toBeCloseTo(1.875, 6);
     expect(p.feet.z).toBeCloseTo(2.25 - 0.375, 6);
     expect(p.yawDeg).toBe(90);
     expect(p.surfaceY).toBe(0.55);
     // head = feet - a * H, a = (1, 0)
-    expect(p.feet.x - 1.75).toBeCloseTo(0.05, 6);
+    expect(p.feet.x - 1.75).toBeCloseTo(0.125, 6);
   });
   it('takes the other half when the approach is on the other side', () => {
     const p = liePose(bed, 1.75, { x: 2.5, z: 3.5 });
@@ -27,13 +29,26 @@ describe('liePose (acceptance)', () => {
     const single: FurnitureItem = { ...bed, inner: { w: 0.91, d: 1.83 }, box: { cx: 1.0, cz: 2.25, w: 1.01, d: 1.93, yawDeg: 90 } };
     const p = liePose(single, 1.75, { x: 2.5, z: 1.0 });
     expect(p.feet.z).toBeCloseTo(2.25, 6);
-    // headInset = (1.93 - 1.83) / 2 + 0.05 = 0.10; head x = 1.0 - (0.965 - 0.10) = 0.135
-    expect(p.feet.x - 1.75).toBeCloseTo(0.135, 6);
+    // the head line is 0.075 from the box end (the mattress starts at 0.05); the crown 0.05 inside it: head x = 1.0 - 0.965 + 0.125 = 0.16
+    expect(p.feet.x - 1.75).toBeCloseTo(0.16, 6);
   });
-  it('puts a 1.90 m person on a 2.00 m mattress with 10 cm to spare at the foot', () => {
+  it('puts a 1.90 m person on a 2.00 m mattress with their feet at its foot, the head moved up toward the head end', () => {
     const p = liePose(bed, 1.9, { x: 2.5, z: 1.0 });
-    // feet at 0.05 + 1.9 = 1.95, the mattress ends at 2.0
-    expect(p.feet.x).toBeCloseTo(1.95, 6);
+    // 0.125 + 1.9 would overhang the foot at 2.0: the crown moves up to 0.10 and the feet end at 2.0
+    expect(p.feet.x).toBeCloseTo(2.0, 6);
+  });
+  it('the head is where the bed\'s pillow is (src/core/bed-layout.ts decides both)', () => {
+    const L = bedLayout(bed.box, bed.inner);
+    for (const [approachZ, k] of [[1.0, 0], [3.5, 1]] as const) {
+      const p = liePose(bed, 1.75, { x: 2.5, z: approachZ });
+      // bed-local: z along the bed from its centre (a = +x here), x across it (b = -z here)
+      const headZ = p.feet.x - 1.75 - bed.box.cx + HEAD_CENTRE_M, headX = -(p.feet.z - bed.box.cz);
+      const pl = L.pillows.find((q) => Math.abs(q.x - headX) < 1e-6)!;
+      expect(pl, `side ${k}`).toBeTruthy();
+      expect(Math.abs(headZ - pl.z)).toBeLessThan(pl.d / 2);
+    }
+    expect(L.pillows.length).toBe(2);
+    expect(bedLayout({ w: 1.01, d: 1.93 }, { w: 0.91, d: 1.83 }).pillows.length).toBe(1);
   });
 });
 

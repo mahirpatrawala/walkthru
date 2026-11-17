@@ -656,34 +656,27 @@ class Planner {
     if (!room) return;
     const { w, d } = it.box;
     const S = it.surfaceHeightM;
-    // one colour story per host: the two cushions on a bed match, the throw is another note of the palette
+    // one colour story per host
     const hostTone = Math.floor(mulberry32(this.seedFor(room.id, it.id))() * 8);
     const on = (kind: DecorKind, lx: number, lz: number, y: number, pw: number, pd: number, height: number, yawOffset = 0, tiltDeg?: number, toneShift = 0): void => {
       const c = world(it.box, lx, lz);
       this.push({ kind, roomId: room.id, place: 'surface', hostId: it.id, x: c.x, y, z: c.z, yawDeg: it.box.yawDeg + yawOffset, w: pw, d: pd, height, ...(tiltDeg !== undefined ? { tiltDeg } : {}) }, it.id, (hostTone + toneShift) % 8);
     };
-    if (it.kind === 'bed') {
-      if (w < 0.8 || d < 1.5) return;
-      const mw = it.inner ? Math.min(it.inner.w, w - 0.01) : w - 0.03;
-      const md = it.inner ? Math.min(it.inner.d, d - 0.01) : d - 0.03;
-      const xs = mw >= 1.2 ? [-mw / 4, mw / 4] : [0];
-      xs.forEach((x, k) => on('cushion', x, -d / 2 + 0.66, S, 0.38, 0.14, 0.38, k ? 6 : -6, 16));
-      on('throw', 0, md / 2 - 0.27, S + 0.026, Math.min(mw * 0.88, 1.5), 0.36, 0.03, 0, undefined, 3);
-      return;
-    }
+    // a bed carries its own two sleeping pillows and a flat quilt (src/core/bed-layout.ts) and nothing else: a person lies on all of it
+    if (it.kind === 'bed') return;
     if (it.kind === 'sofa') {
       if (w < 1.2 || d > 1.3) return;
       const seatTop = S + 0.03;
       const aw = 0.16;
-      const e = w / 2 - aw - 0.22;
-      // one colour accent per room (SPEC 16.20): the room's largest sofa carries the pair of cushions in the room's accent tone and the throw;
+      const e = w / 2 - aw - 0.2;
+      // at most two cushions on a sofa, pushed to its arms and standing against the back; nothing lies on the seat where a person sits (no throw).
+      // one colour accent per room (SPEC 16.20): the room's largest sofa carries the pair in the room's accent tone;
       // any other sofa gets one cream cushion (tone 6), never another stack in the same saturated colour
       if (this.mainSofaOf(room) === it.id) {
-        on('cushion', -e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, 8, 14);
-        on('cushion', e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, -8, 14);
-        if (w >= 1.8) on('throw', 0.02, d / 2 - 0.3, seatTop, 0.52, 0.34, 0.04, 6, undefined, 3);
+        on('cushion', -e, -d / 2 + 0.42, seatTop, 0.38, 0.1, 0.38, 6, 10);
+        on('cushion', e, -d / 2 + 0.42, seatTop, 0.38, 0.1, 0.38, -6, 10);
       } else {
-        on('cushion', e, -d / 2 + 0.43, seatTop, 0.4, 0.15, 0.4, -8, 14, (6 - hostTone + 8) % 8);
+        on('cushion', e, -d / 2 + 0.42, seatTop, 0.38, 0.1, 0.38, -6, 10, (6 - hostTone + 8) % 8);
       }
       return;
     }

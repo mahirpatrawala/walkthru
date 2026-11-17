@@ -17,7 +17,7 @@
   },
   "generators": {
     "wardrobe": { "shutterStyle": "framed", "handle": "bar" },
-    "bed": { "base": "box", "headboard": "upholstered", "duvet": "quilted", "cushions": 2 },
+    "bed": { "base": "box", "headboard": "upholstered", "duvet": "quilted" },
     "sofa": { "arms": "box", "legs": "wood" },
     "bench": { "shape": "rect", "cushion": true },
     "study": { "top": "thick", "handle": "bar" },

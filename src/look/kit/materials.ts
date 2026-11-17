@@ -26,6 +26,9 @@ export interface KitMaterials {
 
 /** Peak emissive strength of each light kind when lit. */
 export const LIT: Record<LightKind, number> = { tube: 2.4, cove: 2.0, fan: 2.0 };
+/** what a lens gives when off: nothing, but the cove's diffuser (the back of the reveal under the ceiling, a white strip in a recess) keeps a faint
+ *  lift so the reveal reads as a pale line by day and never as a dark one */
+export const UNLIT: Record<LightKind, number> = { tube: 0, cove: 0.2, fan: 0 };
 const WARM: Record<LightKind, string> = { tube: '#fff4de', cove: '#ffd9a8', fan: '#ffe7bd' };
 const OFF: Record<LightKind, string> = { tube: '#c8c6c0', cove: '#e0dcd4', fan: '#d3d0ca' };
 
@@ -61,10 +64,10 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
   const lens = {} as Record<LightKind, THREE.MeshStandardMaterial>;
   const lit = { tube: false, cove: false, fan: false };
   for (const k of ['tube', 'cove', 'fan'] as LightKind[]) {
-    lens[k] = new THREE.MeshStandardMaterial({ color: OFF[k], roughness: 0.45, emissive: WARM[k], emissiveIntensity: 0 });
+    lens[k] = new THREE.MeshStandardMaterial({ color: OFF[k], roughness: 0.45, emissive: WARM[k], emissiveIntensity: UNLIT[k] });
     lens[k].side = k === 'cove' ? THREE.DoubleSide : THREE.FrontSide;
   }
-  const coveMat = std(`#${new THREE.Color(fin.ceilingColor).multiplyScalar(0.8).getHexString()}`, 1);
+  const coveMat = std(`#${new THREE.Color(fin.ceilingColor).multiplyScalar(0.94).getHexString()}`, 1);
   const m: KitMaterials = {
     skirting: skirting as THREE.MeshStandardMaterial,
     grill: std(trim.grill ?? '#3A3836', trim.grill ? 0.4 : 0.5, trim.grill ? 0.05 : 0.25),
@@ -78,7 +81,7 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
     downlight,
     mirror: new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.12, metalness: 0.35 }),
     lens,
-    setLit(kind, on) { lit[kind] = on; lens[kind].emissiveIntensity = on ? LIT[kind] : 0; lens[kind].color.set(on ? '#ffffff' : OFF[kind]); },
+    setLit(kind, on) { lit[kind] = on; lens[kind].emissiveIntensity = on ? LIT[kind] : UNLIT[kind]; lens[kind].color.set(on ? '#ffffff' : OFF[kind]); },
     isLit: (kind) => lit[kind],
     dispose() {
       for (const mat of [m.grill, m.alu, m.veil, m.railing, m.fixtures, m.fan, ...Object.values(lens)]) { mat.map?.dispose(); mat.dispose(); }

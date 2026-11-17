@@ -8,8 +8,11 @@ import { rasterizeLayout } from '../src/core/layout-raster';
 import { buildShell, shellStats } from '../src/engine/shell';
 import { createLookMaterials } from '../src/look/materials';
 import { mountKit } from '../src/look/kit';
+import { COVE_REVEAL_DEPTH_M, COVE_REVEAL_M, addCove, newBuckets } from '../src/look/kit/build';
+import { LIT, UNLIT, createKitMaterials } from '../src/look/kit/materials';
+import type { CoveSite } from '../src/look/kit/rules';
 import {
-  COVE_DROP_M, FAN_MIN_ROOM_M2, KIT_NOTE, bedheadBoards, coveSites, doorBoards, fanSites, floorTileSpec, insetPolygon, kitPlan, masterBedroomId,
+  COVE_DROP_M, COVE_WIDTH_M, FAN_MIN_ROOM_M2, KIT_NOTE, bedheadBoards, coveSites, doorBoards, fanSites, floorTileSpec, insetPolygon, kitPlan, masterBedroomId,
   skirtingRuns, tubeSites, windowSites,
 } from '../src/look/kit/rules';
 import type { FurnitureItem, Layout, Opening, RoomTag, RoomType } from '../src/types';
@@ -307,5 +310,50 @@ describe('decor only', () => {
   it('the label is the one line the spec asks for', () => {
     expect(KIT_NOTE).toBe('Fan, lights, switches, grills and tiles are typical fittings, not from your drawing.');
     expect(KIT_NOTE).not.toMatch(/[:;—]/);
+  });
+});
+
+describe('cove reveal (round 5)', () => {
+  const H = 2.75;
+  const site: CoveSite = { roomId: 'r', outer: [{ x: 0, z: 0 }, { x: 4, z: 0 }, { x: 4, z: 3 }, { x: 0, z: 3 }], inner: insetPolygon([{ x: 0, z: 0 }, { x: 4, z: 0 }, { x: 4, z: 3 }, { x: 0, z: 3 }], COVE_WIDTH_M)!, dropM: COVE_DROP_M, wallHeightM: H };
+  const b = newBuckets();
+  addCove(b, site);
+  const box = (g: THREE.BufferGeometry): THREE.Box3 => { g.computeBoundingBox(); return g.boundingBox!; };
+  it('the fascia stops a reveal short of the ceiling and the LED diffuser closes the recess up to it: no open slot into the void', () => {
+    const cove = box(b.cove.geometry()), led = box(b.coveLed.geometry());
+    expect(cove.min.y).toBeCloseTo(H - COVE_DROP_M, 6);
+    expect(cove.max.y).toBeCloseTo(H - COVE_REVEAL_M, 6);
+    expect(led.min.y).toBeCloseTo(H - COVE_REVEAL_M, 6);
+    expect(led.max.y).toBeGreaterThan(H - 0.002);
+    expect(led.max.y).toBeLessThan(H);
+  });
+  it('the diffuser stands behind the fascia by the depth of the recess, mitred at the corners, and faces the room', () => {
+    const g = b.coveLed.geometry();
+    const led = box(g);
+    const d = COVE_WIDTH_M - COVE_REVEAL_DEPTH_M;
+    expect(led.min.x).toBeCloseTo(d, 6); expect(led.max.x).toBeCloseTo(4 - d, 6);
+    expect(led.min.z).toBeCloseTo(d, 6); expect(led.max.z).toBeCloseTo(3 - d, 6);
+    const p = g.getAttribute('position'), n = g.getAttribute('normal');
+    for (let i = 0; i < p.count; i++) {
+      // every normal points from its vertex towards the middle of the room, and is level
+      expect(n.getY(i)).toBeCloseTo(0, 6);
+      expect(n.getX(i) * (2 - p.getX(i)) + n.getZ(i) * (1.5 - p.getZ(i))).toBeGreaterThan(0);
+    }
+  });
+  it('the ledge joins the top of the fascia to the foot of the diffuser on every side', () => {
+    const g = b.cove.geometry();
+    const p = g.getAttribute('position'), n = g.getAttribute('normal');
+    let up = 0;
+    for (let i = 0; i < p.count; i++) if (n.getY(i) > 0.9) { up++; expect(p.getY(i)).toBeCloseTo(H - COVE_REVEAL_M, 6); }
+    expect(up).toBe(4 * 4);
+  });
+  it('an unlit cove diffuser keeps a faint lift, the other lenses are dark when off', () => {
+    const m = createKitMaterials({ wallColor: '#F3EFE8', ceilingColor: '#F4F2EE', floorColor: '#C8B090', railingColor: '#333333' } as never);
+    expect(m.lens.cove.emissiveIntensity).toBe(UNLIT.cove);
+    expect(UNLIT.cove).toBeGreaterThan(0); expect(UNLIT.cove).toBeLessThan(0.4);
+    expect(m.lens.tube.emissiveIntensity).toBe(0);
+    m.setLit('cove', true); expect(m.lens.cove.emissiveIntensity).toBe(LIT.cove);
+    m.setLit('cove', false); expect(m.lens.cove.emissiveIntensity).toBe(UNLIT.cove);
+    m.dispose();
   });
 });

@@ -89,12 +89,12 @@ export const GENERATORS: Record<LookKind, GenSpec> = {
   bed: {
     defaults: BED_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildBed(e, s, p as unknown as BedParams, r),
     enums: enumsOf(['base', BED_BASES], ['headboard', BED_HEADBOARDS], ['duvet', ['quilted', 'plain', 'none']]),
-    ranges: { baseTopM: [0, 0.6], pillows: [0, 6], cushions: [0, 4] },
+    ranges: { baseTopM: [0, 0.6] },
   },
   sofa: {
     defaults: SOFA_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildSofa(e, s, p as unknown as SofaParams, r),
     enums: enumsOf(['arms', ['round', 'box', 'none']], ['legs', ['wood', 'metal', 'plinth']], ['chaise', ['auto', 'none', 'left', 'right']]),
-    ranges: { seats: [0, 5], cushions: [0, 4] },
+    ranges: { seats: [0, 5], cushions: [0, 2] },
   },
   bench: {
     defaults: BENCH_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildBench(e, s, p as unknown as BenchParams, r),

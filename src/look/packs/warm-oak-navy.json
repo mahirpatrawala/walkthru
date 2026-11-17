@@ -17,7 +17,7 @@
   },
   "generators": {
     "wardrobe": { "shutterStyle": "fluted-strip", "handle": "long-bar", "plinthM": 0.05 },
-    "bed": { "base": "platform", "headboard": "panel", "duvet": "quilted", "cushions": 2 },
+    "bed": { "base": "platform", "headboard": "panel", "duvet": "quilted" },
     "sofa": { "arms": "round", "legs": "wood" },
     "bench": { "shape": "curved-end", "cushion": true },
     "study": { "top": "slab", "handle": "groove" },

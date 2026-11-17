@@ -19,6 +19,8 @@ import { applyRoomFinishes, autoFixtures, buildDecorGroup } from '../src/look/de
 import { buildWardrobeModel, REPLACED_NAMES } from '../src/buyer/wardrobe-model';
 import { shutterPose, specFromDesign } from '../src/buyer/wardrobe-swing';
 import { FRONT_RECESS } from '../src/look/gen/wardrobe';
+import { CURTAIN_DEFAULTS, SHEER_PLEAT_DEPTH_M, SHEER_PLEAT_M, buildCurtain, sheerGatherM } from '../src/look/gen/decor';
+import { GEN_QUALITY } from '../src/look/gen/core';
 import type { FurnitureItem, PropertyFile } from '../src/types';
 import { makeBedroom } from './helpers/synthetic-bedroom';
 
@@ -448,5 +450,50 @@ describe('the catalogue still builds in every pack', () => {
       expect(names).toContain('duvet');
       expect(names.some((n) => n.startsWith('bed-headboard'))).toBe(true);
     }
+  });
+});
+
+describe('gathered sheers (round 5)', () => {
+  const sheerOf = (tier: 'low' | 'medium' | 'high', widthM = 2): THREE.Mesh => {
+    const g = buildCurtain({ kit: createFurnitureKit(), q: GEN_QUALITY[tier] }, { ...CURTAIN_DEFAULTS, widthM, drape: 'none' }, {});
+    return g.children.find((c) => c.name === 'curtain-sheer') as THREE.Mesh;
+  };
+  it('a pleat gets enough vertices to be a pleat (it used to get fewer than one, which drew two fat flutes)', () => {
+    for (const [tier, per] of [['low', 2], ['medium', 6], ['high', 8]] as const) {
+      const geo = sheerOf(tier).geometry;
+      const p = geo.getAttribute('position');
+      // the first row of the first panel: x rises from 0 to the gather width
+      let cols = 0;
+      while (cols + 1 < p.count && p.getX(cols + 1) > p.getX(cols)) cols++;
+      const pleats = Math.round(sheerGatherM(2) / SHEER_PLEAT_M);
+      expect(cols, tier).toBe(pleats * per);
+    }
+  });
+  it('pleats are fine and shallow, and the cloth is see-through with an edge that thins out', () => {
+    const m = sheerOf('medium');
+    const p = m.geometry.getAttribute('position'), c = m.geometry.getAttribute('color');
+    expect(SHEER_PLEAT_M).toBeLessThan(0.06);
+    let z0 = Infinity, z1 = -Infinity;
+    for (let i = 0; i < p.count; i++) { z0 = Math.min(z0, p.getZ(i)); z1 = Math.max(z1, p.getZ(i)); }
+    expect(z1 - z0).toBeLessThan(2 * SHEER_PLEAT_DEPTH_M + 0.02);
+    expect(c.itemSize).toBe(4);
+    // the left panel's free edge is at x = gather: the cloth there is thinner than in the middle of the stack
+    const gather = sheerGatherM(2);
+    let edge = 0, mid = 0, ne = 0, nm = 0;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i);
+      if (x > gather + 1e-6) continue;
+      if (x > gather - 0.005) { edge += c.getW(i); ne++; } else if (x < gather / 2) { mid += c.getW(i); nm++; }
+    }
+    expect(edge / ne).toBeLessThan(0.5 * (mid / nm));
+    const mat = m.material as THREE.MeshStandardMaterial;
+    expect(mat.transparent).toBe(true); expect(mat.vertexColors).toBe(true);
+    expect(m.userData.walkthruBake).toBe('skip'); // light, not mass: no AO of its own in a bake
+  });
+  it('two stacks at the sides leave the glass between them clear', () => {
+    const p = sheerOf('medium', 2.4).geometry.getAttribute('position');
+    const gather = sheerGatherM(2.4);
+    for (let i = 0; i < p.count; i++) { const x = p.getX(i); expect(x <= gather + 1e-6 || x >= 2.4 - gather - 1e-6).toBe(true); }
+    expect(gather).toBeLessThan(0.6);
   });
 });
