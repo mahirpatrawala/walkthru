@@ -811,7 +811,9 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     interactions.update(dt);
     wardrobes.update(dt);
     character.update(dt);
-    camera.setTarget(character.position, character.heightM);
+    // the body is drawn off the walls by a few centimetres (SPEC 4.12): the camera frames it, not the spot it collides at. Close to a wall behind it the boom is then
+    // measured from the body, so the camera glides to the eyes (SPEC 16.18) before a head can fill the screen
+    camera.setTarget(character.drawnPosition, character.heightM);
     if (camera.firstPerson) {
       camera.setEye(character.eyePosition(eyeNow, dt));
       // sitting down or lying down, the view turns to face the way the seat or the bed points

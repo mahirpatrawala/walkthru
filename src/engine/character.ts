@@ -1043,6 +1043,11 @@ export class Character {
     if (!grid) this.guard.reset();
   }
 
+  /** SPEC 4.12: where the body is drawn: the collision spot plus the shift that keeps it off the walls. The camera frames this, not the collision spot. */
+  get drawnPosition(): { x: number; z: number } {
+    return { x: this.object.position.x + this.guard.shift.x, z: this.object.position.z + this.guard.shift.z };
+  }
+
   /** SPEC 4.12, for checks: where the drawn body is from its collision spot, how far its arms and stance are drawn in, and what room it still lacks. */
   get bodyFit(): { shiftX: number; shiftZ: number; armL: number; armR: number; stance: number; residualM: number; points: number } {
     const g = this.guard;
