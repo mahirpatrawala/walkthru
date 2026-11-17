@@ -455,7 +455,7 @@ describe('the catalogue still builds in every pack', () => {
 
 describe('gathered sheers (round 5)', () => {
   const sheerOf = (tier: 'low' | 'medium' | 'high', widthM = 2): THREE.Mesh => {
-    const g = buildCurtain({ kit: createFurnitureKit(), q: GEN_QUALITY[tier] }, { ...CURTAIN_DEFAULTS, widthM, drape: 'none' }, {});
+    const g = buildCurtain({ kit: createFurnitureKit(), q: GEN_QUALITY[tier] }, { ...CURTAIN_DEFAULTS, widthM, drape: 'none' }, { curtainSheer: { key: 'sheer' } });
     return g.children.find((c) => c.name === 'curtain-sheer') as THREE.Mesh;
   };
   it('a pleat gets enough vertices to be a pleat (it used to get fewer than one, which drew two fat flutes)', () => {

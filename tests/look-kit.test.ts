@@ -279,7 +279,7 @@ describe('decor only', () => {
     const tags = new Map<string, THREE.Mesh>();
     kit.group.traverse((o) => { const t = o.userData.walkthruLight as string | undefined; if (t) tags.set(t, o as THREE.Mesh); });
     expect([...tags.keys()].sort()).toEqual(['cove', 'fan', 'lamp', 'tube']); // 'lamp': the recessed downlights' glass (SPEC 16.18)
-    for (const m of tags.values()) expect((m.material as THREE.MeshStandardMaterial).emissiveIntensity).toBe(0);
+    for (const [k, m] of tags) expect((m.material as THREE.MeshStandardMaterial).emissiveIntensity, k).toBe(k === 'cove' ? UNLIT.cove : 0);
     kit.setLit('tube', true);
     expect((tags.get('tube')!.material as THREE.MeshStandardMaterial).emissiveIntensity).toBeGreaterThan(1);
     // floors carry the room's tile grid, partial rooms keep their hatch
@@ -345,7 +345,7 @@ describe('cove reveal (round 5)', () => {
     const p = g.getAttribute('position'), n = g.getAttribute('normal');
     let up = 0;
     for (let i = 0; i < p.count; i++) if (n.getY(i) > 0.9) { up++; expect(p.getY(i)).toBeCloseTo(H - COVE_REVEAL_M, 6); }
-    expect(up).toBe(4 * 4);
+    expect(up).toBe(4 * 6); // four sides, one quad (two triangles) each
   });
   it('an unlit cove diffuser keeps a faint lift, the other lenses are dark when off', () => {
     const m = createKitMaterials({ wallColor: '#F3EFE8', ceilingColor: '#F4F2EE', floorColor: '#C8B090', railingColor: '#333333' } as never);
