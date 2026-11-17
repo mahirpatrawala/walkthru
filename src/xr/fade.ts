@@ -23,6 +23,11 @@ export class FadeMachine {
     });
   }
 
+  /** Starts black and fades in (a session that has just begun: the first frames must not show the play space's origin). */
+  startFromBlack(): void {
+    this.phase = 'in'; this.t = 0; this.alpha = 1;
+  }
+
   update(dt: number): void {
     if (this.phase === 'idle') return;
     if (this.phase === 'out') {

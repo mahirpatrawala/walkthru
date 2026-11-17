@@ -191,7 +191,7 @@ const BAKED_SSAO_STRENGTH = 0.55;
 /** in the open there are no corners to darken: the screen-space AO only needs to seat a lounger or a bench on the ground */
 const OUTDOOR_SSAO_STRENGTH = 0.4;
 
-export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: LookFile | null, opts: { tier?: Tier; storage?: Storage | null; hasSplat?: boolean; /** an open-air space (SPEC 19): outdoor exposure, no room lamps, no floor reflection */ outdoor?: boolean; /** false keeps the flat background colour (the editor's orbit preview) */ backdrop?: boolean } = {}): Promise<Look> {
+export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: LookFile | null, opts: { tier?: Tier; storage?: Storage | null; hasSplat?: boolean; /** an open-air space (SPEC 19): outdoor exposure, no room lamps, no floor reflection */ outdoor?: boolean; /** false keeps the flat background colour (the editor's orbit preview) */ backdrop?: boolean; /** false never starts the post-processing composer, whatever the tier says (the VR page draws straight to the headset's layer) */ post?: boolean } = {}): Promise<Look> {
   const { renderer, scene, camera } = viewer;
   let layout = layoutIn;
   const lookFile = lookFileIn;
@@ -232,7 +232,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let postFailed = false;
   // Spark registers its shader chunk the first time it renders. A composer that compiles the scene before that fails with
   // "Cannot resolve #include <splatDefines>", so on a scene with a scan the post chain waits until the scan has been shown once.
-  let postAllowed = !opts.hasSplat;
+  let postAllowed = !opts.hasSplat && opts.post !== false;
   let sun = sunState(layout, lookFile, hour);
   let disposed = false;
   let grid: Grid | null = null;

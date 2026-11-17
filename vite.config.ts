@@ -146,9 +146,24 @@ function browserShims(): Plugin {
   };
 }
 
+/** Dev only: the VR page is served at /vr (a rewrite in vercel.json does the same in production). */
+function walkthruVrRoute(): Plugin {
+  return {
+    name: 'walkthru-vr-route',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const u = new URL(req.url ?? '/', 'http://localhost');
+        if (u.pathname === '/vr') req.url = `/vr.html${u.search}`;
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig({
   // media API first: the scene API answers 404 for /api/scenes/... routes it does not know
-  plugins: [walkthruSiteOrigin(), walkthruSceneIndex(), walkthruMediaApi(), walkthruUnderstandApi(), walkthruPhotoApi(), walkthruDevApi()],
+  plugins: [walkthruVrRoute(), walkthruSiteOrigin(), walkthruSceneIndex(), walkthruMediaApi(), walkthruUnderstandApi(), walkthruPhotoApi(), walkthruDevApi()],
   // the plan reader runs in a module Web Worker that loads pdf.js lazily (src/upload/reader.worker.ts); es format allows its code splitting
   worker: { format: 'es', plugins: () => [browserShims()] },
   build: {
@@ -158,6 +173,8 @@ export default defineConfig({
       input: {
         index: path.resolve(import.meta.dirname, 'index.html'),
         editor: path.resolve(import.meta.dirname, 'editor.html'),
+        // the VR front end for a headset (SPEC 21): its own page and entry, sharing engine and scene code by import only
+        vr: path.resolve(import.meta.dirname, 'vr.html'),
       },
     },
   },
