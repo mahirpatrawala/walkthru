@@ -8,6 +8,7 @@ import type { DoorLook, Level, Portal, Space } from '../../src/building/types';
 import { EMPTY_OUTDOOR } from '../../src/outdoor/types';
 import type { Boundary, GroundArea, OutdoorFile, PlantBed, PlantRow, PlantSpot, PoolBasin, Rect } from '../../src/outdoor/types';
 import { TYPICAL_PROFILE } from '../../src/outdoor/pool';
+import { easeWalkway } from '../../src/outdoor/walkway';
 import { growRect, unionOutline } from '../../src/outdoor/outline';
 import { finishes } from './scene-kit';
 import { LIFT_DOOR_M, UPDATED_AT, piece } from './spaces';
@@ -274,7 +275,12 @@ export function buildPodium(empty: boolean): Podium {
     wingPieces(d.wing); aquaPieces(d.aqua); deckPieces(d.deck);
   }
   const scenes = new Map<string, PodiumScene>();
-  const put = (dr: Draft, outdoor?: OutdoorFile): void => { scenes.set(dr.id, { property: propertyOf(dr), ...(outdoor ? { outdoor } : {}) }); };
+  // a sample deck is dressed to leave the pool's walkway where the deck is wide enough (easeWalkway slides loungers and chairs back from the water)
+  const put = (dr: Draft, outdoor?: OutdoorFile): void => {
+    const property = propertyOf(dr);
+    const dressed = outdoor && outdoor.pools.length && property.furniture.length ? { ...property, furniture: easeWalkway(outdoor.pools, property.layout.rooms[0].polygon, property.furniture) } : property;
+    scenes.set(dr.id, { property: dressed, ...(outdoor ? { outdoor } : {}) });
+  };
   put(d.foyer); put(d.games); put(d.link); put(d.gym); put(d.changing1); put(d.changing2); put(d.hall1); put(d.lounge); put(d.hall2);
   put(d.deck, deckOutdoor(d.deck, empty)); put(d.aqua, aquaOutdoor(d.aqua, empty)); put(d.wing, wingOutdoor(d.wing, empty));
 

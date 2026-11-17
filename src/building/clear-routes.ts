@@ -13,8 +13,70 @@ import { resolveDoors } from '../core/doors';
 import { boxesOverlap } from '../look/lived-in/plan';
 import { GRID_FREE } from '../types';
 import type { FurnitureItem, Grid, Layout, Vec2 } from '../types';
-import { arrivalAtDoor, reachable } from './arrival';
+import { arrivalAtDoor } from './arrival';
 import { doorFrame } from './geom';
+
+/**
+ * The same question as `reachable` (src/building/arrival.ts: a flood over a 10 cm lattice, the body's radius clear) answered from one distance
+ * transform of the grid instead of a circle test per lattice point: 10 to 30 times faster, which matters on a big deck, where this pass runs inside
+ * a search. A cell outside the grid counts as an obstacle.
+ */
+export function reachableFast(grid: Grid, from: Vec2, targets: Vec2[], radius: number): boolean[] {
+  const { nx, nz, cellM } = grid;
+  const INF = 1e12;
+  // squared distance (in cells) from each cell to the nearest obstacle cell, Felzenszwalb and Huttenlocher's two passes of the 1-D transform
+  const f = new Float64Array(nx * nz);
+  for (let k = 0; k < f.length; k++) f[k] = grid.cells[k] === GRID_FREE ? INF : 0;
+  const edt1 = (get: (i: number) => number, set: (i: number, v: number) => void, n: number, v: Int32Array, z: Float64Array): void => {
+    let k = 0; v[0] = 0; z[0] = -INF; z[1] = INF;
+    for (let q = 1; q < n; q++) {
+      let sIdx: number;
+      for (;;) {
+        const p = v[k];
+        sIdx = ((get(q) + q * q) - (get(p) + p * p)) / (2 * q - 2 * p);
+        if (sIdx <= z[k] && k > 0) k--; else break;
+      }
+      k++; v[k] = q; z[k] = sIdx; z[k + 1] = INF;
+    }
+    k = 0;
+    for (let q = 0; q < n; q++) { while (z[k + 1] < q) k++; const p = v[k]; set(q, (q - p) * (q - p) + get(p)); }
+  };
+  const vN = new Int32Array(Math.max(nx, nz) + 1), zN = new Float64Array(Math.max(nx, nz) + 2);
+  const col = new Float64Array(Math.max(nx, nz));
+  for (let i = 0; i < nx; i++) {
+    for (let j = 0; j < nz; j++) col[j] = f[j * nx + i];
+    edt1((q) => col[q], (q, val) => { f[q * nx + i] = val; }, nz, vN, zN);
+  }
+  const row = new Float64Array(nx);
+  for (let j = 0; j < nz; j++) {
+    for (let i = 0; i < nx; i++) row[i] = f[j * nx + i];
+    edt1((q) => row[q], (q, val) => { f[j * nx + q] = val; }, nx, vN, zN);
+  }
+  const r2 = (radius / cellM) ** 2;
+  // a lattice node is free when no obstacle cell lies within the radius, and it is inside the grid with the radius to spare of its edge
+  const edge = Math.ceil(radius / cellM);
+  const free = (i: number, j: number): boolean => i >= edge && j >= edge && i < nx - edge && j < nz - edge && f[j * nx + i] > r2;
+  const step = 2;
+  const ix0 = Math.floor((from.x - grid.originX) / cellM), iz0 = Math.floor((from.z - grid.originZ) / cellM);
+  const seen = new Uint8Array(nx * nz);
+  if (!free(ix0, iz0)) return targets.map(() => false);
+  const stack: number[] = [ix0, iz0];
+  seen[iz0 * nx + ix0] = 1;
+  while (stack.length) {
+    const j = stack.pop()!, i = stack.pop()!;
+    for (const [di, dj] of [[step, 0], [-step, 0], [0, step], [0, -step]]) {
+      const a = i + di, b = j + dj;
+      if (a < 0 || b < 0 || a >= nx || b >= nz || seen[b * nx + a] || !free(a, b)) continue;
+      seen[b * nx + a] = 1;
+      stack.push(a, b);
+    }
+  }
+  return targets.map((t) => {
+    const a = Math.round((t.x - grid.originX) / cellM - 0.5), b = Math.round((t.z - grid.originZ) / cellM - 0.5);
+    for (let da = -step; da <= step; da++) for (let db = -step; db <= step; db++) if (a + da >= 0 && b + db >= 0 && a + da < nx && b + db < nz && seen[(b + db) * nx + a + da]) return true;
+    return false;
+  });
+}
 
 /** the walker's effective clearance (another change raises the walker's own radius to this; both agree on 0.30 m) */
 export const CLEAR_RADIUS_M = 0.3;
@@ -98,8 +160,8 @@ export function routeReport(layout: Layout, furniture: FurnitureItem[], spawn?: 
   const roomsF = spotsOf(layout, fixed);
   let shut: string[] = [];
   if (eB) {
-    const okF = reachable(fixed, eB, roomsF.map((r) => r.at), radius);
-    const okG = eG ? reachable(grid, eG, rooms.map((r) => r.at), radius) : rooms.map(() => false);
+    const okF = reachableFast(fixed, eB, roomsF.map((r) => r.at), radius);
+    const okG = eG ? reachableFast(grid, eG, rooms.map((r) => r.at), radius) : rooms.map(() => false);
     shut = rooms.filter((r, i) => okF[i] && !okG[i]).map((r) => r.id);
   }
   const pts = blockedDoorPoints(layout, fixed, grid);

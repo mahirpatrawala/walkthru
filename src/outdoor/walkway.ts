@@ -1,7 +1,7 @@
 // The walkway round a pool (SPEC 19.3). A pool deck needs a clear path all round the water: this reads it. The width is an ASSUMPTION
 // (1.2 m from the water's edge, the common guidance for a circulation path, not a code figure) and every sentence says so. Pure.
-import { pointInBox, pointInPolygon } from '../core/geometry';
-import type { Box, Vec2 } from '../types';
+import { boxCorners, pointInBox, pointInPolygon } from '../core/geometry';
+import type { Box, FurnitureItem, Vec2 } from '../types';
 import type { PoolBasin, Side } from './types';
 import { exposureOf, inRect, sideVec } from './pool';
 import { rectD, rectW } from './types';
@@ -120,3 +120,50 @@ export function walkwayReport(pools: readonly PoolBasin[], room: Vec2[], obstacl
 
 /** The spacing a lounger needs beside the next one: a person stepping between them. An assumption, stated by the piece. */
 export const LOUNGER_GAP_M = 0.6;
+
+// ---------------------------------------------------------------- a sample deck that is dressed to leave the walkway
+
+/** the loose deck pieces a sample layout may slide back from the water (a lounger, a poolside chair) */
+const EASED = /^pool-(lounger|chair)$/;
+const itemObstacle = (i: FurnitureItem): WalkObstacle => ({ box: i.box, heightM: i.heightM, label: `the ${i.label.toLowerCase()}` });
+
+/**
+ * Dresses a sample deck: every lounger or chair that leaves a pool's walkway short is slid straight back from the water, 5 cm at a time, until the
+ * side reads `requiredM` clear, but never out of the room, onto another piece or further than 1.2 m. Where the deck is too narrow (a wall ends
+ * the walkway) nothing moves: the verdict then says so, as a note. Deterministic, pure, and a layout that is already clear comes back unchanged.
+ */
+export function easeWalkway(pools: readonly PoolBasin[], room: Vec2[], items: readonly FurnitureItem[], requiredM = WALKWAY_M): FurnitureItem[] {
+  let cur = [...items];
+  const moved = new Map<string, number>();
+  for (let guard = 0; guard < 400; guard++) {
+    const obstacles = cur.filter((i) => i.heightM >= WALKWAY_MIN_OBSTACLE_M && !i.catalogId?.startsWith('pool-changing')).map(itemObstacle);
+    const short = pools.filter((p) => !p.kids).flatMap((p) => walkwaySides({ basin: p, others: pools, room, obstacles, requiredM })).filter((s) => s.verdict !== 'clear');
+    let did = false;
+    for (const s of short) {
+      const i = cur.findIndex((q) => EASED.test(q.catalogId ?? '') && pointInBox(s.at, q.box, -0.03) && (moved.get(q.id) ?? 0) < 1.2);
+      if (i < 0) continue;
+      const it = cur[i];
+      const n = sideVec(s.side);
+      const box = { ...it.box, cx: it.box.cx + n.x * STEP_M, cz: it.box.cz + n.z * STEP_M };
+      if (!boxCorners(box).every((p) => pointInPolygon(p, room))) continue;
+      if (cur.some((o, k) => k !== i && o.heightM >= WALKWAY_MIN_OBSTACLE_M && boxesTouch(box, o.box))) continue;
+      cur[i] = { ...it, box };
+      moved.set(it.id, (moved.get(it.id) ?? 0) + STEP_M);
+      did = true;
+    }
+    if (!did) break;
+  }
+  return cur.map((it) => (moved.has(it.id) ? { ...it, box: { ...it.box, cx: Math.round(it.box.cx * 100) / 100, cz: Math.round(it.box.cz * 100) / 100 } } : it));
+}
+
+const boxesTouch = (a: Box, b: Box): boolean => boxCorners(a).some((p) => pointInBox(p, b, -0.05)) || boxCorners(b).some((p) => pointInBox(p, a, -0.05)) || pointInBox({ x: a.cx, z: a.cz }, b, -0.05);
+
+/**
+ * The pill's words where the layout is the sample's own (not the visitor's edit): a quiet note with the honest number and no alarm, "Walkway 0.75 m
+ * on the west side (typical 1.2 m)". Pure.
+ */
+export function walkwayNote(r: WalkwayReport): string {
+  const bad = r.sides.filter((s) => s.verdict !== 'clear').sort((a, b) => a.clearM - b.clearM)[0];
+  if (!bad) return r.short;
+  return `Walkway ${bad.clearM.toFixed(2)} m on the ${SIDE_WORD[bad.side]} side (typical ${r.requiredM.toFixed(1)} m)`;
+}

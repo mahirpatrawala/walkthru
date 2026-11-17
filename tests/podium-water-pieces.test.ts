@@ -75,13 +75,17 @@ describe('the L-shaped water: three basins that touch and share their water', ()
     expect(east.clearM).toBeGreaterThan(1.0);
     expect(east.clearM).toBeLessThan(1.2);
   });
-  it('the furnished wing\'s loungers stand where the plan draws them, and the walkway check says what that does (blocked on the shallow pool\'s west deck, where the plan\'s loungers touch the water)', () => {
+  it('the furnished wing\'s loungers are slid back from the water so the shallow pool\'s west deck keeps its 1.2 m, and only the east wall is short (a note, not an alarm)', () => {
     const p = readScene(FULL_IDS.wing)!;
     const obs = p.furniture.map((f) => ({ box: f.box, heightM: f.heightM, label: f.label }));
     const rep = walkwayReport(wing.pools, p.layout.rooms[0].polygon, obs);
-    expect(rep.verdict).toBe('blocked');
-    expect(rep.sides.find((s) => s.basin === 'shallow' && s.side === 'W')!.by).toBe('Pool lounger');
+    expect(rep.verdict).toBe('tight');
+    expect(rep.sides.find((s) => s.basin === 'shallow' && s.side === 'W')!.verdict).toBe('clear');
+    expect(rep.sides.filter((s) => s.verdict !== 'clear').map((s) => s.by)).toEqual(['a wall']);
     expect(p.furniture.filter((f) => f.catalogId === 'pool-lounger')).toHaveLength(15);
+    // the plan draws the west row with its feet at the water: that layout is blocked, as the card would say if a visitor put it back
+    const drawn = obs.map((o, i) => (p.furniture[i].catalogId === 'pool-lounger' && p.furniture[i].box.yawDeg === 90 ? { ...o, box: { ...o.box, cx: 1.79 } } : o));
+    expect(walkwayReport(wing.pools, p.layout.rooms[0].polygon, drawn).sides.find((s) => s.basin === 'shallow' && s.side === 'W')!.by).toBe('Pool lounger');
   });
   it('the map draws the wing as its own outline, not a box, with every basin\'s water over the coping', () => {
     const lv = full.levels.find((l) => l.id === 'l1')!;
