@@ -121,3 +121,10 @@
   .wt-hud:not(.rv-map) .wt-nav-map { transform: translateY(calc(-8 * var(--wt-u))); }
   .wt-hud.rv-id .wt-nav-map { opacity: 0; pointer-events: none; }
 }
+
+/* a phone held sideways: the tools take the bottom row, so the plan card comes in under the identity pill, as on a portrait phone */
+@media (pointer: coarse) and (max-height: 520px) and (min-width: 761px) {
+  .wt-nav-map { bottom: auto; top: calc(var(--wt-gutter) + var(--wt-safe-t) + calc(56 * var(--wt-u))); }
+  .wt-hud:not(.rv-map) .wt-nav-map { transform: translateY(calc(-8 * var(--wt-u))); }
+  .wt-hud.rv-id .wt-nav-map { opacity: 0; pointer-events: none; }
+}

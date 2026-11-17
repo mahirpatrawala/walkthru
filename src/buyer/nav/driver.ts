@@ -13,12 +13,15 @@
 // duration. The body still moves with the same collision as walking by hand (`moveCircle` on the live grid).
 import { CHARACTER_RADIUS_M } from '../../types';
 import type { Grid, Layout, Vec2 } from '../../types';
-import { moveCircle } from '../../core/grid-query';
+import { circleFree, moveCircle, nearestFree } from '../../core/grid-query';
+import { pointInPolygon } from '../../core/geometry';
 import { chooseSpawn } from '../../core/spawn';
+import { freePos } from '../../core/doors';
+
 import { roomAt } from '../../core/layout-geom';
 import type { Door } from '../../core/doors';
 import { findRoute, routesFrom } from './grid-path';
-import { cutRoute, doorway, firstCrossing, isOpenEnough, planGridOf, standOffM } from './door-route';
+import { cutRoute, doorway, firstCrossing, gatesOf, isOpenEnough, planGridOf, standOffM } from './door-route';
 import type { LeafState } from './door-route';
 import { SHORTCUT_LAST_M, SHORTCUT_WALK_S, goPlan, pointAlongRoute } from './nav-model';
 import { DWELL_S, pickNext, tourStops } from './tour-plan';
@@ -271,7 +274,7 @@ export class Driver {
     let from = start;
     const all: Vec2[] = [{ x: start.x, z: start.z }];
     for (const w of way) {
-      const leg = findRoute(grid, from, w);
+      const leg = findRoute(grid, from, w, Infinity, gatesOf(leaves));
       if (!leg) return false;
       all.push(...leg.points.slice(1));
       from = w;
@@ -458,9 +461,33 @@ export class Driver {
 
   // ---------------------------------------------------------------- go to a room
 
+  /**
+   * The static grid with every door's leaf stamped at the furthest it opens there: where a door that has been walked through stands. A standing spot
+   * is chosen on this grid, so it is never in a pocket that an open leaf and a wardrobe cut off from the doorway (a tour or a tap would find the door
+   * open and no way to the spot). Rooms whose leaves cut nothing off keep the start page's own spot.
+   */
+  private openGrid(): Grid {
+    const statics = this.deps.staticGrid();
+    const leaves = this.deps.leaves();
+    if (leaves.length === 0) return statics;
+    return planGridOf(statics, leaves.map((l) => ({ door: l.door, pos: freePos(statics, l.door, 0).pos })));
+  }
+
+  /** `p` itself when a body fits there with a hair to spare on the open grid, else the nearest such point inside the room (a toilet's spot hugs its doorway). */
+  private clearIn(roomId: string, p: Vec2, open: Grid): Vec2 {
+    if (circleFree(open, p.x, p.z, CHARACTER_RADIUS_M + 0.02)) return { x: p.x, z: p.z };
+    const room = this.deps.layout.rooms.find((r) => r.id === roomId);
+    const q = nearestFree(open, p.x, p.z, CHARACTER_RADIUS_M + 0.02, 1.2);
+    return q && room && pointInPolygon(q, room.polygon) ? q : { x: p.x, z: p.z };
+  }
+
   /** The room's standing spot (the start page's smart spawn), or null for a room that has none. */
   spotIn(roomId: string): { x: number; z: number; yawDeg: number } | null {
-    const s = chooseSpawn(this.deps.layout, roomId, this.deps.staticGrid());
+    const open = this.openGrid();
+    let s = chooseSpawn(this.deps.layout, roomId, open);
+    // a pocket of a room (a toilet) may leave no clear spot once the leaf is in: then the start page's own spot
+    if (!s || !circleFree(open, s.x, s.z, CHARACTER_RADIUS_M)) s = chooseSpawn(this.deps.layout, roomId, this.deps.staticGrid()) ?? s;
+    if (s) s = { ...s, ...this.clearIn(roomId, s, open) };
     return s ? { x: s.x, z: s.z, yawDeg: s.yawDeg } : null;
   }
 
@@ -480,14 +507,14 @@ export class Driver {
     const spot = this.spotIn(roomId);
     if (!spot) return 'no-spot';
     const grid = planGridOf(this.deps.staticGrid(), this.deps.leaves());
-    const route = findRoute(grid, this.deps.character.position, spot, ROUTE_MAX_M);
+    const route = findRoute(grid, this.deps.character.position, spot, ROUTE_MAX_M, gatesOf(this.deps.leaves()));
     const plan = route && !this.deps.reducedMotion() ? goPlan(route.lengthM) : 'fade';
     if (route && plan !== 'fade') {
       let r = await this.walkTo(spot, GO_KIN, plan === 'shortcut' ? { cutAfterS: SHORTCUT_WALK_S } : {});
       if (token !== this.token) return 'cancelled';
       if (r === 'cut') {
         // the walker has set off; the viewer does not wait for the rest of a long way
-        const rest = findRoute(grid, this.deps.character.position, spot, ROUTE_MAX_M);
+        const rest = findRoute(grid, this.deps.character.position, spot, ROUTE_MAX_M, gatesOf(this.deps.leaves()));
         if (rest && rest.lengthM > SHORTCUT_LAST_M + 0.5) {
           const near = pointAlongRoute(rest.points, rest.lengthM - SHORTCUT_LAST_M);
           const ahead = pointAlongRoute(rest.points, rest.lengthM - SHORTCUT_LAST_M + 0.3);
@@ -536,8 +563,15 @@ export class Driver {
     this.enterPresentation();
     this.emit();
     for (let round = 1; alive(); round++) {
-      const { stops, skipped } = tourStops(layout, this.deps.staticGrid(), this.deps.focal);
-      const first = routesFrom(planGridOf(this.deps.staticGrid(), this.deps.leaves()), this.deps.character.position, stops.map((s) => s.spot));
+      const open = this.openGrid();
+      const withLeaves = tourStops(layout, open, this.deps.focal);
+      const plain = withLeaves.stops.some((st) => !circleFree(open, st.spot.x, st.spot.z, CHARACTER_RADIUS_M)) ? tourStops(layout, this.deps.staticGrid(), this.deps.focal).stops : [];
+      const stops = withLeaves.stops.map((st) => (circleFree(open, st.spot.x, st.spot.z, CHARACTER_RADIUS_M) ? st : plain.find((x) => x.room.id === st.room.id) ?? st));
+      const skipped = withLeaves.skipped;
+      for (const st of stops) { const q = this.clearIn(st.room.id, st.spot, open); st.spot = { ...st.spot, x: q.x, z: q.z }; }
+      // the order and the reachability are judged on the grid without any leaf (a leaf is a thing of the moment: how far a door has swung when a stop is chosen
+      // depends on the frame rate, and so would the tour's order); a leaf that really shuts a room off fails the walk there, and that room is named as left out
+      const first = routesFrom(this.deps.staticGrid(), this.deps.character.position, stops.map((s) => s.spot), Infinity, gatesOf(this.deps.leaves()));
       const reachable: TourStop[] = [];
       for (const s of stops) {
         if (Number.isFinite(first.lengthTo(s.spot))) reachable.push(s);
@@ -573,7 +607,7 @@ export class Driver {
         let stop: TourStop | null = null;
         let from: Vec2 = this.deps.character.position;
         while (remaining.length > 0) {
-          const field = routesFrom(grid, from, remaining.map((s) => s.vantage));
+          const field = routesFrom(this.deps.staticGrid(), from, remaining.map((s) => s.vantage), Infinity, gatesOf(this.deps.leaves()));
           const pick = pickNext(remaining, (p) => field.lengthTo(p), (s) => s.vantage);
           for (const u of pick.unreachable) {
             this.tourState?.skipped.push({ roomId: u.room.id, label: u.room.label, why: 'not reachable' });

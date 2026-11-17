@@ -4,6 +4,7 @@ import { CHARACTER_RADIUS_M } from '../../types';
 import type { Grid, Vec2 } from '../../types';
 import { inDoorSweep, leafObstacle } from '../../core/doors';
 import type { Door } from '../../core/doors';
+import type { Gate } from './grid-path';
 import { stampFurniture } from '../../core/layout-raster';
 
 /** A leaf opened less than this fraction of its way still blocks the doorway: it is treated as shut and opened further. */
@@ -111,3 +112,11 @@ export function planGridOf(statics: Grid, leaves: readonly LeafState[]): Grid {
     return { id: `nav-leaf:${i}`, source: 'virtual' as const, kind: 'wardrobe' as const, label: 'door leaf', box: o.box, heightM: o.heightM, surfaceHeightM: o.heightM };
   }));
 }
+
+/** The doorway of a door as a gate the planner crosses square-on (grid-path.ts `Gate`). */
+export function gateOf(d: Door): Gate {
+  const w = doorway(d);
+  const width = Math.hypot(w.b.x - w.a.x, w.b.z - w.a.z) || 1e-9;
+  return { c: { x: (w.a.x + w.b.x) / 2, z: (w.a.z + w.b.z) / 2 }, along: { x: (w.b.x - w.a.x) / width, z: (w.b.z - w.a.z) / width }, n: { x: d.out.x, z: d.out.z }, depth: d.depth, width };
+}
+export const gatesOf = (leaves: readonly LeafState[]): Gate[] => leaves.map((l) => gateOf(l.door));

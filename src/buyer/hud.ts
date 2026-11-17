@@ -318,6 +318,10 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   bar.setAttribute('role', 'toolbar');
   bar.setAttribute('aria-label', 'Tools');
   bar.dataset.testid = 'tools';
+  // on a phone the tools are one row that scrolls sideways: `data-end` says it has reached its end, and until then its right edge fades (buyer.css)
+  const syncEnd = (): void => { bar.dataset.end = bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 2 ? '1' : '0'; };
+  bar.addEventListener('scroll', syncEnd, { passive: true });
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(syncEnd).observe(bar);
   const buttons = {} as Record<HudButtonId, HTMLButtonElement>;
   (['rooms', 'measure', 'furnish', 'person', 'scan'] as HudButtonId[]).forEach((bid) => {
     const b = el('button', 'wt-btn wt-tool', undefined, bar);

@@ -303,12 +303,12 @@ if (uLkPaint > 0.5 && uLkPlain < 0.5 && uLkFine > 0.5) {
   diffuseColor.rgb *= 1.0 + lkG;
 }
 if (uLkWallAOOn > 0.5 && uLkPlain < 0.5) {
-  // the shadow line where a wall meets the ceiling: an 11 mm dark gap and a soft cove of shade above 5 cm
+  // the shadow line where a wall meets the ceiling: an 11 mm gap, only a little darker than the wall (0.16: it read as a dirty grey line at 0.55, 17 Nov 2026), and a soft cove of shade above 5 cm
   float lkW = max(fwidth(vLkPos.y) * 0.75, 1e-4);
   float lkTop = uLkWallH - vLkPos.y;
   float lkLn = 1.0 - smoothstep(0.011 - lkW, 0.011 + lkW, lkTop);
   float lkCove = 1.0 - smoothstep(0.0, 0.06, lkTop);
-  diffuseColor.rgb *= 1.0 - 0.55 * lkLn - 0.07 * lkCove;
+  diffuseColor.rgb *= 1.0 - 0.16 * lkLn - 0.07 * lkCove;
 }
 `;
 const FRAG_ROUGH = /* glsl */ `

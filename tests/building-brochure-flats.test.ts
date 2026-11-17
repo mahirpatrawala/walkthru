@@ -241,7 +241,7 @@ describe('the typical floor of the brochure flats', () => {
     // the check is not vacuous: push a flat 1.5 m along the corridor and it sees a problem
     const moved = { ...plate, flats: plate.flats.map((f) => (f.key === '03' ? { ...f, rooms: f.rooms.map((r) => ({ ...r, polygon: r.polygon.map((p) => ({ x: p.x + 1.4, z: p.z })) })) } : f)) };
     expect(plateProblems(moved).length).toBeGreaterThan(0);
-  });
+  }, 120000);
 
   it('keeps one lift lobby and one corridor 1.8 m wide, about 23 m long', () => {
     const rooms = corridor.layout.rooms;

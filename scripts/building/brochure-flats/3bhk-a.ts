@@ -92,7 +92,7 @@ export const flat3bhkA: AuthoredFlat = {
     { id: 'shower-2', kind: 'counter', catalogId: 'shower-over', label: 'Shower', at: { x: 4.25, z: 10.46 }, facing: 'E' },
     { id: 'wc-s', kind: 'counter', catalogId: 'wc-western', label: 'Western commode', at: { x: 7.62, z: 0.4 }, facing: 'S' },
     { id: 'chair-balcony-1', kind: 'sofa', catalogId: 'armchair', label: 'Armchair', at: { x: 0.81, z: 11.49 }, facing: 'S' },
-    { id: 'chair-balcony-2', kind: 'sofa', catalogId: 'armchair', label: 'Armchair', at: { x: 2.1, z: 11.76 }, facing: 'S' },
+    { id: 'chair-balcony-2', kind: 'sofa', catalogId: 'armchair', label: 'Armchair', at: { x: 2.1, z: 11.41 }, facing: 'S' },
   ],
   ac: [
     { room: 'living', wall: 'E', at: 9.51 },

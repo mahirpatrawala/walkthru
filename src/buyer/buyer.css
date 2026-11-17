@@ -350,11 +350,18 @@ html[data-labels="full"] .wt-toprow .wt-tool-label { display: inline; }
   .wt-id-icon { display: none; }
   .wt-id-pill { padding-left: calc(15 * var(--wt-u)); }
   .wt-topbar {
-    position: fixed; left: calc(10 * var(--wt-u) + var(--wt-safe-l)); right: calc(10 * var(--wt-u) + var(--wt-safe-r)); bottom: calc(max(calc(14 * var(--wt-u)) + var(--wt-safe-b), var(--wt-nav-h, 0px) + calc(10 * var(--wt-u))) + var(--wt-slot-h, 0px));
-    flex-wrap: wrap; justify-content: center; gap: calc(8 * var(--wt-u));
+    position: fixed; left: calc(10 * var(--wt-u) + var(--wt-safe-l)); right: calc(10 * var(--wt-u) + var(--wt-safe-r)); bottom: calc(max(calc(14 * var(--wt-u)) + var(--wt-safe-b), var(--wt-nav-h, 0px) + calc(6 * var(--wt-u))) + var(--wt-slot-h, 0px));
+    flex-wrap: wrap; justify-content: center; gap: calc(6 * var(--wt-u));
+    /* stretch between the two insets: the grid's `center` would shrink-wrap it to the scrolling tools' whole length (a scroll container still asks for its content's width) */
+    justify-self: stretch; width: auto;
   }
   .wt-hud:not(.rv-top) .wt-topbar > :not(.wt-views), .wt-hud:not(.rv-views) .wt-views { transform: translateY(calc(10 * var(--wt-u))); }
-  .wt-tools { flex-wrap: wrap; justify-content: center; border-radius: var(--wt-r-glass); max-width: 100%; }
+  /* the tools are ONE row that scrolls sideways (the last button peeks in to say so), under the view switch and the Tour: with the room strip below it the whole
+     revealed chrome is three tight rows against the bottom safe area, and the walker and the middle of the scene stay clear (17 Nov 2026: the wrapped sheet was
+     three rows of its own and stood over the walker) */
+  .wt-tools { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; justify-content: flex-start; max-width: 100%; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
+  .wt-tools::-webkit-scrollbar { display: none; }
+  .wt-tools:not([data-end="1"]) { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 30 * var(--wt-u)), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 30 * var(--wt-u)), transparent); }
   .wt-top { top: calc(var(--wt-gutter) + var(--wt-safe-t) + calc(54 * var(--wt-u))); }
   .wt-hint { top: calc(var(--wt-gutter) + var(--wt-safe-t) + calc(58 * var(--wt-u))); }
   .wt-stack, .wt-hint-chips { max-width: calc(100vw - calc(28 * var(--wt-u))); }
@@ -362,6 +369,26 @@ html[data-labels="full"] .wt-toprow .wt-tool-label { display: inline; }
   .wt-hud.rv-top .wt-stack { opacity: 0; pointer-events: none; }
   .wt-tool-label { display: none !important; }
   .wt-tools.is-labelled .wt-tool-label, .wt-exit .wt-tool-label, .wt-tourslot .wt-tool-label, .wt-tools [data-btn="flats"] .wt-tool-label { display: inline !important; }
+}
+
+/* a phone held sideways (a touch screen, wider than 760 px, under 520 px tall): 17 buttons cannot keep 44 px in one top row, so the view switch, the camera, the Tour and
+   the tools take the phone's place instead, ONE row along the bottom above the room strip (the tools scroll sideways inside what is left of it), and the floor plan
+   card (nav.css) sits under the identity pill */
+@media (pointer: coarse) and (max-height: 520px) and (min-width: 761px) {
+  .wt-toprow { grid-template-columns: minmax(0, 1fr) auto; }
+  .wt-exit { grid-column: 2; grid-row: 1; }
+  .wt-topbar {
+    position: fixed; left: calc(10 * var(--wt-u) + var(--wt-safe-l)); right: calc(10 * var(--wt-u) + var(--wt-safe-r)); bottom: calc(max(calc(14 * var(--wt-u)) + var(--wt-safe-b), var(--wt-nav-h, 0px) + calc(6 * var(--wt-u))) + var(--wt-slot-h, 0px));
+    flex-wrap: nowrap; justify-content: center; gap: calc(6 * var(--wt-u)); justify-self: stretch; width: auto;
+  }
+  .wt-hud:not(.rv-top) .wt-topbar > :not(.wt-views), .wt-hud:not(.rv-views) .wt-views { transform: translateY(calc(10 * var(--wt-u))); }
+  .wt-seg, .wt-tourslot { flex: none; }
+  .wt-tools { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; justify-content: flex-start; max-width: 100%; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
+  .wt-tools::-webkit-scrollbar { display: none; }
+  .wt-tools:not([data-end="1"]) { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 30 * var(--wt-u)), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 30 * var(--wt-u)), transparent); }
+  .wt-toprow[data-fit] .wt-seg-btn, .wt-toprow[data-fit] .wt-tools .wt-btn, .wt-toprow[data-fit] .wt-tourslot .wt-btn, .wt-toprow[data-fit] .wt-exit .wt-btn { min-width: calc(44 * var(--wt-u)); }
+  .wt-hud .wt-topbar > *, .wt-hud .wt-nav-row { transform: none; }
+  .wt-hud.rv-top .wt-stack { opacity: 0; pointer-events: none; }
 }
 
 /* the Building / All homes link, the one control in the top right corner */

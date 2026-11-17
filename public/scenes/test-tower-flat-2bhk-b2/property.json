@@ -512,6 +512,21 @@
       "surfaceHeightM": 0.43
     },
     {
+      "id": "ottoman-1",
+      "source": "real",
+      "kind": "sofa",
+      "label": "Ottoman",
+      "box": {
+        "cx": 1.32,
+        "cz": 5.52,
+        "w": 0.71,
+        "d": 0.7,
+        "yawDeg": 90
+      },
+      "heightM": 0.4,
+      "surfaceHeightM": 0.4
+    },
+    {
       "id": "table-centre",
       "source": "real",
       "kind": "counter",
@@ -519,7 +534,7 @@
       "label": "Centre table",
       "box": {
         "cx": 1.23,
-        "cz": 4.98,
+        "cz": 4.58,
         "w": 1,
         "d": 0.55,
         "yawDeg": 90
@@ -842,7 +857,7 @@
       "catalogId": "armchair",
       "label": "Armchair",
       "box": {
-        "cx": 1.02,
+        "cx": 0.62,
         "cz": 7.2,
         "w": 0.8,
         "d": 0.85,
@@ -858,8 +873,8 @@
       "catalogId": "armchair",
       "label": "Armchair",
       "box": {
-        "cx": 2.64,
-        "cz": 7.24,
+        "cx": 2.31,
+        "cz": 7.2,
         "w": 0.8,
         "d": 0.85,
         "yawDeg": 0

@@ -80,7 +80,7 @@ export const flat3bhkB: AuthoredFlat = {
     { id: 'wc-1', kind: 'counter', catalogId: 'wc-western', label: 'Western commode', at: { x: 15.59, z: 3.66 }, facing: 'W' },
     { id: 'basin-1', kind: 'counter', catalogId: 'basin-wall', label: 'Wash basin', at: { x: 15.4, z: 2.845 }, facing: 'S' },
     // balcony
-    { id: 'chair-balcony-1', kind: 'sofa', catalogId: 'armchair', label: 'Armchair', at: { x: 9.33, z: 6.25 }, facing: 'S' },
+    { id: 'chair-balcony-1', kind: 'sofa', catalogId: 'armchair', label: 'Armchair', at: { x: 9.78, z: 6.25 }, facing: 'S' },
     { id: 'chair-balcony-2', kind: 'sofa', catalogId: 'armchair', label: 'Armchair', at: { x: 11.02, z: 6.25 }, facing: 'S' },
   ],
   ac: [

@@ -150,18 +150,25 @@ export interface RouteReport {
 }
 
 /** What the furniture shuts away: `fixedOnly` is the home with only its immovable pieces (what the drawing alone allows). */
-export function routeReport(layout: Layout, furniture: FurnitureItem[], spawn?: { x: number; z: number }, radius = CLEAR_RADIUS_M): RouteReport {
+export interface RouteCtx { bare: Grid; fixed: Grid; eB: Vec2 | null; roomsF: { id: string; at: Vec2 }[]; okF: boolean[] }
+/** What a pass asks again and again and only the movable pieces change: the empty home's grid and everything about the home with just its fixed pieces. */
+export function routeCtx(layout: Layout, furniture: FurnitureItem[], spawn?: { x: number; z: number }, radius = CLEAR_RADIUS_M): RouteCtx {
   const bare = rasterizeLayout(layout);
   const fixed = stampFurniture(bare, furniture.filter((i) => !isMovable(i)));
-  const grid = stampFurniture(bare, furniture);
-  const eB = entryOf(layout, fixed, spawn), eG = entryOf(layout, grid, spawn);
-  const rooms = spotsOf(layout, grid);
+  const eB = entryOf(layout, fixed, spawn);
   const roomsF = spotsOf(layout, fixed);
+  return { bare, fixed, eB, roomsF, okF: eB ? reachableFast(fixed, eB, roomsF.map((r) => r.at), radius) : [] };
+}
+
+export function routeReport(layout: Layout, furniture: FurnitureItem[], spawn?: { x: number; z: number }, radius = CLEAR_RADIUS_M, ctx?: RouteCtx): RouteReport {
+  const { bare, fixed, eB, roomsF, okF } = ctx ?? routeCtx(layout, furniture, spawn, radius);
+  const grid = stampFurniture(bare, furniture);
+  const eG = entryOf(layout, grid, spawn);
+  const rooms = spotsOf(layout, grid);
   let shut: string[] = [];
   if (eB) {
-    const okF = reachableFast(fixed, eB, roomsF.map((r) => r.at), radius);
     const okG = eG ? reachableFast(grid, eG, rooms.map((r) => r.at), radius) : rooms.map(() => false);
-    shut = rooms.filter((r, i) => okF[i] && !okG[i]).map((r) => r.id);
+    shut = rooms.filter((r) => { const iF = roomsF.findIndex((q) => q.id === r.id); return iF >= 0 && okF[iF] && !okG[rooms.indexOf(r)]; }).map((r) => r.id);
   }
   const pts = blockedDoorPoints(layout, fixed, grid);
   return { shut, blockedDoors: Object.keys(pts), blockedPoints: Object.values(pts).reduce((a, b) => a + b, 0) };
@@ -181,11 +188,79 @@ function boxesOverlap(a: Box, b: Box, pad = 0): boolean {
 const cost = (r: RouteReport): number => r.shut.length * 1000 + r.blockedPoints;
 const DIRS = Array.from({ length: 12 }, (_, k) => ({ x: Math.cos((k / 12) * Math.PI * 2), z: Math.sin((k / 12) * Math.PI * 2) }));
 
+/** a sofa, with a back that stands against a wall (not an armchair, which faces its view, not a footstool, not a lobby or gym seat) */
+export function hasBack(it: FurnitureItem): boolean {
+  return it.kind === 'sofa' && !/^(lobby-|gym-)/.test(it.catalogId ?? '') && !/^ottoman|armchair|chair/.test(`${it.id} ${it.catalogId ?? ''}`) && it.box.w >= 1.2 && it.box.d >= 0.7;
+}
+
+interface WallEdge { a: Vec2; dir: Vec2; into: Vec2; length: number }
+/** the edges of a room's outline, each with the unit vector along it and the one pointing into the room */
+function wallEdges(poly: Vec2[]): WallEdge[] {
+  const out: WallEdge[] = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    const length = Math.hypot(b.x - a.x, b.z - a.z);
+    if (length < 0.3) continue;
+    const dir = { x: (b.x - a.x) / length, z: (b.z - a.z) / length };
+    let into = { x: -dir.z, z: dir.x };
+    const mid = { x: (a.x + b.x) / 2 + into.x * 0.1, z: (a.z + b.z) / 2 + into.z * 0.1 };
+    if (!pointInPolygon(mid, poly)) into = { x: -into.x, z: -into.z };
+    out.push({ a, dir, into, length });
+  }
+  return out;
+}
+
+/** The wall a back stands against: the edge, how far along it the piece's centre is, and the gap between back and wall; null when it stands free. */
+function wallOfBack(it: FurnitureItem, edges: WallEdge[]): { e: WallEdge; u: number; gap: number } | null {
+  const { a } = boxAxes(it.box);
+  const back = { x: it.box.cx - a.x * it.box.d / 2, z: it.box.cz - a.z * it.box.d / 2 };
+  let best: { e: WallEdge; u: number; gap: number } | null = null;
+  for (const e of edges) {
+    if (Math.abs(a.x * e.dir.x + a.z * e.dir.z) > 0.2 || a.x * e.into.x + a.z * e.into.z < 0.9) continue;
+    const gap = (back.x - e.a.x) * e.into.x + (back.z - e.a.z) * e.into.z;
+    const u = (it.box.cx - e.a.x) * e.dir.x + (it.box.cz - e.a.z) * e.dir.z;
+    if (gap < -0.05 || gap > 0.25 || u < 0 || u > e.length) continue;
+    if (!best || gap < best.gap) best = { e, u, gap };
+  }
+  return best;
+}
+
 /**
- * Moves the movable pieces, the fewest and the least, until nothing is shut away and no door strip is blocked: the piece whose removal helps most is
- * slid (in 5 cm steps, 16 directions, the nearest spot first) to a spot inside its own room, clear of every other piece, that leaves fewer rooms shut or
- * doors blocked. Returns the new furniture (the same objects where nothing moved) and what moved. Deterministic.
+ * Where a piece with a back may stand against a wall of its room, nearest first: along the wall it was on (a slide), then the other walls
+ * (turned to face into the room, back to the wall, the same gap). Never floating, never skewed.
  */
+function wallSpots(layout: Layout, it: FurnitureItem, room: { polygon: Vec2[] }, from: { e: WallEdge; u: number; gap: number }, edges: WallEdge[]): Box[] {
+  const out: { box: Box; key: number }[] = [];
+  // what is cut into a wall (a door, an opening, a window whose sill is under the piece's top, from either room) stays in the open
+  const cuts: { e: WallEdge; u0: number; u1: number }[] = [];
+  for (const o of layout.openings) {
+    if (o.type === 'window' && o.sillM >= it.heightM + 0.05) continue;
+    const f = doorFrame(layout, o.id);
+    if (!f) continue;
+    for (const e of edges) {
+      const off = (f.centre.x - e.a.x) * e.into.x + (f.centre.z - e.a.z) * e.into.z;
+      const u = (f.centre.x - e.a.x) * e.dir.x + (f.centre.z - e.a.z) * e.dir.z;
+      if (Math.abs(off) < 0.35 && u > -0.2 && u < e.length + 0.2) cuts.push({ e, u0: u - f.widthM / 2 - 0.05, u1: u + f.widthM / 2 + 0.05 });
+    }
+  }
+  const gap = Math.min(0.1, Math.max(0.02, from.gap));
+  for (const e of edges) {
+    const half = it.box.w / 2 + 0.03;
+    if (e.length < it.box.w + 0.06) continue;
+    const yawDeg = Math.round((Math.atan2(e.into.x, e.into.z) * 180) / Math.PI * 1000) / 1000;
+    for (let u = half; u <= e.length - half + 1e-9; u += 0.05) {
+      const cx = e.a.x + e.dir.x * u + e.into.x * (it.box.d / 2 + gap), cz = e.a.z + e.dir.z * u + e.into.z * (it.box.d / 2 + gap);
+      const box = { ...it.box, cx: Math.round(cx * 1000) / 1000, cz: Math.round(cz * 1000) / 1000, yawDeg };
+      if (!boxCorners(box).every((p) => pointInPolygon(p, room.polygon))) continue;
+      if (cuts.some((c) => c.e === e && u - it.box.w / 2 < c.u1 && u + it.box.w / 2 > c.u0)) continue;
+      const move = Math.hypot(box.cx - it.box.cx, box.cz - it.box.cz);
+      // the same wall first (by how far it slides), then the others by how far the piece travels
+      out.push({ box, key: (e === from.e ? 0 : 100) + move });
+    }
+  }
+  return out.sort((x, y) => x.key - y.key).map((o) => o.box);
+}
+
 export function clearRoutes(layout: Layout, furniture: FurnitureItem[], spawn?: { x: number; z: number }): ClearResult {
   const key = JSON.stringify([layout.rooms.map((r) => [r.id, r.polygon]), layout.openings.map((o) => [o.id, o.edge, o.centreM, o.widthM]), furniture.map((f) => [f.id, f.kind, f.catalogId, f.box]), spawn ?? null]);
   const hit = CACHE.get(key);
@@ -199,18 +274,88 @@ export interface ClearResult { furniture: FurnitureItem[]; dropped: string[]; mo
 const CACHE = new Map<string, ClearResult>();
 /** the whole pass is given this long (ms); a plan too tangled to settle in it keeps what it has */
 const BUDGET_MS = 8000;
+/** a joint nudge moves a piece at most this far from where the drawing put it, metres */
+const NUDGE_MAX_M = 1.0;
+
+/**
+ * Before a loose accent piece is left out: slide it and its neighbours (the movable pieces of its room, and any within 2.5 m) a little each, by
+ * coordinate descent on "rooms shut and door strips blocked first, then how far everything has travelled from the drawing". Returns the items
+ * when that clears every route with the piece kept, else null. The pieces stay inside their own room and clear of each other.
+ */
+function jointNudge(layout: Layout, items: FurnitureItem[], original: FurnitureItem[], keepId: string, spawn: { x: number; z: number } | undefined, ctx: RouteCtx, deadline: number, accentsOnly = false): FurnitureItem[] | null {
+  const orig = new Map(original.map((f) => [f.id, f]));
+  const target = items.find((x) => x.id === keepId);
+  const t0 = orig.get(keepId);
+  if (!target || !t0) return null;
+  const roomOf = (it: FurnitureItem) => layout.rooms.find((r) => !r.partial && pointInPolygon({ x: it.box.cx, z: it.box.cz }, r.polygon));
+  const tr = roomOf(t0);
+  const pool = items.filter((it) => {
+    const o = orig.get(it.id);
+    if (!o || !isMovable(it) || (accentsOnly && !isDroppable(it))) return false;
+    return it.id === keepId || (tr && roomOf(o) === tr) || Math.hypot(o.box.cx - t0.box.cx, o.box.cz - t0.box.cz) < 2.5;
+  }).slice(0, 6);
+  const inPool = new Set(pool.map((p) => p.id));
+  const fixed = items.filter((x) => !inPool.has(x.id));
+  // the search starts from the drawing's own places (pieces an earlier step slid are put back: the best answer is often another piece's small move)
+  let cur = items.map((x) => (inPool.has(x.id) ? { ...x, box: { ...orig.get(x.id)!.box } } : x));
+  // two pool pieces may overlap on the way (a piece cannot step out of another's way before the other has moved): each overlapping pair costs 400, and a result with any is refused
+  const overlaps = (list: FurnitureItem[]): number => {
+    const ps = list.filter((x) => inPool.has(x.id));
+    let n = 0;
+    for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) if (boxesOverlap(ps[i].box, ps[j].box, 0.03)) n++;
+    return n;
+  };
+  const travelled = (list: FurnitureItem[]): number => pool.reduce((s, p) => { const a = list.find((x) => x.id === p.id)!.box, b = orig.get(p.id)!.box; return s + Math.hypot(a.cx - b.cx, a.cz - b.cz); }, 0);
+  const measure = (list: FurnitureItem[]): { score: number; ok: boolean } => {
+    const c = cost(routeReport(layout, list, spawn, CLEAR_RADIUS_M, ctx));
+    const o = overlaps(list);
+    return { score: c * 1000 + o * 400 + travelled(list), ok: c === 0 && o === 0 };
+  };
+  let best = measure(cur);
+  for (let sweep = 0; sweep < 4 && Date.now() < deadline && !best.ok; sweep++) {
+    let improved = false;
+    for (const p of pool) {
+      const o = orig.get(p.id)!;
+      const room = roomOf(o);
+      const here = cur.find((x) => x.id === p.id)!;
+      const spots: Box[] = [];
+      for (let dx = -NUDGE_MAX_M; dx <= NUDGE_MAX_M + 1e-9; dx += 0.1) {
+        for (let dz = -NUDGE_MAX_M; dz <= NUDGE_MAX_M + 1e-9; dz += 0.1) {
+          const box = { ...o.box, cx: Math.round((o.box.cx + dx) * 100) / 100, cz: Math.round((o.box.cz + dz) * 100) / 100 };
+          if (Math.hypot(dx, dz) > NUDGE_MAX_M || (box.cx === here.box.cx && box.cz === here.box.cz)) continue;
+          if (room && !boxCorners(box).every((q) => pointInPolygon(q, room.polygon))) continue;
+          if (fixed.some((q) => boxesOverlap(box, q.box, 0.03))) continue;
+          spots.push(box);
+        }
+      }
+      let bestSpot: { cand: FurnitureItem[]; m: { score: number; ok: boolean } } | null = null;
+      for (const box of spots) {
+        if (Date.now() > deadline) break;
+        const cand = cur.map((x) => (x.id === p.id ? { ...x, box } : x));
+        const m = measure(cand);
+        if (m.score < (bestSpot?.m.score ?? best.score) - 1e-9) bestSpot = { cand, m };
+      }
+      if (bestSpot) { cur = bestSpot.cand; best = bestSpot.m; improved = true; if (best.ok) break; }
+    }
+    if (!improved) break;
+  }
+  return best.ok ? cur : null;
+}
+
 function clearRoutesUncached(layout: Layout, furniture: FurnitureItem[], spawn?: { x: number; z: number }): { furniture: FurnitureItem[]; dropped: string[]; moved: { id: string; dx: number; dz: number }[]; left: RouteReport } {
   let items = furniture;
   const moved = new Map<string, { dx: number; dz: number }>();
   const dropped: string[] = [];
-  let rep = routeReport(layout, items, spawn);
+  const ctx = routeCtx(layout, furniture, spawn);
+  const report = (list: FurnitureItem[]): RouteReport => routeReport(layout, list, spawn, CLEAR_RADIUS_M, ctx);
+  let rep = report(items);
   const t0 = Date.now();
   for (let guard = 0; guard < 24 && cost(rep) > 0 && Date.now() - t0 < BUDGET_MS; guard++) {
     // the pieces whose removal helps, the one that helps most first; the first of them that has somewhere harmless (or less harmful) to go is moved
     const helps: { id: string; c: number }[] = [];
     for (const it of items) {
       if (!isMovable(it)) continue;
-      const c = cost(routeReport(layout, items.filter((x) => x.id !== it.id), spawn));
+      const c = cost(report(items.filter((x) => x.id !== it.id)));
       if (c < cost(rep)) helps.push({ id: it.id, c });
     }
     helps.sort((a, b) => a.c - b.c);
@@ -218,15 +363,28 @@ function clearRoutesUncached(layout: Layout, furniture: FurnitureItem[], spawn?:
     for (const best of helps) {
       const it = items.find((x) => x.id === best.id)!;
       const room = layout.rooms.find((r) => !r.partial && pointInPolygon({ x: it.box.cx, z: it.box.cz }, r.polygon));
-      // the nearest spot where the piece does no harm (the cost of the home without it), else the spot that harms least
+      // a sofa that stood against a wall goes against a wall: slid along it, else on another wall of its room, facing in
       let pick: { it: FurnitureItem; r: RouteReport } | null = null;
-      outer: for (let dist = 0.05; dist <= MAX_MOVE_M + 1e-9; dist += 0.1) {
+      if (room && hasBack(it)) {
+        const edges = wallEdges(room.polygon);
+        const from = wallOfBack(furniture.find((x) => x.id === it.id) ?? it, edges);
+        if (from) {
+          for (const box of wallSpots(layout, it, room, from, edges)) {
+            if (items.some((o) => o.id !== it.id && boxesOverlap(box, o.box, 0.03))) continue;
+            const cand = { ...it, box };
+            const r = report(items.map((x) => (x.id === it.id ? cand : x)));
+            if (cost(r) <= best.c) { pick = { it: cand, r }; break; }
+          }
+        }
+      }
+      // the nearest spot where the piece does no harm (the cost of the home without it), else the spot that harms least
+      if (!pick) outer: for (let dist = 0.05; dist <= MAX_MOVE_M + 1e-9; dist += 0.1) {
         for (const d of DIRS) {
           const box = { ...it.box, cx: Math.round((it.box.cx + d.x * dist) * 100) / 100, cz: Math.round((it.box.cz + d.z * dist) * 100) / 100 };
           if (room && !boxCorners(box).every((p) => pointInPolygon(p, room.polygon))) continue;
           if (items.some((o) => o.id !== it.id && boxesOverlap(box, o.box, 0.03))) continue;
           const cand = { ...it, box };
-          const r = routeReport(layout, items.map((x) => (x.id === it.id ? cand : x)), spawn);
+          const r = report(items.map((x) => (x.id === it.id ? cand : x)));
           if (cost(r) < cost(rep) && (!pick || cost(r) < cost(pick.r))) pick = { it: cand, r };
           if (cost(r) <= best.c) { pick = { it: cand, r }; break outer; }
         }
@@ -240,13 +398,29 @@ function clearRoutesUncached(layout: Layout, furniture: FurnitureItem[], spawn?:
       break;
     }
     if (!progressed) {
-      // nowhere to put it without shutting something: a loose accent piece goes (the home loses a footstool, not a room)
-      const drop = helps.find((h) => isDroppable(items.find((x) => x.id === h.id)!));
+      // nowhere to put it on its own: the piece and its neighbours are nudged together, and only when that clears nothing is a loose accent piece left out
+      const droppable = helps.filter((h) => isDroppable(items.find((x) => x.id === h.id)!));
+      const drop = droppable[0];
       if (!drop) break;
+      let kept = false;
+      for (const d of droppable) {
+        // the accent pieces alone first (a footstool, a chair and a table sliding a little is the smallest change), then the sofa and dining set too
+        const joint = jointNudge(layout, items, furniture, d.id, spawn, ctx, t0 + BUDGET_MS, true) ?? jointNudge(layout, items, furniture, d.id, spawn, ctx, t0 + BUDGET_MS);
+        if (!joint) continue;
+        items = joint;
+        for (const j of joint) {
+          const first = furniture.find((x) => x.id === j.id)!;
+          if (j.box.cx !== first.box.cx || j.box.cz !== first.box.cz) moved.set(j.id, { dx: j.box.cx - first.box.cx, dz: j.box.cz - first.box.cz });
+          else moved.delete(j.id);
+        }
+        kept = true;
+        break;
+      }
+      if (kept) { rep = report(items); continue; }
       items = items.filter((x) => x.id !== drop.id);
       dropped.push(drop.id);
       moved.delete(drop.id);
-      rep = routeReport(layout, items, spawn);
+      rep = report(items);
     }
   }
   return { furniture: items, dropped, moved: [...moved].map(([id, v]) => ({ id, ...v })), left: rep };

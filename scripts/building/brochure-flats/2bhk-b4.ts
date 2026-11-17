@@ -50,7 +50,7 @@ export const flat2bhkB4: AuthoredFlat = {
     { id: 'sofa-1', kind: 'sofa', catalogId: 'sofa-3', label: 'Sofa', at: { x: 0.45, z: 3.6 }, facing: 'E' },
     { id: 'ottoman-1', kind: 'sofa', label: 'Ottoman', at: { x: 1.2, z: 4.33 }, facing: 'E', w: 0.68, d: 0.71, h: 0.4 },
     { id: 'table-centre', kind: 'counter', catalogId: 'coffee-rect', label: 'Centre table', at: { x: 1.31, z: 3.22 }, facing: 'E' },
-    { id: 'dining-1', kind: 'dining', catalogId: 'dining-6', label: 'Dining table with six chairs', at: { x: 4.34, z: 0.96 }, facing: 'S' },
+    { id: 'dining-1', kind: 'dining', catalogId: 'dining-6', label: 'Dining table with six chairs', at: { x: 3.43, z: 0.98 }, facing: 'S' },
     // kitchen and utility
     { id: 'counter-k-west', kind: 'counter', label: 'Kitchen counter', at: { x: 3.37, z: 3.24 }, facing: 'E', w: 1.26, d: 0.5 },
     { id: 'sink-1', kind: 'counter', catalogId: 'sink-single', label: 'Kitchen sink', at: { x: 3.39, z: 4.39 }, facing: 'E' },
@@ -75,6 +75,7 @@ export const flat2bhkB4: AuthoredFlat = {
     { id: 'shower-master', kind: 'counter', catalogId: 'shower-over', label: 'Shower', at: { x: 10.28, z: -0.66 }, facing: 'S' },
     // deck
     { id: 'chair-deck-1', kind: 'sofa', catalogId: 'armchair', label: 'Armchair', at: { x: 1.25, z: 5.4 }, facing: 'S' },
+    { id: 'chair-deck-2', kind: 'sofa', catalogId: 'armchair', label: 'Armchair', at: { x: 2.53, z: 5.4 }, facing: 'S' },
   ],
   ac: [
     { room: 'living', wall: 'W', at: 3.6 },
