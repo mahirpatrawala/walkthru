@@ -6,6 +6,7 @@ import { softCushion } from './soft';
 import { Parts, boxGeo, role, shade } from './core';
 import type { GenEnv, GenSize, Roles } from './core';
 import { prism, roundedRectOutline, rod, taperedLeg } from './geo';
+import { crownedPad, padCord, pinchCorners } from './ultra-seat';
 
 // ---------------------------------------------------------------- sofa
 
@@ -68,8 +69,18 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
   const armR = p.arms === 'round' ? 0.075 : 0.025;
   const left = chaise === 'left' ? 0 : 1, right = chaise === 'right' ? 0 : 1;
   if (p.arms !== 'none') {
-    if (left) parts.put('sofa-body', fab, roundedBoxBetween(sx0, sx0 + aw, legH, armTop, zb0, zb1, armR, q.seg));
-    if (right) parts.put('sofa-body', fab, roundedBoxBetween(sx1 - aw, sx1, legH, armTop, zb0, zb1, armR, q.seg));
+    // 2K: the arm is a body under a soft crowned pad of its own (the top of the pad is the arm's height, as before)
+    const armBody = q.ultra ? armTop - 0.045 : armTop;
+    if (left) parts.put('sofa-body', fab, roundedBoxBetween(sx0, sx0 + aw, legH, armBody, zb0, zb1, q.ultra ? 0.03 : armR, q.seg));
+    if (right) parts.put('sofa-body', fab, roundedBoxBetween(sx1 - aw, sx1, legH, armBody, zb0, zb1, q.ultra ? 0.03 : armR, q.seg));
+    if (q.ultra) {
+      for (const [ax0, on] of [[sx0, left], [sx1 - aw, right]] as const) {
+        if (!on) continue;
+        const pad = crownedPad(aw, 0.07, zb1 - zb0, Math.min(0.06, aw / 2.4), 0.02);
+        pad.translate(ax0 + aw / 2, armTop - 0.035, (zb0 + zb1) / 2);
+        parts.put('sofa-body', fab, pad, { grain: 'x' });
+      }
+    }
   }
   parts.put('sofa-body', fab, roundedBoxBetween(sx0, sx1, legH, H - 0.02, zb0, zb0 + 0.2, 0.05, q.seg));
   if (chaise !== 'none') {
@@ -85,15 +96,18 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
   const cd = sd - 0.2;
   // one welded soft pad per cushion (src/look/gen/soft.ts): plump, rounded, no creases; the lowest tier draws a plain rounded box
   const cush = (cwid: number, ch: number, cdep: number, puff: number, rad?: number): THREE.BufferGeometry =>
+    q.ultra ? crownedPad(cwid, ch, cdep, rad ?? Math.min(0.06, ch / 2.4), Math.max(puff * 2.6, 0.036)) :
     q.tier === 'low' ? roundedBoxBetween(-cwid / 2, cwid / 2, -ch / 2, ch / 2, -cdep / 2, cdep / 2, Math.min(0.04, ch / 2.5), 1)
       : softCushion(cwid, ch, cdep, { r: rad ?? Math.min(0.055, ch / 2.6), puff, seg: q.ultra ? 4 : q.tier === 'high' && n <= 2 && chaise === 'none' ? 3 : 2 });
   for (let i = 0; i < n; i++) {
     const x = inner0 + cw * (i + 0.5);
-    const g = cush(cw - 0.01, seatH, cd, 0.014);
+    const g = cush(cw - (q.ultra ? 0.018 : 0.01), seatH, cd, 0.014);
     g.translate(x, frameTop + seatH / 2, zb1 - cd / 2);
     parts.put('sofa-seat', fab, g, { grain: 'x' });
+    // 2K: a cord round the top edge of each pad (front and both sides) instead of the one front rod
+    if (q.ultra) padCord(parts, fab, x, cw - 0.018, frameTop + seatH, zb1 - cd, zb1);
     // piping along the front edge of each seat pad, and a seam line where the pads meet
-    if (q.tier !== 'low') {
+    else if (q.tier !== 'low') {
       const pipe = shade(fab, 0.74);
       parts.put('sofa-piping', pipe, rod({ x: x - (cw - 0.03) / 2, y: frameTop + seatH - 0.012, z: zb1 + 0.002 }, { x: x + (cw - 0.03) / 2, y: frameTop + seatH - 0.012, z: zb1 + 0.002 }, 0.0045, 6), { noShadow: true });
     }
@@ -111,11 +125,18 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
     const isChaise = i === n;
     const x = isChaise ? (chaise === 'left' ? -w / 2 + cwChaise / 2 : w / 2 - cwChaise / 2) : inner0 + cw * (i + 0.5);
     const wid = isChaise ? cwChaise - 0.01 : cw - 0.01;
-    const g = cush(wid, len, 0.17, 0.016, 0.06);
+    const g = cush(wid - (q.ultra ? 0.008 : 0), len, 0.17, 0.016, 0.06);
     g.rotateX(-lean);
     g.computeBoundingBox();
     g.translate(x, H - g.boundingBox!.max.y, zb0 + 0.2 + 0.07);
     parts.put('sofa-back', fab, g, { grain: 'x' });
+    if (q.ultra) {
+      // a cord along the top of each back pad
+      g.computeBoundingBox();
+      const bb = g.boundingBox!, zc = (bb.min.z + bb.max.z) / 2;
+      const cord = shade(fab, 0.78), yy = bb.max.y - 0.016;
+      parts.put('sofa-piping', cord, rod({ x: x - wid / 2 + 0.03, y: yy, z: zc }, { x: x + wid / 2 - 0.03, y: yy, z: zc }, 0.0055, 12), { noShadow: true });
+    }
   }
   // loose cushions: at most two, one at each arm, standing against the back pad (thin, leaning with it). They stay behind the line of a
   // sitter's hips (core/poses.ts seats them 0.30 m from the front edge), so a person sits in front of one and is never under it
@@ -125,7 +146,7 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
   for (let i = 0; i < nA; i++) {
     const side = i % 2 === 0 ? -1 : 1;
     const x = side * ((o1 - o0) / 2 - SOFA_CUSHION_M / 2 - 0.02) + (o0 + o1) / 2;
-    const g = cush(SOFA_CUSHION_M, SOFA_CUSHION_M, 0.1, 0.03, 0.045);
+    const g = q.ultra ? pinchCorners(crownedPad(SOFA_CUSHION_M, SOFA_CUSHION_M, 0.1, 0.04, 0.06), SOFA_CUSHION_M, SOFA_CUSHION_M, 0.1) : cush(SOFA_CUSHION_M, SOFA_CUSHION_M, 0.1, 0.03, 0.045);
     g.rotateX(-0.2);
     g.rotateY(side * 0.12);
     g.translate(x, S + 0.03 + SOFA_CUSHION_M / 2 - 0.005, zb0 + 0.2 + 0.2);

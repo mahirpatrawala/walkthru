@@ -1,5 +1,6 @@
 // Lobby and corridor pieces (SPEC 16.17): reception desks (straight and L), a visitor seating set, large planters, a letterbox bank, a security desk, a notice
 // board, a directory board, a lift-lobby bench, a wall art panel and a queue stanchion pair. Wall pieces carry `liftM`. Sizes are exactly the item's.
+import { crownedPad } from './ultra-seat';
 import * as THREE from 'three';
 import { Parts, role, roleOr } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
@@ -61,7 +62,7 @@ export function buildLobby(env: GenEnv, size: GenSize, p: LobbyParams, roles: Ro
         const m = new THREE.Matrix4().makeRotationY(rot).setPosition(cx, 0, cz);
         const put = (name: string, mat: MatSpec, g: THREE.BufferGeometry, o = {}): void => parts.put(name, mat, g.applyMatrix4(m), o);
         const b = (x0: number, x1_: number, y0: number, y1_: number, za: number, zb: number): THREE.BufferGeometry => new THREE.BoxGeometry(x1_ - x0, y1_ - y0, zb - za).translate((x0 + x1_) / 2, (y0 + y1_) / 2, (za + zb) / 2);
-        const cush = (x0: number, x1_: number, y0: number, y1_: number, za: number, zb: number, r: number): THREE.BufferGeometry => (q.chamfer ? roundedBoxBetween(x0, x1_, y0, y1_, za, zb, Math.min(r, (y1_ - y0) / 2.2, (x1_ - x0) / 2.2, (zb - za) / 2.2), 1) : b(x0, x1_, y0, y1_, za, zb));
+        const cush = (x0: number, x1_: number, y0: number, y1_: number, za: number, zb: number, r: number): THREE.BufferGeometry => (q.ultra ? crownedPad(x1_ - x0, y1_ - y0, zb - za, r, Math.min(0.035, (y1_ - y0) / 3.5)).translate((x0 + x1_) / 2, (y0 + y1_) / 2, (za + zb) / 2) : q.chamfer ? roundedBoxBetween(x0, x1_, y0, y1_, za, zb, Math.min(r, (y1_ - y0) / 2.2, (x1_ - x0) / 2.2, (zb - za) / 2.2), 1) : b(x0, x1_, y0, y1_, za, zb));
         put('vs-base', fab, cush(-ww / 2, ww / 2, 0.12, 0.3, -dd / 2, dd / 2, 0.03), { tile: 0.4 });
         put('vs-seat', fab, cush(-ww / 2 + (withArms ? 0.12 : 0.04), ww / 2 - (withArms ? 0.12 : 0.04), 0.3, 0.45, -dd / 2 + 0.2, dd / 2 - 0.02, 0.04), { tile: 0.4 });
         put('vs-back', fab, cush(-ww / 2 + 0.02, ww / 2 - 0.02, 0.3, H, -dd / 2, -dd / 2 + 0.22, 0.05), { tile: 0.4 });

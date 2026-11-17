@@ -149,7 +149,7 @@ export class OutdoorMaterials {
       if (on) void this.premiumFor(g);
       else if (g.saved) {
         const s = g.saved;
-        g.mat.map = s.map; g.mat.normalMap = s.normalMap; g.mat.roughnessMap = null; g.mat.roughness = s.roughness; g.uniforms.uMean.value = s.mean; g.uniforms.uStrength.value = s.strength;
+        g.mat.map = s.map; g.mat.normalMap = s.normalMap; g.mat.roughnessMap = null; g.mat.roughness = s.roughness; g.uniforms.uMean.value = s.mean; g.uniforms.uStrength.value = s.strength; g.mat.normalScale.divideScalar(0.7);
         g.mat.needsUpdate = true;
         g.saved = null;
       }
@@ -171,7 +171,7 @@ export class OutdoorMaterials {
       g.saved = { map: g.mat.map, normalMap: g.mat.normalMap, roughness: g.mat.roughness, mean: g.uniforms.uMean.value, strength: g.uniforms.uStrength.value };
       g.mat.map = diff; g.mat.normalMap = nor; g.mat.roughnessMap = rough; g.mat.roughness = 1;
       g.uniforms.uMean.value = meanLuminance(diff);
-      g.uniforms.uStrength.value = Math.min(g.uniforms.uStrength.value, 0.8); // a 2K photograph has more contrast than the 512 px one it replaces: the finish keeps its own mean colour
+      g.uniforms.uStrength.value = Math.min(g.uniforms.uStrength.value, 0.5); g.mat.normalScale.multiplyScalar(0.7); // a 2K photograph has more contrast than the 512 px one it replaces: the finish keeps its own mean colour
       this.premium.push(diff, nor, rough);
       g.mat.needsUpdate = true;
     } catch (e) {

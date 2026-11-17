@@ -24,12 +24,14 @@ export interface Pbr {
   tintKeep?: number;
   /** how strongly the room's reflection shows */
   env: number;
+  /** a metal reflects the room with more contrast than the room has (radiance to this power, around 1): dark bands of floor and furniture, bright windows; 1 = as it is */
+  contrast?: number;
 }
 
 export const PBR: Record<PbrClass, Pbr> = {
-  steel: { colour: '#CBCFD3', metalness: 1, rough: { k: 0.55, min: 0.12, max: 0.3 }, env: 0.9 },
-  chrome: { colour: '#E2E5E7', metalness: 1, rough: { k: 0.2, min: 0.035, max: 0.08 }, env: 0.85 },
-  brass: { metalness: 1, rough: { k: 0.8, min: 0.22, max: 0.34 }, env: 1 },
+  steel: { colour: '#CBCFD3', metalness: 1, rough: { k: 0.55, min: 0.12, max: 0.3 }, env: 0.9, contrast: 1.6 },
+  chrome: { colour: '#E2E5E7', metalness: 1, rough: { k: 0.2, min: 0.035, max: 0.08 }, env: 0.85, contrast: 2.1 },
+  brass: { metalness: 1, rough: { k: 0.8, min: 0.22, max: 0.34 }, env: 1, contrast: 1.5 },
   darkMetal: { metalness: 0.9, rough: { k: 0.85, min: 0.3, max: 0.42 }, clearcoat: 0.3, clearcoatRoughness: 0.3, env: 0.9 },
   ceramic: { metalness: 0, rough: { k: 0.2, min: 0.05, max: 0.09 }, clearcoat: 0.85, clearcoatRoughness: 0.03, env: 0.25 },
   glass: { metalness: 0, rough: { k: 0.05, min: 0.01, max: 0.04 }, transmission: 1, thickness: 0.012, tintKeep: 0.45, env: 1.2 },

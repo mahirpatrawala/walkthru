@@ -221,12 +221,31 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
       const x0 = -w / 2 + 0.01 + i * (dw + 0.003);
       frontPanel(parts, 'sink-doors', face, hm, x0, x0 + dw, leg + 0.01, unitH - 0.01, zfOf(d, 'bar'), 'bar', 0.016);
     }
-    box('sink-top', STEEL, -w / 2, w / 2, unitH, S, -d / 2, d / 2, 0.003);
     const bw = 0.42, bd = 0.38;
     const bowls = double ? [-w / 2 + 0.07 + bw / 2, -w / 2 + 0.07 + bw + 0.08 + bw / 2] : [-w / 2 + 0.07 + bw / 2 + 0.0];
-    for (const cx of bowls) {
-      parts.put('sink-bowl', DARK_WATER, prism(rr(cx - bw / 2, cx + bw / 2, -bd / 2 + 0.0, bd / 2, 0.03), S - 0.0006, S + 0.0006, 0));
-      disc(parts, 'sink-drain', STEEL, cx, 0, S + 0.0005, S + 0.0016, 0.025);
+    if (q.ultra) {
+      // 2K: the top is a slab with the bowls cut out of it (the carcass top is the bowl's floor, 4.8 cm down), steel walls, a drain at the bottom
+      let x = -w / 2;
+      for (const cx of bowls) { if (cx - bw / 2 > x + 0.001) box('sink-top', STEEL, x, cx - bw / 2, unitH, S, -d / 2, d / 2, 0.003); x = cx + bw / 2; }
+      if (w / 2 > x + 0.001) box('sink-top', STEEL, x, w / 2, unitH, S, -d / 2, d / 2, 0.003);
+      const fl = unitH + 0.003, wall = 0.003;
+      for (const cx of bowls) {
+        box('sink-top', STEEL, cx - bw / 2, cx + bw / 2, unitH, S, -d / 2, -bd / 2, 0.003);
+        box('sink-top', STEEL, cx - bw / 2, cx + bw / 2, unitH, S, bd / 2, d / 2, 0.003);
+        box('sink-bowl-walls', STEEL, cx - bw / 2, cx - bw / 2 + wall, fl, S - 0.001, -bd / 2, bd / 2, 0);
+        box('sink-bowl-walls', STEEL, cx + bw / 2 - wall, cx + bw / 2, fl, S - 0.001, -bd / 2, bd / 2, 0);
+        box('sink-bowl-walls', STEEL, cx - bw / 2, cx + bw / 2, fl, S - 0.001, -bd / 2, -bd / 2 + wall, 0);
+        box('sink-bowl-walls', STEEL, cx - bw / 2, cx + bw / 2, fl, S - 0.001, bd / 2 - wall, bd / 2, 0);
+        box('sink-bowl-floor', STEEL, cx - bw / 2, cx + bw / 2, unitH, fl, -bd / 2, bd / 2, 0);
+        disc(parts, 'sink-drain', DARK_WATER, cx, 0, fl, fl + 0.0012, 0.03);
+        disc(parts, 'sink-drain', STEEL, cx, 0, fl + 0.0012, fl + 0.0026, 0.024);
+      }
+    } else {
+      box('sink-top', STEEL, -w / 2, w / 2, unitH, S, -d / 2, d / 2, 0.003);
+      for (const cx of bowls) {
+        parts.put('sink-bowl', DARK_WATER, prism(rr(cx - bw / 2, cx + bw / 2, -bd / 2 + 0.0, bd / 2, 0.03), S - 0.0006, S + 0.0006, 0));
+        disc(parts, 'sink-drain', STEEL, cx, 0, S + 0.0005, S + 0.0016, 0.025);
+      }
     }
     // the drainboard ridges on the right
     const dx0 = bowls[bowls.length - 1] + bw / 2 + 0.06;

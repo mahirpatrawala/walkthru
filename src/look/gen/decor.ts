@@ -156,6 +156,16 @@ export function buildCurtain(env: GenEnv, p: CurtainParams, roles: Roles): THREE
     if (p.drape === 'sides' || p.drape === 'left') parts.put('curtain-drape', drape, clothPanel(0, dw, y0, y1, 0.12, 0.06, p.foldM, density, 0), { uv: 'keep', noShadow: true });
     if (p.drape === 'sides' || p.drape === 'right') parts.put('curtain-drape', drape, clothPanel(p.widthM - dw, p.widthM, y0, y1, 0.12, 0.06, p.foldM, density, 1.1), { uv: 'keep', noShadow: true });
   }
+  if (q.ultra) {
+    // 2K: the heading: a ring on the track every 9 cm along each gathered panel, brass-dark like the track, so the cloth hangs from something
+    const ringAt = (x0: number, x1: number): void => {
+      for (let x = x0 + 0.03; x <= x1 - 0.02; x += 0.09) parts.put('curtain-track', track, new THREE.TorusGeometry(0.017, 0.0028, 8, 20).rotateY(Math.PI / 2).translate(x, p.trackYM, 0.05), { noShadow: true });
+    };
+    if (p.drape !== 'none' && dw > 0.1) {
+      if (p.drape === 'sides' || p.drape === 'left') ringAt(0, dw);
+      if (p.drape === 'sides' || p.drape === 'right') ringAt(p.widthM - dw, p.widthM);
+    }
+  }
   const g = parts.done();
   // drawn after the kit's window mesh veil (renderOrder 3), so a sheer closes the window over the grill instead of under it
   // a sheer is light, not mass: the bake neither shades it with an AO of its own (which painted every pleat dark) nor lets it shade the room
