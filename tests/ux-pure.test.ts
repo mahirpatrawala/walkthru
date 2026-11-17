@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { labelsFor, scaleFor } from '../src/brand/scale';
-import { DEFAULT_ATTRACT_S, DEFAULT_HIDE_S, parsePresence } from '../src/buyer/presence';
+import { DEFAULT_ATTRACT_S, parsePresence } from '../src/buyer/presence';
 import { buildShareUrl, parseShare, shareWalk } from '../src/buyer/share';
 import { flatLevels, flatRow } from '../src/building/flats';
 import { firstSentence } from '../src/building/map';
@@ -35,23 +35,32 @@ describe('how much text the chrome carries', () => {
   });
 });
 
-describe('presence: idle fade and attract mode parameters', () => {
-  it('fades the chrome after a few seconds by default and never starts a tour on its own', () => {
-    expect(parsePresence('')).toEqual({ kiosk: false, attractAfterS: null, hideAfterS: DEFAULT_HIDE_S });
+describe('presence: the chrome level and attract mode parameters', () => {
+  it('is calm by default (chrome auto) and never starts a tour on its own', () => {
+    expect(parsePresence('')).toEqual({ kiosk: false, attractAfterS: null, chrome: 'auto', lingerS: null });
   });
-  it('kiosk=1 turns the attract mode on after 90 s, idle=<s> sets it, autohide=0 keeps the chrome', () => {
+  it('kiosk=1 hides the chrome and turns the attract mode on after 90 s, idle=<s> sets it', () => {
     expect(parsePresence('?kiosk=1').attractAfterS).toBe(DEFAULT_ATTRACT_S);
     expect(parsePresence('?kiosk=1').kiosk).toBe(true);
+    expect(parsePresence('?kiosk=1').chrome).toBe('hidden');
     expect(parsePresence('?idle=45').attractAfterS).toBe(45);
     expect(parsePresence('?idle=45').kiosk).toBe(false);
-    expect(parsePresence('?kiosk=1&idle=120&autohide=0')).toEqual({ kiosk: true, attractAfterS: 120, hideAfterS: null });
-    expect(parsePresence('?autohide=15').hideAfterS).toBe(15);
+    expect(parsePresence('?kiosk=1&idle=120').attractAfterS).toBe(120);
+  });
+  it('the older autohide maps onto the level: 0 pins everything, a number is auto with that linger; chrome= wins', () => {
+    expect(parsePresence('?autohide=0').chrome).toBe('always');
+    expect(parsePresence('?autohide=15')).toMatchObject({ chrome: 'auto', lingerS: 15 });
+    expect(parsePresence('?kiosk=1&autohide=0').chrome).toBe('hidden');
+    expect(parsePresence('?kiosk=1&chrome=always').chrome).toBe('always');
+    expect(parsePresence('?chrome=hidden').chrome).toBe('hidden');
+    expect(parsePresence('?chrome=sideways').chrome).toBe('auto');
   });
   it('ignores nonsense', () => {
     expect(parsePresence('?idle=abc').attractAfterS).toBeNull();
     expect(parsePresence('?idle=2').attractAfterS).toBeNull();
+    expect(parsePresence('?kiosk=1&idle=5').attractAfterS).toBe(5);
     expect(parsePresence('?kiosk=1&idle=-5').attractAfterS).toBe(DEFAULT_ATTRACT_S);
-    expect(parsePresence('?autohide=zzz').hideAfterS).toBe(DEFAULT_HIDE_S);
+    expect(parsePresence('?autohide=zzz')).toMatchObject({ chrome: 'auto', lingerS: null });
   });
 });
 
@@ -69,6 +78,13 @@ describe('the share link', () => {
   it('writes the view mode when it is not Walk, and the layout code through the hook', () => {
     expect(new URL(buildShareUrl({ ...state, view: 'doll' })).searchParams.get('view')).toBe('doll');
     expect(new URL(buildShareUrl({ ...state, view: 'walk' })).searchParams.has('view')).toBe(false);
+    // an old link (`view=first`) is rewritten with the camera as cam= and no view= for Walk: the app writes cam= for the camera everywhere
+    const old = new URL(buildShareUrl({ ...state, href: `${state.href}${state.href.includes('?') ? '&' : '?'}view=first`, cam: 'first', view: 'walk' }));
+    expect(old.searchParams.get('cam')).toBe('first');
+    expect(old.searchParams.has('view')).toBe(false);
+    // a link for someone else is not the kiosk's own settings
+    const kiosk = new URL(buildShareUrl({ ...state, href: `${state.href}${state.href.includes('?') ? '&' : '?'}kiosk=1&idle=5&chrome=hidden` }));
+    for (const k of ['kiosk', 'idle', 'chrome']) expect(kiosk.searchParams.has(k)).toBe(false);
     expect(new URL(buildShareUrl({ ...state, withLayout: (h) => `${h}&my=abc` })).searchParams.get('my')).toBe('abc');
   });
   it('reads it back, and drops anything malformed or out of range', () => {
@@ -127,6 +143,6 @@ describe('one design language: the chrome is sized in tokens', () => {
   });
   it('the tokens file defines the scale, the radii, the type scale, the glass and the layers', () => {
     const t = fs.readFileSync(path.join(root, 'src/brand/tokens.css'), 'utf8');
-    for (const v of ['--wt-u', '--wt-sp-4', '--wt-r-panel', '--wt-r-control', '--wt-fs-md', '--wt-glass', '--wt-glass-blur', '--wt-glass-shadow', '--wt-z-sheet', '--wt-z-curtain']) expect(t).toContain(`${v}:`);
+    for (const v of ['--wt-u', '--wt-sp-4', '--wt-r-panel', '--wt-r-control', '--wt-fs-md', '--wt-glass', '--wt-glass-fill', '--wt-glass-line', '--wt-glass-hi', '--wt-glass-lo', '--wt-glass-spec', '--wt-r-glass', '--wt-sheet-fill', '--wt-glass-blur', '--wt-glass-shadow', '--wt-z-sheet', '--wt-z-curtain']) expect(t).toContain(`${v}:`);
   });
 });

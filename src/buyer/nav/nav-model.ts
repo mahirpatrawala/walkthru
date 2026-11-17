@@ -95,6 +95,19 @@ export function conePath(at: Vec2, yawDeg: number, radius: number, halfDeg = 34,
   return `${pts.join('')}Z`;
 }
 
+/**
+ * The walker's marks on the floor plan, in plan units (metres), from the plan's current scale. They are drawn in pixels (a dot a few px across, a
+ * cone a few tens of px long) and so depend on `pxPerM`; a scale read while the card was collapsed, hidden or mid-transition must never blow them
+ * up, so the scale is clamped and every mark is capped to a small share of the plan. No CSS filter is used (a filter length on an SVG element is
+ * in plan units, which painted a plan-sized glow over the card header).
+ */
+export function liveMark(pxPerM: number, vbW: number, vbH: number, dotPx = 5, conePx = 30): { r: number; halo: number; stroke: number; cone: number } {
+  const k = Number.isFinite(pxPerM) ? Math.min(200, Math.max(1, pxPerM)) : 10;
+  const small = Math.max(0.1, Math.min(vbW, vbH)), big = Math.max(0.1, vbW, vbH);
+  const r = Math.min(dotPx / k, small * 0.06);
+  return { r, halo: Math.min(r + 3 / k, small * 0.1), stroke: Math.min(1.5 / k, r * 0.5), cone: Math.min(conePx / k, big * 0.3) };
+}
+
 /** The nearest room to a tapped plan point: the room it is in, else the nearest outline within `maxM` (a tap just off a small room). */
 export function roomNear(layout: Layout, p: Vec2, maxM: number, goableOnly = true): RoomTag | null {
   const inside = roomAt(layout, p);

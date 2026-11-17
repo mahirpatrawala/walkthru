@@ -95,7 +95,8 @@ class BuildingWalk implements BuildingWalkApi {
       carry,
       bare: b.bare === true,
       space: { id: loc.space.id, kind: loc.space.kind, outdoor: loc.space.outdoor === true, pack: loc.space.pack ?? null },
-      placeText: `${loc.space.name} · ${loc.level.label}`,
+      placeText: loc.space.name,
+      levelText: loc.level.label,
       brand: shownBrand(b.id, b.brand),
       tagText: b.sample ? 'Sample building. Plan follows a published brochure; furniture is illustrative.' : null,
       loading: o.screen,
@@ -119,7 +120,7 @@ class BuildingWalk implements BuildingWalkApi {
     this.here = loc;
     this.count += 1;
     // the view the space opened in (`?view=doll|plan`) stays in the address, so a shared link opens the same way
-    const url = withViewParam(buildingUrl({ building: b.id, space: spaceId }), (this.mounted as MountedSpace | null)?.ctx.views?.mode() ?? 'walk');
+    const url = withViewParam(buildingUrl({ building: b.id, space: spaceId }, location.search), (this.mounted as MountedSpace | null)?.ctx.views?.mode() ?? 'walk');
     if (o.history === 'push') history.pushState({ wb: spaceId }, '', url);
     else if (o.history === 'replace') history.replaceState({ wb: spaceId }, '', url);
     document.title = `${loc.space.name} · ${b.name} · walkthru`;
@@ -138,7 +139,7 @@ class BuildingWalk implements BuildingWalkApi {
     m.onDispose(() => signs.dispose());
     m.onDispose(() => { host.tapClaim = null; this.portals?.dispose(); this.portals = null; this.closePanels(); });
     void this.setDownFollowers(m, followers);
-    // the way back: "Building" opens the map (top right, in every space, kept in clean view's reach by the "Controls" pill)
+    // the way back: "Building" opens the map (top right, in every space; at chrome level `hidden` the handle brings it back)
     const slot = m.hud.exit;
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'wt-btn wt-tool'; btn.dataset.ui = '1'; btn.dataset.btn = 'building'; btn.dataset.testid = 'building-btn';

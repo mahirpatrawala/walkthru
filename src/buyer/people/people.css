@@ -6,15 +6,14 @@
 .wtp-root > * { pointer-events: auto; }
 .wtp-root [hidden], .wtp-card[hidden] { display: none !important; }
 .wtp-card {
-  width: 100%; max-width: 440px; box-sizing: border-box; padding: 12px 14px 12px 16px; background: var(--wt-card, #fff); border-radius: 6px 14px 14px 6px;
-  border-left: 6px solid var(--wt-teal, #1E6B73); box-shadow: var(--wt-shadow, 0 2px 12px rgba(0,0,0,.16));
+  width: 100%; max-width: 440px; box-sizing: border-box; padding: 12px 14px 12px 16px;
 }
 .wtp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .wtp-title { font-family: var(--wt-display, inherit); font-size: 19px; font-weight: 800; letter-spacing: -0.01em; color: var(--wt-ink, #2B211C); }
 .wtp-x { width: 40px; height: 40px; margin: -6px -6px -6px 0; border: 0; background: none; border-radius: 50%; font-size: 22px; line-height: 1; color: var(--wt-muted, #6B5E55); cursor: pointer; }
 .wtp-lines { margin: 2px 0 10px; font-size: 14px; line-height: 1.4; color: var(--wt-ink, #2B211C); }
 .wtp-line + .wtp-line { color: var(--wt-muted, #6B5E55); font-size: 13px; }
-.wtp-seg { display: flex; gap: 4px; margin: 0 0 8px; padding: 4px; border-radius: 999px; background: #f3f4f7; }
+.wtp-seg { display: flex; gap: 4px; margin: 0 0 8px; padding: 4px; border-radius: 999px; background: var(--wt-paper-2, #f3f4f7); }
 .wtp-seg-b {
   flex: 1; min-height: 40px; border: 0; border-radius: 999px; background: transparent; color: var(--wt-ink, #2B211C); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
 }
@@ -24,7 +23,7 @@
   min-height: 44px; padding: 0 8px; border: 0; border-radius: 999px; background: var(--wt-paper-2, #EFE5D3); color: var(--wt-ink, #2B211C);
   font-family: var(--wt-display, inherit); font-size: 14px; font-weight: 700; cursor: pointer;
 }
-.wtp-b:hover:not(:disabled) { background: #E6DAC5; }
+.wtp-b:hover:not(:disabled) { background: rgba(43, 33, 28, 0.14); }
 .wtp-b:disabled { opacity: 0.45; cursor: default; }
 .wtp-b.is-wide { grid-column: span 2; background: var(--wt-teal, #1E6B73); color: #fff; }
 .wtp-b.is-wide:hover { background: var(--wt-teal-dark, #17545B); }

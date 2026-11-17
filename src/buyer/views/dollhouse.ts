@@ -248,7 +248,7 @@ export function createDollhouse(d: DollhouseDeps): Dollhouse {
 
   function measurePanels(): Panel[] {
     const out: Panel[] = [];
-    const sel = '.wt-id, .wt-topbar, .wt-nav-map, .wt-nav-bar, .wt-slot > *';
+    const sel = '.wt-id-pill, .wt-topbar, .wt-nav-map, .wt-nav-bar, .wt-slot > *'; // the pill, not its card: the card only comes in on intent (SPEC 2.7)
     d.labelHost.ownerDocument.querySelectorAll<HTMLElement>(sel).forEach((e) => {
       if (e.hidden || e.closest('[hidden]')) return;
       const r = e.getBoundingClientRect();

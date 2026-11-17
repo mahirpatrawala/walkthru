@@ -213,6 +213,24 @@ describe('taking over', () => {
     // the next room was a jump (a fade in the page), never a glide
     expect(sim.jumps.length).toBeGreaterThan(0);
   }, 60000);
+
+  it('Next room in the middle of a leg is one continuous eased move: no frame stands still, none takes a double step', async () => {
+    const sim = makeSim(FLAT_204, 'living');
+    void sim.driver.startTour();
+    const per: number[] = [];
+    let last = { ...sim.ch.position }, moving = 0, asked = -1, frames = 0;
+    await sim.run(() => {
+      const d = Math.hypot(sim.ch.position.x - last.x, sim.ch.position.z - last.z) * 30; last = { ...sim.ch.position };
+      if (asked < 0) { moving = sim.driver.tour?.phase === 'walking' && d > 0.7 ? moving + 1 : 0; if (moving > 12) { sim.driver.next(); asked = frames; } } else per.push(d);
+      frames++;
+      return asked >= 0 && per.length >= 16;
+    }, 600);
+    expect(asked).toBeGreaterThan(0);
+    const before = per[0];
+    expect(before).toBeGreaterThan(0.6);
+    for (const d of per) { expect(d).toBeGreaterThan(before * 0.7); expect(d).toBeLessThan(before * 1.4); }
+    sim.driver.stop();
+  }, 120000);
 });
 
 function loadSceneWithPartial() {

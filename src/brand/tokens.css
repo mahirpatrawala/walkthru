@@ -6,10 +6,16 @@
    at 200 % reports 1920 x 1080 and gets 1.32). Panels that keep their own px sizes use `zoom: var(--wt-z)`. A hairline of 1 px is the only raw px.
 
    TWO SURFACES.
-   - Glass: the floating chrome over the 3D view (identity card, view and tool bar, plan, room strip, prompts, cards, toasts). Dark, blurred,
-     white text, the terracotta only as the accent. It reads on a bright scene and a dark one.
-   - Paper: pages and sheets that ask something (start page, building page, height picker, lists): warm cream, ink text.
-   Both share the radius, the shadow and the type scale below. */
+   - Glass: the floating chrome over the 3D view (identity pill and card, the top row, plan, room strip, prompts, cards, toasts, panels). A clear to
+     frosted fill over a strong blur with the saturation lifted, a bright hairline rim, a soft highlight inside the top edge and a faint dark line
+     inside the bottom edge (a lens with thickness), a specular highlight that leans toward the pointer (--wt-mx / --wt-my, set by
+     src/buyer/glass-tone.ts), an ambient shadow. TWO VARIANTS, chosen per panel from the scene behind it (`data-lens`, same file): dark glass with
+     light text (the default below) and light glass with dark text. `html[data-glass="flat"]` (the low tier, or no backdrop-filter) drops the blur
+     and uses a nearly solid fill. The brand accent tints the primary button and selected states only.
+   - Sheet glass (`.wt-glass-sheet`): the panels that ask something (Rooms, You, Light, the furnish tray, the pool card): a thick frosted light
+     glass, ink text, the same rim and radius.
+   - Paper: whole pages (start page, building page): warm cream, ink text.
+   All share the radius, the shadow and the type scale below. */
 :root {
   --wt-u: calc(1px * var(--wt-z, 1));
 
@@ -41,18 +47,25 @@
   --wt-hit: calc(46 * var(--wt-u));
   --wt-icon: calc(20 * var(--wt-u));
 
-  /* glass */
-  --wt-glass: rgba(26, 21, 19, 0.74);
-  --wt-glass-solid: rgba(26, 21, 19, 0.92);
-  --wt-glass-hover: rgba(255, 255, 255, 0.12);
-  --wt-glass-on: rgba(255, 255, 255, 0.94);
-  --wt-glass-line: rgba(255, 255, 255, 0.14);
-  --wt-glass-text: #fff;
-  --wt-glass-dim: rgba(255, 255, 255, 0.74);
-  --wt-glass-blur: blur(calc(14 * var(--wt-u))) saturate(1.25);
-  --wt-glass-shadow: 0 calc(6 * var(--wt-u)) calc(26 * var(--wt-u)) rgba(10, 6, 4, 0.34);
-  /* the accent on dark glass (the brand terracotta, lifted so it reads) and the same accent as a fill under white text */
+  /* radii of the glass: large continuous curves */
+  --wt-r-glass: calc(22 * var(--wt-u));
+
+  /* glass: the dark variant (light text) is the default (the block after :root); [data-lens="light"] below is the other */
+  --wt-glass-blur: blur(calc(22 * var(--wt-u))) saturate(1.5);
+  /* the composites every panel uses: `background: var(--wt-glass)`, `box-shadow: var(--wt-glass-shadow)` */
+  --wt-glass: radial-gradient(calc(150 * var(--wt-u)) circle at var(--wt-mx, 24%) var(--wt-my, -30%), var(--wt-glass-spec), transparent 72%), linear-gradient(180deg, var(--wt-glass-sheen), transparent 46%), var(--wt-glass-fill);
+  --wt-glass-shadow: inset 0 1px 0 var(--wt-glass-hi), inset 0 -1px 0 var(--wt-glass-lo), var(--wt-glass-ambient);
+  /* sheet glass: thick, frosted, light */
+  --wt-sheet-fill: rgba(252, 249, 244, 0.78);
+  --wt-sheet-blur: blur(calc(30 * var(--wt-u))) saturate(1.6);
+  --wt-sheet-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 38%), var(--wt-sheet-fill);
+  --wt-sheet-rim: rgba(255, 255, 255, 0.8);
+  --wt-sheet-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(60, 40, 26, 0.14), 0 calc(14 * var(--wt-u)) calc(44 * var(--wt-u)) rgba(30, 18, 8, 0.26), 0 1px calc(3 * var(--wt-u)) rgba(30, 18, 8, 0.16);
+  /* the accent on dark glass (the brand terracotta, lifted so it reads) */
   --wt-accent-on-glass: #F0906F;
+  /* the reveal: in, out, and the wait before out (src/buyer/chrome.ts REVEAL) */
+  --wt-reveal-in: 180ms;
+  --wt-reveal-out: 320ms;
 
   /* layers */
   --wt-z-nav: 12;
@@ -67,10 +80,70 @@
   --wt-fast: 160ms;
 }
 
+/* the dark variant: dark glass, light text. Also the default, and stated again for a dark panel inside a light parent */
+:root, [data-lens="dark"] {
+  --wt-glass-fill: rgba(18, 15, 14, 0.5);
+  --wt-glass-text: #fff;
+  --wt-glass-dim: rgba(255, 255, 255, 0.84);
+  --wt-glass-faint: rgba(255, 255, 255, 0.7);
+  --wt-glass-line: rgba(255, 255, 255, 0.24);
+  --wt-glass-hi: rgba(255, 255, 255, 0.36);
+  --wt-glass-lo: rgba(0, 0, 0, 0.42);
+  --wt-glass-sheen: rgba(255, 255, 255, 0.11);
+  --wt-glass-spec: rgba(255, 255, 255, 0.17);
+  --wt-glass-hover: rgba(255, 255, 255, 0.13);
+  --wt-glass-tint: rgba(255, 255, 255, 0.09);
+  --wt-glass-on: rgba(255, 255, 255, 0.2);
+  --wt-glass-on-text: #fff;
+  --wt-glass-on-rim: rgba(255, 255, 255, 0.34);
+  --wt-glass-halo: 0 1px calc(3 * var(--wt-u)) rgba(0, 0, 0, 0.5);
+  --wt-glass-ambient: 0 calc(10 * var(--wt-u)) calc(34 * var(--wt-u)) rgba(8, 5, 3, 0.3), 0 1px calc(3 * var(--wt-u)) rgba(8, 5, 3, 0.26);
+  --wt-glass-solid: rgba(24, 20, 18, 0.9);
+}
+/* the light variant: light glass, dark text */
+[data-lens="light"] {
+  --wt-glass-fill: rgba(255, 255, 255, 0.2);
+  --wt-glass-text: rgb(29, 23, 20);
+  --wt-glass-dim: rgba(29, 23, 20, 0.82);
+  --wt-glass-faint: rgba(29, 23, 20, 0.74);
+  --wt-glass-line: rgba(255, 255, 255, 0.66);
+  --wt-glass-hi: rgba(255, 255, 255, 0.9);
+  --wt-glass-lo: rgba(60, 40, 26, 0.16);
+  --wt-glass-sheen: rgba(255, 255, 255, 0.2);
+  --wt-glass-spec: rgba(255, 255, 255, 0.42);
+  --wt-glass-hover: rgba(255, 255, 255, 0.36);
+  --wt-glass-tint: rgba(255, 255, 255, 0.26);
+  --wt-glass-on: rgba(255, 255, 255, 0.62);
+  --wt-glass-on-text: rgb(29, 23, 20);
+  --wt-glass-on-rim: rgba(255, 255, 255, 0.9);
+  --wt-glass-halo: 0 0 calc(5 * var(--wt-u)) rgba(255, 255, 255, 0.6);
+  --wt-glass-ambient: 0 calc(10 * var(--wt-u)) calc(34 * var(--wt-u)) rgba(40, 26, 14, 0.16), 0 1px calc(3 * var(--wt-u)) rgba(40, 26, 14, 0.12);
+  --wt-glass-solid: rgba(250, 247, 242, 0.92);
+}
+/* over a dark scene the sheet is thicker, so its muted text keeps AA */
+html[data-glass-tone="dark"] { --wt-sheet-fill: rgba(252, 249, 244, 0.9); --wt-sheet-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 38%), rgba(252, 249, 244, 0.9); }
+/* no blur: the fill carries the contrast alone */
+html[data-glass="flat"] { --wt-glass-fill: rgba(24, 20, 18, 0.82); --wt-glass-blur: none; --wt-sheet-blur: none; --wt-sheet-fill: rgba(252, 249, 244, 0.96); --wt-sheet-bg: rgba(252, 249, 244, 0.96); }
+html[data-glass="flat"] [data-lens="dark"] { --wt-glass-fill: rgba(24, 20, 18, 0.82); }
+html[data-glass="flat"] [data-lens="light"] { --wt-glass-fill: rgba(250, 247, 242, 0.84); }
+/* a custom property that reads another is worked out where it is declared, so every panel that carries a tone works the composites out again from its own fill and its own pointer spot */
+[data-lens] {
+  --wt-glass: radial-gradient(calc(150 * var(--wt-u)) circle at var(--wt-mx, 24%) var(--wt-my, -30%), var(--wt-glass-spec), transparent 72%), linear-gradient(180deg, var(--wt-glass-sheen), transparent 46%), var(--wt-glass-fill);
+  --wt-glass-shadow: inset 0 1px 0 var(--wt-glass-hi), inset 0 -1px 0 var(--wt-glass-lo), var(--wt-glass-ambient);
+}
+
 /* a floating glass panel: use on any piece of chrome over the 3D view */
 .wt-glass {
-  background: var(--wt-glass); color: var(--wt-glass-text); border: 1px solid var(--wt-glass-line); border-radius: var(--wt-r-panel); box-shadow: var(--wt-glass-shadow);
-  -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur); font-family: var(--wt-font); font-weight: var(--wt-fw);
+  background: var(--wt-glass); color: var(--wt-glass-text); border: 1px solid var(--wt-glass-line); border-radius: var(--wt-r-glass); box-shadow: var(--wt-glass-shadow);
+  -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur); font-family: var(--wt-font); font-weight: var(--wt-fw); text-shadow: var(--wt-glass-halo);
+  transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .wt-glass { background: var(--wt-glass-solid); } }
-@media (prefers-reduced-transparency: reduce) { .wt-glass { background: var(--wt-glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+/* a sheet that asks something: thick frosted light glass, ink text (the brand's paper colours inside it become glass-on-glass) */
+.wt-glass-sheet {
+  background: var(--wt-sheet-bg); color: var(--wt-ink); border: 1px solid var(--wt-sheet-rim); border-radius: var(--wt-r-glass); box-shadow: var(--wt-sheet-shadow);
+  -webkit-backdrop-filter: var(--wt-sheet-blur); backdrop-filter: var(--wt-sheet-blur);
+  --wt-card: rgba(255, 255, 255, 0.62); --wt-paper: rgba(255, 255, 255, 0.44); --wt-paper-2: rgba(43, 33, 28, 0.08); --wt-line: rgba(43, 33, 28, 0.13);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .wt-glass { background: var(--wt-glass-solid); } .wt-glass-sheet { background: rgba(252, 249, 244, 0.97); } }
+@media (prefers-reduced-transparency: reduce) { .wt-glass { background: var(--wt-glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; } .wt-glass-sheet { background: rgba(252, 249, 244, 0.98); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+@media (prefers-reduced-motion: reduce) { .wt-glass { transition: none; } }

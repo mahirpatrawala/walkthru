@@ -26,10 +26,18 @@ export function parseViewParam(search: string): ViewMode {
   } catch { return DEFAULT_VIEW; }
 }
 
+/** The rule for the two meanings of `view=`: `view=walk|doll|plan` is the mode, `view=first|third` is the camera and only read (an old link); everything the app writes says the camera as `cam=`. */
+export function migrateLegacyCamera(u: URL): void {
+  const v = u.searchParams.get(VIEW_PARAM);
+  if (v === 'first' || v === 'third') { if (!u.searchParams.has('cam')) u.searchParams.set('cam', v); u.searchParams.delete(VIEW_PARAM); }
+}
+
 /** `href` with `?view=` set to `mode` (the parameter is left out for Walk, the default, so an ordinary link stays clean). Every other parameter is kept as it was. */
 export function withViewParam(href: string, mode: ViewMode): string {
   try {
     const u = new URL(href, 'http://x.invalid');
+    // `view=` names the mode here (walk, doll, plan); the older `view=first|third` named the camera. A link that still has the old one keeps its camera, as `cam=`
+    migrateLegacyCamera(u);
     if (mode === DEFAULT_VIEW) u.searchParams.delete(VIEW_PARAM); else u.searchParams.set(VIEW_PARAM, mode);
     const q = u.searchParams.toString();
     return `${u.pathname}${q ? `?${q}` : ''}${u.hash}`;

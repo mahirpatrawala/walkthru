@@ -6,28 +6,38 @@
   padding: 0 calc(calc(14 * var(--wt-u)) + var(--wt-safe-r)) calc(calc(14 * var(--wt-u)) + var(--wt-safe-b)) calc(calc(14 * var(--wt-u)) + var(--wt-safe-l));
 }
 .wt-nav-row { display: flex; align-items: stretch; justify-content: center; width: 100%; min-width: 0; pointer-events: none; }
+/* a narrow pill of glass in the centre: about five rooms, the one you are in in the middle, the ends fading out */
+.wt-nav-strip {
+  position: relative; min-width: 0; max-width: min(100%, calc(640 * var(--wt-u))); box-sizing: border-box; padding: calc(4 * var(--wt-u)); overflow: hidden; pointer-events: auto;
+  background: var(--wt-glass); color: var(--wt-glass-text); border: 1px solid var(--wt-glass-line); border-radius: var(--wt-r-pill); box-shadow: var(--wt-glass-shadow); text-shadow: var(--wt-glass-halo);
+  -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur); transition: var(--wt-tone-tr);
+}
 .wt-nav-chips {
-  position: relative; display: flex; align-items: center; gap: calc(2 * var(--wt-u)); width: fit-content; max-width: min(100%, calc(940 * var(--wt-u))); min-width: 0; padding: calc(5 * var(--wt-u)); box-sizing: border-box; overflow-x: auto; overflow-y: hidden; pointer-events: auto;
-  background: var(--wt-glass); color: var(--wt-glass-text); border: 1px solid var(--wt-glass-line); border-radius: calc(999 * var(--wt-u)); box-shadow: var(--wt-glass-shadow);
-  -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur);
+  position: relative; display: flex; align-items: center; gap: calc(2 * var(--wt-u)); width: fit-content; max-width: 100%; min-width: 0; box-sizing: border-box; overflow-x: auto; overflow-y: hidden; border-radius: var(--wt-r-pill);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 calc(34 * var(--wt-u)), #000 calc(100% - calc(34 * var(--wt-u))), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 calc(34 * var(--wt-u)), #000 calc(100% - calc(34 * var(--wt-u))), transparent 100%);
   scroll-snap-type: x proximity; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-x;
+  padding: 0 calc(30 * var(--wt-u));
 }
 .wt-nav-chips::-webkit-scrollbar { display: none; }
 .wt-nav-chip {
-  flex: none; scroll-snap-align: center; display: inline-flex; align-items: center; gap: calc(8 * var(--wt-u)); min-height: calc(44 * var(--wt-u)); max-width: calc(340 * var(--wt-u)); padding: 0 calc(16 * var(--wt-u)) 0 calc(13 * var(--wt-u)); border: 0; border-radius: calc(999 * var(--wt-u)); background: transparent;
-  color: var(--wt-glass-text); cursor: pointer; text-align: left; line-height: 1.2; font-family: var(--wt-font); font-size: calc(14 * var(--wt-u)); font-weight: 500; white-space: nowrap; transition: background var(--wt-fast) ease;
+  flex: none; scroll-snap-align: center; display: inline-flex; align-items: center; gap: calc(8 * var(--wt-u)); min-height: calc(44 * var(--wt-u)); max-width: calc(260 * var(--wt-u)); padding: 0 calc(15 * var(--wt-u)) 0 calc(12 * var(--wt-u)); border: 0; border-radius: calc(999 * var(--wt-u)); background: transparent;
+  color: var(--wt-glass-text); cursor: pointer; text-align: left; line-height: 1.2; font-family: var(--wt-font); font-size: calc(14 * var(--wt-u)); font-weight: 500; text-shadow: inherit; white-space: nowrap; transition: background var(--wt-fast) ease;
 }
-.wt-nav-chip-dot { flex: none; width: calc(8 * var(--wt-u)); height: calc(8 * var(--wt-u)); border-radius: 50%; background: var(--dot, var(--wt-accent-on-glass)); }
+.wt-nav-chip-dot { flex: none; width: calc(8 * var(--wt-u)); height: calc(8 * var(--wt-u)); border-radius: 50%; background: var(--dot, var(--wt-accent-on-glass)); box-shadow: 0 0 0 1px var(--wt-glass-lo); }
 .wt-nav-chip-name { font-weight: 650; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .wt-nav-chip-area { font-size: calc(13 * var(--wt-u)); font-weight: 500; color: var(--wt-glass-dim); }
 .wt-nav-chip:hover { background: var(--wt-glass-hover); }
-.wt-nav-chip.is-here { background: rgba(255, 255, 255, 0.2); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18); }
-.wt-nav-chip.is-here .wt-nav-chip-area { color: rgba(255, 255, 255, 0.82); }
+.wt-nav-chip.is-here { background: var(--wt-glass-on); color: var(--wt-glass-on-text); box-shadow: inset 0 0 0 1px var(--wt-glass-on-rim), inset 0 1px 0 var(--wt-glass-hi); }
+.wt-nav-chip.is-here .wt-nav-chip-dot { background: var(--wt-accent); }
+.wt-nav-chip.is-here .wt-nav-chip-area { color: inherit; opacity: 0.86; }
 .wt-nav-chip.is-partial { opacity: 0.62; }
-.wt-nav-chip.is-partial .wt-nav-chip-dot { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.7); }
+.wt-nav-chip.is-partial .wt-nav-chip-dot { background: transparent; box-shadow: inset 0 0 0 1.5px var(--wt-glass-dim); }
 .wt-nav-chip:focus-visible, .wt-nav-tour-btn:focus-visible, .wt-nav-map-toggle:focus-visible { outline: calc(3 * var(--wt-u)) solid var(--wt-ochre); outline-offset: -2px; }
 .wt-nav-tourbtn .wt-nav-tour-ico { display: inline-flex; line-height: 0; }
 .wt-nav-tourbtn svg { display: block; }
+
+/* while a tour plays only its card shows: the strip steps out of the layout so the card sits at the foot of the screen */
+.wt-nav-bar:has(.wt-nav-tour:not([hidden])) .wt-nav-row { display: none; }
 
 /* ---- the card that shows while a tour runs: room counter, the room, its size, the dwell as a thin line */
 .wt-nav-tour {
@@ -37,64 +47,77 @@
 .wt-nav-tour-count { font-size: calc(11.5 * var(--wt-u)); font-weight: 650; letter-spacing: 0.08em; color: var(--wt-glass-dim); }
 .wt-nav-tour-btns { display: flex; gap: calc(6 * var(--wt-u)); margin: -4px -4px -4px 0; }
 .wt-nav-tour-btn {
-  flex: none; width: calc(36 * var(--wt-u)); height: calc(36 * var(--wt-u)); border: 0; border-radius: calc(10 * var(--wt-u)); background: rgba(255, 255, 255, 0.12); color: var(--wt-glass-text); display: flex; align-items: center; justify-content: center;
+  flex: none; width: calc(36 * var(--wt-u)); height: calc(36 * var(--wt-u)); border: 0; border-radius: 50%; background: var(--wt-glass-tint); color: var(--wt-glass-text); display: flex; align-items: center; justify-content: center;
   cursor: pointer; padding: 0;
 }
 .wt-nav-tour-btn svg { width: calc(18 * var(--wt-u)); height: calc(18 * var(--wt-u)); }
-.wt-nav-tour-btn:hover { background: rgba(255, 255, 255, 0.24); }
+.wt-nav-tour-btn:hover { background: var(--wt-glass-hover); }
 .wt-nav-tour-text { min-width: 0; }
 .wt-nav-tour-title { font-size: calc(22 * var(--wt-u)); font-weight: 650; line-height: 1.2; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wt-nav-tour-sub { font-size: calc(14 * var(--wt-u)); font-weight: 500; color: var(--wt-glass-dim); line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 1.35em; }
-.wt-nav-tour-prog { position: absolute; left: calc(16 * var(--wt-u)); right: calc(16 * var(--wt-u)); bottom: calc(11 * var(--wt-u)); height: calc(3 * var(--wt-u)); border-radius: calc(2 * var(--wt-u)); background: rgba(255, 255, 255, 0.18); }
-.wt-nav-tour-prog i { display: block; height: 100%; width: 0; border-radius: calc(2 * var(--wt-u)); background: #fff; transition: width 300ms linear; }
+.wt-nav-tour-prog { position: absolute; left: calc(16 * var(--wt-u)); right: calc(16 * var(--wt-u)); bottom: calc(11 * var(--wt-u)); height: calc(3 * var(--wt-u)); border-radius: calc(2 * var(--wt-u)); background: var(--wt-glass-tint); }
+.wt-nav-tour-prog i { display: block; height: 100%; width: 0; border-radius: calc(2 * var(--wt-u)); background: var(--wt-accent); transition: width 300ms linear; }
 
 /* ---- the floor plan card: bottom left on a wide screen, above the strip on a narrow one */
 .wt-nav-map {
   position: absolute; z-index: var(--wt-z-nav); left: calc(calc(14 * var(--wt-u)) + var(--wt-safe-l)); pointer-events: none;
   bottom: calc(max(calc(14 * var(--wt-u)) + var(--wt-safe-b), var(--wt-nav-h, 0px) + calc(22 * var(--wt-u))) + var(--wt-nav-lift, 0px));
-  --map-w: clamp(calc(150 * var(--wt-u)), 36vw, calc(250 * var(--wt-u))); --map-h: clamp(calc(110 * var(--wt-u)), 27vh, calc(250 * var(--wt-u)));
-  width: min(var(--map-w), max(calc(168 * var(--wt-u)), calc(var(--map-h) * var(--wt-nav-aspect, 1))));
+  --map-w: clamp(calc(120 * var(--wt-u)), 24vw, calc(168 * var(--wt-u))); --map-h: clamp(calc(92 * var(--wt-u)), 20vh, calc(168 * var(--wt-u)));
+  width: min(var(--map-w), max(calc(128 * var(--wt-u)), calc(var(--map-h) * var(--wt-nav-aspect, 1))));
 }
+/* small when it comes in; the corner button makes it large */
+.wt-nav-map.is-big { --map-w: clamp(calc(170 * var(--wt-u)), 40vw, calc(300 * var(--wt-u))); --map-h: clamp(calc(130 * var(--wt-u)), 34vh, calc(300 * var(--wt-u))); width: min(var(--map-w), max(calc(190 * var(--wt-u)), calc(var(--map-h) * var(--wt-nav-aspect, 1)))); }
 .wt-nav-map.wt-glass { pointer-events: auto; padding: 0; overflow: hidden; }
-.wt-nav-map-head { display: flex; align-items: center; justify-content: space-between; gap: calc(8 * var(--wt-u)); padding: calc(4 * var(--wt-u)) calc(4 * var(--wt-u)) 0 calc(14 * var(--wt-u)); min-height: calc(40 * var(--wt-u)); }
-.wt-nav-map-title { font-size: calc(11.5 * var(--wt-u)); font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--wt-glass-dim); }
+.wt-hud .wt-nav-map { transition: opacity var(--wt-reveal-out) var(--wt-ease), transform var(--wt-reveal-out) var(--wt-ease), width 0.24s var(--wt-ease), var(--wt-tone-tr); }
+.wt-nav-map-head { display: flex; align-items: center; justify-content: space-between; gap: calc(8 * var(--wt-u)); padding: calc(3 * var(--wt-u)) calc(3 * var(--wt-u)) 0 calc(13 * var(--wt-u)); min-height: calc(36 * var(--wt-u)); }
+.wt-nav-map-title { font-size: calc(10.5 * var(--wt-u)); font-weight: 650; letter-spacing: 0.06em; white-space: nowrap; text-transform: uppercase; color: var(--wt-glass-dim); }
 .wt-nav-map-toggle {
-  flex: none; width: calc(36 * var(--wt-u)); height: calc(36 * var(--wt-u)); padding: 0; border: 0; border-radius: calc(10 * var(--wt-u)); background: transparent; color: var(--wt-glass-text);
+  flex: none; width: calc(34 * var(--wt-u)); height: calc(34 * var(--wt-u)); padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--wt-glass-text);
   display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto;
 }
-.wt-nav-map-toggle svg { width: calc(18 * var(--wt-u)); height: calc(18 * var(--wt-u)); }
+.wt-nav-map-toggle svg { width: calc(15 * var(--wt-u)); height: calc(15 * var(--wt-u)); }
 .wt-nav-map-toggle:hover { background: var(--wt-glass-hover); }
 .wt-nav-map.is-collapsed { width: auto; min-width: 0; }
 .wt-nav-map.is-collapsed .wt-nav-map-head { padding-right: calc(4 * var(--wt-u)); }
-.wt-nav-map-body { position: relative; box-sizing: border-box; padding: calc(4 * var(--wt-u)) calc(12 * var(--wt-u)) calc(12 * var(--wt-u)); width: 100%; }
-.wt-nav-plan { display: block; width: 100%; height: auto; max-height: var(--map-h); overflow: visible; -webkit-user-select: none; user-select: none; }
+.wt-nav-map-body { position: relative; overflow: hidden; box-sizing: border-box; padding: calc(2 * var(--wt-u)) calc(11 * var(--wt-u)) calc(11 * var(--wt-u)); width: 100%; }
+.wt-nav-plan { display: block; width: 100%; height: auto; max-height: var(--map-h); overflow: hidden; -webkit-user-select: none; user-select: none; }
 @media (min-width: 1280px) and (min-height: 640px) {
-  .wt-nav-chips { max-width: min(calc(940 * var(--wt-u)), calc(100vw - 2 * calc(300 * var(--wt-u)))); }
   .wt-nav-map { bottom: calc(calc(14 * var(--wt-u)) + var(--wt-safe-b) + var(--wt-nav-lift, 0px)); }
 }
 
-/* the plan itself: thin light lines on glass, the room you are in filled with the accent, a glowing dot and a soft cone for you */
-.wt-nav-plan .plan-floor { fill: rgba(255, 255, 255, 0.05); stroke: none; }
-.wt-nav-plan .plan-room.is-partial .plan-floor { fill: rgba(255, 255, 255, 0.03); stroke: rgba(255, 255, 255, 0.45); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-dasharray: 3 2; }
-.wt-nav-plan .plan-hatch { stroke: rgba(255, 255, 255, 0.3); }
+/* the plan itself: thin lines in the panel's own text colour (so it reads on light glass and on dark), the room you are in filled with the accent, a dot and a soft cone for you */
+.wt-nav-plan { color: var(--wt-glass-text); }
+.wt-nav-plan .plan-floor { fill: currentColor; fill-opacity: 0.06; stroke: none; }
+.wt-nav-plan .plan-room.is-partial .plan-floor { fill-opacity: 0.03; stroke: currentColor; stroke-opacity: 0.45; stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-dasharray: 3 2; }
+.wt-nav-plan .plan-hatch { stroke: currentColor; stroke-opacity: 0.3; }
 .wt-nav-plan .plan-room.is-pick { cursor: pointer; }
-.wt-nav-plan .plan-room.is-pick:hover .plan-floor { fill: rgba(255, 255, 255, 0.16); }
-.wt-nav-plan .plan-room.is-pick:focus-visible { outline: none; }
+.wt-nav-plan .plan-room.is-pick:hover .plan-floor { fill-opacity: 0.2; }
+/* no browser focus ring on a plan room: an `outline: auto` on an SVG element is drawn in plan metres (5 m wide), a plan-sized white and blue disc over the card. Keyboard focus is the thin stroke below, in pixels. */
+.wt-nav-plan .plan-room, .wt-nav-plan .plan-room:focus, .wt-nav-plan .plan-room:focus-visible, .wt-nav-plan:focus, .wt-nav-plan *:focus { outline: none !important; }
 .wt-nav-plan .plan-room.is-pick:focus-visible .plan-floor { stroke: var(--wt-ochre); stroke-width: calc(2 * var(--wt-u)); vector-effect: non-scaling-stroke; }
-.wt-nav-plan .plan-room.is-on .plan-floor { fill: rgba(240, 144, 111, 0.58); stroke: none; }
-.wt-nav-plan .plan-wall { fill: rgba(255, 255, 255, 0.82); }
-.wt-nav-plan .plan-wall.is-partial { fill: rgba(255, 255, 255, 0.4); }
-.wt-nav-plan .plan-sill { fill: rgba(255, 255, 255, 0.5); }
-.wt-nav-plan .plan-rail { fill: rgba(255, 255, 255, 0.5); }
-.wt-nav-plan .plan-window { fill: rgba(143, 191, 196, 0.35); stroke: #8FBFC4; stroke-width: 1px; vector-effect: non-scaling-stroke; }
-.wt-nav-plan .plan-window-line { stroke: #8FBFC4; stroke-width: 1px; vector-effect: non-scaling-stroke; }
-.wt-nav-plan .plan-door { stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.4px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.wt-nav-plan .plan-room.is-on .plan-floor { fill: var(--wt-accent); fill-opacity: 0.72; stroke: none; }
+.wt-nav-plan .plan-wall { fill: currentColor; fill-opacity: 0.84; }
+.wt-nav-plan .plan-wall.is-partial { fill-opacity: 0.4; }
+.wt-nav-plan .plan-sill { fill: currentColor; fill-opacity: 0.5; }
+.wt-nav-plan .plan-rail { fill: currentColor; fill-opacity: 0.5; }
+.wt-nav-plan .plan-window { fill: rgba(143, 191, 196, 0.35); stroke: #5FA3AA; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.wt-nav-plan .plan-window-line { stroke: #5FA3AA; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.wt-nav-plan .plan-door { stroke: currentColor; stroke-opacity: 0.55; stroke-width: 1.4px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .wt-nav-plan .plan-label { display: none; }
-.wt-nav-plan .wt-nav-water { fill: rgba(143, 191, 196, 0.35); stroke: #8FBFC4; stroke-width: 1px; vector-effect: non-scaling-stroke; }
-.wt-nav-cone { fill: rgba(255, 255, 255, 0.28); stroke: none; }
-.wt-nav-dot { fill: #fff; stroke: var(--wt-accent-on-glass); filter: drop-shadow(0 0 calc(3 * var(--wt-u)) rgba(255, 255, 255, 0.9)); }
+.wt-nav-plan .wt-nav-water { fill: rgba(143, 191, 196, 0.35); stroke: #5FA3AA; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.wt-nav-cone { fill: var(--wt-accent); fill-opacity: 0.34; stroke: none; }
+.wt-nav-dot { fill: #fff; stroke: var(--wt-accent); }
+/* the soft ring round the dot is a second circle, a few px wide: never a CSS filter (its lengths on an SVG element are plan metres, which once painted a plan-sized disc) */
+.wt-nav-halo { fill: rgba(0, 0, 0, 0.22); stroke: none; }
 
 /* ---- the fade of a long jump (behind the HUD, over the 3D view) */
 .wt-nav-fade { position: fixed; inset: 0; z-index: -1; background: var(--wt-ink); opacity: 0; pointer-events: none; transition: opacity 180ms ease; }
 .wt-nav-fade.is-on { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .wt-nav-fade { transition: none; } .wt-nav-tour-prog i { transition: none; } }
+
+/* a phone: the tools are a sheet along the bottom, so the plan card comes in under the identity pill */
+@media (max-width: 760px) {
+  .wt-nav-map { bottom: auto; top: calc(var(--wt-gutter) + var(--wt-safe-t) + calc(56 * var(--wt-u))); }
+  .wt-hud:not(.rv-map) .wt-nav-map { transform: translateY(calc(-8 * var(--wt-u))); }
+  .wt-hud.rv-id .wt-nav-map { opacity: 0; pointer-events: none; }
+}
