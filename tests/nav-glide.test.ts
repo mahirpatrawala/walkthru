@@ -114,8 +114,9 @@ describe('the pieces of the glide', () => {
     expect(short.s[short.s.length - 1]).toBeCloseTo(0.5, 3);
     expect(Math.max(...short.v)).toBeLessThan(TOUR_KIN.vc);
     const go = buildProfile(5, 0, 0, GO_KIN, () => 1);
-    expect(Math.max(...go.v)).toBeGreaterThan(1.8);
+    expect(Math.max(...go.v)).toBeGreaterThan(1.3);
     expect(Math.max(...go.v)).toBeLessThanOrEqual(GO_KIN.vc + 1e-3);
+    expect(GO_KIN.vc).toBeLessThanOrEqual(1.5); // a go-to is a walk, never a run
     const run = buildProfile(4, 0.9, 0.8, TOUR_KIN, () => 1);
     expect(run.vEnd).toBeGreaterThan(0.5);
   });

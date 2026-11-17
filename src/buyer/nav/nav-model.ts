@@ -41,9 +41,31 @@ export function currentRoomId(layout: Layout, pos: Vec2, last: string | null): s
   return r ? r.id : last;
 }
 
-/** A jump of this walking distance is a walk (a path no longer than `maxWalkM`), anything else, or no path at all, is a fade. */
-export function goDecision(lengthM: number | null, maxWalkM = 12): 'walk' | 'fade' {
-  return lengthM !== null && Number.isFinite(lengthM) && lengthM <= maxWalkM ? 'walk' : 'fade';
+/** A route longer than this is not walked to the end: a short walk, a fade, and the last stretch walked in (SPEC 2.6). */
+export const SHORTCUT_FROM_M = 8;
+/** How long the walk before the fade lasts, seconds, and how far from the standing spot the walk resumes, metres. */
+export const SHORTCUT_WALK_S = 1.5;
+export const SHORTCUT_LAST_M = 2;
+
+/**
+ * What a go-to does with a route of this length: 'walk' it all (up to `SHORTCUT_FROM_M`), 'shortcut' (walk a little, fade to a spot
+ * `SHORTCUT_LAST_M` before the end, walk in), or 'fade' (no route at all: a plain jump to the standing spot).
+ */
+export function goPlan(lengthM: number | null): 'walk' | 'shortcut' | 'fade' {
+  if (lengthM === null || !Number.isFinite(lengthM)) return 'fade';
+  return lengthM <= SHORTCUT_FROM_M ? 'walk' : 'shortcut';
+}
+
+/** The point `distM` along a polyline from its start (clamped to its ends), and the way it was heading there. */
+export function pointAlongRoute(points: readonly Vec2[], distM: number): Vec2 {
+  let left = Math.max(0, distM);
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1], b = points[i];
+    const l = Math.hypot(b.x - a.x, b.z - a.z);
+    if (left <= l || i === points.length - 1) { const k = l > 1e-9 ? Math.min(1, left / l) : 0; return { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k }; }
+    left -= l;
+  }
+  return { x: points[0].x, z: points[0].z };
 }
 
 export interface Rect { left: number; top: number; right: number; bottom: number }

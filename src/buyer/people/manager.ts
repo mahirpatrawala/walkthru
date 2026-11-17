@@ -78,6 +78,8 @@ export interface PeopleDeps {
   onBodies?(): void;
   /** the surface height under a point, so a tall person sits with raised knees (the walker's own probe) */
   surfaceProbe?: (x: number, z: number) => number | null;
+  /** the walk grid with what only a drawn body has to keep clear of (door frame posts) added: SPEC 4.12. Absent: the walk grid itself. */
+  bodyGrid?: (walk: Grid) => Grid;
   /** a clock for tests */
   random?: () => number;
   /** makes the body of a person (tests give it bodies read from disk); the page's own is `Character.load` */
@@ -287,6 +289,8 @@ export function createPeople(deps: PeopleDeps): People {
       if (!lives.includes(l)) { ch.dispose(); return; }
       l.ch = ch;
       if (deps.surfaceProbe) ch.surfaceProbe = deps.surfaceProbe;
+      // a standing or following person is drawn clear of the walls like the walker (SPEC 4.12); their own footprint is not in this grid
+      ch.setBodyGuard(() => (deps.bodyGrid ? deps.bodyGrid(gridNoPeople()) : gridNoPeople()));
       ch.setHeight(l.rec.heightCm / 100, tintForPerson(l.rec.body, l.rec.heightCm));
       ch.object.userData.personId = l.rec.id;
       ch.object.name = `person-${l.rec.id}`;

@@ -28,7 +28,12 @@ export interface Kinematics {
   doorway: number;
 }
 export const TOUR_KIN: Kinematics = { vc: 1.0, acc: 0.9, dec: 1.1, jerk: 1.5, lateral: 0.7, doorway: 0.72 };
-export const GO_KIN: Kinematics = { vc: 2.2, acc: 2.2, dec: 2.6, jerk: 5, lateral: 1.6, doorway: 0.7 };
+/**
+ * Going to a room (SPEC 2.6): a calm, brisk WALK, never a run. 1.4 m/s is the manual walk's own pace (locomotion.ts WALK_MPS), so the walk clip's
+ * stride matches the ground it covers; it eases in over ~1.5 s and out over ~1.3 s, goes through a doorway at 0.7 of that and takes a bend at
+ * sqrt(0.9 / curvature) (a 0.8 m radius turn at about 1.06 m/s).
+ */
+export const GO_KIN: Kinematics = { vc: 1.4, acc: 1.0, dec: 1.2, jerk: 2.2, lateral: 0.9, doorway: 0.7 };
 
 const norm = (x: number, z: number): { x: number; z: number; l: number } => { const l = Math.hypot(x, z); return l > 1e-9 ? { x: x / l, z: z / l, l } : { x: 0, z: 0, l: 0 }; };
 

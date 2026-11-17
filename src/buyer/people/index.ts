@@ -25,6 +25,8 @@ export interface MountPeopleDeps {
   tier: () => DeviceTier;
   walker: WalkerPort;
   surfaceProbe: (x: number, z: number) => number | null;
+  /** the walk grid with the door frame posts added, for the drawn bodies (SPEC 4.12) */
+  bodyGrid?: (walk: import('../../types').Grid) => import('../../types').Grid;
   /** bodies came or went (the baked lighting probes them) */
   onBodies?: () => void;
   /** another sheet is open (the walker's own picker, the rooms sheet) */
@@ -42,7 +44,7 @@ export function mountPeople(d: MountPeopleDeps): MountedPeople {
     sceneId: d.sceneId, storage: d.storage, tier: d.tier, toast: (t) => d.hud.toast(t),
     swingNote: (box) => swingNoteFor(box),
     passCard: (c) => { if (c) d.ctx.hud.showCard(c); else d.ctx.hud.hideCard(); },
-    onBodies: d.onBodies, surfaceProbe: d.surfaceProbe,
+    onBodies: d.onBodies, surfaceProbe: d.surfaceProbe, bodyGrid: d.bodyGrid,
   });
   const ui = createPeopleUi({ ctx: d.ctx, hud: d.hud, people, walker: d.walker, parent: document.body, otherBlocking: d.otherBlocking });
   d.modes.onChange((id) => {
