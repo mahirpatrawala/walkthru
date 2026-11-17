@@ -70,7 +70,7 @@
 .wt-nav-map.wt-glass { pointer-events: auto; padding: 0; overflow: hidden; }
 .wt-hud .wt-nav-map { transition: opacity var(--wt-reveal-out) var(--wt-ease), transform var(--wt-reveal-out) var(--wt-ease), width 0.24s var(--wt-ease), var(--wt-tone-tr); }
 .wt-nav-map-head { display: flex; align-items: center; justify-content: space-between; gap: calc(8 * var(--wt-u)); padding: calc(3 * var(--wt-u)) calc(3 * var(--wt-u)) 0 calc(13 * var(--wt-u)); min-height: calc(36 * var(--wt-u)); }
-.wt-nav-map-title { font-size: calc(10.5 * var(--wt-u)); font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--wt-glass-dim); }
+.wt-nav-map-title { font-size: calc(10.5 * var(--wt-u)); font-weight: 650; letter-spacing: 0.06em; white-space: nowrap; text-transform: uppercase; color: var(--wt-glass-dim); }
 .wt-nav-map-toggle {
   flex: none; width: calc(34 * var(--wt-u)); height: calc(34 * var(--wt-u)); padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--wt-glass-text);
   display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto;
@@ -79,8 +79,8 @@
 .wt-nav-map-toggle:hover { background: var(--wt-glass-hover); }
 .wt-nav-map.is-collapsed { width: auto; min-width: 0; }
 .wt-nav-map.is-collapsed .wt-nav-map-head { padding-right: calc(4 * var(--wt-u)); }
-.wt-nav-map-body { position: relative; box-sizing: border-box; padding: calc(2 * var(--wt-u)) calc(11 * var(--wt-u)) calc(11 * var(--wt-u)); width: 100%; }
-.wt-nav-plan { display: block; width: 100%; height: auto; max-height: var(--map-h); overflow: visible; -webkit-user-select: none; user-select: none; }
+.wt-nav-map-body { position: relative; overflow: hidden; box-sizing: border-box; padding: calc(2 * var(--wt-u)) calc(11 * var(--wt-u)) calc(11 * var(--wt-u)); width: 100%; }
+.wt-nav-plan { display: block; width: 100%; height: auto; max-height: var(--map-h); overflow: hidden; -webkit-user-select: none; user-select: none; }
 @media (min-width: 1280px) and (min-height: 640px) {
   .wt-nav-map { bottom: calc(calc(14 * var(--wt-u)) + var(--wt-safe-b) + var(--wt-nav-lift, 0px)); }
 }
@@ -92,7 +92,8 @@
 .wt-nav-plan .plan-hatch { stroke: currentColor; stroke-opacity: 0.3; }
 .wt-nav-plan .plan-room.is-pick { cursor: pointer; }
 .wt-nav-plan .plan-room.is-pick:hover .plan-floor { fill-opacity: 0.2; }
-.wt-nav-plan .plan-room.is-pick:focus-visible { outline: none; }
+/* no browser focus ring on a plan room: an `outline: auto` on an SVG element is drawn in plan metres (5 m wide), a plan-sized white and blue disc over the card. Keyboard focus is the thin stroke below, in pixels. */
+.wt-nav-plan .plan-room, .wt-nav-plan .plan-room:focus, .wt-nav-plan .plan-room:focus-visible, .wt-nav-plan:focus, .wt-nav-plan *:focus { outline: none !important; }
 .wt-nav-plan .plan-room.is-pick:focus-visible .plan-floor { stroke: var(--wt-ochre); stroke-width: calc(2 * var(--wt-u)); vector-effect: non-scaling-stroke; }
 .wt-nav-plan .plan-room.is-on .plan-floor { fill: var(--wt-accent); fill-opacity: 0.72; stroke: none; }
 .wt-nav-plan .plan-wall { fill: currentColor; fill-opacity: 0.84; }
@@ -105,7 +106,9 @@
 .wt-nav-plan .plan-label { display: none; }
 .wt-nav-plan .wt-nav-water { fill: rgba(143, 191, 196, 0.35); stroke: #5FA3AA; stroke-width: 1px; vector-effect: non-scaling-stroke; }
 .wt-nav-cone { fill: var(--wt-accent); fill-opacity: 0.34; stroke: none; }
-.wt-nav-dot { fill: #fff; stroke: var(--wt-accent); filter: drop-shadow(0 0 calc(2 * var(--wt-u)) rgba(0, 0, 0, 0.4)); }
+.wt-nav-dot { fill: #fff; stroke: var(--wt-accent); }
+/* the soft ring round the dot is a second circle, a few px wide: never a CSS filter (its lengths on an SVG element are plan metres, which once painted a plan-sized disc) */
+.wt-nav-halo { fill: rgba(0, 0, 0, 0.22); stroke: none; }
 
 /* ---- the fade of a long jump (behind the HUD, over the 3D view) */
 .wt-nav-fade { position: fixed; inset: 0; z-index: -1; background: var(--wt-ink); opacity: 0; pointer-events: none; transition: opacity 180ms ease; }

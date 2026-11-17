@@ -141,5 +141,7 @@ export interface BuildingIndexEntry {
   /** flat type name -> how many */
   flatTypes: { name: string; count: number }[];
   amenities: string[];
+  /** an unfurnished twin (a builder starting from nothing): the card says so */
+  bare?: boolean;
 }
 export interface BuildingIndex { version: 1; buildings: BuildingIndexEntry[] }

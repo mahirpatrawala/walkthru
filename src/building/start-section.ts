@@ -2,8 +2,8 @@
 import './building.css';
 import { BRAND_MARK } from '../brand/mark';
 import { NotFound, fetchBuilding } from './load';
-import { firstSentence, mountBuildingMap } from './map';
-import { amenityLine } from './index-entry';
+import { mountBuildingMap } from './map';
+import { amenityLine, flatKindsLine, purposeLine } from './index-entry';
 import { buildingUrl } from './url';
 import type { BuildingIndex, BuildingIndexEntry } from './types';
 
@@ -48,10 +48,11 @@ function card(grid: HTMLElement, b: BuildingIndexEntry, go: (url: string) => voi
   art.innerHTML = towerArt(b.levels); // a fixed drawing from numbers, no page text
   const body = h('div', 'wb-body', undefined, a);
   h('h3', undefined, b.name, body);
+  h('p', 'wb-purpose', purposeLine(b), body);
   if (b.sample) h('p', 'wb-quiet', 'Sample building. Plans follow a published brochure.', body);
-  if (b.subtitle) h('p', 'wb-meta', firstSentence(b.subtitle), body);
-  h('p', 'wb-meta', `${b.levels} levels · ${b.flats} flats (${b.flatTypes.map((t) => `${t.name} ×${t.count}`).join(', ')})`, body);
-  if (b.amenities.length) h('p', 'wb-meta', `Amenities: ${amenityLine(b.amenities)}`, body);
+  const kinds = flatKindsLine(b.flatTypes);
+  h('p', 'wb-meta', `${b.levels} levels · ${b.flats} flats${kinds ? ` · ${kinds}` : ''}`, body);
+  if (b.amenities.length) h('p', 'wb-meta', `Clubhouse: ${amenityLine(b.amenities, 3)}`, body);
   h('span', 'wb-open', 'Open the building', body);
   a.addEventListener('click', (e) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;

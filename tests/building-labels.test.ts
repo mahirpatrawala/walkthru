@@ -109,3 +109,17 @@ describe('the start-page card\'s amenity list', () => {
     expect(amenityLine(['A', 'B', 'C', 'D', 'E', 'F'], 2)).toBe('A, B and 4 more');
   });
 });
+
+import { flatKindsLine, purposeLine } from '../src/building/index-entry';
+describe('the start-page building cards say what each is for, briefly', () => {
+  it('the furnished tower and its empty twin read differently', () => {
+    expect(purposeLine({})).toBe('Furnished: walk it as a buyer would');
+    expect(purposeLine({ bare: true })).toBe('Empty: furnish it yourself');
+  });
+  it('flat types are one short phrase', () => {
+    expect(flatKindsLine([{ name: '2 BHK · 644 sq ft' }, { name: '2 BHK · 589 sq ft' }, { name: '3 BHK · 930 sq ft' }, { name: '3 BHK · 1,117 sq ft' }])).toBe('2 and 3 BHK');
+    expect(flatKindsLine([{ name: '3 BHK · 1,117 sq ft' }])).toBe('3 BHK');
+    expect(flatKindsLine([{ name: '1 BHK' }, { name: '2 BHK' }, { name: '3 BHK' }])).toBe('1, 2 and 3 BHK');
+    expect(flatKindsLine([{ name: 'Studio · 400 sq ft' }, { name: '2 BHK' }])).toBe('2 BHK, Studio');
+  });
+});

@@ -425,6 +425,29 @@ body .wtf-bar { background: var(--wt-sheet-bg); border-radius: calc(var(--wt-r-g
 body .wtp-card, body .wtf-tray, body .wtf-panel, body .wtf-bar, body .wto-card { --wt-card: rgba(255, 255, 255, 0.62); --wt-paper: rgba(255, 255, 255, 0.44); --wt-paper-2: rgba(43, 33, 28, 0.08); --wt-line: rgba(43, 33, 28, 0.13); }
 .wt-hud .wt-look-sheet { --wt-card: rgba(255, 255, 255, 0.62); --wt-paper: rgba(255, 255, 255, 0.44); --wt-paper-2: rgba(43, 33, 28, 0.08); --wt-line: rgba(43, 33, 28, 0.13); }
 .wt-x, .wt-look-x { border-radius: 50%; }
+/* Materials (src/buyer/materials-tool.ts): a tool with the level as a badge, and a small sheet under it with Off / 1K / 2K, the honest note and a progress line */
+.wt-hud .wt-mat-btn { position: relative; }
+.wt-mat-badge { position: absolute; top: calc(-2 * var(--wt-u)); right: calc(-5 * var(--wt-u)); min-width: calc(17 * var(--wt-u)); padding: 0 calc(4 * var(--wt-u)); box-sizing: border-box; border-radius: var(--wt-r-pill); background: var(--wt-accent); color: var(--wt-accent-ink, #fff); font-size: calc(9.5 * var(--wt-u)); font-weight: 750; line-height: calc(16 * var(--wt-u)); text-align: center; letter-spacing: 0.02em; pointer-events: none; }
+.wt-mat-badge.is-off { background: var(--wt-glass-tint); color: var(--wt-glass-dim); }
+.wt-mat-btn.is-loading .wt-mat-badge { animation: wt-mat-pulse 1.1s ease-in-out infinite; }
+@keyframes wt-mat-pulse { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .wt-mat-btn.is-loading .wt-mat-badge { animation: none; opacity: 0.7; } }
+.wt-hud .wt-mat-pop {
+  position: fixed; z-index: var(--wt-z-sheet); width: calc(310 * var(--wt-u)); max-width: calc(100vw - calc(24 * var(--wt-u))); box-sizing: border-box; padding: calc(14 * var(--wt-u)) calc(16 * var(--wt-u)) calc(16 * var(--wt-u));
+  background: var(--wt-sheet-bg); color: var(--wt-ink); border: 1px solid var(--wt-sheet-rim); border-radius: var(--wt-r-glass); box-shadow: var(--wt-sheet-shadow); -webkit-backdrop-filter: var(--wt-sheet-blur); backdrop-filter: var(--wt-sheet-blur);
+  pointer-events: auto; font-size: calc(14 * var(--wt-u)); line-height: 1.35;
+  --wt-card: rgba(255, 255, 255, 0.62); --wt-paper-2: rgba(43, 33, 28, 0.08); --wt-line: rgba(43, 33, 28, 0.13);
+}
+.wt-mat-pop[hidden] { display: none; }
+.wt-mat-head { display: flex; align-items: baseline; justify-content: space-between; gap: calc(8 * var(--wt-u)); }
+.wt-mat-head b { font-family: var(--wt-display); font-size: calc(16 * var(--wt-u)); font-weight: 800; letter-spacing: -0.01em; }
+.wt-mat-state { color: var(--wt-muted); font-size: calc(12.5 * var(--wt-u)); }
+.wt-mat-seg.wt-look-seg { grid-template-columns: repeat(3, 1fr); margin-top: calc(10 * var(--wt-u)); }
+.wt-mat-note { margin-top: calc(10 * var(--wt-u)); }
+.wt-mat-progress { height: calc(3 * var(--wt-u)); margin-top: calc(10 * var(--wt-u)); border-radius: calc(2 * var(--wt-u)); background: var(--wt-paper-2); overflow: hidden; }
+.wt-mat-progress[hidden] { display: none; }
+.wt-mat-progress i { display: block; height: 100%; width: 0; background: var(--wt-accent); transition: width 0.25s; }
+@media (max-width: 760px) { .wt-hud .wt-mat-pop { top: auto !important; right: 12px !important; left: 12px; width: auto; bottom: calc(12px + var(--wt-safe-b) + var(--wt-slot-h, 0px)); } }
 /* the pool's walkway and depth pills (src/outdoor/pool-ui.ts): the walkway warning is never hidden with the chrome; it wears the glass */
 body .wt-hud .wto-pill button {
   background: var(--wt-glass); color: var(--wt-glass-text); border: 1px solid var(--wt-glass-line); box-shadow: var(--wt-glass-shadow); -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur);

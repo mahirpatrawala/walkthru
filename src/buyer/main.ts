@@ -37,6 +37,7 @@ import { setModelsEnabled } from '../look/models/library';
 import { modelStats, modelsIdle } from '../look/models/load';
 import type { Look } from '../look/look';
 import { mountLookPanel } from '../look/look-panel';
+import { mountMaterialsTool } from './materials-tool';
 import { createInput } from '../engine/controls';
 import { FollowCamera } from '../engine/camera';
 import { resetLocomotion, stepLocomotion } from '../engine/locomotion';
@@ -489,6 +490,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     packName: (): string => getStyle().pack.name,
     classic: (): boolean => !!getStyle().pack.classic,
   };
+  if (look) cleanup.push(mountMaterialsTool(hud.root, hud.tools, look)); // Realistic materials (Off, 1K, 2K) as a tool of its own: the look holds the state, this and the Light sheet's row only show it
   if (look) cleanup.push(mountLookPanel(hud.root, look, { toast: (t) => hud.toast(t), onPainterly: () => { void openPainterly(); }, style: stylePicker }));
   // the people a buyer adds (src/buyer/people): mounted below, once the walker, the store and the HUD exist
   let people: MountedPeople | null = null;
@@ -651,7 +653,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   cleanup.push(() => nav.dispose());
   // a screen nobody holds: the chrome fades after a few seconds, and with ?kiosk=1 or ?idle=<s> the tour starts by itself and loops (src/buyer/presence.ts)
   // calm by default, reveal on intent (src/buyer/chrome.ts): the top row, the room strip, the plan and the identity card come in when reached for
-  const lookSheetOpen = (): boolean => { const s = hud.root.querySelector<HTMLElement>('.wt-look-sheet'); return !!s && !s.hidden; };
+  const lookSheetOpen = (): boolean => [...hud.root.querySelectorAll<HTMLElement>('.wt-look-sheet, .wt-mat-pop')].some((s) => !s.hidden);
   const chrome = mountChrome({
     root: hud.root,
     machine: createChromeMachine({ level: chromeLevel, touch: isTouch, lingerMs: presenceCfg.lingerS === null ? null : presenceCfg.lingerS * 1000 }),

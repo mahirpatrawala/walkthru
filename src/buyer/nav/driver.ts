@@ -99,6 +99,8 @@ export interface TourOptions { loop?: boolean }
 
 interface WalkAction {
   kind: 'walk';
+  /** a leg the tour has already ended with a skip: it keeps moving for the rest of this frame and the next leg takes over at its speed, so a skip is one continuous eased move, not a stop and a catch-up */
+  ghost?: boolean;
   target: Vec2;
   kin: Kinematics;
   jog: boolean;
@@ -216,6 +218,8 @@ export class Driver {
   /** Moves the walker for this frame. Returns true when the auto-walk has the walker (the caller then does not read the keys and the thumb). */
   update(dt: number): boolean {
     if (this.paused && this.action) { this.deps.character.setLocomotion(0, false, 0); return true; }
+    // a skipped leg lives only for the frame it was skipped in: if no next leg has taken its place by now (the tour ended), it stops here
+    if (this.action?.kind === 'walk' && this.action.ghost) { this.action = null; this.deps.character.setLocomotion(0, false, 0); this.lastSpeed = 0; }
     // the time of every frame is banked and spent in steps of SIM_DT; what a finished action leaves over goes to the next one (a tour's next leg
     // is set up a moment after the last one ends, and must not lose the time in between)
     this.acc = Math.min(this.acc + Math.min(Math.max(dt, 0), 0.1), 0.2);
@@ -321,7 +325,13 @@ export class Driver {
   private stepWalk(a: WalkAction): void {
     const { character: ch } = this.deps;
     const omega = a.kin === GO_KIN ? OMEGA_GO : OMEGA_TOUR;
-    if (this.skipAsked && this.touring) { this.skipAsked = false; this.finish(a, 'skipped'); return; }
+    if (this.skipAsked && this.touring && !a.ghost) {
+      // the tour is told the leg is over (it plans the next one a moment after this frame) but the walker does not stop for what is left of this frame:
+      // the leg goes on at the speed it has, and the next leg starts from that speed (carryV). One frame of standing, then a double step, was the hitch.
+      this.skipAsked = false;
+      a.ghost = true;
+      a.done('skipped');
+    }
     const door = a.door;
     // the door ahead: ask for it when 1.5 m from the spot to stand at (a short leg asks at once)
     if (door && !a.doorAsked && a.curve.length - a.s <= DOOR_AHEAD_M) {
@@ -351,6 +361,7 @@ export class Driver {
     const lag = Math.hypot(a.curve.pointAt(a.s).x - pos.x, a.curve.pointAt(a.s).z - pos.z);
     let at = { s: a.s, v: a.v, done: false };
     if (lag <= 0.1) { a.t += SIM_DT; at = profileAt(a.profile, a.t); a.s = at.s; a.v = at.v; }
+    if (a.ghost) this.carryV = a.v;
     const want = a.curve.pointAt(a.s);
     let dx = want.x - pos.x, dz = want.z - pos.z;
     const step = Math.hypot(dx, dz);

@@ -18,7 +18,7 @@ import type { TourOptions } from './driver';
 import type { GoResult, TourState } from './driver';
 import { findRoute } from './grid-path';
 import { firstCrossing, isOpenEnough, planGridOf } from './door-route';
-import { chipCaption, conePath, currentRoomId, liftAbove, roomChips, roomNear } from './nav-model';
+import { liveMark, chipCaption, conePath, currentRoomId, liftAbove, roomChips, roomNear } from './nav-model';
 import type { Rect, RoomChip } from './nav-model';
 import { skippedNote } from './tour-plan';
 import './nav.css';
@@ -252,7 +252,9 @@ export function mountNav(d: NavDeps): MountedNav {
   cone.setAttribute('class', 'wt-nav-cone');
   const dot = document.createElementNS(SVG_NS, 'circle');
   dot.setAttribute('class', 'wt-nav-dot');
-  live.append(cone, dot);
+  const halo = document.createElementNS(SVG_NS, 'circle');
+  halo.setAttribute('class', 'wt-nav-halo');
+  live.append(cone, halo, dot);
   svg.appendChild(live);
   const roomGroups = new Map<string, SVGGElement>();
   svg.querySelectorAll<SVGGElement>('g[data-room]').forEach((g) => roomGroups.set(g.dataset.room as string, g));
@@ -289,11 +291,18 @@ export function mountNav(d: NavDeps): MountedNav {
     return { x: q.x, z: q.y };
   };
   let pxPerM = 10;
+  let coneLen = CONE_PX / 10;
   const measure = (): void => {
     const r = svg.getBoundingClientRect();
-    if (r.width > 0 && vb.width > 0) pxPerM = r.width / vb.width;
-    dot.setAttribute('r', String(DOT_PX / pxPerM));
-    dot.style.strokeWidth = `${1.5 / pxPerM}px`;
+    // the layout width, not the box on screen: a card that is mid-way through a scale or fade must not shrink the plan's scale, and a collapsed one has none
+    const w = svg.clientWidth || r.width;
+    if (w > 0 && vb.width > 0 && vb.height > 0) pxPerM = w / vb.width;
+    const m = liveMark(pxPerM, vb.width, vb.height, DOT_PX, CONE_PX);
+    dot.setAttribute('r', m.r.toFixed(4));
+    halo.setAttribute('r', m.halo.toFixed(4));
+    dot.style.strokeWidth = `${m.stroke.toFixed(4)}px`;
+    coneLen = m.cone;
+    lastDrawn = null;
   };
   // the HUD is hidden until the walker is chosen and the plan's size changes with the window: measure again whenever it does
   const mapObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { measure(); lastDrawn = null; }) : null;
@@ -307,6 +316,8 @@ export function mountNav(d: NavDeps): MountedNav {
         id = p ? roomNear(layout, p, TAP_SNAP_PX / pxPerM)?.id ?? null : null;
       }
       if (id) void go(id);
+      // a press leaves no focus on the plan (keyboard focus keeps its thin stroke; a pointer's click does not need one)
+      if (e.detail > 0 && document.activeElement instanceof SVGElement) (document.activeElement as unknown as HTMLElement).blur?.();
     });
     svg.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -522,7 +533,9 @@ export function mountNav(d: NavDeps): MountedNav {
     lastDrawn = { x: p.x, z: p.z, yaw };
     dot.setAttribute('cx', p.x.toFixed(3));
     dot.setAttribute('cy', p.z.toFixed(3));
-    cone.setAttribute('d', conePath(p, yaw, CONE_PX / pxPerM));
+    halo.setAttribute('cx', p.x.toFixed(3));
+    halo.setAttribute('cy', p.z.toFixed(3));
+    cone.setAttribute('d', conePath(p, yaw, coneLen));
   }
   function applyVisibility(): void {
     const m = ctx.mode();

@@ -93,6 +93,7 @@ html[data-glass="flat"] .bm-overlay { background: rgba(250, 245, 236, 0.97); }
 .wb-body h3 { margin: 0; font-family: var(--wt-display); font-size: calc(21 * var(--wt-u)); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
 .wb-meta { margin: 0; font-size: calc(14 * var(--wt-u)); color: var(--wt-muted); line-height: 1.45; }
 .wb-quiet { margin: 0; }
+.wb-purpose { margin: 0; font-size: calc(15 * var(--wt-u)); font-weight: 650; color: var(--wt-ink); }
 .wb-open { margin-top: calc(8 * var(--wt-u)); font-family: var(--wt-display); font-weight: 700; font-size: calc(15 * var(--wt-u)); color: var(--wt-clay); }
 .wb-open::after { content: ' →'; }
 

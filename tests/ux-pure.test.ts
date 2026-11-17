@@ -58,6 +58,7 @@ describe('presence: the chrome level and attract mode parameters', () => {
   it('ignores nonsense', () => {
     expect(parsePresence('?idle=abc').attractAfterS).toBeNull();
     expect(parsePresence('?idle=2').attractAfterS).toBeNull();
+    expect(parsePresence('?kiosk=1&idle=5').attractAfterS).toBe(5);
     expect(parsePresence('?kiosk=1&idle=-5').attractAfterS).toBe(DEFAULT_ATTRACT_S);
     expect(parsePresence('?autohide=zzz')).toMatchObject({ chrome: 'auto', lingerS: null });
   });
@@ -77,6 +78,10 @@ describe('the share link', () => {
   it('writes the view mode when it is not Walk, and the layout code through the hook', () => {
     expect(new URL(buildShareUrl({ ...state, view: 'doll' })).searchParams.get('view')).toBe('doll');
     expect(new URL(buildShareUrl({ ...state, view: 'walk' })).searchParams.has('view')).toBe(false);
+    // an old link (`view=first`) is rewritten with the camera as cam= and no view= for Walk: the app writes cam= for the camera everywhere
+    const old = new URL(buildShareUrl({ ...state, href: `${state.href}${state.href.includes('?') ? '&' : '?'}view=first`, cam: 'first', view: 'walk' }));
+    expect(old.searchParams.get('cam')).toBe('first');
+    expect(old.searchParams.has('view')).toBe(false);
     expect(new URL(buildShareUrl({ ...state, withLayout: (h) => `${h}&my=abc` })).searchParams.get('my')).toBe('abc');
   });
   it('reads it back, and drops anything malformed or out of range', () => {

@@ -117,6 +117,14 @@ describe('the ?view= address', () => {
     expect(withViewParam('/?scene=a&view=plan#top', 'doll')).toBe('/?scene=a&view=doll#top');
     expect(withViewParam('/', 'walk')).toBe('/');
   });
+  it('view= names the mode (walk, doll, plan) and, in an old link, the camera (first, third): the camera survives as cam=', () => {
+    expect(parseViewParam('?view=first')).toBe('walk');
+    expect(parseViewParam('?view=third&cam=first')).toBe('walk');
+    expect(withViewParam('/?scene=a&view=first', 'doll')).toBe('/?scene=a&cam=first&view=doll');
+    expect(withViewParam('/?scene=a&view=first', 'walk')).toBe('/?scene=a&cam=first');
+    expect(withViewParam('/?scene=a&view=third&cam=first', 'plan')).toBe('/?scene=a&cam=first&view=plan');
+    expect(withViewParam('/?scene=a&cam=first', 'doll')).toBe('/?scene=a&cam=first&view=doll');
+  });
   it('smootherstep is flat at both ends', () => {
     expect(smootherstep(0)).toBe(0);
     expect(smootherstep(1)).toBe(1);

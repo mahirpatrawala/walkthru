@@ -28,7 +28,7 @@ const num = (v: string | null, lo: number, hi: number): number | null => {
 export function parsePresence(search: string): PresenceConfig {
   const q = new URLSearchParams(search);
   const kiosk = q.get('kiosk') === '1' || q.get('kiosk') === 'true';
-  const idle = num(q.get('idle'), 10, 3600);
+  const idle = num(q.get('idle'), 3, 3600);
   const c = parseChromeLevel(search);
   return { kiosk, attractAfterS: idle ?? (kiosk ? DEFAULT_ATTRACT_S : null), chrome: c.level, lingerS: c.lingerMs === null ? null : c.lingerMs / 1000 };
 }
