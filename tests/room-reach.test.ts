@@ -33,7 +33,7 @@ describe('the lived-in decor leaves every route clear too', () => {
     it(id, () => {
       const real = scene.furniture.filter((i) => i.source === 'real');
       const grid = stampFurniture(rasterizeLayout(scene.layout), scene.furniture);
-      const floor = planLivedIn({ layout: scene.layout, items: real, grid }).filter((p) => p.place === 'floor' && p.kind !== 'rug');
+      const floor = planLivedIn({ layout: scene.layout, items: real, grid }).filter((p) => p.place === 'floor' && p.kind !== 'rug' && p.kind !== 'mat');
       // a decor piece stands on the floor like a planter: stamp each as one
       const pieces: FurnitureItem[] = floor.map((p) => ({ id: p.id, source: 'real', kind: 'counter', catalogId: 'planter-pot', label: p.kind, box: pieceBox(p), heightM: p.height, surfaceHeightM: p.height }));
       const rep = routeReport(scene.layout, [...scene.furniture, ...pieces], scene.spawn);

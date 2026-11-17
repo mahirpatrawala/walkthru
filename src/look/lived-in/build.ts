@@ -269,6 +269,64 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
     parts.add(cyl(0.011, 0.011, 0.544, 0.15, 6), BRASS, 0.4, 0.5);
     parts.add(cyl(0.085, 0.125, 0.69, 0.17, seg.s), '#F6E8CB', 0.95, 0, { emissive: '#FFD9A0', shadow: false });
   },
+  sink(p, parts, _kit, seg) {
+    // a stainless steel sink set into the worktop: a drainboard rim, a deep bowl (dark, with its drain) and a swan-neck tap at the back
+    const w = p.w, d = p.d;
+    parts.add(box(-w / 2, w / 2, 0, 0.012, -d / 2, d / 2), STEEL, 0.32, 0.65);
+    const bx0 = -w / 2 + 0.03, bx1 = w / 2 - 0.2, bz0 = -d / 2 + 0.07, bz1 = d / 2 - 0.045;
+    parts.add(box(bx0, bx1, 0.0121, 0.0135, bz0, bz1), '#4B5258', 0.45, 0.5);
+    parts.add(box(bx0 + 0.012, bx1 - 0.012, 0.0135, 0.0145, bz0 + 0.012, bz1 - 0.012), '#2F3438', 0.6, 0.3);
+    parts.add(cyl(0.024, 0.024, 0.0145, 0.002, seg.s, (bx0 + bx1) / 2, (bz0 + bz1) / 2), '#B9BDC2', 0.35, 0.7);
+    // the drainboard's ribs
+    for (let x = bx1 + 0.03; x < w / 2 - 0.03; x += 0.026) parts.add(box(x, x + 0.01, 0.012, 0.0138, -d / 2 + 0.05, d / 2 - 0.05), '#9DA2A8', 0.4, 0.6, { shadow: false });
+    // the tap: a chrome base, a stem, an arch over the bowl and a short spout, with a lever
+    const tx = (bx0 + bx1) / 2, tz = -d / 2 + 0.035;
+    parts.add(cyl(0.022, 0.026, 0.012, 0.02, seg.s, tx, tz), '#D5D8DB', 0.2, 0.9);
+    parts.add(cyl(0.012, 0.014, 0.032, 0.17, seg.s, tx, tz), '#D5D8DB', 0.2, 0.9);
+    parts.add(ball(0.018, 8, tx, 0.205, tz + 0.012), '#D5D8DB', 0.2, 0.9);
+    parts.add(box(tx - 0.012, tx + 0.012, 0.195, 0.218, tz + 0.012, tz + 0.2), '#D5D8DB', 0.2, 0.9);
+    parts.add(cyl(0.011, 0.011, 0.165, 0.032, seg.s, tx, tz + 0.2), '#D5D8DB', 0.2, 0.9);
+    parts.add(box(tx + 0.016, tx + 0.07, 0.17, 0.182, tz - 0.004, tz + 0.012), '#D5D8DB', 0.2, 0.9);
+  },
+  console(p, parts, _kit, seg) {
+    // a slim shoe cabinet: a dark plinth, an oak carcass with two tilt-out fronts, an oak top, and on it a key bowl, a small vase of leaves and a tray
+    const w = p.w, d = p.d, top = 0.8;
+    parts.add(box(-w / 2 + 0.03, w / 2 - 0.03, 0, 0.08, -d / 2 + 0.03, d / 2 - 0.04), '#4A3A2C', 0.6);
+    parts.add(box(-w / 2, w / 2, 0.08, top, -d / 2, d / 2), '#D8C7A8', 0.55);
+    for (const sx of [-1, 1]) {
+      const x0 = sx < 0 ? -w / 2 + 0.012 : 0.004, x1 = sx < 0 ? -0.004 : w / 2 - 0.012;
+      parts.add(box(x0, x1, 0.4, top - 0.012, d / 2, d / 2 + 0.014), '#E9DFC9', 0.5);
+      parts.add(box(x0, x1, 0.095, 0.388, d / 2, d / 2 + 0.014), '#E9DFC9', 0.5);
+      const px = sx < 0 ? -0.05 : 0.05;
+      parts.add(box(px - 0.1, px + 0.1, 0.385, 0.397, d / 2 + 0.006, d / 2 + 0.03), '#9FA4A9', 0.35, 0.6);
+    }
+    parts.add(box(-w / 2 - 0.008, w / 2 + 0.008, top, top + 0.025, -d / 2 - 0.008, d / 2 + 0.014), '#B98F5E', 0.45);
+    const y = top + 0.025;
+    parts.add(cyl(0.085, 0.05, y, 0.045, seg.s, -w / 2 + 0.2, 0.0), BRASS, 0.35, 0.6);
+    parts.add(box(w / 2 - 0.34, w / 2 - 0.06, y, y + 0.012, -0.1, 0.1), '#7A5A3A', 0.5);
+    parts.add(cyl(0.032, 0.045, y, 0.2, seg.s, w / 2 - 0.12, -0.04), '#C9B79A', 0.4);
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      parts.add(ball(0.05, 6, w / 2 - 0.12 + Math.cos(a) * 0.04, y + 0.27 + (i % 2) * 0.04, -0.04 + Math.sin(a) * 0.04, 1, 1.3, 0.35), LEAF[i % LEAF.length], 0.8);
+    }
+  },
+  mirror(p, parts, _kit, seg) {
+    // a round mirror in a slim brass ring on a short cord; the glass is a pale sky-grey disc (the scene's reflections are not drawn on it)
+    const r = p.height / 2;
+    const ring = new THREE.CylinderGeometry(r, r, 0.035, seg.s * 3);
+    ring.rotateX(Math.PI / 2); ring.translate(0, r, 0.025);
+    parts.add(ring, BRASS, 0.3, 0.7);
+    const glass = new THREE.CylinderGeometry(r - 0.016, r - 0.016, 0.01, seg.s * 3);
+    glass.rotateX(Math.PI / 2); glass.translate(0, r, 0.044);
+    parts.add(glass, '#C6D3D8', 0.06, 0.75);
+    parts.add(ball(0.012, 6, 0, p.height + 0.01, 0.02), BRASS, 0.4, 0.6);
+  },
+  mat(p, parts) {
+    // a coir doormat with a dark border
+    const w = p.w, d = p.d;
+    parts.add(box(-w / 2, w / 2, 0, 0.012, -d / 2, d / 2), '#3E3329', 0.98);
+    parts.add(box(-w / 2 + 0.035, w / 2 - 0.035, 0.012, 0.0135, -d / 2 + 0.035, d / 2 - 0.035), '#8C7656', 0.98, 0, { shadow: false });
+  },
   hob(p, parts, _kit, seg) {
     // a four-burner gas hob under a black glass top: burner rings, caps and a row of control knobs on the front edge
     const w = p.w, d = p.d;

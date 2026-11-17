@@ -25,7 +25,8 @@ export const FITTING_EDITED_NOTE = 'Edited in your layout. The home as drawn doe
 export type FittingKind =
   | 'ac' | 'fan' | 'tube' | 'downlight' | 'wall-light' | 'curtain' | 'rug' | 'switchboard' | 'plant' | 'clock' | 'frame' | 'pooja'
   | 'window-seat' | 'chair' | 'panelling' | 'slat-wall' | 'ceiling-band'
-  | 'cushion' | 'throw' | 'books' | 'lamp' | 'cooker' | 'dabbas' | 'fruit' | 'jug' | 'shoes';
+  | 'cushion' | 'throw' | 'books' | 'lamp' | 'cooker' | 'dabbas' | 'fruit' | 'jug' | 'shoes'
+  | 'nightstand' | 'hob' | 'hood' | 'wallcab' | 'dado' | 'sink' | 'console' | 'mirror' | 'mat';
 
 export type Mount = 'wall' | 'ceiling' | 'floor' | 'surface';
 
@@ -35,6 +36,7 @@ export const KIND_NAMES: Record<FittingKind, string> = {
   chair: 'Chair', panelling: 'Wall panelling', 'slat-wall': 'Slatted wall', 'ceiling-band': 'Ceiling band',
   cushion: 'Cushion', throw: 'Throw', books: 'Books', lamp: 'Table lamp', cooker: 'Pressure cooker', dabbas: 'Kitchen jars', fruit: 'Fruit bowl',
   jug: 'Jug', shoes: 'Shoes',
+  nightstand: 'Bedside table', hob: 'Gas hob', hood: 'Chimney hood', wallcab: 'Wall cabinet', dado: 'Backsplash tiles', sink: 'Kitchen sink', console: 'Shoe cabinet', mirror: 'Mirror', mat: 'Doormat',
 };
 
 // ---------------------------------------------------------------- the overlay

@@ -17,13 +17,16 @@ import { boxAxes, boxCorners, distanceToPolygon, distanceToSegment, mulberry32, 
 import { cellIndex } from '../../core/grid-codec';
 import { furnitureLook } from '../furniture-real';
 import { pieceRule } from '../../core/pieces';
+import { inDoorSweep, resolveDoors } from '../../core/doors';
 import { tubeSites, TUBE_LEN_M } from '../kit/rules';
 
 export type DecorKind =
   | 'cushion' | 'throw' | 'books' | 'lamp' | 'cooker' | 'dabbas' | 'fruit' | 'jug'
   | 'plant' | 'rug' | 'shoes' | 'curtain' | 'clock' | 'frame' | 'pooja'
   // round 4: what an Indian apartment kitchen and a made-up bedroom show (typical fittings, labelled as decor)
-  | 'nightstand' | 'hob' | 'hood' | 'wallcab' | 'dado';
+  | 'nightstand' | 'hob' | 'hood' | 'wallcab' | 'dado'
+  // round 6: the kitchen's sink and tap, and an entry foyer's shoe cabinet, mirror and doormat
+  | 'sink' | 'console' | 'mirror' | 'mat';
 
 export type DecorPlace = 'floor' | 'surface' | 'wall';
 
@@ -181,6 +184,28 @@ class Walk {
       }
     }
     return out;
+  }
+  /** Blocks a footprint grown by `grow` metres all round (a piece against a wall and the body clearance beside it) if that leaves the walkable floor in no more pieces than before. */
+  tryBlockBox(box: Box, grow: number): boolean {
+    const extra = new Uint8Array(this.nx * this.nz);
+    const c = this.grid.cellM;
+    const { a, b } = boxAxes(box);
+    const reach = Math.hypot(box.w, box.d) / 2 + grow;
+    const i0 = Math.floor((box.cx - reach - this.grid.originX) / c), i1 = Math.floor((box.cx + reach - this.grid.originX) / c);
+    const j0 = Math.floor((box.cz - reach - this.grid.originZ) / c), j1 = Math.floor((box.cz + reach - this.grid.originZ) / c);
+    for (let j = Math.max(0, j0); j <= Math.min(this.nz - 1, j1); j++) {
+      for (let i = Math.max(0, i0); i <= Math.min(this.nx - 1, i1); i++) {
+        const x = this.grid.originX + (i + 0.5) * c - box.cx, z = this.grid.originZ + (j + 0.5) * c - box.cz;
+        const lx = x * b.x + z * b.z, lz = x * a.x + z * a.z;
+        const dx = Math.max(0, Math.abs(lx) - box.w / 2), dz = Math.max(0, Math.abs(lz) - box.d / 2);
+        if (Math.hypot(dx, dz) <= grow) extra[j * this.nx + i] = 1;
+      }
+    }
+    const n = this.count(extra);
+    if (n > this.baseline) return false;
+    for (let k = 0; k < extra.length; k++) if (extra[k]) this.blocked[k] = 1;
+    this.baseline = n;
+    return true;
   }
   /** Blocks a disc (a piece plus a walkway around it) if that leaves the walkable floor in no more pieces than before. */
   tryBlock(cx: number, cz: number, r: number): boolean {
@@ -396,9 +421,9 @@ class Planner {
 
   /** wall edges of whole rooms, with the stretches of them that something occupies */
   private tubes: { roomId: string; edge: number; u: number; lengthM: number }[] = [];
-  private wallBlocks(f: EdgeFrame, bottomY: number): { u0: number; u1: number }[] {
+  private wallBlocks(f: EdgeFrame, bottomY: number, withTubes = bottomY > 1.0): { u0: number; u1: number }[] {
     const out: { u0: number; u1: number }[] = [];
-    if (bottomY > 1.0) for (const t of this.tubes) {
+    if (withTubes) for (const t of this.tubes) {
       if (t.roomId === f.roomId && t.edge === f.edge) out.push({ u0: t.u - (t.lengthM || TUBE_LEN_M) / 2 - 0.15, u1: t.u + (t.lengthM || TUBE_LEN_M) / 2 + 0.15 });
     }
     for (const o of this.input.layout.openings) {
@@ -610,47 +635,220 @@ class Planner {
     }
   }
 
-  /** the kitchen's backsplash, wall cabinets and the chimney hood over the hob, along the wall behind each plain counter */
+  /** the plain counters of a kitchen: a worktop at least 0.9 m long that is not a catalogue piece (a sink, a fridge, a hob of its own) */
+  private plainCounters(room: RoomTag): FurnitureItem[] {
+    return this.items.filter((o) => o.kind === 'counter' && !pieceRule(o.catalogId) && furnitureLook(o) === 'counter' && o.surfaceHeightM >= 0.8 && o.box.w >= 0.9 && this.itemRoom(o)?.id === room.id);
+  }
+
+  private readonly kSpots = new Map<string, { hob: { id: string; lx: number; hood: boolean } | null; sink: { id: string; lx: number } | null }>();
+  /**
+   * Where the hob and the sink stand along their worktops, in the worktop's own frame (lx from its middle). The hob sits 0.45 m in from the counter's
+   * left end unless a window is there: then it slides along until the hood over it clears the window (a counter under a window is common), and when no
+   * place clears it the hob stays at the end and there is no hood. The sink goes under the window when there is one, 0.88 m or more from the hob, and
+   * only when the drawing has no sink of its own in the room.
+   */
+  private kitchenSpots(room: RoomTag): { hob: { id: string; lx: number; hood: boolean } | null; sink: { id: string; lx: number } | null } {
+    const hit = this.kSpots.get(room.id);
+    if (hit) return hit;
+    const H = this.input.layout.wallHeightM;
+    let hob: { id: string; lx: number; hood: boolean } | null = null;
+    let sink: { id: string; lx: number } | null = null;
+    const hobId = this.hobHostOf(room);
+    const h0 = hobId ? this.items.find((i) => i.id === hobId) : undefined;
+    if (h0) {
+      const w = h0.box.w, wb = this.wallBehind(h0), yH = h0.surfaceHeightM + 0.68;
+      const lx0 = -w / 2 + 0.45;
+      const fits = (l: number): boolean => {
+        if (!wb || H - yH <= 0.5) return false;
+        const hu = projectU(wb.f, world(h0.box, l, 0));
+        return this.wallFree(wb.f, hu - 0.31, hu + 0.31, yH);
+      };
+      let lx = lx0, hood = false;
+      for (let k = 0; k <= 60 && !hood; k++) {
+        for (const sg of k ? [1, -1] : [1]) {
+          const l = lx0 + sg * k * 0.05;
+          if (l < -w / 2 + 0.35 || l > w / 2 - 0.35) continue;
+          if (fits(l)) { lx = l; hood = true; break; }
+        }
+      }
+      hob = { id: hobId, lx, hood };
+    }
+    if (!this.items.some((o) => /^sink/.test(o.catalogId ?? '') && this.itemRoom(o)?.id === room.id)) {
+      let best: { id: string; lx: number; score: number } | null = null;
+      for (const h of this.plainCounters(room)) {
+        const w = h.box.w, wb = this.wallBehind(h);
+        const wins = wb ? this.windowsOf(room).filter((x) => x.f === wb.f).map((x) => x.o.centreM) : [];
+        for (let lx = -w / 2 + 0.3; lx <= w / 2 - 0.3 + 1e-9; lx += 0.05) {
+          if (hob && hob.id === h.id && Math.abs(lx - hob.lx) < 0.88) continue;
+          const su = wb ? projectU(wb.f, world(h.box, lx, 0)) : 0;
+          const dWin = wins.length ? Math.min(...wins.map((c) => Math.abs(su - c))) : 9;
+          const dHob = hob && hob.id === h.id ? Math.abs(lx - hob.lx) : 3;
+          const score = dWin * 10 - Math.min(dHob, 2);
+          if (!best || score < best.score - 1e-9) best = { id: h.id, lx, score };
+        }
+      }
+      if (best) sink = { id: best.id, lx: best.lx };
+    }
+    const out = { hob, sink };
+    this.kSpots.set(room.id, out);
+    return out;
+  }
+
+  /** the wall that meets a wall's start (`a`) or end (`b`) end in the same room, or null (an open edge or a door's reveal is not a wall) */
+  private returnWall(f: EdgeFrame, atEnd: boolean): EdgeFrame | null {
+    const near = (p: Vec2, q: Vec2): boolean => Math.hypot(p.x - q.x, p.z - q.z) < 0.02;
+    return this.frames.find((x) => x !== f && x.roomId === f.roomId && x.kind === 'wall' && (atEnd ? near(x.a, f.b) : near(x.b, f.a))) ?? null;
+  }
+
+  /** the stretches of [lo, hi] along a wall that `blocks` leave free, each at least `min` long */
+  private freeStretches(lo: number, hi: number, blocks: { u0: number; u1: number }[], min: number): { a: number; b: number }[] {
+    const out: { a: number; b: number }[] = [];
+    let cursor = lo;
+    for (const k of [...blocks].sort((x, y) => x.u0 - y.u0)) {
+      if (k.u1 <= cursor) continue;
+      if (k.u0 > cursor) { const b = Math.min(k.u0, hi); if (b - cursor >= min) out.push({ a: cursor, b }); }
+      cursor = Math.max(cursor, k.u1);
+    }
+    if (hi - cursor >= min) out.push({ a: cursor, b: hi });
+    return out;
+  }
+
+  /**
+   * The kitchen's backsplash, wall cabinets and the chimney hood over the hob, along the wall behind each plain counter. A worktop under a window
+   * (the usual place for a sink) still gets its tiles and units: they run along the stretches the window leaves, and where a worktop ends against
+   * the next wall, that wall (the return) gets tiles and a unit over the worktop's depth.
+   */
   private kitchenWall(room: RoomTag): void {
     if (room.roomType !== 'kitchen') return;
     const H = this.input.layout.wallHeightM;
-    const hobId = this.hobHostOf(room);
-    for (const h of this.items) {
-      if (h.kind !== 'counter' || pieceRule(h.catalogId) || furnitureLook(h) !== 'counter' || h.surfaceHeightM < 0.8 || h.box.w < 0.9 || this.itemRoom(h)?.id !== room.id) continue;
+    const ks = this.kitchenSpots(room);
+    for (const h of this.plainCounters(room)) {
       const wb = this.wallBehind(h);
       if (!wb) continue;
       const { f, u } = wb;
       const S = h.surfaceHeightM;
       const w = h.box.w;
-      // the backsplash between the counter and the cabinets, the counter's whole length
-      {
-        // up to the corner: the backsplash runs as far as the wall does (wallFree keeps 12 cm off a corner, which a tile does not need)
-        const a = Math.max(0.01, u - w / 2), b = Math.min(f.length - 0.01, u + w / 2);
-        if (b - a > 0.4 && !this.wallBlocks(f, S + 0.9).some((k) => a < k.u1 && b > k.u0)) this.wallPiece('dado', room, f, (a + b) / 2, S, b - a, 0.012, 0.62);
-      }
-      // the hood over the hob (the hob sits 0.45 from the counter's left end, seen from the front)
-      let hoodU: number | null = null;
-      if (h.id === hobId && w >= 1.2) {
-        const hp = world(h.box, -w / 2 + 0.45, 0);
-        const hu = projectU(f, hp);
-        const yH = S + 0.68;
-        if (this.wallFree(f, hu - 0.31, hu + 0.31, yH) && H - yH > 0.5) { this.wallPiece('hood', room, f, hu, yH, 0.62, 0.46, H - yH); hoodU = hu; }
-      }
-      // wall cabinets: 0.6 m units along the counter, a hood's width left out
+      const lo = Math.max(0.01, u - w / 2), hi = Math.min(f.length - 0.01, u + w / 2);
       const bottom = S + 0.68;
       const height = Math.min(0.72, H - 0.2 - bottom);
-      if (height < 0.4) continue;
-      const n = Math.floor((w - 0.02) / 0.6);
-      const u0 = u - (n * 0.6) / 2;
-      for (let i = 0; i < n; i++) {
-        const cu = u0 + 0.3 + i * 0.6;
-        if (hoodU !== null && Math.abs(cu - hoodU) < 0.55) continue;
-        if (!this.wallFree(f, cu - 0.3, cu + 0.3, bottom)) continue;
-        this.wallPiece('wallcab', room, f, cu, bottom, 0.6, 0.32, height);
+      const cabs = height >= 0.4;
+      const reserved: { u0: number; u1: number }[] = [];
+      // the returns: a worktop that ends within 0.25 m of the next wall carries tiles and a unit up that wall, over the worktop's own depth
+      for (const atEnd of [false, true]) {
+        const gap = atEnd ? f.length - hi : lo;
+        const rf = gap <= 0.26 ? this.returnWall(f, atEnd) : null;
+        if (!rf) continue;
+        const D = Math.min(0.9, h.box.d + 0.04);
+        const rc = atEnd ? D / 2 : rf.length - D / 2;
+        const r0 = rc - D / 2, r1 = rc + D / 2;
+        // the unit stands 0.32 m out from the return wall along the worktop's wall: that stretch must be clear there too
+        const f0 = atEnd ? f.length - 0.34 : 0, f1 = atEnd ? f.length : 0.34;
+        const clearF = !this.wallBlocks(f, bottom).some((k) => f0 < k.u1 && f1 > k.u0);
+        if (!this.wallBlocks(rf, S + 0.9, false).some((k) => r0 < k.u1 && r1 > k.u0)) this.wallPiece('dado', room, rf, rc, S, D, 0.012, 0.62);
+        const hitsRf = (withTubes: boolean): boolean => this.wallBlocks(rf, bottom, withTubes).some((k) => r0 + 0.02 < k.u1 && r1 - 0.02 > k.u0);
+        // a tube light on that wall (2.05 m) keeps the unit's top under it
+        const rh = hitsRf(true) ? Math.min(height, 2.0 - bottom) : height;
+        if (cabs && clearF && !hitsRf(false) && rh >= 0.4) {
+          this.wallPiece('wallcab', room, rf, rc, bottom, Math.min(0.6, D - 0.04), 0.32, rh);
+          reserved.push({ u0: f0, u1: f1 });
+        }
+      }
+      // the backsplash along the worktop, between its end tiles: the stretches the window and the doors leave (a hand's breadth under a sill is not tiled)
+      for (const st of this.freeStretches(lo, hi, this.wallBlocks(f, S + 0.9, false), 0.4)) this.wallPiece('dado', room, f, (st.a + st.b) / 2, S, st.b - st.a, 0.012, 0.62);
+      // the hood over the hob (where the hob's spot left room for it)
+      let hoodSpan: { u0: number; u1: number } | null = null;
+      if (ks.hob && ks.hob.id === h.id && ks.hob.hood && w >= 1.2) {
+        const hu = projectU(f, world(h.box, ks.hob.lx, 0));
+        const yH = S + 0.68;
+        if (this.wallFree(f, hu - 0.31, hu + 0.31, yH) && H - yH > 0.5) { this.wallPiece('hood', room, f, hu, yH, 0.62, 0.46, H - yH); hoodSpan = { u0: hu - 0.34, u1: hu + 0.34 }; }
+      }
+      // wall units: 0.6 m doors along every stretch the window, hood and return units leave (a short stretch gets one narrower unit)
+      if (!cabs) continue;
+      const blocks = [...this.wallBlocks(f, bottom), ...reserved, ...(hoodSpan ? [hoodSpan] : [])];
+      for (const st of this.freeStretches(lo, hi, blocks, 0.3)) {
+        const n = Math.ceil((st.b - st.a) / 0.6 - 1e-9), cw = (st.b - st.a) / n;
+        for (let i = 0; i < n; i++) this.wallPiece('wallcab', room, f, st.a + cw * (i + 0.5), bottom, cw - 0.004, 0.32, height);
       }
     }
   }
 
+  // ---- an entry foyer
+
+  /** is this the room people come into from the front door, a vestibule rather than a living room (a foyer, an entrance, a lobby)? */
+  private foyerOf(): { room: RoomTag; door: DoorInfo } | null {
+    for (const d of this.doors) {
+      if (!d.entry) continue;
+      const room = this.whole.find((r) => r.id === d.opening.roomId);
+      if (!room || room.roomType === 'living' || room.roomType === 'bedroom' || room.roomType === 'kitchen' || room.roomType === 'bathroom' || room.roomType === 'balcony') continue;
+      if (polyArea(room.polygon) > 40) continue;
+      return { room, door: d };
+    }
+    return null;
+  }
+
+  /**
+   * A sensible dressing for an entry foyer: a shoe cabinet against a wall with a round mirror over it, a doormat just inside the front door and a
+   * picture on another wall. Each goes only where it keeps 0.30 m clear all round and leaves every door's swing and its 0.9 m run free (the same
+   * rules as the rest of the floor decor), so a narrow foyer gets less and the route is never narrowed.
+   */
+  private foyer(): void {
+    const fo = this.foyerOf();
+    if (!fo) return;
+    const { room, door } = fo;
+    const H = this.input.layout.wallHeightM;
+    const swing = resolveDoors(this.input.layout);
+    const clearOfLeaf = (box: Box): boolean => samples(box).every((p) => !inDoorSweep(swing, p, -0.3));
+    const used: { f: EdgeFrame; u0: number; u1: number }[] = [];
+    // the shoe cabinet: the wall stretches of the foyer, the longer first, a spot clear of openings and the door's swing nearest the entry door
+    const W = 0.9, D = 0.32;
+    let console: DecorPiece | null = null;
+    const walls = this.wallsOf(room).sort((a, b) => b.length - a.length);
+    outer: for (const f of walls) {
+      const into = { x: -f.out.x, z: -f.out.z };
+      const yaw = Math.atan2(into.x, into.z) / DEG;
+      const cands: number[] = [];
+      for (let u = W / 2 + 0.12; u <= f.length - W / 2 - 0.12 + 1e-9; u += 0.1) cands.push(u);
+      const doorU = projectU(f, door.at);
+      cands.sort((a, b) => Math.abs(a - doorU) - Math.abs(b - doorU));
+      for (const u of cands) {
+        if (!this.wallFree(f, u - W / 2 - 0.05, u + W / 2 + 0.05, 0.3)) continue;
+        const box: Box = { cx: f.a.x + f.dir.x * u + into.x * (D / 2 + 0.01), cz: f.a.z + f.dir.z * u + into.z * (D / 2 + 0.01), w: W, d: D, yawDeg: yaw };
+        if (!this.onFreeFloor(box, room) || !clearOfLeaf(box) || this.nearDoorway(box, 0.2) || this.clashesFloor(box)) continue;
+        if (!this.walk.tryBlockBox(box, DECOR_CLEAR_M)) continue;
+        this.floorBoxes.push(box);
+        console = this.push({ kind: 'console', roomId: room.id, place: 'floor', x: box.cx, y: 0, z: box.cz, yawDeg: yaw, w: W, d: D, height: 0.86 });
+        // a round mirror hangs over it
+        if (H > 2.4 && this.wallFree(f, u - 0.36, u + 0.36, 1.2)) {
+          this.wallPiece('mirror', room, f, u, 1.2, 0.7, 0.04, 0.7);
+          used.push({ f, u0: u - 0.45, u1: u + 0.45 });
+        }
+        break outer;
+      }
+    }
+    // the doormat just inside the entry door, as wide as the door allows; it is flat, so only the room's edge and the door's own leaf matter
+    {
+      const f = door.frame;
+      const into = { x: -f.out.x, z: -f.out.z };
+      const yaw = Math.atan2(into.x, into.z) / DEG;
+      const mw = Math.min(0.9, Math.max(0.5, door.opening.widthM - 0.1));
+      for (const off of [0.42, 0.6, 0.75]) {
+        const c = { x: door.at.x + into.x * off, z: door.at.z + into.z * off };
+        const box: Box = { cx: c.x, cz: c.z, w: mw, d: 0.5, yawDeg: yaw };
+        if (!this.onFreeFloor(box, room)) continue;
+        this.push({ kind: 'mat', roomId: room.id, place: 'floor', x: c.x, y: 0.006, z: c.z, yawDeg: yaw, w: mw, d: 0.5, height: 0.012 }, 'mat');
+        break;
+      }
+    }
+    // a picture on the longest other wall with room for it (no sofa wall here, so it hangs at the eye)
+    for (const f of walls) {
+      const w = 0.6, y = 1.3;
+      const spot = this.freeSpot(f, w + 0.3, y, used);
+      if (spot === null) continue;
+      this.wallPiece('frame', room, f, spot, y, w, 0.03, w * 0.75);
+      used.push({ f, u0: spot - w / 2 - 0.1, u1: spot + w / 2 + 0.1 });
+      break;
+    }
+  }
   private dress(it: FurnitureItem): void {
     // swings, appliances, fixtures and the rest of the second catalogue table have their own shapes: no throws or lamps are put on them
     if (pieceRule(it.catalogId)) return;
@@ -693,18 +891,37 @@ class Planner {
       if (room.roomType === 'kitchen' && look === 'counter' && S >= 0.8) {
         if (w < 0.6 || d < 0.5) return;
         const z = -d / 2 + 0.22;
-        if (this.hobHostOf(room) === it.id && w >= 1.2) {
+        const ks = this.kitchenSpots(room);
+        // what stands along the worktop, so the jars and the fruit go where nothing else does
+        const taken: [number, number][] = [];
+        if (ks.hob && ks.hob.id === it.id && w >= 1.2) {
           // a 60 x 52 cm four-burner hob (typical: not from the drawing) with the pressure cooker on a back burner
-          const hx = -w / 2 + 0.45;
+          const hx = ks.hob.lx;
           on('hob', hx, 0, S, 0.6, 0.52, 0.03);
           on('cooker', hx - 0.14, -0.12, S + 0.03, 0.24, 0.24, 0.26);
-          if (w >= 1.8) on('dabbas', w / 2 - 0.4, z, S, 0.2, 0.2, 0.3);
-          if (w >= 2.2) on('fruit', w / 2 - 0.85, z + 0.02, S, 0.28, 0.28, 0.14);
-          return;
+          taken.push([hx - 0.34, hx + 0.34]);
         }
-        on('cooker', -w / 2 + 0.28, z, S, 0.24, 0.24, 0.26);
-        if (w >= 1.0) on('dabbas', -w / 2 + 0.7, z, S, 0.2, 0.2, 0.3);
-        if (w >= 1.5) on('fruit', w / 2 - 0.35, z + 0.02, S, 0.28, 0.28, 0.14);
+        if (ks.sink && ks.sink.id === it.id) {
+          // a steel sink with a drainboard rim and a swan-neck tap (typical: not from the drawing), set into the worktop
+          on('sink', ks.sink.lx, 0, S, 0.56, 0.46, 0.24);
+          taken.push([ks.sink.lx - 0.34, ks.sink.lx + 0.34]);
+        }
+        const slot = (pref: number, half: number): number | null => {
+          for (let k = 0; k <= 40; k++) {
+            for (const sg of k ? [1, -1] : [1]) {
+              const l = pref + sg * k * 0.05;
+              if (l - half < -w / 2 + 0.06 || l + half > w / 2 - 0.06) continue;
+              if (taken.some(([a, b]) => l + half > a - 0.04 && l - half < b + 0.04)) continue;
+              taken.push([l - half, l + half]);
+              return l;
+            }
+          }
+          return null;
+        };
+        const hobHere = !!ks.hob && ks.hob.id === it.id && w >= 1.2;
+        if (!hobHere) { const l = slot(-w / 2 + 0.28, 0.12); if (l !== null) on('cooker', l, z, S, 0.24, 0.24, 0.26); }
+        if (w >= (hobHere ? 1.8 : 1.0)) { const l = slot(hobHere ? w / 2 - 0.4 : -w / 2 + 0.7, 0.1); if (l !== null) on('dabbas', l, z, S, 0.2, 0.2, 0.3); }
+        if (w >= (hobHere ? 2.2 : 1.5)) { const l = slot(hobHere ? w / 2 - 0.85 : w / 2 - 0.35, 0.14); if (l !== null) on('fruit', l, z + 0.02, S, 0.28, 0.28, 0.14); }
         return;
       }
       if (room.roomType === 'kitchen') return;
@@ -739,6 +956,7 @@ class Planner {
     }
     for (const r of this.whole.filter((x) => x.roomType === 'balcony')) { this.plantFor(r); break; }
     this.shoes();
+    this.foyer();
 
     for (const r of this.whole) {
       this.curtains(r);
