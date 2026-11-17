@@ -266,6 +266,7 @@ export function leafObstacle(d: Door, pos: number): { box: Box; heightM: number 
 // ---------------------------------------------------------------- what a leaf touches
 
 export type LeafHit = 'free' | 'obstacle' | 'void';
+const HINGE_ZONE_M = 0.06;
 
 /**
  * Does the leaf at `pos` overlap a non-free cell of `grid`? `grid` must not hold this door's own stamp. Samples the panel every
@@ -281,6 +282,9 @@ export function leafHitsGrid(grid: Grid, d: Door, pos: number): LeafHit {
   for (let r = 0; r <= len + 1e-9; r += 0.03) {
     const rr = Math.min(r, len);
     const x = seg.a.x + seg.dir.x * rr, z = seg.a.z + seg.dir.z * rr;
+    // the hinge end of a hinged leaf stands in the jamb: its face samples there lie inside the wall beside it however far it opens, so only the
+    // panel proper (from the first 6 cm on) counts, else a door hung beside a wall stops at about 58 degrees and shuts a 0.68 m doorway
+    if (d.kind !== 'sliding' && rr < HINGE_ZONE_M) continue;
     for (const k of [-half, 0, half]) {
       const v = cellValue(grid, x + nx * k, z + nz * k);
       if (v === GRID_FREE) continue;
