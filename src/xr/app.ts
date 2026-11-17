@@ -51,7 +51,8 @@ export interface AppOptions {
   makeDriver(viewer: Viewer, root: THREE.Group): Promise<XrDriver>;
 }
 
-const isGesture = ['pointerdown', 'keydown', 'click'] as const;
+// events a browser counts as a user activation (a pointerdown from a mouse is not one)
+const isGesture = ['click', 'keydown', 'pointerup', 'touchend'] as const;
 
 export class VrApp {
   readonly viewer: Viewer;
