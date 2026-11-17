@@ -203,7 +203,8 @@ describe('stepLocomotion', () => {
     expect(ch.position.z).toBeCloseTo(1 + 1.4 - (1.4 * 1.4) / (2 * 5.8), 1);
     expect(ch.position.x).toBeCloseTo(2, 6);
     const ch2 = fakeChar(2, 0.6);
-    const v2 = frames(ch2, fakeInput(0, 1, true), 0, empty, 90);
+    // 60 frames, not 90: by 1.5 s the far wall of this 5 m room is under a metre away and the walker is already slowing for it (SPEC 4.12)
+    const v2 = frames(ch2, fakeInput(0, 1, true), 0, empty, 60);
     expect(v2).toBeCloseTo(3.4, 6);
     expect(ch2.calls.at(-1)).toEqual([expect.closeTo(3.4, 6), true]);
   });
@@ -212,7 +213,7 @@ describe('stepLocomotion', () => {
     const ch = fakeChar(2, 1, 1.9);
     expect(frames(ch, fakeInput(0, 1), 0, empty, 60)).toBeCloseTo(1.4 * 1.9 / 1.75, 6);
     const ch2 = fakeChar(2, 1, 1.6);
-    expect(frames(ch2, fakeInput(0, 1, true), 0, empty, 90)).toBeCloseTo(3.4 * 1.6 / 1.75, 6);
+    expect(frames(ch2, fakeInput(0, 1, true), 0, empty, 60)).toBeCloseTo(3.4 * 1.6 / 1.75, 6);
   });
 
   it('is relative to the camera heading: yaw 90 looks +x, so forward moves +x and screen-right moves +z', () => {

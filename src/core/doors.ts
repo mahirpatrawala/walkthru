@@ -13,6 +13,7 @@ import type { Box, DoorLeaf, Grid, Layout, Opening, RoomTag, Vec2 } from '../typ
 import { cellValue } from './grid-codec';
 import { distanceToSegment, pointInBox, pointInPolygon, polygonArea } from './geometry';
 import { computeEdgeFrames, computeTunnels } from './layout-geom';
+import { stampFurniture } from './layout-raster';
 
 const DEG = Math.PI / 180;
 
@@ -375,3 +376,41 @@ export function doorBlockSentence(d: Door, box: Box): string | null {
 /** The standard-size note, worded like the seat-height card's (SPEC 16.2: say what the drawing did not give). */
 export const DOOR_STANDARD_NOTE = 'Thickness (35 mm) is a standard assumption. The drawing does not give it.';
 export const DOOR_SWING_ASSUMED_NOTE = 'Swing side assumed: the drawing does not show it';
+
+// ---------------------------------------------------------------- the frame posts, for the drawn body
+
+/**
+ * The frame posts of every door (SPEC 5 `frames`: 50 mm each side, inside the hole, through the wall) as thin boxes. The walk grid leaves
+ * them out on purpose (a 0.62 m toilet door keeps its full width for the walker's circle), but the body is drawn between them (SPEC 4.12).
+ */
+export function doorPosts(doors: Door[]): { box: Box; heightM: number }[] {
+  const out: { box: Box; heightM: number }[] = [];
+  for (const d of doors) {
+    const w = Math.min(DOOR_POST_M, (d.u1 - d.u0) / 2);
+    const depth = Math.max(d.depth, 0.02);
+    const yawDeg = (((Math.atan2(d.out.x, d.out.z) / DEG) % 360) + 360) % 360;
+    for (const u of [d.u0 + w / 2, d.u1 - w / 2]) {
+      out.push({
+        box: { cx: d.edgeA.x + d.dir.x * u + d.out.x * (depth / 2), cz: d.edgeA.z + d.dir.z * u + d.out.z * (depth / 2), w, d: depth, yawDeg },
+        heightM: d.headM,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Returns a function that gives a walk grid with this layout's frame posts stamped on it: the grid the drawn body is fitted to. The
+ * result is kept per source grid, so asking every frame costs nothing until the walk grid itself is replaced.
+ */
+export function bodyGridOf(layout: Layout): (walk: Grid) => Grid {
+  const posts = doorPosts(resolveDoors(layout)).map((o, i) => ({
+    id: `door-post:${i}`, source: 'virtual' as const, kind: 'wardrobe' as const, label: 'door frame', box: o.box, heightM: o.heightM, surfaceHeightM: o.heightM,
+  }));
+  let kept: { src: Grid; out: Grid } | null = null;
+  return (walk) => {
+    if (posts.length === 0) return walk;
+    if (!kept || kept.src !== walk) kept = { src: walk, out: stampFurniture(walk, posts) };
+    return kept.out;
+  };
+}

@@ -6,6 +6,7 @@ import { circleFree, nearestFree } from '../core/grid-query';
 import { carpetAreaM2, roomAt } from '../core/layout-geom';
 import { validateLayout, validateProperty } from '../core/layout-validate';
 import { rasterizeLayout } from '../core/layout-raster';
+import { bodyGridOf } from '../core/doors';
 import { buildShell } from '../engine/shell';
 import { createViewer } from '../engine/viewer';
 import type { Viewer, SplatHandle } from '../engine/viewer';
@@ -382,6 +383,9 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     return seats.surfaceAt({ x, z });
   };
   character.onRebind = () => look?.refresh(store.grid());
+  // SPEC 4.12: the drawn body keeps clear of what the walker's circle only touches: the live walk grid, and the door frame posts on top of it
+  const bodyGrid = bodyGridOf(layout);
+  character.setBodyGuard(() => bodyGrid(people ? people.people.walkGrid(store.grid()) : store.grid()));
   if (look) {
     // a tier change rebuilds the furniture for it and swaps the body between its full and low files
     let seenTier = startTier;
@@ -599,6 +603,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     ctx, hud, store, seats, modes, storage, sceneId, shareCode: host ? null : params.get(SHARE_PARAM),
     tier: () => look?.tier ?? 'medium',
     surfaceProbe: (x, z) => character.surfaceProbe?.(x, z) ?? null,
+    bodyGrid,
     onBodies: () => baked?.rescan(),
     otherBlocking: () => picker.isOpen() || rooms.isOpen() || paintBusy,
     walker: {

@@ -9,6 +9,10 @@ import { loadPersonGLTF } from '../look/people';
 import type { BodyKind, PersonTier } from '../look/people';
 import { DEFAULT_TONE, clampTone, stylePerson } from '../look/people-materials';
 import type { PersonLook } from '../look/people-materials';
+import { BodyGuard } from './body-guard';
+import { clearance } from '../core/grid-query';
+import { BODY_FIT_MARGIN_M } from '../core/body-fit';
+import type { Grid } from '../types';
 
 export type CharacterState = 'idle' | 'walk' | 'jog' | 'sitting' | 'lying' | 'standing-at' | 'transition';
 
@@ -48,6 +52,8 @@ const OPTIONAL_CLIPS = {
 type ClipKey = keyof typeof CLIPS | keyof typeof OPTIONAL_CLIPS | 'lie' | 'look' | 'reach';
 type GaitKey = 'walk' | 'walkSlow' | 'jog';
 
+/** How far ahead of the root the reaching hand gets, as a share of the body's height (measured: 0.80 m on the 1.75 m man). */
+const REACH_FWD_RATIO = 0.46;
 const FADE_S = 0.2;
 const LIE_IN_S = 0.6;
 const LIE_OUT_S = 0.5;
@@ -105,6 +111,8 @@ export class Character {
   private jointMat: THREE.MeshStandardMaterial[] = [];
   private person: PersonLook | null = null;
   private readonly shadow: THREE.Mesh | null;
+  /** SPEC 4.12: holds the drawn body clear of walls, door leaves and furniture (the collision spot is untouched). */
+  private readonly guard: BodyGuard;
   /** Standing idle height of the unscaled GLB (SPEC 4.6: pose Idle_Loop at t = 0, skinned bounding box). */
   private h0 = 1;
   private poseK: PoseK = { seat: SIT_SEAT_RATIO, hipBack: SIT_HIP_BACK_RATIO, back: LIE_BACK_RATIO, floor: -Infinity };
@@ -204,6 +212,8 @@ export class Character {
 
     this.shadow = Character.makeShadow();
     if (this.shadow) this.object.add(this.shadow);
+    this.guard = new BodyGuard(this.object, this.tilt, this.shadow);
+    this.guard.rebuild(this.skinned);
 
     this.setHeight(REF_HEIGHT_M, '#B71C6C');
   }
@@ -410,8 +420,9 @@ export class Character {
     const stand = this.eyeHeightM;
     const yaw = this._yawDeg * DEG;
     const fwd = this.eyeFwdRatio * this._heightM;
-    const hx = this.object.position.x + Math.sin(yaw) * fwd;
-    const hz = this.object.position.z + Math.cos(yaw) * fwd;
+    // the eyes go with the drawn body when it is held off a wall (SPEC 4.12)
+    const hx = this.object.position.x + Math.sin(yaw) * fwd + this.guard.shift.x;
+    const hz = this.object.position.z + Math.cos(yaw) * fwd + this.guard.shift.z;
     const bob = (live.y - this.object.position.y) - stand;
     this.eyeBob += (bob - this.eyeBob) * (dt > 0 ? 1 - Math.exp(-dt * 14) : 1);
     const wy = this.object.position.y + stand + this.eyeBob * 0.35;
@@ -492,6 +503,13 @@ export class Character {
   /** Lifts the right arm forward and back, as when opening a wardrobe. Does nothing when not standing, or on the mannequin. */
   reach(): void {
     if (!this.hasIdles || (this._state !== 'idle' && this._state !== 'standing-at')) return;
+    // the arm goes 0.46 of the body's height forward: not when the door, the wall or the shutter is nearer than that (SPEC 4.12)
+    const grid = this._state === 'idle' ? this.guard.grid?.() : null;
+    if (grid) {
+      const yaw = this._yawDeg * DEG;
+      const need = REACH_FWD_RATIO * this._heightM + BODY_FIT_MARGIN_M;
+      if (clearance(grid, this.position, { x: Math.sin(yaw), z: Math.cos(yaw) }, need + 0.05) < need) return;
+    }
     this.play('reach', 0.25, true);
     this.stillFor = 0;
   }
@@ -543,6 +561,7 @@ export class Character {
     }
     this.bind(gltf);
     this.tilt.add(this.model);
+    this.guard.rebuild(this.skinned);
     this.applyHeight(this._heightM);
     this.setHeight(this._heightM, this.tint);
     this.restorePlayback();
@@ -1011,6 +1030,23 @@ export class Character {
     }
     this.mixer.update(dt);
     this.applyKneeUp();
+    const onFoot = this.posed === null && this.tween === null && (this._state === 'idle' || this._state === 'walk' || this._state === 'jog');
+    this.guard.update(dt, onFoot, this._state === 'idle', this._heightM);
+  }
+
+  /**
+   * SPEC 4.12: the grid the drawn body is kept clear of (walls, furniture, door leaves), asked for every frame; null turns it off.
+   * Without one the body is drawn on its collision spot in whatever pose the clip gives, as before.
+   */
+  setBodyGuard(grid: (() => Grid | null) | null): void {
+    this.guard.grid = grid;
+    if (!grid) this.guard.reset();
+  }
+
+  /** SPEC 4.12, for checks: where the drawn body is from its collision spot, how far its arms and stance are drawn in, and what room it still lacks. */
+  get bodyFit(): { shiftX: number; shiftZ: number; armL: number; armR: number; stance: number; residualM: number; points: number } {
+    const g = this.guard;
+    return { shiftX: g.shift.x, shiftZ: g.shift.z, armL: g.arm[0], armR: g.arm[1], stance: g.stance, residualM: g.residual, points: g.pointCount };
   }
 
   /** Frees the clones this character made. The shared GLB geometry goes with it. */
