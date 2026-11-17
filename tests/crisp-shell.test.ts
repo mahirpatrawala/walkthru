@@ -156,12 +156,14 @@ describe('the door leaf (SPEC 16.18)', () => {
     const l = flat();
     const d = resolveDoors(l)[0];
     const m = buildDoorModel(d, '#4A3528');
-    const names = m.group.children.map((c) => c.name);
+    // the model is a root (what stays: a sliding door's fixed pane) holding the leaf that moves
+    const leaf = m.group.children.find((c) => c.name === `leaf:${d.id}`)!;
+    const names = leaf.children.map((c) => c.name);
     expect(names.filter((n) => n === 'door-panel').length).toBe(1);
     expect(names.filter((n) => n === 'door-handle').length).toBe(2); // one lever set a face, merged
     expect(names.filter((n) => n === 'door-hinges').length).toBe(1);
-    const panel = m.group.children.find((c) => c.name === 'door-panel') as THREE.Mesh;
-    const gap = m.group.children.find((c) => c.name === 'door-gap') as THREE.Mesh;
+    const panel = leaf.children.find((c) => c.name === 'door-panel') as THREE.Mesh;
+    const gap = leaf.children.find((c) => c.name === 'door-gap') as THREE.Mesh;
     gap.geometry.computeBoundingBox();
     const bb = gap.geometry.boundingBox!;
     expect(bb.max.x - bb.min.x).toBeCloseTo(d.panelWidthM, 6);

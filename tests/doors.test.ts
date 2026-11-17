@@ -211,6 +211,8 @@ describe('the drawing\'s swing arc gives hinge and swing', () => {
       let checked = 0;
       for (const d of doors) {
         expect(d.assumed).toBe(false);
+        // a drawn swing that would stand open across a narrow passage is hung on the other side (`flipped`, src/core/doors.ts): the one deliberate departure from the arc
+        if (d.flipped) continue;
         const swingLabel = norm(layout.rooms.find((x) => x.id === d.swingRoomId)?.label);
         const other = norm(layout.rooms.find((x) => x.id === d.rooms.find((id) => id && id !== d.swingRoomId))?.label);
         const t = b.truth.openings.find((o) => o.type === 'door' && o.rooms.length === 2 && o.rooms.some((id) => lab.get(id) === swingLabel) && o.rooms.some((id) => lab.get(id) === other));
@@ -647,8 +649,8 @@ describe('a sliding door', () => {
     expect(r.pos).toBeGreaterThan(0.3);
     // the doorway is clear: through its middle
     const d = h.doors.debug.door('door-1')!;
-    const mid = { x: 1.0, z: 4.8 };
-    // the panel parks on the room side of the wall beside the opening; a walker coming through the doorway is not stopped by it
+    // the open half of the doorway (the hinge side: the sliding pane has gone over the fixed one on the far side); a walker coming through it is not stopped
+    const mid = { x: d.hingeAt.x + d.closedDir.x * 0.4, z: 4.8 };
     const out = moveCircle(h.store.grid(), mid, { x: 0, z: -2 }, R);
     expect(out.z).toBeLessThan(3.2);
     // and the panel itself cannot be walked through from the room side

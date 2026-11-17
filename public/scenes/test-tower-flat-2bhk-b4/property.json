@@ -586,8 +586,8 @@
       "kind": "sofa",
       "label": "Ottoman",
       "box": {
-        "cx": 1.2,
-        "cz": 4.33,
+        "cx": 2.04,
+        "cz": 3.61,
         "w": 0.68,
         "d": 0.71,
         "yawDeg": 90
@@ -603,7 +603,7 @@
       "label": "Centre table",
       "box": {
         "cx": 1.31,
-        "cz": 3.22,
+        "cz": 3.12,
         "w": 1,
         "d": 0.55,
         "yawDeg": 90
@@ -696,8 +696,8 @@
       "catalogId": "washer-front",
       "label": "Washing machine",
       "box": {
-        "cx": 3.57,
-        "cz": 5.565,
+        "cx": 4.72,
+        "cz": 5.57,
         "w": 0.6,
         "d": 0.7,
         "yawDeg": 90
@@ -920,7 +920,7 @@
       "catalogId": "armchair",
       "label": "Armchair",
       "box": {
-        "cx": 0.75,
+        "cx": 0.8,
         "cz": 5.4,
         "w": 0.8,
         "d": 0.85,
@@ -936,7 +936,7 @@
       "catalogId": "armchair",
       "label": "Armchair",
       "box": {
-        "cx": 1.63,
+        "cx": 2.53,
         "cz": 5.4,
         "w": 0.8,
         "d": 0.85,

@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { GLASS, GLASS_FLAT, SHEET, TONE_SWITCH, chooseTone, contrast, greyOf, luminance, sampleRect, sheetContrast, toneContrast, toneFromHour, toneRange } from '../src/buyer/glass-tone';
+import { BACKOFF_MAX_MS, GLASS, GLASS_FLAT, SHEET, TONE_SWITCH, chooseTone, contrast, greyOf, luminance, sampleRect, sheetContrast, toneContrast, toneFromHour, toneRange } from '../src/buyer/glass-tone';
 import type { GlassTone } from '../src/buyer/glass-tone';
 
 const tokens = fs.readFileSync(path.join(__dirname, '..', 'src/brand/tokens.css'), 'utf8');
@@ -96,5 +96,29 @@ describe('the tokens are the variants the arithmetic checked', () => {
     expect(tokens).toContain(`--wt-glass-dim: rgba(255, 255, 255, ${GLASS.dark.dimAlpha})`);
     expect(tokens).toContain(`--wt-glass-dim: rgba(${GLASS.light.text.join(', ')}, ${GLASS.light.dimAlpha})`);
     expect(tokens).toContain(`--wt-glass-text: rgb(${GLASS.light.text.join(', ')})`);
+  });
+});
+
+describe('a variant is never a stale one (the landscape phone, 17 Nov 2026)', () => {
+  it('the default dark variant fails AA over a bright wall, so the first read must not wait: its backoff is capped and an empty first read is retried', () => {
+    // white on dark glass over a white ceiling or wall (luminance 0.9): under 4.5, the washed-out identity pill of the capture, read from the default variant
+    expect(toneContrast(GLASS.dark, 0.9).text).toBeLessThan(4.5);
+    // light glass over a dark door is as bad the other way
+    expect(toneContrast(GLASS.light, 0.02).text).toBeLessThan(4.5);
+    // so a panel's variant is never older than a few seconds on a device where the read is slow (it was 25 reads' worth: half a minute on software GL)
+    expect(BACKOFF_MAX_MS).toBeLessThanOrEqual(3000);
+    const src = fs.readFileSync(path.join(__dirname, '..', 'src/buyer/glass-tone.ts'), 'utf8');
+    expect(src).toContain('if (whole === null && samples === 0) lastAt = 0');
+    expect(fs.readFileSync(path.join(__dirname, '..', 'src/buyer/main.ts'), 'utf8')).toContain('glassKick?.()');
+  });
+  it('inside the range each variant is chosen for, every control meets 4.5 (text, dim text, selected capsule)', () => {
+    for (const t of ['light', 'dark'] as GlassTone[]) {
+      const [lo, hi] = toneRange(t);
+      for (let l = lo; l <= hi + 1e-9; l += 0.05) {
+        const c = toneContrast(GLASS[t], Math.min(hi, l));
+        expect(c.text, `${t} ${l.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+        expect(c.dim, `${t} ${l.toFixed(2)} dim`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 });

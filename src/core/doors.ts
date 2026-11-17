@@ -56,6 +56,8 @@ export interface Door {
   swing: DoorLeaf['swing'];
   /** true when the drawing gave no swing arc and the side was chosen by rule */
   assumed: boolean;
+  /** true when the swing the drawing (or the rule) gave would stand open across a narrow passage and was turned to the other side */
+  flipped: boolean;
   /** how the leaf's thickness and height were set: 'drawing' only when the opening's head is not the standard 2.1 m */
   heightFrom: 'drawing' | 'standard';
   widthM: number;
@@ -76,6 +78,8 @@ export interface Door {
   closedDir: Vec2;
   /** unit direction the leaf swings towards (hinged) or the face it slides along (sliding) */
   swingNormal: Vec2;
+  /** a sliding door of 1.4 m or more is two panes, one fixed and one that slides over it (`panes` 2); a narrower one is a single leaf that parks along the wall beside it (1); a hinged door has 1 */
+  panes: 1 | 2;
   /** the furthest position: a quarter turn (radians), or how far a sliding leaf can travel (metres) */
   maxPos: number;
 }
@@ -110,12 +114,13 @@ interface Site {
 }
 
 /** The leaf a door gets when the drawing shows no swing: into the more private room, hinged by the nearer wall. Always assumed. */
-export function ruleLeaf(site: Site): DoorLeaf {
+export function ruleLeaf(site: Site, force?: DoorLeaf['swing']): DoorLeaf {
   const { room, other } = site;
   let swing: DoorLeaf['swing'] = 'in';
   if (other) {
     swing = rankOf(other) < rankOf(room) ? 'out' : 'in';
   }
+  if (force) swing = force;
   const swingRoom = swing === 'in' ? room : other;
   const sn = swing === 'in' ? { x: -site.out.x, z: -site.out.z } : { x: site.out.x, z: site.out.z };
   const mid = (site.u0 + site.u1) / 2;
@@ -175,8 +180,24 @@ export function resolveDoors(layout: Layout): Door[] {
 }
 
 function buildDoor(layout: Layout, o: Opening, site: Site): Door | null {
-  const leaf = o.leaf ?? ruleLeaf(site);
+  let leaf = o.leaf ?? ruleLeaf(site);
   const { room, other, u0, u1, depth } = site;
+  // a hinged leaf that would stand open across a narrow passage (a 1.06 m corridor, 0.9 m of leaf) shuts the passage: it is hung on the other side, in the room, when the
+  // room is a room and has the depth for it. The drawing's arc is kept wherever the open leaf leaves the passage a clear way.
+  let flipped = false;
+  if (leaf.kind === 'hinged' && other) {
+    const swingRoom0 = leaf.swing === 'in' ? room : other, farRoom = leaf.swing === 'in' ? other : room;
+    const sn0 = leaf.swing === 'in' ? { x: -site.out.x, z: -site.out.z } : { x: site.out.x, z: site.out.z };
+    const mid = (u0 + u1) / 2;
+    const from: Vec2 = { x: site.a.x + site.dir.x * mid + site.out.x * (depth / 2) + sn0.x * 0.05, z: site.a.z + site.dir.z * mid + site.out.z * (depth / 2) + sn0.z * 0.05 };
+    const panel0 = Math.max(0.2, (u1 - u0) - 2 * DOOR_POST_M - LEAF_CLEARANCE_M);
+    const across = runInside(swingRoom0.polygon, from, sn0, 3);
+    const back = runInside(farRoom.polygon, { x: from.x - sn0.x * 0.1, z: from.z - sn0.z * 0.1 }, { x: -sn0.x, z: -sn0.z }, 3);
+    if (rankOf(swingRoom0) === 6 && !farRoom.partial && farRoom.roomType !== 'bathroom' && across < panel0 + 0.75 && back >= panel0 + 0.75 && back > across + 0.4) {
+      leaf = { ...ruleLeaf(site, leaf.swing === 'in' ? 'out' : 'in'), assumed: leaf.assumed };
+      flipped = true;
+    }
+  }
   const width = u1 - u0;
   if (!(width > 0.3)) return null;
   const edgeLen = site.length;
@@ -191,26 +212,32 @@ function buildDoor(layout: Layout, o: Opening, site: Site): Door | null {
   const common = {
     id: o.id, roomId: room.id, edge: o.edge, roomLabel: labelRoom.label || labelRoom.id, swingRoomId: swingRoom?.id ?? null,
     rooms: [room.id, other?.id ?? null] as [string, string | null],
-    kind: leaf.kind, hinge: leaf.hinge, swing: leaf.swing, assumed: !!leaf.assumed,
+    kind: leaf.kind, hinge: leaf.hinge, swing: leaf.swing, assumed: !!leaf.assumed, flipped,
     heightFrom: Math.abs(headM - DOOR_STANDARD_HEIGHT_M) > 1e-6 ? ('drawing' as const) : ('standard' as const),
     widthM: width, topM: headM - FRAME_HEAD_M - 0.002, headM,
     edgeA: site.a, dir: site.dir, out: site.out, u0, u1, depth, swingNormal: sn,
   };
   if (leaf.kind === 'sliding') {
-    // a sliding leaf parks in front of the wall beside the opening, on its swing side; it can travel as far as that wall runs
-    const room2 = (leaf.hinge === 'start' ? u0 : edgeLen - u1) - 0.02;
-    // a little narrower than the opening, so it neither touches the jambs nor reads as overlapping them
-    const panel = width - 0.06;
     const closedDir = { x: site.dir.x * (leaf.hinge === 'start' ? 1 : -1), z: site.dir.z * (leaf.hinge === 'start' ? 1 : -1) };
+    const full = width - 0.06;
+    if (width >= TWO_PANE_MIN_M) {
+      // two panes in two tracks: one stays (the fixed pane, at the far jamb), the other slides over it. Shut, the two meet and fill the opening; open, the sliding pane stands
+      // in front of the fixed one and half the opening (about 1 m of a 2 m door) is clear, whatever wall there is beside the door. (A single leaf the width of a 2 m opening that
+      // parked along the wall beside it opened it by the 0.5 m of wall there was, and a chair or two on the deck shut it.)
+      const panel = full / 2 + SLIDE_OVERLAP_M / 2;
+      return { ...common, panes: 2 as const, panelWidthM: panel, hingeAt: planeAt(leaf.hinge === 'start' ? u0 + 0.03 : u1 - 0.03), closedDir, maxPos: depth / 2 + SLIDE_PROUD_M + (full - panel) };
+    }
+    // a narrow one is a single leaf that parks in front of the wall beside the opening, on its swing side; it can travel as far as that wall runs
+    const room2 = (leaf.hinge === 'start' ? u0 : edgeLen - u1) - 0.02;
     return {
-      ...common, panelWidthM: panel, hingeAt: planeAt(leaf.hinge === 'start' ? u0 + 0.03 : u1 - 0.03), closedDir,
-      maxPos: room2 > 0.3 ? depth / 2 + SLIDE_PROUD_M + Math.min(panel, room2) : 0,
+      ...common, panes: 1 as const, panelWidthM: full, hingeAt: planeAt(leaf.hinge === 'start' ? u0 + 0.03 : u1 - 0.03), closedDir,
+      maxPos: room2 > 0.3 ? depth / 2 + SLIDE_PROUD_M + Math.min(full, room2) : 0,
     };
   }
   const panel = Math.max(0.2, width - 2 * DOOR_POST_M - LEAF_CLEARANCE_M);
   const hingeU = leaf.hinge === 'start' ? u0 + DOOR_POST_M : u1 - DOOR_POST_M;
   const closedDir = { x: site.dir.x * (leaf.hinge === 'start' ? 1 : -1), z: site.dir.z * (leaf.hinge === 'start' ? 1 : -1) };
-  return { ...common, panelWidthM: panel, hingeAt: planeAt(hingeU), closedDir, maxPos: DOOR_OPEN_RAD };
+  return { ...common, panes: 1 as const, panelWidthM: panel, hingeAt: planeAt(hingeU), closedDir, maxPos: DOOR_OPEN_RAD };
 }
 
 // ---------------------------------------------------------------- the leaf at a position
@@ -219,17 +246,28 @@ export interface LeafSegment { a: Vec2; b: Vec2; /** unit direction a -> b */ di
 
 /** A sliding leaf first steps out in front of the wall face by this much more than half the wall (so it clears the wall's cells), then slides. */
 const SLIDE_PROUD_M = 0.04;
+/** The sliding pane and the fixed one overlap by this much when the door is shut. */
+const SLIDE_OVERLAP_M = 0.04;
+/** From this width a sliding door is two panes. */
+const TWO_PANE_MIN_M = 1.4;
 /** How far a sliding leaf steps out before it slides: it is the first part of its travel. */
 export const slideLiftM = (d: Door): number => d.depth / 2 + SLIDE_PROUD_M;
+
+/** The fixed pane of a sliding door: the far half of the opening, on the wall's middle line. */
+export function fixedPaneSegment(d: Door): LeafSegment {
+  const full = d.widthM - 0.06;
+  const a = { x: d.hingeAt.x + d.closedDir.x * (full - d.panelWidthM), z: d.hingeAt.z + d.closedDir.z * (full - d.panelWidthM) };
+  return { a, b: { x: a.x + d.closedDir.x * d.panelWidthM, z: a.z + d.closedDir.z * d.panelWidthM }, dir: d.closedDir };
+}
 
 /** The leaf's centre line at `pos` (angle for a hinged leaf; for a sliding one metres of travel, first stepping out, then sliding). */
 export function leafSegment(d: Door, pos: number): LeafSegment {
   if (d.kind === 'sliding') {
     const lift = Math.min(Math.max(0, pos), slideLiftM(d));
     const slide = Math.max(0, pos - slideLiftM(d));
-    // slides along the wall away from the doorway, towards the hinge side
-    const away = { x: -d.closedDir.x, z: -d.closedDir.z };
-    const shift = { x: away.x * slide + d.swingNormal.x * lift, z: away.z * slide + d.swingNormal.z * lift };
+    // two panes: slides along the opening towards the far jamb, over the fixed pane; one pane: away along the wall beside the doorway
+    const sg = d.panes === 2 ? 1 : -1;
+    const shift = { x: d.closedDir.x * slide * sg + d.swingNormal.x * lift, z: d.closedDir.z * slide * sg + d.swingNormal.z * lift };
     const a = { x: d.hingeAt.x + shift.x, z: d.hingeAt.z + shift.z };
     const dir = d.closedDir;
     return { a, b: { x: a.x + dir.x * d.panelWidthM, z: a.z + dir.z * d.panelWidthM }, dir };
@@ -250,6 +288,9 @@ export function leafObstacle(d: Door, pos: number): { box: Box; heightM: number 
     const a = { x: d.edgeA.x + d.dir.x * (d.u0 - 0.03) + d.out.x * (d.depth / 2), z: d.edgeA.z + d.dir.z * (d.u0 - 0.03) + d.out.z * (d.depth / 2) };
     const b = { x: d.edgeA.x + d.dir.x * (d.u1 + 0.03) + d.out.x * (d.depth / 2), z: d.edgeA.z + d.dir.z * (d.u1 + 0.03) + d.out.z * (d.depth / 2) };
     seg = { a, b, dir: d.dir };
+  } else if (d.kind === 'sliding' && d.panes === 2 && pos > 1e-6) {
+    // open: what stands in the doorway is the fixed pane (the sliding one is in front of it)
+    seg = fixedPaneSegment(d);
   } else if (d.kind === 'sliding' && pos <= 1e-6) {
     const a = { x: d.edgeA.x + d.dir.x * (d.u0 - 0.03) + d.out.x * (d.depth / 2), z: d.edgeA.z + d.dir.z * (d.u0 - 0.03) + d.out.z * (d.depth / 2) };
     const b = { x: d.edgeA.x + d.dir.x * (d.u1 + 0.03) + d.out.x * (d.depth / 2), z: d.edgeA.z + d.dir.z * (d.u1 + 0.03) + d.out.z * (d.depth / 2) };

@@ -8,7 +8,7 @@
 // scaled off the drawing's picture (about 5 cm); a door's width, a window's width, sills, heads, wall thicknesses and the ceiling are NOT printed
 // and are scaled or typical: the scene says so (`proposal-extras.json` `assumptions`, the ceiling is marked not confirmed). Furniture is the
 // drawing's "artist's conception": it is drawn where the plan draws it, at the catalogue's size, and is sample furniture a viewer can move or delete.
-import { clearRoutes } from '../../src/building/clear-routes';
+import { clearRoutes, sliderCost } from '../../src/building/clear-routes';
 import { catalogItem } from '../../src/core/catalog';
 import { DEFAULT_FINISHES } from '../../src/types';
 import { boxCorners, pointInPolygon, polygonArea } from '../../src/core/geometry';
@@ -475,8 +475,18 @@ export function buildFlatScene(spec: AuthoredFlat, updatedAt: string): { propert
     wallHeightM: spec.wallHeightM, wallThicknessM: 0.12, railingHeightM: 1.1, rooms: built.rooms, openings: built.openings,
     finishes: { ...DEFAULT_FINISHES, tile: DEFAULT_FINISHES.tile ? { ...DEFAULT_FINISHES.tile } : null }, scaleSource: 'typed-sizes',
   };
+  // each sliding door has two panes, one fixed and one that slides over it, and the open half is on the side the sliding pane parks away from: it is hung on whichever side
+  // leaves the open half clear of the printed pieces (fewest left out or moved, nothing shut), tried door by door
+  const printed = buildPieces(spec);
+  const score = (l: Layout): number => sliderCost(l, printed);
+  for (const o of layout.openings) {
+    if (o.leaf?.kind !== 'sliding') continue;
+    const was = o.leaf.hinge;
+    const best = (['start', 'end'] as const).map((h) => { o.leaf = { ...(o.leaf as NonNullable<typeof o.leaf>), hinge: h }; return { h, s: score(layout) }; }).sort((a, b) => a.s - b.s || (a.h === was ? -1 : 1))[0];
+    o.leaf = { ...(o.leaf as NonNullable<typeof o.leaf>), hinge: best.h };
+  }
   const property: PropertyFile = {
-    version: 1, id: spec.sceneId, title: spec.title, layout, furniture: clearRoutes(layout, buildPieces(spec), spec.spawn).furniture, spawn: { ...spec.spawn }, unlisted: true, spaceKind: 'home', updatedAt,
+    version: 1, id: spec.sceneId, title: spec.title, layout, furniture: clearRoutes(layout, printed, spec.spawn).furniture, spawn: { ...spec.spawn }, unlisted: true, spaceKind: 'home', updatedAt,
   };
   return { property, report, built };
 }

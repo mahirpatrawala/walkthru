@@ -22,18 +22,24 @@ const homes = fs.readdirSync(path.join(ROOT, 'public/scenes')).filter((d) => fs.
   .filter((id) => { const s = readScene(id); return !!s && (!s.spaceKind || s.spaceKind === 'home'); });
 
 /**
- * Rooms a body of the walker's own radius cannot get into once the doors it has to open stand open as far as they go (a flood fill at 10 cm, every
- * leaf stamped at the furthest it opens, from the entrance, to the room's standing spot): the drawing's doors swing into a 1.06 m corridor or leave a
- * pocket behind them, and a sliding leaf stays in front of what is left. Nothing else may be listed (the test below fails for a listed room that IS
- * reachable, so a fix removes its entry). A tap on such a room falls back to the fade and the Tour names it ("Left out: ...").
+ * Rooms a body of the walker's own radius cannot get into once the doors it has to open stand open as far as they go (a flood fill at 10 cm, every leaf stamped at the
+ * furthest it opens, from the entrance, to the room's standing spot). With the two-pane sliding doors, the swing turned off a narrow passage and the loose pieces slid out
+ * of the open half of a slider, no committed home has one, and the table is empty. A room listed here must be unreachable by the flood fill (the test fails for one that is
+ * reachable) and carries its reason; a tap on it falls back to the fade and the Tour names it.
  */
-export const LEAF_SHUT: Record<string, Record<string, string>> = {
-  'test-sample-3': { 'm-bed-room': 'door-5 stands open into the room and cuts the part with the standing spot off from the doorway' },
-  'test-sample-4': { bedroom: 'door-4 stands open across a 1.06 m corridor (0.9 m of leaf) and shuts the way east', utility: 'door-4 stands open across a 1.06 m corridor and shuts the way east' },
-  'test-tower-flat-2bhk-b2': { deck: 'the sliding leaf at its furthest and the deck armchairs leave no 0.44 m opening' },
-  'test-tower-flat-2bhk-b4': { utility: 'the sliding leaf at its furthest leaves no 0.44 m opening to the utility' },
-  'test-tower-flat-3bhk-b': { balcony: 'the sliding leaf at its furthest and the balcony armchairs leave no 0.44 m opening' },
-};
+export const LEAF_SHUT: Record<string, Record<string, string>> = {};
+
+describe('a sliding door', () => {
+  it('opens about half its width: one fixed pane, one that slides over it, 1 m clear of a 2 m door and 0.7 m of a 1.5 m one', () => {
+    const s = readScene('test-tower-flat-2bhk-b4')!;
+    for (const d of resolveDoors(s.layout).filter((x) => x.kind === 'sliding')) {
+      const open = d.widthM - 0.06 - d.panelWidthM;
+      expect(open, d.id).toBeGreaterThan(d.widthM / 2 - 0.1);
+      expect(open, d.id).toBeLessThan(d.widthM / 2);
+      expect(d.maxPos).toBeGreaterThan(open);
+    }
+  });
+});
 
 describe('the doorway gate', () => {
   it('is the doorway as a line square through the wall, jamb to jamb', () => {
@@ -83,8 +89,13 @@ describe('every room of every home is reachable by tap-to-go', () => {
       const doors = resolveDoors(prop.layout);
       const openAll = planGridOf(statics, doors.map((door) => ({ door, pos: freePos(statics, door, 0).pos })));
       const entry = entryOf(prop.layout, openAll, prop.spawn)!;
+      // one home, built once; every walk starts from the first room with every door shut again (a coarse 12 frames a second: the walk is the same, the test is cheap)
+      const sim = makeSim(prop, whole[0].id);
+      const start = { x: sim.ch.position.x, z: sim.ch.position.z }, yaw = sim.ch.yawDeg;
       for (const r of whole) {
-        const sim = makeSim(prop, whole[0].id);
+        for (const k of sim.doors.pos.keys()) sim.doors.pos.set(k, 0);
+        sim.doors.opened.length = 0;
+        sim.ch.position = { ...start }; sim.ch.yawDeg = yaw; sim.cam.yawDeg = yaw;
         const spot = sim.driver.spotIn(r.id);
         if (spot && shut[r.id]) {
           expect(reachableFast(openAll, entry, [spot], CHARACTER_RADIUS_M + 0.005)[0], `${r.id} is listed shut (${shut[r.id]}) but a body can reach it`).toBe(false);
@@ -95,7 +106,7 @@ describe('every room of every home is reachable by tap-to-go', () => {
         await sim.run(() => !sim.driver.busy, 90, (live) => {
           // a leaf that is swinging is not counted: the real door system refuses to touch the body, the stand-in here does not
           if (sim.ch.moving > 0 && (sim.doors as unknown as { target: Map<string, number> }).target.size === 0 && !circleFree(live, sim.ch.position.x, sim.ch.position.z, CHARACTER_RADIUS_M - 0.03)) bad++;
-        });
+        }, 12);
         const res = await p;
         if (res !== 'walked' && res !== 'no-spot') failed.push(`${r.id}: ${res} (${(sim.driver as unknown as { lastFail: string | null }).lastFail})`);
         else if (res === 'walked') {
@@ -105,7 +116,7 @@ describe('every room of every home is reachable by tap-to-go', () => {
         }
       }
       expect(failed).toEqual([]);
-    }, 120000);
+    }, 60000);
   }
 });
 

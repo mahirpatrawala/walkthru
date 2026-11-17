@@ -388,7 +388,7 @@
         "sillM": 0,
         "headM": 2.1,
         "leaf": {
-          "hinge": "end",
+          "hinge": "start",
           "swing": "in",
           "kind": "sliding"
         }
@@ -517,8 +517,8 @@
       "kind": "sofa",
       "label": "Ottoman",
       "box": {
-        "cx": 1.32,
-        "cz": 5.52,
+        "cx": 1.12,
+        "cz": 6.02,
         "w": 0.71,
         "d": 0.7,
         "yawDeg": 90
@@ -534,7 +534,7 @@
       "label": "Centre table",
       "box": {
         "cx": 1.23,
-        "cz": 4.58,
+        "cz": 4.98,
         "w": 1,
         "d": 0.55,
         "yawDeg": 90
@@ -857,7 +857,7 @@
       "catalogId": "armchair",
       "label": "Armchair",
       "box": {
-        "cx": 0.62,
+        "cx": 1.02,
         "cz": 7.2,
         "w": 0.8,
         "d": 0.85,
@@ -873,7 +873,7 @@
       "catalogId": "armchair",
       "label": "Armchair",
       "box": {
-        "cx": 2.31,
+        "cx": 2.61,
         "cz": 7.2,
         "w": 0.8,
         "d": 0.85,

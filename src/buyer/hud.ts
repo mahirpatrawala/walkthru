@@ -322,6 +322,21 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const syncEnd = (): void => { bar.dataset.end = bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 2 ? '1' : '0'; };
   bar.addEventListener('scroll', syncEnd, { passive: true });
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(syncEnd).observe(bar);
+  // ...and the row is cut half way through a button (a half icon peeking in at the edge says "more this way"; a fade alone read as a soft edge)
+  const peek = (): void => {
+    let phone = false;
+    try { phone = window.matchMedia('(max-width: 760px), (pointer: coarse) and (max-height: 520px) and (min-width: 761px)').matches; } catch { /* no matchMedia */ }
+    bar.style.maxWidth = '';
+    if (!phone || !bar.parentElement || bar.scrollWidth <= bar.clientWidth + 1) return;
+    const first = bar.querySelector<HTMLElement>('.wt-btn, .wt-tool');
+    const cell = (first?.offsetWidth ?? 44) + 2;
+    const room = bar.clientWidth - 8;
+    const n = Math.max(1, Math.floor(room / cell - 0.35));
+    bar.style.maxWidth = `${Math.round(8 + (n + 0.5) * cell)}px`;
+  };
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => { peek(); }).observe(topbar);
+  window.addEventListener('resize', peek);
+  if (typeof MutationObserver !== 'undefined') new MutationObserver(() => { peek(); syncEnd(); }).observe(bar, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
   const buttons = {} as Record<HudButtonId, HTMLButtonElement>;
   (['rooms', 'measure', 'furnish', 'person', 'scan'] as HudButtonId[]).forEach((bid) => {
     const b = el('button', 'wt-btn wt-tool', undefined, bar);
@@ -551,7 +566,11 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const slot = el('div', 'wt-slot', undefined, root);
   slot.dataset.ui = '1';
   const ro = typeof ResizeObserver !== 'undefined'
-    ? new ResizeObserver(() => { root.style.setProperty('--wt-slot-h', `${slot.offsetHeight}px`); })
+    ? new ResizeObserver(() => {
+      // the height of what is IN the slot (a bare slot is 12 px of padding and margin, which pushed the phone's tools 12 px up off the room strip)
+      const filled = [...slot.children].some((c) => c.getBoundingClientRect().height > 0);
+      root.style.setProperty('--wt-slot-h', `${filled ? slot.offsetHeight : 0}px`);
+    })
     : null;
   ro?.observe(slot);
 

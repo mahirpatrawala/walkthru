@@ -109,7 +109,7 @@ const cm = (m: number): number => Math.round(m * 100);
 export function doorCard(d: Door, state: DoorState, stopReason: StopReason, swingRoomLabel: string | null): CheckCard {
   const lines: string[] = [];
   lines.push(`${cm(d.widthM)} cm wide opening.`);
-  if (d.kind === 'sliding') lines.push(`A sliding leaf, parked along the wall on the ${d.swing === 'in' ? d.roomLabel : 'other'} side.`);
+  if (d.kind === 'sliding') lines.push(d.panes === 2 ? 'Two panes: one fixed, one that slides over it, so about half the opening is clear.' : `A sliding leaf, parked along the wall on the ${d.swing === 'in' ? d.roomLabel : 'other'} side.`);
   else lines.push(swingRoomLabel ? `Swings into ${swingRoomLabel}.` : 'Swings outward, onto space the drawing does not show.');
   if (d.assumed) lines.push(`${DOOR_SWING_ASSUMED_NOTE}.`);
   else lines.push(d.kind === 'sliding' ? 'Sliding door from the drawing.' : 'Swing side and hinge from the drawing’s door arc.');
