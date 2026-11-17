@@ -38,7 +38,8 @@ import { setModelsEnabled } from '../look/models/library';
 import { modelsIdle } from '../look/models/load';
 import { disposeTree } from '../building/dispose';
 import { fetchFixtures } from '../buyer/fixtures-load';
-import { fetchOutdoor } from '../outdoor/load';
+import { fetchOutdoor, ownedEdges } from '../outdoor/load';
+import type { OutdoorMount } from '../outdoor/mount';
 import { createFurnitureStore } from '../buyer/store';
 import { buildSeats } from '../buyer/seats';
 import { mountDoors } from '../buyer/doors';
@@ -88,8 +89,13 @@ export interface Home {
   toggleDoor(id: string): Promise<DoorReading | null>;
   /** a door's centre in the home, metres (for the line-of-sight check and the marker) */
   doorCentre(id: string): { x: number; y: number; z: number } | null;
+  /** the ceiling an arc may not pass: the wall height indoors, none in the open air */
+  ceilingM: number;
+  /** an open-air space (the pool area, a deck, a court): no ceiling, water the viewer cannot enter */
+  outdoor: boolean;
   /** debug and checks */
   doors: Doors;
+  outdoorMount: OutdoorMount | null;
   stats(): { geometries: number; textures: number; programs: number; calls: number; triangles: number };
   ready: Promise<void>;
   dispose(): void;
@@ -124,6 +130,8 @@ export interface LoadHomeOptions {
   room?: string | null;
   /** the style pack a building's space opens in */
   pack?: string | null;
+  /** the space belongs to a building that is shown unfurnished (plain fittings, no added decor), as the normal walk does */
+  bare?: boolean;
   /** the door leaves say what stopped them here (a toast in the headset) */
   toast?: (text: string) => void;
   progress?: (fraction: number, text: string) => void;
@@ -159,10 +167,12 @@ export async function loadHome(sceneId: string, base: Viewer, o: LoadHomeOptions
     const property = await fetchProperty(sceneId);
     { const k = spaceKindOf(property); if (k !== 'home' || property.spaceKind) property.spaceKind = k; }
     const outdoorFile = await outdoorP;
-    if (outdoorFile || property.spaceKind === 'pool' || property.spaceKind === 'garden') throw new HomeError('unsupported', 'Open-air spaces are not in VR yet. Open this one on the normal site.');
+    // an open-air space says it is one by having an outdoor.json; a pool or garden without one cannot be drawn
+    if (!outdoorFile && (property.spaceKind === 'pool' || property.spaceKind === 'garden')) throw new HomeError('unsupported', 'This open-air space has no outdoor file, so it cannot be shown. Open it on the normal site.');
     const extras = await extrasP;
     let unverified: ReturnType<typeof unverifiedRoomsFromExtras> = {};
     if (extras) { setCeilingTrust(ceilingTrustFromExtras(extras)); unverified = unverifiedRoomsFromExtras(extras); } else setCeilingTrust({ known: true });
+    if (outdoorFile) setCeilingTrust({ known: true }); // no ceiling in the open air
     const layout = property.layout;
     if (layout.rooms.length === 0) throw new HomeError('broken', 'This home has no rooms yet.');
     for (const w of validateLayout(layout).warnings) console.warn(`[walkthru-vr] layout warning: ${w}`);
@@ -185,13 +195,16 @@ export async function loadHome(sceneId: string, base: Viewer, o: LoadHomeOptions
     progress(0.1, 'Lighting');
     let look: Look | null = null;
     try {
-      look = await createLook(lookViewer, layout, await lookFileP, { tier: o.quality, post: false, storage: null, hasSplat: false });
+      const lookFile0 = await lookFileP;
+      // an open-air space says which way north is, so the sun has a real path across it (a look.json of its own wins)
+      const lookFile = outdoorFile?.northDeg !== undefined && lookFile0?.northDeg === undefined ? { ...(lookFile0 ?? { version: 1 as const }), northDeg: ((outdoorFile.northDeg % 360) + 360) % 360 } : lookFile0;
+      look = await createLook(lookViewer, layout, lookFile, { tier: o.quality, post: false, storage: null, hasSplat: false, outdoor: !!outdoorFile });
     } catch (err) { console.warn('[walkthru-vr] the look could not start, using the plain scene:', err); }
     if (look) { const l0 = look; cleanup.push(() => l0.dispose()); }
     if (disposed) throw new HomeError('broken', 'cancelled');
 
     progress(0.2, 'Building the rooms');
-    const shell = buildShell(layout, look ? { materials: look.materials() } : {});
+    const shell = buildShell(layout, { ...(look ? { materials: look.materials() } : {}), ...(outdoorFile ? { outdoor: { skipEdges: ownedEdges(outdoorFile) } } : {}) });
     cleanup.push(() => disposeTree(shell));
     scene.add(shell);
     const furnitureRoot = new THREE.Group();
@@ -224,26 +237,38 @@ export async function loadHome(sceneId: string, base: Viewer, o: LoadHomeOptions
     const seats = buildSeats(designs, store.all());
     store.setTemporary('seats', seats.obstacles());
     if (look) { look.attach({ shell, furnitureRoot }); look.refresh(store.grid()); }
+    // the open-air parts (SPEC 19): ground, boundaries, plants and the water, on the low tier: moving normals and the depth tint, the sky mirrored by a formula,
+    // no reflection pass and no refraction pass. A basin is an obstacle a little over the water, so the viewer's arc stops at the coping.
+    let outdoorMount: OutdoorMount | null = null;
+    if (outdoorFile) {
+      const om = await import('../outdoor/mount');
+      outdoorMount = await om.mountOutdoor({ scene, layout, file: outdoorFile, look, tier });
+      const om0 = outdoorMount;
+      cleanup.push(() => om0.dispose());
+      cleanup.push(base.onFrame((dt) => om0.update(dt)));
+      if (outdoorFile.pools.length) store.setTemporary('pool', (await import('../outdoor/pool')).waterObstacles(outdoorFile.pools));
+      look?.refresh(store.grid());
+    }
 
     // the style's room finishes, the kit of fittings, the designer's decor
     let kit: KitHandle | null = null;
     const design = mountDesign({
       scene, layout, shell, look, store, tier, registry,
       beforeRestyle: () => { kit?.dispose(); kit = null; },
-      afterRestyle: () => { kit = mountKit({ viewer: lookViewer, layout, shell, look, store, registry, outdoor: false, ...(property.spaceKind && property.spaceKind !== 'home' ? { shared: property.spaceKind } : {}) }); },
+      afterRestyle: () => { kit = mountKit({ viewer: lookViewer, layout, shell, look, store, registry, outdoor: !!outdoorFile, ...(o.bare || outdoorFile ? { plain: true } : property.spaceKind && property.spaceKind !== 'home' ? { shared: property.spaceKind } : {}) }); },
     });
     cleanup.push(() => { design.dispose(); kit?.dispose(); kit = null; });
     const livedIn: LivedIn = createLivedIn({
       parent: furnitureRoot, layout, store, storage: null, tier, registry,
       omit: () => (getStyle().pack.classic ? [] : ['curtain', 'rug', 'cushion']),
       models: () => (getStyle().pack.classic ? null : getStyle().pack.models ?? null),
-      defaultOn: ['sample', 'brochure'].includes(sceneOrigin({ id: property.id, subtitle: property.subtitle })),
+      defaultOn: !o.bare && !outdoorFile && ['sample', 'brochure'].includes(sceneOrigin({ id: property.id, subtitle: property.subtitle })),
     });
     cleanup.push(() => livedIn.dispose());
 
     // the baked lighting of this home, where it has one (a low-tier set is half the pictures)
     let baked: BakedHandle | null = null;
-    if (look) {
+    if (look && !outdoorFile) {
       baked = mountBaked({ look, scene, renderer: base.renderer, sceneId, layout });
       cleanup.push(() => { baked?.dispose(); baked = null; });
     }
@@ -316,7 +341,7 @@ export async function loadHome(sceneId: string, base: Viewer, o: LoadHomeOptions
         const m = (d.u0 + d.u1) / 2;
         return { x: d.edgeA.x + d.dir.x * m + d.out.x * (d.depth / 2), y: Math.min(1.2, d.headM / 2), z: d.edgeA.z + d.dir.z * m + d.out.z * (d.depth / 2) };
       },
-      doors,
+      doors, outdoorMount, ceilingM: outdoorFile ? 60 : layout.wallHeightM, outdoor: !!outdoorFile,
       stats() { const i = base.renderer.info; return { geometries: i.memory.geometries, textures: i.memory.textures, programs: i.programs?.length ?? 0, calls: i.render.calls, triangles: i.render.triangles }; },
       ready: settle,
       dispose: teardown,

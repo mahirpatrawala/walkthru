@@ -387,37 +387,99 @@ describe('frame statistics', () => {
   });
 });
 
-describe('the list of homes', () => {
+describe('the list of homes and shared spaces', () => {
   const index = { version: 1 as const, scenes: [
     { id: 'test-sample-1', title: 'Sample 1 BHK', subtitle: 'Made up', origin: 'sample' as const, layout: {} as never, unverified: {} },
     { id: 'test-tower-flat-3bhk-a', title: 'Flat 3 BHK A', origin: 'brochure' as const, layout: {} as never, unverified: {} },
   ] };
   const building = {
     id: 'sample-tower', name: 'Sample Tower', flatTypes: { a: { name: '3 BHK · 930 sq ft', sceneId: 'test-tower-flat-3bhk-a' } },
-    levels: [{ id: 'l2', label: 'Level 2', spaces: [
-      { id: 'f2-201', kind: 'home', name: 'Flat 201 · 3 BHK', sceneId: 'test-tower-flat-3bhk-a', type: 'a' },
-      { id: 'f2-202', kind: 'home', name: 'Flat 202 · 3 BHK', sceneId: 'test-tower-flat-3bhk-a-m', type: 'a', comingNext: true },
-      { id: 'gym', kind: 'gym', name: 'Gym', sceneId: 'test-tower-club-gym' },
-      { id: 'f2-203', kind: 'home', name: 'Flat 203 · 3 BHK', sceneId: 'test-tower-flat-3bhk-b', type: 'a' },
-    ] }],
+    levels: [
+      { id: 'g', label: 'Ground', spaces: [{ id: 'lobby', kind: 'lobby', name: 'Lobby', sceneId: 'test-tower-lobby' }] },
+      { id: 'l1', label: 'Level 1', spaces: [
+        { id: 'gym', kind: 'gym', name: 'Gymnasium', sceneId: 'test-tower-club-gym' },
+        { id: 'pool', kind: 'pool', name: 'Pool area', sceneId: 'test-tower-club-pool', outdoor: true },
+        { id: 'later', kind: 'hall', name: 'Roof lounge', sceneId: 'test-tower-later', comingNext: true },
+      ] },
+      { id: 'l2', label: 'Level 2', spaces: [
+        { id: 'f2-corridor', kind: 'corridor', name: 'Corridor', sceneId: 'test-tower-corridor' },
+        { id: 'f2-201', kind: 'home', name: 'Flat 201 · 3 BHK', sceneId: 'test-tower-flat-3bhk-a', type: 'a' },
+        { id: 'f2-203', kind: 'home', name: 'Flat 203 · 3 BHK', sceneId: 'test-tower-flat-3bhk-b', type: 'a' },
+      ] },
+      { id: 'l3', label: 'Level 3', spaces: [{ id: 'f3-corridor', kind: 'corridor', name: 'Corridor', sceneId: 'test-tower-corridor' }] },
+    ],
   } as never;
-  it('lists the gallery, then the flats the gallery lacks, one entry per scene, never an amenity or a place coming next', () => {
+  const bare = { ...(building as object), id: 'sample-tower-empty', name: 'Sample Tower, empty', bare: true } as never;
+  it('lists the gallery, then the flats the gallery lacks, then the shared spaces, one entry per scene', () => {
     const list = buildHomeList(index, [building]);
-    expect(list.map((e) => e.label)).toEqual(['Sample 1 BHK', 'Flat 3 BHK A', 'Flat 203']);
+    expect(list.map((e) => `${e.group}:${e.label}`)).toEqual(['homes:Sample 1 BHK', 'homes:Flat 3 BHK A', 'homes:Flat 203', 'shared:Lobby', 'shared:Gymnasium', 'shared:Pool area', 'shared:Corridor']);
     expect(list[1].target).toEqual({ kind: 'scene', scene: 'test-tower-flat-3bhk-a' });
     expect(list[2].target).toEqual({ kind: 'space', building: 'sample-tower', space: 'f2-203' });
-    expect(list[2].sub).toMatch(/Sample Tower/);
     expect(new Set(list.map((e) => e.key)).size).toBe(list.length);
     expect(new Set(list.map((e) => e.sceneId)).size).toBe(list.length);
+  });
+  it('never offers a place coming next, and names a shared space as the building does, with its level', () => {
+    const list = buildHomeList(index, [building]);
+    expect(list.some((e) => e.label === 'Roof lounge')).toBe(false);
+    const gym = list.find((e) => e.label === 'Gymnasium')!;
+    expect(gym.sub).toBe('Level 1');
+    expect(gym.target).toEqual({ kind: 'space', building: 'sample-tower', space: 'gym' });
+  });
+  it('an unfurnished building says so on its spaces and carries the flag the loader needs', () => {
+    const list = buildHomeList(null, [bare]);
+    const gym = list.find((e) => e.label === 'Gymnasium')!;
+    expect(gym.sub).toBe('Level 1 · unfurnished');
+    expect(gym.bare).toBe(true);
+    expect(list.find((e) => e.label === 'Flat 201')?.bare).toBe(true);
   });
   it('finds the scene behind a target', () => {
     const m = new Map([['sample-tower', building]]) as never;
     expect(sceneOfTarget({ kind: 'scene', scene: 'test-sample-1' }, m)).toBe('test-sample-1');
     expect(sceneOfTarget({ kind: 'space', building: 'sample-tower', space: 'f2-203' }, m)).toBe('test-tower-flat-3bhk-b');
+    expect(sceneOfTarget({ kind: 'space', building: 'sample-tower', space: 'gym' }, m)).toBe('test-tower-club-gym');
     expect(sceneOfTarget({ kind: 'space', building: 'sample-tower', space: 'nope' }, m)).toBeNull();
     expect(keyOfTarget({ kind: 'space', building: 'a', space: 'b' })).toBe('a/b');
   });
   it('an empty gallery is an empty list, not a failure', () => {
     expect(buildHomeList(null, [])).toEqual([]);
+  });
+});
+
+describe('the panel with homes and shared spaces', () => {
+  const rooms = [{ id: 'r0', label: 'Gym floor', area: '80 m²', goable: true }];
+  const homes = [
+    ...Array.from({ length: 8 }, (_, i) => ({ key: `h${i}`, label: `Home ${i}`, sub: '', group: 'homes' as const })),
+    ...Array.from({ length: 9 }, (_, i) => ({ key: `s${i}`, label: `Space ${i}`, sub: 'Level 1', group: 'shared' as const })),
+  ];
+  const base: PanelModel = { title: 'T', subtitle: '', rooms, homes, currentHomeKey: 's2', currentRoomId: 'r0', roomPage: 0, homePage: 0, homeTab: 'shared', roomsHeading: 'This space' };
+  it('shows the tab asked for, pages inside it, and keeps the room list heading', () => {
+    const l = layoutPanel(base);
+    const rows = l.buttons.filter((b) => b.action.type === 'home');
+    expect(rows.every((b) => b.action.type === 'home' && b.action.key.startsWith('s'))).toBe(true);
+    expect(rows).toHaveLength(ROWS_PER_PAGE);
+    expect(l.headings[0].text).toBe('This space');
+    const tabs = l.buttons.filter((b) => b.action.type === 'tab');
+    expect(tabs.map((b) => b.label)).toEqual(['Other homes', 'Shared spaces']);
+    expect(tabs.find((b) => b.action.type === 'tab' && b.action.tab === 'shared')?.active).toBe(true);
+    const p2 = layoutPanel({ ...base, homePage: 1 });
+    expect(p2.buttons.filter((b) => b.action.type === 'home')).toHaveLength(2);
+    const homesTab = layoutPanel({ ...base, homeTab: 'homes', homePage: 1 });
+    expect(homesTab.buttons.filter((b) => b.action.type === 'home')).toHaveLength(1);
+  });
+  it('without any shared space there are no tabs, only the heading', () => {
+    const l = layoutPanel({ ...base, homes: homes.filter((h) => h.group === 'homes'), homeTab: 'homes' });
+    expect(l.buttons.some((b) => b.action.type === 'tab')).toBe(false);
+    expect(l.headings.map((h) => h.text)).toContain('Other homes');
+  });
+  it('no two buttons overlap with tabs showing, and the tabs are big enough to point at', () => {
+    const bs = layoutPanel(base).buttons;
+    for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) {
+      const a = bs[i].rect, b = bs[j].rect;
+      expect(a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h, `${i} ${j}`).toBe(false);
+    }
+    for (const t of bs.filter((b) => b.action.type === 'tab')) expect(t.rect.h).toBeGreaterThanOrEqual(48);
+  });
+  it('a room list of one is still a button (a space that is one room has one place to go)', () => {
+    expect(layoutPanel(base).buttons.filter((b) => b.action.type === 'room')).toHaveLength(1);
   });
 });
