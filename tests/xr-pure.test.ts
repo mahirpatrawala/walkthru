@@ -401,14 +401,14 @@ describe('the list of homes', () => {
       { id: 'f2-203', kind: 'home', name: 'Flat 203 · 3 BHK', sceneId: 'test-tower-flat-3bhk-b', type: 'a' },
     ] }],
   } as never;
-  it('lists the gallery, then the flats of each building once, and never an amenity or a place coming next', () => {
+  it('lists the gallery, then the flats the gallery lacks, one entry per scene, never an amenity or a place coming next', () => {
     const list = buildHomeList(index, [building]);
     expect(list.map((e) => e.label)).toEqual(['Sample 1 BHK', 'Flat 3 BHK A', 'Flat 203']);
-    // the gallery's own entry is kept, and now says which flat of which building it is
-    const g = list[1];
-    expect(g.target).toEqual({ kind: 'space', building: 'sample-tower', space: 'f2-201' });
-    expect(g.sub).toMatch(/Sample Tower/);
+    expect(list[1].target).toEqual({ kind: 'scene', scene: 'test-tower-flat-3bhk-a' });
+    expect(list[2].target).toEqual({ kind: 'space', building: 'sample-tower', space: 'f2-203' });
+    expect(list[2].sub).toMatch(/Sample Tower/);
     expect(new Set(list.map((e) => e.key)).size).toBe(list.length);
+    expect(new Set(list.map((e) => e.sceneId)).size).toBe(list.length);
   });
   it('finds the scene behind a target', () => {
     const m = new Map([['sample-tower', building]]) as never;

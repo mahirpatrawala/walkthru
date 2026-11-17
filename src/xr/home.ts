@@ -261,7 +261,7 @@ export async function loadHome(sceneId: string, base: Viewer, o: LoadHomeOptions
     if (!circleFree(g0, at.x, at.z, CHARACTER_RADIUS_M)) at = nearestFree(g0, at.x, at.z, CHARACTER_RADIUS_M, 4) ?? at;
     const spawn: Spot = { x: at.x, z: at.z, yawDeg: sp.yawDeg };
     walker.position = { x: spawn.x, z: spawn.z };
-    const doors = mountDoors({ ctx, store, layout });
+    const doors = mountDoors({ ctx, store, layout, parent: scene });
     cleanup.push(() => { doors.dispose(); delete (window as unknown as { __walkthruDoors?: unknown }).__walkthruDoors; });
     const styleDoors = (): void => { doors.setPanelFinish(doorPanelFinish()); doors.setHandleColour(trimColours().handle); };
     styleDoors();
@@ -278,9 +278,10 @@ export async function loadHome(sceneId: string, base: Viewer, o: LoadHomeOptions
     });
     const spots = new Map<string, Spot | null>();
 
+    // each door's leaf group (and its fixed pane) carries `userData.doorId`; the outermost such object of each door is what a pointer is tested against
     const roots: THREE.Object3D[] = [];
-    scene.traverse((ob) => { if (ob.userData.doorId && ob.name.startsWith('door:')) roots.push(ob); });
-    const doorRootsNow = (): THREE.Object3D[] => (roots.length ? roots : (scene.traverse((ob) => { if (ob.userData.doorId && ob.name.startsWith('door:')) roots.push(ob); }), roots));
+    scene.traverse((ob) => { if (ob.userData.doorId && !(ob.parent?.userData.doorId)) roots.push(ob); });
+    const doorRootsNow = (): THREE.Object3D[] => roots;
 
     const settle = withTimeout(Promise.all([look?.ready ?? Promise.resolve(), modelsIdle(), baked ? baked.ready : Promise.resolve()]), o.settleMs ?? 12000);
     progress(0.8, 'Hanging the pictures');

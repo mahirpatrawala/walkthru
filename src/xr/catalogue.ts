@@ -35,25 +35,24 @@ function flatWords(b: BuildingFile, s: { name: string; type?: string }): { title
 }
 
 /**
- * The list: the gallery's homes in the order the start page shows them, then every flat of every building. A flat whose scene is already on the gallery
- * is listed once, as the gallery's entry (the building's name goes in its second line). Open-air spaces are not offered: the VR page does not draw water yet.
+ * The list: the gallery's homes in the order the start page shows them, then the flats of every building whose home the gallery does not already list.
+ * A home is one scene: two flats on different levels that are built from the same scene are one entry (a link with `?building=&space=` still opens either).
+ * Amenity spaces, flats marked "coming next" and open-air spaces are not offered: the VR page does not draw water yet.
  */
 export function buildHomeList(index: SceneIndex | null, buildings: readonly BuildingFile[]): HomeEntry[] {
   const out: HomeEntry[] = [];
-  const bySceneId = new Map<string, HomeEntry>();
+  const seen = new Set<string>();
   for (const s of index?.scenes ?? []) {
-    const e: HomeEntry = { key: s.id, sceneId: s.id, target: { kind: 'scene', scene: s.id }, label: s.title, sub: s.subtitle ? s.subtitle.split(/\.\s/)[0].slice(0, 60) : ORIGIN_SUB[s.origin] ?? '' };
-    out.push(e); bySceneId.set(s.id, e);
+    out.push({ key: s.id, sceneId: s.id, target: { kind: 'scene', scene: s.id }, label: s.title, sub: s.subtitle ? s.subtitle.split(/\.\s/)[0].slice(0, 60) : ORIGIN_SUB[s.origin] ?? '' });
+    seen.add(s.id);
   }
   for (const b of buildings) {
     for (const level of b.levels) {
       for (const s of level.spaces) {
-        if (s.kind !== 'home' || s.comingNext) continue;
+        if (s.kind !== 'home' || s.comingNext || seen.has(s.sceneId)) continue;
+        seen.add(s.sceneId);
         const w = flatWords(b, s);
-        const sub = [w.detail, b.name].filter(Boolean).join(' · ');
-        const known = bySceneId.get(s.sceneId);
-        if (known) { known.sub = sub; known.target = { kind: 'space', building: b.id, space: s.id }; known.key = `${b.id}/${s.id}`; continue; }
-        out.push({ key: `${b.id}/${s.id}`, sceneId: s.sceneId, target: { kind: 'space', building: b.id, space: s.id }, label: w.title, sub });
+        out.push({ key: `${b.id}/${s.id}`, sceneId: s.sceneId, target: { kind: 'space', building: b.id, space: s.id }, label: w.title, sub: [w.detail, b.name].filter(Boolean).join(' · ') });
       }
     }
   }
