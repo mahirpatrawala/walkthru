@@ -7,7 +7,7 @@ import { classify } from './pbr';
 import type { PbrClass } from './pbr';
 import { Mirrors } from './mirrors';
 import { RoomProbes } from './probes';
-import { demote, isPromoted, makeProbeUniforms, promote, promotedClass } from './promote';
+import { demote, isPromoted, makeProbeUniforms, promote, promotedClass, strengthenWeave } from './promote';
 import type { ProbeUniforms } from './promote';
 
 export interface PremiumStats { shown: string; mirrors: number; mirrorsDrawn: number; promoted: number; byClass: Partial<Record<PbrClass, number>>; probes: number; captures: number; active: string }
@@ -100,7 +100,7 @@ export class PremiumLayer {
     this.glaze();
     // a material that no mesh uses any more (a piece was rebuilt and its old parts disposed) is forgotten
     this.mats.clear();
-    for (const m of seen) this.mats.add(m);
+    for (const m of seen) { this.mats.add(m); strengthenWeave(m); }
   }
 
   /** the shell's panes (one mesh named `panes`, a thin pale sheet) become real glass: clear, a faint reflection of the room, more at a low angle */

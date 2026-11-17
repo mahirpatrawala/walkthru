@@ -38,8 +38,14 @@ export function buildAppliance(env: GenEnv, size: GenSize, p: ApplianceParams, r
     for (const s of [-1, 1]) box('fridge-spacers', BLACK, s * (w / 2 - 0.06) - 0.025, s * (w / 2 - 0.06) + 0.025, H - 0.1, H - 0.04, -d / 2, bz0 + 0.002, 0.001);
     box('fridge-spacers', BLACK, -w / 2 + 0.06, w / 2 - 0.06, 0.2, 0.22, -d / 2, bz0 + 0.002, 0.001);
     const zd = bz1 - 0.03, hz = bz1 - 0.012;
-    const door = (x0: number, x1: number, y0: number, y1: number): void => parts.put('fridge-doors', bodyM, roundedBoxBetween(x0, x1, y0, y1, zb - 0.002, zd, 0.018, q.seg));
+    const door = (x0: number, x1: number, y0: number, y1: number): void => {
+      parts.put('fridge-doors', bodyM, roundedBoxBetween(x0, x1, y0, y1, zb - 0.002, zd, 0.018, q.seg));
+      // 2K: the rubber gasket shows in the gap round each door as a dark seam
+      if (q.ultra) parts.put('fridge-gasket', RUBBER, roundedBoxBetween(x0 - 0.003, x1 + 0.003, y0 - 0.003, y1 + 0.003, zb + 0.0002, zb + 0.0014, 0.0004, 2), { noShadow: true });
+    };
     const handle = (x: number, y0: number, y1: number): void => {
+      // 2K: a dark recess in the door behind the handle, so the grip has something to be gripped in
+      if (q.ultra) parts.put('fridge-recess', RUBBER, roundedBoxBetween(x - 0.03, x + 0.03, y0 - 0.035, y1 + 0.035, zd - 0.0012, zd + 0.0012, 0.0008, 2), { noShadow: true });
       bar(parts, 'fridge-handles', trim, [x, y0, hz], [x, y1, hz], 0.011);
       for (const y of [y0 + 0.02, y1 - 0.02]) bar(parts, 'fridge-handles', trim, [x, y, zd - 0.001], [x, y, hz], 0.006);
     };

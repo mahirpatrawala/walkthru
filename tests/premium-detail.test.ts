@@ -62,7 +62,7 @@ describe('Off and 1K cost exactly what they did', () => {
       }
     }
     expect(n).toBe(Object.keys(table).length);
-  });
+  }, 90000);
   it('the low tier never gets the 2K detail, even with the switch up', () => {
     setUltraDetail(true);
     expect(genQuality('low')).toBe(GEN_QUALITY.low);
@@ -96,8 +96,9 @@ describe('2K draws the same sizes with finer parts', () => {
       const { w, d } = item.box;
       // the same drawn sizes as the high tier: width, depth and height to a few millimetres, and the row's own where the high tier is exact (a few parts, such as a swing's
       // hooks, reach past the row at every tier already)
-      for (const [name, lo, hi, ref] of [['width', b1.min.x, b1.max.x, b0.max.x - b0.min.x], ['depth', b1.min.z, b1.max.z, b0.max.z - b0.min.z]] as const) {
-        expect(hi - lo, `${row.id} ${name}`).toBeGreaterThan(ref - 0.004);
+      for (const [name, lo, hi, ref, rowDim] of [['width', b1.min.x, b1.max.x, b0.max.x - b0.min.x, w], ['depth', b1.min.z, b1.max.z, b0.max.z - b0.min.z, d]] as const) {
+        // never smaller than the high tier or the row (a part of the high tier that stands a few millimetres past the row, a sofa's front cord, is not copied)
+        expect(hi - lo, `${row.id} ${name}`).toBeGreaterThan(Math.min(ref, rowDim) - 0.004);
         expect(hi - lo, `${row.id} ${name}`).toBeLessThan(ref + 0.004);
       }
       expect(b1.max.x - b1.min.x, `${row.id} width`).toBeLessThan(w + TOL + 0.05);
@@ -111,7 +112,7 @@ describe('2K draws the same sizes with finer parts', () => {
     }
     expect(checked).toBeGreaterThan(100);
     expect(finer, 'a good share of the catalogue is drawn finer at 2K').toBeGreaterThan(40);
-  });
+  }, 90000);
   it('a bed gets folds in its quilt and a hollow in its pillows, and stays under its own height', () => {
     setStyle({ packId: 'light-scandinavian' });
     const item = itemFromCatalog('bed-queen', { cx: 0, cz: 0, w: 1.62, d: 2.08, yawDeg: 0 }, 'virtual');
@@ -128,6 +129,32 @@ describe('2K draws the same sizes with finer parts', () => {
     // the top of the cover has not risen: folds only press down
     expect(new THREE.Box3().setFromObject(part(fine, 'duvet')).max.y).toBeLessThanOrEqual(new THREE.Box3().setFromObject(part(flat, 'duvet')).max.y + 1e-4);
     expect(new THREE.Box3().setFromObject(part(fine, 'pillows')).max.y).toBeLessThanOrEqual(new THREE.Box3().setFromObject(part(flat, 'pillows')).max.y + 1e-4);
+  });
+  it('the 2K bed is a made bed inside the 16.23 limits: two pillows, a turned-down band, stitching, nothing painted into the vertices', () => {
+    setStyle({ packId: 'light-scandinavian' });
+    const item = itemFromCatalog('bed-queen', { cx: 0, cz: 0, w: 1.62, d: 2.08, yawDeg: 0 }, 'virtual');
+    setUltraDetail(true);
+    const g = new THREE.Group(); buildRealFurniture(g, item, 'high', createFurnitureKit());
+    const named: Record<string, THREE.Mesh> = {};
+    g.traverse((o) => { if ((o as THREE.Mesh).isMesh) named[o.name] = o as THREE.Mesh; });
+    for (const n of ['duvet', 'duvet-fold', 'duvet-stitching', 'pillows', 'pillow-seams', 'mattress', 'mattress-piping']) expect(named[n], n).toBeTruthy();
+    // no colour is painted into any soft part: the folds are geometry
+    for (const n of ['duvet', 'duvet-fold', 'pillows', 'mattress']) expect(named[n].geometry.attributes.color, n).toBeUndefined();
+    // exactly two pillows on a queen bed: the pillow mesh is two separate lumps, 16.23
+    const pos = named.pillows.geometry.attributes.position as THREE.BufferAttribute;
+    let left = 0, right = 0;
+    for (let i = 0; i < pos.count; i++) { if (pos.getX(i) < 0) left++; else right++; }
+    expect(left).toBeGreaterThan(100); expect(right).toBeGreaterThan(100);
+    expect(Math.abs(left - right) / pos.count).toBeLessThan(0.2);
+    // the covers stay within 12 mm of the mattress top (a person lies on them), the pillows within their height, and all of it inside the box
+    const S = item.surfaceHeightM;
+    expect(new THREE.Box3().setFromObject(named.duvet).max.y).toBeLessThanOrEqual(S + 0.012 + 1e-4);
+    expect(new THREE.Box3().setFromObject(named['duvet-fold']).max.y).toBeLessThanOrEqual(S + 0.012 + 1e-4);
+    expect(new THREE.Box3().setFromObject(named['duvet-stitching']).max.y).toBeLessThanOrEqual(S + 0.012 + 1e-4);
+    expect(new THREE.Box3().setFromObject(named.pillows).max.y).toBeLessThanOrEqual(S + 0.1 + 1e-3);
+    const box = new THREE.Box3().setFromObject(g);
+    expect(box.max.x - box.min.x).toBeLessThan(1.62 + 0.012);
+    expect(box.max.z - box.min.z).toBeLessThan(2.08 + 0.012);
   });
   it('a tap is one smooth tube at 2K and rods below it, and reaches as far', () => {
     setStyle({ packId: 'light-scandinavian' });

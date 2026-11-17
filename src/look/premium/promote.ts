@@ -9,7 +9,7 @@ import type { PbrClass } from './pbr';
 interface Saved {
   cls: PbrClass;
   color: number; roughness: number; metalness: number; vertexColors: boolean; opacity: number; transparent: boolean; depthWrite: boolean; envMapIntensity: number;
-  hadOwnHooks: boolean; classEnv: { value: number }; prevCompile: THREE.Material['onBeforeCompile'] | null; prevKey: THREE.Material['customProgramCacheKey'] | null; mine: THREE.Material['onBeforeCompile'] | null; patched: boolean;
+  hadOwnHooks: boolean; classEnv: { value: number }; classCon: { value: number }; prevCompile: THREE.Material['onBeforeCompile'] | null; prevKey: THREE.Material['customProgramCacheKey'] | null; mine: THREE.Material['onBeforeCompile'] | null; patched: boolean;
 }
 type M = THREE.MeshStandardMaterial & { userData: { premium?: Saved } };
 
@@ -35,7 +35,7 @@ export function makeProbeUniforms(): ProbeUniforms {
 
 const BOX_FN = /* glsl */ `
 uniform vec3 uBoxMin; uniform vec3 uBoxMax; uniform vec3 uProbePos; uniform float uBoxOn; uniform float uProbeChroma;
-uniform sampler2D uProbeMap; uniform float uProbeOn; uniform float uClassEnv;
+uniform sampler2D uProbeMap; uniform float uProbeOn; uniform float uClassEnv; uniform float uClassCon;
 vec3 lkNeutral( vec3 c ) { float l = dot( c, vec3( 0.2126, 0.7152, 0.0722 ) ); return mix( vec3( l ), c, uProbeChroma ); }
 vec3 lkBoxProject( vec3 dir ) {
   if ( uBoxOn < 0.5 ) return dir;
@@ -52,7 +52,7 @@ vec3 lkBoxProject( vec3 dir ) {
 
 const RADIANCE = /vec4 envMapColor = textureCubeUV\( envMap, envMapRotation \* reflectVec, roughness \);\s*return envMapColor\.rgb \* envMapIntensity;/g;
 const RADIANCE_WITH_PROBE = `vec4 envMapColor = textureCubeUV( envMap, envMapRotation * reflectVec, roughness ); float lkScale = envMapIntensity;
-    if ( uProbeOn > 0.5 ) { envMapColor = textureCubeUV( uProbeMap, lkBoxProject( reflectVec ), roughness ); envMapColor.rgb = lkNeutral( envMapColor.rgb ); lkScale = uClassEnv; }
+    if ( uProbeOn > 0.5 ) { envMapColor = textureCubeUV( uProbeMap, lkBoxProject( reflectVec ), roughness ); envMapColor.rgb = min( pow( max( lkNeutral( envMapColor.rgb ), vec3( 1e-4 ) ), vec3( uClassCon ) ), vec3( 12.0 ) ); lkScale = uClassEnv; }
     return envMapColor.rgb * lkScale;`;
 let patchedChunk: string | null = null;
 /** three's own envmap_physical_pars_fragment with the specular lookup of getIBLRadiance reading the probe when there is one (cached; exported for the test) */
@@ -72,6 +72,7 @@ function patchForProbe(m: M, saved: Saved, u: ProbeUniforms): void {
     prev.call(this, shader, renderer);
     Object.assign(shader.uniforms, u);
     shader.uniforms.uClassEnv = saved.classEnv;
+    shader.uniforms.uClassCon = saved.classCon;
     // the diffuse light and the ambient stay the sky environment's, exactly as at Off and 1K; only the SPECULAR reflection (and the clear coat's) is read from the room's probe.
     // `onBeforeCompile` sees the shader before its #include lines are resolved, so the chunk is taken from ShaderChunk, patched, and put in the include's place.
     shader.fragmentShader = shader.fragmentShader.replace('#include <envmap_physical_pars_fragment>', `${BOX_FN}\n${PATCHED_CHUNK()}`);
@@ -93,7 +94,7 @@ export function promote(m: THREE.MeshStandardMaterial, cls: PbrClass, u: ProbeUn
   if (!saved) {
     saved = {
       cls, color: m.color.getHex(), roughness: m.roughness, metalness: m.metalness, vertexColors: m.vertexColors, opacity: m.opacity, transparent: m.transparent, depthWrite: m.depthWrite,
-      envMapIntensity: m.envMapIntensity, hadOwnHooks: Object.prototype.hasOwnProperty.call(m, 'onBeforeCompile'), classEnv: { value: 1 }, prevCompile: null, prevKey: null, mine: null, patched: false,
+      envMapIntensity: m.envMapIntensity, hadOwnHooks: Object.prototype.hasOwnProperty.call(m, 'onBeforeCompile'), classEnv: { value: 1 }, classCon: { value: 1 }, prevCompile: null, prevKey: null, mine: null, patched: false,
     };
     mm.userData.premium = saved;
     const fresh = new THREE.MeshPhysicalMaterial() as unknown as Record<string, unknown>;
@@ -120,6 +121,7 @@ export function promote(m: THREE.MeshStandardMaterial, cls: PbrClass, u: ProbeUn
   ph.thickness = p.thickness ?? 0;
   if (cls === 'glass') { m.opacity = 1; m.transparent = false; m.depthWrite = true; } else { m.opacity = saved.opacity; m.transparent = saved.transparent; m.depthWrite = saved.depthWrite; }
   saved.classEnv.value = p.env;
+  saved.classCon.value = p.contrast ?? 1;
   mm.needsUpdate = true;
 }
 
@@ -139,6 +141,16 @@ export function demote(m: THREE.MeshStandardMaterial): void {
   for (const k of physicalOnlyKeys()) delete (mm as unknown as Record<string, unknown>)[k];
   (mm as unknown as { type: string }).type = 'MeshStandardMaterial';
   mm.defines = { STANDARD: '' };
+  if (mm.userData.premiumNor !== undefined) { m.normalScale.set(mm.userData.premiumNor as number, mm.userData.premiumNor as number); delete mm.userData.premiumNor; }
   delete mm.userData.premium;
   mm.needsUpdate = true;
+}
+
+/** cloth shows its weave: once its normal map has arrived the map is read 1.7 times as strongly (put back by demote) */
+export function strengthenWeave(m: THREE.MeshStandardMaterial): void {
+  const mm = m as M;
+  const cls = mm.userData.premium?.cls;
+  if ((cls !== 'fabric' && cls !== 'bedding') || !m.normalMap || mm.userData.premiumNor !== undefined) return;
+  mm.userData.premiumNor = m.normalScale.x;
+  m.normalScale.multiplyScalar(1.7);
 }
