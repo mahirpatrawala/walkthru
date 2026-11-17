@@ -273,7 +273,8 @@ export function clearRoutes(layout: Layout, furniture: FurnitureItem[], spawn?: 
 export interface ClearResult { furniture: FurnitureItem[]; dropped: string[]; moved: { id: string; dx: number; dz: number }[]; left: RouteReport }
 const CACHE = new Map<string, ClearResult>();
 /** the whole pass is given this long (ms); a plan too tangled to settle in it keeps what it has */
-const BUDGET_MS = 8000;
+/** A work budget, counted in route measurements, not in time: the result must be the same on a slow machine as on a fast one (the generator's output is committed and tested). */
+const BUDGET_MEASURES = 60000;
 /** a joint nudge moves a piece at most this far from where the drawing put it, metres */
 const NUDGE_MAX_M = 1.0;
 
@@ -282,7 +283,7 @@ const NUDGE_MAX_M = 1.0;
  * coordinate descent on "rooms shut and door strips blocked first, then how far everything has travelled from the drawing". Returns the items
  * when that clears every route with the piece kept, else null. The pieces stay inside their own room and clear of each other.
  */
-function jointNudge(layout: Layout, items: FurnitureItem[], original: FurnitureItem[], keepId: string, spawn: { x: number; z: number } | undefined, ctx: RouteCtx, deadline: number, accentsOnly = false): FurnitureItem[] | null {
+function jointNudge(layout: Layout, items: FurnitureItem[], original: FurnitureItem[], keepId: string, spawn: { x: number; z: number } | undefined, ctx: RouteCtx, work: { left: number }, accentsOnly = false): FurnitureItem[] | null {
   const orig = new Map(original.map((f) => [f.id, f]));
   const target = items.find((x) => x.id === keepId);
   const t0 = orig.get(keepId);
@@ -307,12 +308,13 @@ function jointNudge(layout: Layout, items: FurnitureItem[], original: FurnitureI
   };
   const travelled = (list: FurnitureItem[]): number => pool.reduce((s, p) => { const a = list.find((x) => x.id === p.id)!.box, b = orig.get(p.id)!.box; return s + Math.hypot(a.cx - b.cx, a.cz - b.cz); }, 0);
   const measure = (list: FurnitureItem[]): { score: number; ok: boolean } => {
+    work.left--;
     const c = cost(routeReport(layout, list, spawn, CLEAR_RADIUS_M, ctx));
     const o = overlaps(list);
     return { score: c * 1000 + o * 400 + travelled(list), ok: c === 0 && o === 0 };
   };
   let best = measure(cur);
-  for (let sweep = 0; sweep < 4 && Date.now() < deadline && !best.ok; sweep++) {
+  for (let sweep = 0; sweep < 4 && work.left > 0 && !best.ok; sweep++) {
     let improved = false;
     for (const p of pool) {
       const o = orig.get(p.id)!;
@@ -330,7 +332,7 @@ function jointNudge(layout: Layout, items: FurnitureItem[], original: FurnitureI
       }
       let bestSpot: { cand: FurnitureItem[]; m: { score: number; ok: boolean } } | null = null;
       for (const box of spots) {
-        if (Date.now() > deadline) break;
+        if (work.left <= 0) break;
         const cand = cur.map((x) => (x.id === p.id ? { ...x, box } : x));
         const m = measure(cand);
         if (m.score < (bestSpot?.m.score ?? best.score) - 1e-9) bestSpot = { cand, m };
@@ -349,8 +351,8 @@ function clearRoutesUncached(layout: Layout, furniture: FurnitureItem[], spawn?:
   const ctx = routeCtx(layout, furniture, spawn);
   const report = (list: FurnitureItem[]): RouteReport => routeReport(layout, list, spawn, CLEAR_RADIUS_M, ctx);
   let rep = report(items);
-  const t0 = Date.now();
-  for (let guard = 0; guard < 24 && cost(rep) > 0 && Date.now() - t0 < BUDGET_MS; guard++) {
+  const work = { left: BUDGET_MEASURES };
+  for (let guard = 0; guard < 24 && cost(rep) > 0 && work.left > 0; guard++) {
     // the pieces whose removal helps, the one that helps most first; the first of them that has somewhere harmless (or less harmful) to go is moved
     const helps: { id: string; c: number }[] = [];
     for (const it of items) {
@@ -405,7 +407,7 @@ function clearRoutesUncached(layout: Layout, furniture: FurnitureItem[], spawn?:
       let kept = false;
       for (const d of droppable) {
         // the accent pieces alone first (a footstool, a chair and a table sliding a little is the smallest change), then the sofa and dining set too
-        const joint = jointNudge(layout, items, furniture, d.id, spawn, ctx, t0 + BUDGET_MS, true) ?? jointNudge(layout, items, furniture, d.id, spawn, ctx, t0 + BUDGET_MS);
+        const joint = jointNudge(layout, items, furniture, d.id, spawn, ctx, work, true) ?? jointNudge(layout, items, furniture, d.id, spawn, ctx, work);
         if (!joint) continue;
         items = joint;
         for (const j of joint) {
