@@ -5,6 +5,10 @@ import { CREDIT_TEXT, brandMarkEl } from '../brand/builder-brand';
 import type { ShownBrand } from '../brand/builder-brand';
 import type { Hud } from './context';
 import type { JoystickView } from '../engine/controls';
+import { CHROME_LEVEL_LABEL, nextChromeLevel } from './chrome';
+import type { ChromeFlags, ChromeLevel } from './chrome';
+import { UNITS_EVENT, UNITS_KEY, identityLines, loadUnits } from './identity';
+import type { AreaUnits } from './identity';
 
 export type HudButtonId = 'person' | 'measure' | 'furnish' | 'rooms' | 'scan';
 export type HudView = 'third' | 'first';
@@ -24,8 +28,8 @@ export interface HudImpl extends Hud {
   readonly root: HTMLElement;
   setActive(id: HudButtonId, on: boolean): void;
   setScanButton(state: ScanButtonState, progress?: number): void;
-  /** the place's own name, the first line of the identity card ("Sample Tower, Level 2") */
-  setPlace(text: string | null): void;
+  /** the place's own name ("Flat 204 · 3 BHK · 1,117 sq ft") and, in a building, its level ("Level 2"): the pill says the first two parts, the card the rest */
+  setPlace(text: string | null, level?: string | null): void;
   /** a builder's brand on this building: its logo where the generic icon was, its name over the place, and the small credit (SPEC 18.15) */
   setBrand(brand: ShownBrand | null): void;
   /** which half of the first / third person toggle is lit */
@@ -34,11 +38,18 @@ export interface HudImpl extends Hud {
   bindViews(api: ViewsApi | undefined): void;
   /** the Share button's feedback */
   readonly shareButton: HTMLButtonElement;
-  /** clean view: the chrome steps away, one small way back stays (SPEC 2.7) */
-  setClean(on: boolean): void;
-  isClean(): boolean;
-  /** the chrome fades on its own after a few seconds without input (presence.ts); any input brings it back */
-  setIdle(on: boolean): void;
+  /** calm by default (SPEC 2.7, src/buyer/chrome.ts): which parts of the chrome are in, and the level in force */
+  setChrome(f: ChromeFlags, level: ChromeLevel): void;
+  /** the handle (the thin pill at the top centre) was pressed */
+  onHandle(cb: () => void): void;
+  /** the Controls tool asks for the next level */
+  onChromeLevel(cb: (next: ChromeLevel) => void): void;
+  /** called once, the first time the chrome is shown to the viewer */
+  onShown(cb: () => void): void;
+  /** a warning that must be seen once (a sample scene, a size that is not measured): its own brief pill under the top row. The same words are not shown twice in a visit. */
+  notice(text: string, ms?: number): void;
+  /** the unit areas are shown in */
+  units(): AreaUnits;
   /** the container a module puts its own tool in (it is decorated with a label and put in order) */
   readonly tools: HTMLElement;
   /** the corner slot top right ("Building" in a building, "All homes" in a lone home) */
@@ -46,7 +57,7 @@ export interface HudImpl extends Hud {
   setDebug(text: string | null): void;
   /** like toast, but longer and lower */
   hint(text: string, ms?: number): void;
-  /** the first-visit controls: a few key-caps above the room strip, gone at the first input (or after 14 s) */
+  /** the first-visit controls: a few key-caps above the room strip, gone at the first input (or with the first visit's few seconds) */
   showControlsHint(touch: boolean): void;
   setJoystick(j: JoystickView | undefined): void;
   setVisible(v: boolean): void;
@@ -89,15 +100,20 @@ const EXTRA_ICONS = {
   back: SVG('<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/>'),
   place: SVG('<path d="M4 20V9.5L12 4l8 5.5V20z"/><path d="M10 20v-5h4v5"/>'),
   share: SVG('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'),
+  auto: SVG('<rect x="3.5" y="5" width="17" height="12" rx="3"/><path d="M8 9h8" stroke-dasharray="1.5 2.6"/><path d="M8.5 20h7"/>'),
+  always: SVG('<rect x="3.5" y="5" width="17" height="12" rx="3"/><path d="M7 9h10M7 13h6"/><path d="M8.5 20h7"/>'),
+  hidden: SVG('<rect x="3.5" y="5" width="17" height="12" rx="3"/><path d="M8.5 20h7"/>'),
   walk: SVG('<circle cx="13" cy="4.5" r="1.8"/><path d="M12 8.5l-2.5 4 3 2.5 .5 5M12 8.5l3 2.5 2.5 .5M9.5 12.5l-2 4"/>'),
   doll: SVG('<path d="M12 3.5 20 8v8l-8 4.5L4 16V8z"/><path d="M4 8l8 4.5L20 8M12 12.5v8"/>'),
   plan: SVG('<path d="M4 4h16v16H4z"/><path d="M4 12h7M11 4v8M15 12v8M11 16h4"/>'),
 };
 /** the order of the tools, left to right; anything a module adds that is not here goes last. Keys are the short labels. */
-const TOOL_ORDER = ['Tour', 'Flats', 'Rooms', 'Measure', 'Furnish', 'Light', 'You', 'Scan', 'Clean view', 'Fullscreen'];
+const TOOL_ORDER = ['Flats', 'Rooms', 'Measure', 'Furnish', 'Light', 'You', 'Scan', 'Share', 'Fullscreen', 'Controls'];
 /** short labels for buttons other modules add (their accessible names stay as they are) */
 const SHORT_LABEL: Record<string, string> = { 'Light and look': 'Light', 'Building map': 'Building', 'Take a tour of this home, room by room': 'Tour' };
 const LABELS_KEY = 'walkthru:hud:labels-seen';
+/** warnings already shown in this visit (a building shows "Sample building" once, not at every door) */
+const noticed = new Set<string>();
 
 /**
  * Whether a drag on the card throws it away, and which way it leaves: far enough (30% of its width sideways, 45% of its height
@@ -142,45 +158,113 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const root = el('div', 'wt-hud', undefined, parent);
   root.dataset.testid = 'hud';
 
-  // top left: the identity card. Line 1 the place, line 2 where you stand (room and area), line 3 the quiet note (scene-tag.ts)
-  const id = el('div', 'wt-id wt-glass', undefined, root);
-  id.dataset.testid = 'identity';
-  const idIcon = el('span', 'wt-id-icon', undefined, id);
+  // one row at the top, a grid so nothing can overlap: [identity] ... [views][camera][Tour][tools] ... [Building]
+  const toprow = el('div', 'wt-toprow', undefined, root);
+  // top left: the identity pill (at rest: the mark and ONE line) and, on intent, its card: the place and its area, the level and the room you stand in,
+  // the quiet note (scene-tag.ts), the credit, the unit switch and Share
+  const idWrap = el('div', 'wt-id-wrap', undefined, toprow);
+  idWrap.dataset.zone = 'id';
+  const idPill = el('button', 'wt-id-pill wt-glass', undefined, idWrap);
+  idPill.type = 'button';
+  idPill.dataset.ui = '1';
+  idPill.dataset.testid = 'identity-pill';
+  idPill.setAttribute('aria-expanded', 'false');
+  const idIcon = el('span', 'wt-id-icon', undefined, idPill);
   idIcon.innerHTML = EXTRA_ICONS.place;
+  const idLine = el('span', 'wt-id-line', undefined, idPill);
+  idLine.dataset.testid = 'identity-line';
+  const id = el('div', 'wt-id wt-glass', undefined, idWrap);
+  id.dataset.testid = 'identity';
+  id.id = `wt-id-${Math.random().toString(36).slice(2, 7)}`;
+  idPill.setAttribute('aria-controls', id.id);
   const idText = el('div', 'wt-id-text', undefined, id);
   const brandName = el('div', 'wt-id-brand', undefined, idText);
   brandName.dataset.testid = 'brand-name';
   brandName.hidden = true;
-  const brandParts: IdentityParts = { card: id, icon: idIcon, name: brandName, text: idText, credit: null };
+  const brandParts: IdentityParts = { card: idWrap, icon: idIcon, name: brandName, text: idText, credit: null };
   const place = el('div', 'wt-id-place', undefined, idText);
   place.dataset.testid = 'place';
   place.hidden = true;
   const chip = el('div', 'wt-chip', undefined, idText);
   chip.dataset.testid = 'room-chip';
   chip.hidden = true;
-  const shareBtn = el('button', 'wt-id-share', undefined, id);
+  const idFoot = el('div', 'wt-id-foot', undefined, id);
+  const unitSeg = el('div', 'wt-id-units', undefined, idFoot);
+  unitSeg.setAttribute('role', 'group');
+  unitSeg.setAttribute('aria-label', 'Areas in');
+  let units: AreaUnits = loadUnits(location.search, () => localStorage.getItem(UNITS_KEY));
+  const unitBtns = {} as Record<AreaUnits, HTMLButtonElement>;
+  (['sqft', 'm2'] as AreaUnits[]).forEach((u) => {
+    const b = el('button', 'wt-id-unit', u === 'sqft' ? 'sq ft' : 'm²', unitSeg);
+    b.type = 'button'; b.dataset.ui = '1'; b.dataset.units = u;
+    b.setAttribute('aria-label', u === 'sqft' ? 'Show areas in square feet' : 'Show areas in square metres');
+    b.addEventListener('click', (e) => { e.stopPropagation(); setUnits(u); });
+    unitBtns[u] = b;
+  });
+  const idShare = el('button', 'wt-id-share', undefined, idFoot);
+  idShare.type = 'button'; idShare.dataset.ui = '1'; idShare.dataset.testid = 'identity-share';
+  idShare.setAttribute('aria-label', 'Share: copy a link to this place and view');
+  idShare.innerHTML = EXTRA_ICONS.share;
+  el('span', undefined, 'Share', idShare);
+  idShare.addEventListener('click', (e) => { e.stopPropagation(); handlers.share?.(); idShare.blur(); });
+  // what the pill and the card say: the place, its level, the room (identity.ts), in the unit chosen
+  let placeText: string | null = null, levelText: string | null = null, roomText: string | null = null;
+  const renderIdentity = (): void => {
+    const l = identityLines(placeText ?? '', levelText, roomText, units);
+    idLine.textContent = l.pill;
+    idPill.hidden = !placeText;
+    idPill.setAttribute('aria-label', `${l.pill}. About this place`);
+    place.hidden = !placeText;
+    if (place.textContent !== l.place) place.textContent = l.place;
+    chip.hidden = l.where === null;
+    if (l.where !== null && chip.textContent !== l.where) chip.textContent = l.where;
+    for (const u of ['sqft', 'm2'] as AreaUnits[]) { unitBtns[u].classList.toggle('is-on', u === units); unitBtns[u].setAttribute('aria-pressed', u === units ? 'true' : 'false'); }
+    if (l.warn) hud.notice(l.warn);
+    queueFit();
+  };
+  const setUnits = (u: AreaUnits): void => {
+    if (u === units) return;
+    units = u;
+    try { localStorage.setItem(UNITS_KEY, u); } catch { /* private mode: the choice lasts this visit */ }
+    renderIdentity();
+    try { window.dispatchEvent(new CustomEvent(UNITS_EVENT, { detail: u })); } catch { /* no CustomEvent */ }
+  };
+  // a press on the pill keeps the card open (a finger cannot hover); a press anywhere else lets it go
+  let idPinned = false;
+  const setIdPinned = (on: boolean): void => { idPinned = on; applyChrome(); };
+  idPill.addEventListener('click', (e) => { e.stopPropagation(); setIdPinned(!idPinned); });
+  const onDocPress = (e: Event): void => { if (idPinned && !(e.target instanceof Node && idWrap.contains(e.target))) setIdPinned(false); };
+  document.addEventListener('pointerdown', onDocPress, true);
+
+  // Share lives with the tools (and in the card)
+  const shareBtn = document.createElement('button');
+  shareBtn.className = 'wt-btn wt-tool';
   shareBtn.type = 'button';
   shareBtn.dataset.ui = '1';
+  shareBtn.dataset.btn = 'share';
   shareBtn.dataset.testid = 'share';
-  shareBtn.title = 'Copy a link to this place and view';
+  shareBtn.title = 'Share: copy a link to this place and view';
   shareBtn.setAttribute('aria-label', 'Share: copy a link to this place and view');
   shareBtn.innerHTML = EXTRA_ICONS.share;
   el('span', 'wt-tool-label', 'Share', shareBtn);
   shareBtn.addEventListener('click', (e) => { e.stopPropagation(); handlers.share?.(); shareBtn.blur(); });
 
   // top centre: the view control and the tools, one glass bar (a column down the right edge on a phone)
-  const topbar = el('div', 'wt-topbar', undefined, root);
+  const topbar = el('div', 'wt-topbar', undefined, toprow);
+  topbar.dataset.zone = 'top';
   // the three views (Walk, Doll house, Plan): shown once the views module is there; until then Walk is the only one, so the control hides
   const seg = el('div', 'wt-seg wt-views wt-glass', undefined, topbar);
   seg.setAttribute('role', 'group');
   seg.setAttribute('aria-label', 'View');
   seg.hidden = true;
+  el('i', 'wt-seg-thumb', undefined, seg);
   const modeBtns = {} as Record<ViewsMode, HTMLButtonElement>;
   (['walk', 'doll', 'plan'] as ViewsMode[]).forEach((m) => {
     const label = m === 'walk' ? 'Walk' : m === 'doll' ? 'Doll house' : 'Plan';
     const b = el('button', 'wt-seg-btn', undefined, seg);
     b.type = 'button'; b.dataset.ui = '1'; b.dataset.mode = m;
     b.setAttribute('aria-label', label);
+    b.dataset.tip = label;
     b.setAttribute('aria-pressed', m === 'walk' ? 'true' : 'false');
     b.innerHTML = EXTRA_ICONS[m];
     el('span', 'wt-tool-label', label, b);
@@ -191,6 +275,7 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const eye = el('div', 'wt-seg wt-eye wt-glass', undefined, topbar);
   eye.setAttribute('role', 'group');
   eye.setAttribute('aria-label', 'Camera');
+  el('i', 'wt-seg-thumb', undefined, eye);
   const segBtns = {} as Record<HudView, HTMLButtonElement>;
   (['third', 'first'] as HudView[]).forEach((v) => {
     const label = v === 'third' ? 'Third person' : 'First person';
@@ -199,6 +284,7 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
     b.dataset.ui = '1';
     b.dataset.view = v;
     b.setAttribute('aria-label', label);
+    b.dataset.tip = label;
     b.setAttribute('aria-pressed', v === 'third' ? 'true' : 'false');
     b.innerHTML = EXTRA_ICONS[v];
     el('span', 'wt-tool-label', label, b);
@@ -210,7 +296,24 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   const syncViews = (m: ViewsMode): void => {
     for (const k of ['walk', 'doll', 'plan'] as ViewsMode[]) { modeBtns[k].classList.toggle('is-on', k === m); modeBtns[k].setAttribute('aria-pressed', k === m ? 'true' : 'false'); }
     eye.hidden = m !== 'walk';
+    syncThumbs();
+    queueFit();
   };
+  /** the selected segment is a brighter capsule that slides between the options */
+  const syncThumb = (g: HTMLElement): void => {
+    const thumb = g.querySelector<HTMLElement>('.wt-seg-thumb');
+    const on = g.querySelector<HTMLElement>('.wt-seg-btn.is-on');
+    if (!thumb) return;
+    if (!on || g.hidden) { thumb.style.opacity = '0'; return; }
+    thumb.style.opacity = '';
+    thumb.style.width = `${on.offsetWidth}px`;
+    thumb.style.height = `${on.offsetHeight}px`;
+    thumb.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop}px)`;
+  };
+  const syncThumbs = (): void => { syncThumb(seg); syncThumb(eye); };
+  // the primary action has its own capsule: the Tour (src/buyer/nav puts its button in the tools; it is moved here)
+  const tourSlot = el('div', 'wt-tourslot wt-glass', undefined, topbar);
+  tourSlot.hidden = true;
   const bar = el('div', 'wt-buttons wt-tools wt-glass', undefined, topbar);
   bar.setAttribute('role', 'toolbar');
   bar.setAttribute('aria-label', 'Tools');
@@ -222,7 +325,6 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
     b.dataset.ui = '1';
     b.dataset.btn = bid;
     b.setAttribute('aria-label', NAMES[bid]);
-    b.title = NAMES[bid];
     b.innerHTML = ICONS[bid];
     el('span', 'wt-tool-label', LABELS[bid], b);
     if (bid === 'scan') {
@@ -233,16 +335,28 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
     b.addEventListener('click', (e) => { e.stopPropagation(); handlers[bid](); b.blur(); });
     buttons[bid] = b;
   });
-  // clean view and full screen: always last, handled here
-  let clean = false;
-  const cleanBtn = el('button', 'wt-btn wt-tool', undefined, bar);
-  cleanBtn.type = 'button'; cleanBtn.dataset.ui = '1'; cleanBtn.dataset.btn = 'clean';
-  cleanBtn.setAttribute('aria-label', 'Clean view: hide the controls'); cleanBtn.title = 'Clean view: hide the controls';
-  cleanBtn.innerHTML = EXTRA_ICONS.clean;
-  el('span', 'wt-tool-label', 'Clean view', cleanBtn);
+  bar.appendChild(shareBtn);
+  // the chrome's level (auto, always, hidden) and full screen: always last, handled here
+  let level: ChromeLevel = 'auto';
+  let levelCb: ((next: ChromeLevel) => void) | null = null;
+  const levelBtn = el('button', 'wt-btn wt-tool', undefined, bar);
+  levelBtn.type = 'button'; levelBtn.dataset.ui = '1'; levelBtn.dataset.btn = 'chrome'; levelBtn.dataset.testid = 'chrome-level';
+  levelBtn.innerHTML = EXTRA_ICONS.auto;
+  const levelLabel = el('span', 'wt-tool-label', 'Controls', levelBtn);
+  const syncLevelBtn = (): void => {
+    levelBtn.innerHTML = EXTRA_ICONS[level];
+    levelBtn.appendChild(levelLabel);
+    levelBtn.dataset.level = level;
+    const next = nextChromeLevel(level);
+    const name = `${CHROME_LEVEL_LABEL[level]}. Press for: ${next === 'auto' ? 'automatic' : next === 'always' ? 'always shown' : 'hidden'}`;
+    levelBtn.setAttribute('aria-label', name);
+    levelBtn.dataset.tip = name;
+  };
+  syncLevelBtn();
+  levelBtn.addEventListener('click', (e) => { e.stopPropagation(); levelCb?.(nextChromeLevel(level)); levelBtn.blur(); });
   const fsBtn = el('button', 'wt-btn wt-tool', undefined, bar);
   fsBtn.type = 'button'; fsBtn.dataset.ui = '1'; fsBtn.dataset.btn = 'fullscreen';
-  fsBtn.setAttribute('aria-label', 'Full screen'); fsBtn.title = 'Full screen';
+  fsBtn.setAttribute('aria-label', 'Full screen'); fsBtn.dataset.tip = 'Full screen';
   fsBtn.innerHTML = EXTRA_ICONS.fullscreen;
   const fsLabel = el('span', 'wt-tool-label', 'Fullscreen', fsBtn);
   const fsApi = (): { can: boolean; on: boolean } => {
@@ -256,7 +370,7 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
     fsLabel.textContent = on ? 'Exit full screen' : 'Fullscreen';
     fsBtn.appendChild(fsLabel);
     fsBtn.setAttribute('aria-label', on ? 'Leave full screen' : 'Full screen');
-    fsBtn.title = on ? 'Leave full screen' : 'Full screen';
+    fsBtn.dataset.tip = on ? 'Leave full screen' : 'Full screen';
     fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
   };
   fsBtn.addEventListener('click', (e) => {
@@ -273,15 +387,16 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   syncFs();
 
   // top right: the way back to where you came from ("Building", or "All homes" for a lone home): a module puts its link here
-  const exit = el('div', 'wt-exit', undefined, root);
+  const exit = el('div', 'wt-exit', undefined, toprow);
   exit.dataset.testid = 'exit';
-  // clean view: the one small way back
-  const cleanBack = el('button', 'wt-clean-back wt-glass', undefined, root);
-  cleanBack.type = 'button'; cleanBack.dataset.ui = '1'; cleanBack.dataset.testid = 'clean-back';
-  cleanBack.setAttribute('aria-label', 'Show the controls');
-  cleanBack.innerHTML = EXTRA_ICONS.back;
-  el('span', 'wt-tool-label', 'Controls', cleanBack);
-  cleanBack.hidden = true;
+  exit.dataset.zone = 'top';
+  // the handle: a thin pill at the top centre, the way in on a touch screen and at level `hidden`
+  const handle = el('button', 'wt-handle', undefined, root);
+  handle.type = 'button'; handle.dataset.ui = '1'; handle.dataset.testid = 'chrome-handle';
+  handle.setAttribute('aria-label', 'Show the controls');
+  handle.hidden = true;
+  let handleCb: (() => void) | null = null;
+  handle.addEventListener('click', (e) => { e.stopPropagation(); handleCb?.(); handle.blur(); });
 
   // mode bar and toast: centred under the bar
   const top = el('div', 'wt-top', undefined, root);
@@ -297,6 +412,11 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   toastEl.dataset.testid = 'toast';
   toastEl.setAttribute('role', 'status');
   toastEl.hidden = true;
+  const noticeEl = el('div', 'wt-notice wt-glass', undefined, top);
+  noticeEl.dataset.testid = 'notice';
+  noticeEl.setAttribute('role', 'status');
+  noticeEl.hidden = true;
+  let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
   // every tool, whoever adds it, gets a short label and its place in the order (a button another module appends is decorated here)
   const rankOf = (b: HTMLElement): number => {
@@ -311,7 +431,12 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
     const kids = [...bar.children] as HTMLElement[];
     for (const b of kids) {
       if (!(b instanceof HTMLButtonElement || b instanceof HTMLAnchorElement)) continue;
+      // the Tour is the primary action: it has its own capsule beside the tools
+      if (b.dataset.btn === 'tour') { tourSlot.appendChild(b); tourSlot.hidden = false; continue; }
       b.classList.add('wt-tool');
+      // one tooltip, ours: an icon-only button says what it is on hover and on focus
+      if (!b.dataset.tip) b.dataset.tip = b.getAttribute('aria-label') ?? b.title ?? '';
+      if (b.title) b.removeAttribute('title');
       if (!b.querySelector('.wt-tool-label')) {
         const name = b.getAttribute('aria-label') ?? b.title ?? '';
         const sub = b.querySelector('.wt-btn-sub');
@@ -319,10 +444,34 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
         el('span', 'wt-tool-label', SHORT_LABEL[name] ?? name, b);
       }
     }
-    const sorted = kids.slice().sort((x, y) => rankOf(x) - rankOf(y));
-    if (sorted.some((k, i) => k !== kids[i])) for (const k of sorted) bar.appendChild(k);
+    const left = ([...bar.children] as HTMLElement[]);
+    const sorted = left.slice().sort((x, y) => rankOf(x) - rankOf(y));
+    if (sorted.some((k, i) => k !== left[i])) for (const k of sorted) bar.appendChild(k);
     sorting = false;
+    queueFit();
   };
+  // no overlap at any width: the row is a grid, and before the identity pill is squeezed the labels collapse to icons, then the buttons tighten
+  let fitQueued = false;
+  const fit = (): void => {
+    fitQueued = false;
+    if (root.style.display === 'none') return;
+    const over = (): boolean => toprow.scrollWidth > toprow.clientWidth + 1 || idLine.scrollWidth > idLine.clientWidth + 1 || idWrap.clientWidth < idPill.offsetWidth;
+    let n = 0;
+    toprow.dataset.fit = '0';
+    while (n < 3 && over()) { n++; toprow.dataset.fit = String(n); }
+    syncThumbs();
+  };
+  function queueFit(): void {
+    if (fitQueued) return;
+    fitQueued = true;
+    (typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame : (f: () => void) => setTimeout(f, 0))(fit);
+  }
+  const fitObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => queueFit()) : null;
+  fitObserver?.observe(toprow);
+  fitObserver?.observe(bar);
+  // the Tour button leaves with its space: the capsule goes with it
+  const tourObserver = typeof MutationObserver !== 'undefined' ? new MutationObserver(() => { tourSlot.hidden = tourSlot.children.length === 0; queueFit(); }) : null;
+  tourObserver?.observe(tourSlot, { childList: true });
   const toolsObserver = typeof MutationObserver !== 'undefined' ? new MutationObserver(decorate) : null;
   toolsObserver?.observe(bar, { childList: true });
   decorate();
@@ -420,43 +569,68 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
   let closeFn: (() => void) | null = null;
   modeClose.addEventListener('click', (e) => { e.stopPropagation(); closeFn?.(); });
 
-  const setClean = (on: boolean): void => {
-    clean = on;
-    root.classList.toggle('is-clean', on);
-    cleanBack.hidden = !on;
-    cleanBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-  };
-  cleanBtn.addEventListener('click', (e) => { e.stopPropagation(); setClean(true); cleanBtn.blur(); });
-  cleanBack.addEventListener('click', (e) => { e.stopPropagation(); setClean(false); });
+  // calm by default: the parts that are in carry `is-in` (the CSS eases them); the level is on the root for the rest
+  let flags: ChromeFlags = { top: true, bottom: true, map: true, id: false, views: true, pill: true, handle: false };
+  let shownCb: (() => void) | null = null;
+  let shown = false;
+  function applyChrome(): void {
+    const idIn = flags.id || idPinned;
+    root.dataset.chrome = level;
+    root.classList.toggle('rv-top', flags.top);
+    root.classList.toggle('rv-bottom', flags.bottom);
+    root.classList.toggle('rv-map', flags.map);
+    root.classList.toggle('rv-id', idIn);
+    root.classList.toggle('rv-views', flags.views);
+    root.classList.toggle('rv-pill', flags.pill || idIn);
+    idPill.setAttribute('aria-expanded', idIn ? 'true' : 'false');
+    handle.hidden = !flags.handle;
+  }
+  applyChrome();
 
   const hud: HudImpl = {
     root,
     tools: bar,
     exit,
     setBrand(brand) { showIdentityBrand(document, brandParts, brand, (icon) => { icon.innerHTML = EXTRA_ICONS.place; }); },
-    setPlace(text) {
-      place.hidden = text === null || text === '';
-      if (text !== null && place.textContent !== text) place.textContent = text;
+    setPlace(text, lv = null) {
+      placeText = text === '' ? null : text;
+      levelText = lv || null;
+      renderIdentity();
     },
     setView(v) {
       for (const k of ['third', 'first'] as HudView[]) {
         segBtns[k].classList.toggle('is-on', k === v);
         segBtns[k].setAttribute('aria-pressed', k === v ? 'true' : 'false');
       }
+      syncThumb(eye);
     },
     bindViews(api) {
       if (typeof viewsOff === 'function') viewsOff();
       viewsOff = undefined;
       seg.hidden = !api;
-      if (!api) { eye.hidden = false; return; }
+      if (!api) { eye.hidden = false; queueFit(); return; }
       for (const m of ['walk', 'doll', 'plan'] as ViewsMode[]) modeBtns[m].onclick = (e) => { e.stopPropagation(); api.set(m); modeBtns[m].blur(); };
       syncViews(api.mode());
       viewsOff = api.onChange(syncViews);
     },
     shareButton: shareBtn,
-    setClean,
-    isClean: () => clean,
-    setIdle(on) { root.classList.toggle('is-idle', on); },
+    setChrome(f, l) {
+      flags = f;
+      if (l !== level) { level = l; syncLevelBtn(); }
+      applyChrome();
+    },
+    onHandle(cb) { handleCb = cb; },
+    onChromeLevel(cb) { levelCb = cb; },
+    onShown(cb) { shownCb = cb; if (shown) cb(); },
+    notice(text, ms = 6000) {
+      if (!text || noticed.has(text)) return;
+      noticed.add(text);
+      noticeEl.textContent = text;
+      noticeEl.hidden = false;
+      if (noticeTimer) clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(() => { noticeEl.hidden = true; }, ms);
+    },
+    units: () => units,
     setPrompt(text, cb) {
       onActivate = cb ?? null;
       if (text === lastPrompt) return;
@@ -483,9 +657,9 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
       dismissedSig = null;
     },
     setRoomChip(text) {
-      if (text === null) { chip.hidden = true; return; }
-      if (chip.textContent !== text) chip.textContent = text;
-      chip.hidden = false;
+      if (text === roomText) return;
+      roomText = text;
+      renderIdentity();
     },
     setModeBar(text, onClose) {
       closeFn = onClose ?? null;
@@ -549,7 +723,7 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
       window.addEventListener('keydown', off, true);
       window.addEventListener('pointerdown', off, true);
       if (chipsTimer) clearTimeout(chipsTimer);
-      chipsTimer = setTimeout(off, 14000);
+      chipsTimer = setTimeout(off, 4500);
     },
     setJoystick(j) {
       if (!j || !j.active) { joyRing.hidden = joyKnob.hidden = true; return; }
@@ -561,11 +735,15 @@ export function createHud(parent: HTMLElement, handlers: HudHandlers): HudImpl {
     },
     setVisible(v) {
       root.style.display = v ? '' : 'none';
-      if (v) showLabelsOnce();
+      if (v) { showLabelsOnce(); queueFit(); if (!shown) { shown = true; shownCb?.(); } }
     },
     dispose() {
       ro?.disconnect();
       toolsObserver?.disconnect();
+      fitObserver?.disconnect();
+      tourObserver?.disconnect();
+      document.removeEventListener('pointerdown', onDocPress, true);
+      if (noticeTimer) clearTimeout(noticeTimer);
       if (typeof viewsOff === 'function') viewsOff();
       document.removeEventListener('fullscreenchange', syncFs);
       if (toastTimer) clearTimeout(toastTimer);

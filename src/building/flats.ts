@@ -35,7 +35,7 @@ export function openFlatsPanel(parent: HTMLElement, o: { building: BuildingFile;
   back.dataset.ui = '1';
   back.dataset.testid = 'flats-panel';
   const card = document.createElement('div');
-  card.className = 'wb-flats wt-glass';
+  card.className = 'wb-flats';
   card.setAttribute('role', 'dialog');
   card.setAttribute('aria-label', 'Flats: choose one to walk into');
   back.appendChild(card);

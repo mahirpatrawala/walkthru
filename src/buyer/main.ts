@@ -55,6 +55,9 @@ import { editNote } from './resize';
 import { SHARE_PARAM, shareUrl as layoutShareUrl } from './my-layout';
 import { buildShareUrl, pageShareEnv, parseShare, shareWalk } from './share';
 import { mountPresence, parsePresence } from './presence';
+import { CHROME_LEVEL_LABEL, createChromeMachine, mountChrome } from './chrome';
+import type { ChromeLevel } from './chrome';
+import { mountGlassTone } from './glass-tone';
 import { chooseSpawn } from '../core/spawn';
 import { resolveStartRoom } from '../core/start-rooms';
 import { spaceKindOf } from '../core/places';
@@ -141,6 +144,8 @@ setModelsEnabled(params.get('models') !== 'off'); // ?models=off: the generated 
 const initialSceneId = (params.get('scene') ?? '').trim();
 const initialRoom = params.get('room');
 const presenceCfg = parsePresence(location.search);
+/** how much of the chrome shows (SPEC 2.7): the link's level, then whatever the viewer set with the Controls tool; it goes with them from space to space */
+let chromeLevel: ChromeLevel = presenceCfg.chrome;
 const debug = params.get('debug') === '1';
 const storage = safeStorage();
 const isTouch = ((): boolean => {
@@ -427,10 +432,10 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   });
   hud.setVisible(false);
   cleanup.push(() => hud.dispose());
-  hud.setPlace(host?.placeText ?? property.title);
+  hud.setPlace(host?.placeText ?? property.title, host?.levelText ?? null);
   if (host?.brand) hud.setBrand(host.brand);
   const tagText = host ? host.tagText : sceneTagText(property);
-  if (tagText) mountSceneTag(hud.root, tagText);
+  if (tagText) { mountSceneTag(hud.root, tagText); hud.onShown(() => hud.notice(tagText)); } // the honesty note lives in the identity card and is shown once as its own pill
   if (uploaded) { const up = uploaded; void import('../upload/notes-panel').then((m) => m.mountUploadNote(hud.root, up.data.notes, sceneId, up.source === 'sample')); }
   if (!host) mountHomeLink(hud.root);
   // a pool: the depth pill, the walkway verdict and the depth card (SPEC 19.3)
@@ -645,8 +650,31 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   const nav = mountNav({ ctx, layout, store, doors, unverified: unverifiedRooms, water: outdoorFile?.pools.map((p) => p.rect) ?? [], blocked: blocking, posed: () => !!interactions.pose(), getUp: () => interactions.getUp(), resetMotion: () => resetLocomotion(character), storage, parent: hud.root });
   cleanup.push(() => nav.dispose());
   // a screen nobody holds: the chrome fades after a few seconds, and with ?kiosk=1 or ?idle=<s> the tour starts by itself and loops (src/buyer/presence.ts)
+  // calm by default, reveal on intent (src/buyer/chrome.ts): the top row, the room strip, the plan and the identity card come in when reached for
+  const lookSheetOpen = (): boolean => { const s = hud.root.querySelector<HTMLElement>('.wt-look-sheet'); return !!s && !s.hidden; };
+  const chrome = mountChrome({
+    root: hud.root,
+    machine: createChromeMachine({ level: chromeLevel, touch: isTouch, lingerMs: presenceCfg.lingerS === null ? null : presenceCfg.lingerS * 1000 }),
+    context: () => ({
+      mode: modes.id === 'furnish' ? 'furnish' : modes.id === 'measure' ? 'measure' : modes.id === 'walk' || modes.id === 'pose' ? 'walk' : 'other',
+      view: ctx.views?.mode() ?? 'walk',
+      touring: nav.debug.driver.touring,
+      sheet: blocking() || lookSheetOpen() || !!document.querySelector('.wb-flats-back, .wb-lift-back'),
+    }),
+    apply: (f, l) => hud.setChrome(f, l),
+    unit: () => Number(getComputedStyle(document.documentElement).getPropertyValue('--wt-z')) || 1,
+  });
+  cleanup.push(() => chrome.dispose());
+  hud.onHandle(() => chrome.openFromHandle());
+  hud.onChromeLevel((next) => { chromeLevel = next; chrome.setLevel(next); hud.toast(CHROME_LEVEL_LABEL[next]); });
+  hud.onShown(() => { chrome.begin(); });
+  // the glass reads the scene behind it (src/buyer/glass-tone.ts): light glass over a bright room, dark glass over a dark one; no blur on the low tier
+  const glassTone = mountGlassTone({ root: hud.root, canvas: viewer.canvas, hour: () => look?.hour ?? null, flat: () => params.get('glass') === 'flat' || (params.get('glass') !== 'blur' && (look?.tier ?? startTier) === 'low') }); // `?glass=blur|flat` forces it (captures, a slow device)
+  cleanup.push(() => glassTone.dispose());
+  // the drawing buffer can only be read in the task that drew it: a microtask queued from a frame callback runs after the frame's render
+  cleanup.push(viewer.onFrame(() => { queueMicrotask(glassTone.afterFrame); }));
   const presence = mountPresence({
-    hud, cfg: presenceCfg, free: () => modes.id === 'walk' && !blocking() && !interactions.pose(),
+    root: hud.root, cfg: presenceCfg, free: () => modes.id === 'walk' && !blocking() && !interactions.pose(),
     // an idle kiosk tour is a walk: from the doll house or the plan the view goes back to Walk first and the tour starts when it has landed
     startTour: async () => { const v = ctx.views; if (v && v.mode() !== 'walk') { v.set('walk'); await new Promise((r) => setTimeout(r, 1000)); } return nav.startTour({ loop: true }); }, stopTour: () => nav.debug.stop(), touring: () => nav.debug.driver.busy,
   });
@@ -719,7 +747,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     // the same hit-test as in Furnish: the nearest thing under the tap, furniture, fitting or an added person
     const hit = ctx.pickAt?.(e) ?? null;
     if (people!.ui.handleTap(e, hit)) return; // placing a person, or a person was tapped
-    if (!hit || hit.kind === 'person') return;
+    if (!hit) { chrome.sceneTap(); return; } // a finger on the empty scene brings the chrome in, or sends it away (src/buyer/chrome.ts)
+    if (hit.kind === 'person') return;
     if (hit.kind === 'item' && !store.all().some((i) => i.id === hit.id)) return;
     if (!modes.set('furnish')) return;
     const session = (modes.active() as { session?: { select(id: string | null): void; selectFitting(id: string | null): void } } | undefined)?.session;
@@ -1022,6 +1051,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
       get ready(): Promise<void> { return look.ready; },
     },
   };
+  (api as unknown as Record<string, unknown>).chrome = { level: () => chrome.machine.level, set: (l: ChromeLevel) => { chromeLevel = l; chrome.setLevel(l); }, flags: () => chrome.flags(), glass: () => glassTone.stats(), kick: () => glassTone.kick(), force: (m: 'blur' | 'flat' | null) => glassTone.force(m) };
   (window as unknown as { __walkthru: typeof api }).__walkthru = api;
 
   // ---- go

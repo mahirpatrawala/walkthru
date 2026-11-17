@@ -25,6 +25,8 @@ export interface Hud {
   setPrompt(text: string | null, onActivate?: () => void): void;
   showCard(card: CheckCard): void; hideCard(): void;
   setRoomChip(text: string | null): void;
+  /** the unit areas are shown in (the identity card's switch); absent on test doubles */
+  units?(): 'sqft' | 'm2';
   setModeBar(text: string | null, onClose?: () => void): void;
   toast(text: string): void;
   /** slot for a mode's own UI (the furnish tray) */

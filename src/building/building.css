@@ -74,7 +74,13 @@
 .bm .ws-go { max-width: none; margin: calc(8 * var(--wt-u)) 0 0; }
 
 /* the map over the walk */
-.bm-overlay { z-index: 40; }
+.bm-overlay {
+  z-index: 40; background: rgba(250, 245, 236, 0.66); -webkit-backdrop-filter: var(--wt-sheet-blur); backdrop-filter: var(--wt-sheet-blur);
+  --wt-card: rgba(255, 255, 255, 0.6); --wt-paper: rgba(255, 255, 255, 0.5); --wt-line: rgba(43, 33, 28, 0.12);
+}
+html[data-glass="flat"] .bm-overlay { background: rgba(250, 245, 236, 0.97); }
+.bm-overlay .bm-stack, .bm-overlay .bm-plan-card, .bm-overlay .bm-pick, .bm-overlay .bm-list { border-color: rgba(255, 255, 255, 0.8); border-radius: var(--wt-r-glass); box-shadow: var(--wt-sheet-shadow); }
+.bm-overlay .bm-plan { background: rgba(255, 255, 255, 0.5); }
 
 /* the home page's list of buildings */
 .wb-grid { max-width: calc(1120 * var(--wt-u)); margin: 0 auto calc(26 * var(--wt-u)); display: grid; grid-template-columns: 1fr; gap: calc(18 * var(--wt-u)); }
@@ -90,26 +96,26 @@
 .wb-open { margin-top: calc(8 * var(--wt-u)); font-family: var(--wt-display); font-weight: 700; font-size: calc(15 * var(--wt-u)); color: var(--wt-clay); }
 .wb-open::after { content: ' →'; }
 
-/* the lift's floor panel and the Flats panel: glass, like the rest of the walk's chrome (src/brand/tokens.css) */
-.wb-lift-back, .wb-flats-back { position: fixed; inset: 0; z-index: var(--wt-z-sheet); display: flex; align-items: flex-start; justify-content: center; padding: calc(calc(14 * var(--wt-u)) + var(--wt-safe-t) + calc(52 * var(--wt-u)) + calc(12 * var(--wt-u))) calc(16 * var(--wt-u)) calc(calc(16 * var(--wt-u)) + var(--wt-safe-b)); box-sizing: border-box; background: rgba(14, 10, 8, 0.32); pointer-events: auto; }
+/* the lift's floor panel and the Flats panel: sheet glass (src/brand/tokens.css; the material itself is in buyer.css with the other sheets) */
+.wb-lift-back, .wb-flats-back { position: fixed; inset: 0; z-index: var(--wt-z-sheet); display: flex; align-items: flex-start; justify-content: center; padding: calc(calc(14 * var(--wt-u)) + var(--wt-safe-t) + calc(52 * var(--wt-u)) + calc(12 * var(--wt-u))) calc(16 * var(--wt-u)) calc(calc(16 * var(--wt-u)) + var(--wt-safe-b)); box-sizing: border-box; background: rgba(20, 14, 10, 0.16); pointer-events: auto; }
 .wb-lift-back { align-items: center; padding-top: calc(16 * var(--wt-u)); }
-.wb-lift, .wb-flats { width: 100%; max-width: calc(400 * var(--wt-u)); padding: calc(14 * var(--wt-u)) calc(14 * var(--wt-u)) calc(14 * var(--wt-u)); box-sizing: border-box; display: flex; flex-direction: column; gap: calc(8 * var(--wt-u)); max-height: calc(100vh - calc(32 * var(--wt-u))); overflow-y: auto; background: var(--wt-glass-solid); color: var(--wt-glass-text); border: 1px solid var(--wt-glass-line); border-radius: var(--wt-r-panel); box-shadow: var(--wt-glass-shadow); -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur); font-family: var(--wt-font); }
+.wb-lift, .wb-flats { width: 100%; max-width: calc(400 * var(--wt-u)); padding: calc(14 * var(--wt-u)) calc(14 * var(--wt-u)) calc(14 * var(--wt-u)); box-sizing: border-box; display: flex; flex-direction: column; gap: calc(8 * var(--wt-u)); max-height: calc(100vh - calc(32 * var(--wt-u))); overflow-y: auto; --wt-glass-text: var(--wt-ink); --wt-glass-dim: var(--wt-muted); --wt-glass-line: rgba(43, 33, 28, 0.13); --wt-glass-on: rgba(255, 255, 255, 0.92); font-family: var(--wt-font); font-weight: var(--wt-fw); }
 .wb-flats { max-width: calc(520 * var(--wt-u)); }
 .wb-lift-head, .wb-flats-head { display: flex; align-items: center; justify-content: space-between; gap: calc(8 * var(--wt-u)); padding-left: calc(4 * var(--wt-u)); }
 .wb-lift h2, .wb-flats h2 { margin: 0; font-family: var(--wt-font); font-size: calc(18 * var(--wt-u)); font-weight: 650; letter-spacing: -0.01em; }
-.wb-lift-x, .wb-x { width: calc(40 * var(--wt-u)); height: calc(40 * var(--wt-u)); border: 0; background: rgba(255, 255, 255, 0.1); font-size: calc(22 * var(--wt-u)); line-height: 1; color: var(--wt-glass-text); cursor: pointer; border-radius: calc(12 * var(--wt-u)); }
-.wb-lift-x:hover, .wb-x:hover { background: rgba(255, 255, 255, 0.2); }
+.wb-lift-x, .wb-x { width: calc(40 * var(--wt-u)); height: calc(40 * var(--wt-u)); border: 0; background: var(--wt-paper-2); font-size: calc(22 * var(--wt-u)); line-height: 1; color: var(--wt-glass-text); cursor: pointer; border-radius: 50%; }
+.wb-lift-x:hover, .wb-x:hover { background: rgba(43, 33, 28, 0.14); }
 .wb-lift-sub { margin: -2px 0 calc(4 * var(--wt-u)) calc(4 * var(--wt-u)); font-size: calc(13 * var(--wt-u)); color: var(--wt-glass-dim); }
-.wb-floor, .wb-flat { display: flex; align-items: center; gap: calc(12 * var(--wt-u)); min-height: calc(52 * var(--wt-u)); padding: calc(6 * var(--wt-u)) calc(14 * var(--wt-u)) calc(6 * var(--wt-u)) calc(8 * var(--wt-u)); border: 1px solid transparent; border-radius: var(--wt-r-control); background: rgba(255, 255, 255, 0.07); color: var(--wt-glass-text); font: inherit; text-align: left; cursor: pointer; transition: background var(--wt-fast) ease; }
-.wb-floor:hover, .wb-flat:hover { background: rgba(255, 255, 255, 0.16); }
-.wb-floor:disabled, .wb-flat:disabled { cursor: default; background: rgba(255, 255, 255, 0.04); border-color: var(--wt-glass-line); color: var(--wt-glass-text); }
+.wb-floor, .wb-flat { display: flex; align-items: center; gap: calc(12 * var(--wt-u)); min-height: calc(52 * var(--wt-u)); padding: calc(6 * var(--wt-u)) calc(14 * var(--wt-u)) calc(6 * var(--wt-u)) calc(8 * var(--wt-u)); border: 1px solid transparent; border-radius: var(--wt-r-control); background: var(--wt-paper); color: var(--wt-glass-text); font: inherit; text-align: left; cursor: pointer; transition: background var(--wt-fast) ease; }
+.wb-floor:hover, .wb-flat:hover { background: rgba(255, 255, 255, 0.8); }
+.wb-floor:disabled, .wb-flat:disabled { cursor: default; background: rgba(255, 255, 255, 0.22); border-color: var(--wt-glass-line); color: var(--wt-glass-text); }
 .wb-floor:focus-visible, .wb-flat:focus-visible, .wb-flats-tab:focus-visible, .wb-lift-x:focus-visible, .wb-x:focus-visible { outline: calc(3 * var(--wt-u)) solid var(--wt-ochre); outline-offset: calc(2 * var(--wt-u)); }
-.wb-floor-num { flex: none; width: calc(36 * var(--wt-u)); height: calc(36 * var(--wt-u)); border-radius: calc(10 * var(--wt-u)); background: rgba(255, 255, 255, 0.14); color: var(--wt-glass-text); font-weight: 650; font-size: calc(16 * var(--wt-u)); display: inline-flex; align-items: center; justify-content: center; }
+.wb-floor-num { flex: none; width: calc(36 * var(--wt-u)); height: calc(36 * var(--wt-u)); border-radius: calc(10 * var(--wt-u)); background: var(--wt-paper-2); color: var(--wt-glass-text); font-weight: 650; font-size: calc(16 * var(--wt-u)); display: inline-flex; align-items: center; justify-content: center; }
 .wb-floor-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
 .wb-floor-name { font-weight: 650; font-size: calc(15 * var(--wt-u)); }
 .wb-floor-sum { font-size: calc(13 * var(--wt-u)); font-weight: 500; color: var(--wt-glass-dim); }
-.wb-floor-here, .wb-flat-here { margin-left: auto; padding: calc(2 * var(--wt-u)) calc(10 * var(--wt-u)); border-radius: calc(999 * var(--wt-u)); background: rgba(255, 255, 255, 0.16); color: var(--wt-glass-text); font-size: calc(11.5 * var(--wt-u)); font-weight: 650; flex: none; }
-.wb-flats-tabs { display: flex; gap: calc(4 * var(--wt-u)); padding: calc(4 * var(--wt-u)); border-radius: calc(999 * var(--wt-u)); background: rgba(255, 255, 255, 0.08); }
+.wb-floor-here, .wb-flat-here { margin-left: auto; padding: calc(2 * var(--wt-u)) calc(10 * var(--wt-u)); border-radius: calc(999 * var(--wt-u)); background: rgba(255, 255, 255, 0.8); color: var(--wt-glass-text); font-size: calc(11.5 * var(--wt-u)); font-weight: 650; flex: none; }
+.wb-flats-tabs { display: flex; gap: calc(4 * var(--wt-u)); padding: calc(4 * var(--wt-u)); border-radius: calc(999 * var(--wt-u)); background: var(--wt-paper-2); }
 .wb-flats-tab { flex: 1; min-height: calc(40 * var(--wt-u)); border: 0; border-radius: calc(999 * var(--wt-u)); background: transparent; color: var(--wt-glass-text); font: inherit; font-size: calc(14 * var(--wt-u)); font-weight: 600; cursor: pointer; }
 .wb-flats-tab.is-on { background: var(--wt-glass-on); color: var(--wt-ink); }
 .wb-flats-list { display: grid; grid-template-columns: 1fr; gap: calc(8 * var(--wt-u)); }

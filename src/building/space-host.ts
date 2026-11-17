@@ -27,6 +27,8 @@ export interface SpaceHost {
   space: { id: string; kind: string; outdoor: boolean; pack: string | null };
   /** the first line of the identity card: the building and the level ("Sample Tower, Level 2") */
   placeText: string | null;
+  /** the level's label ("Level 2"): the identity card's second line begins with it */
+  levelText?: string | null;
   /** the builder's brand on this building, for the identity card */
   brand?: import('../brand/builder-brand').ShownBrand | null;
   /** the quiet third line of the identity card ("Sample building. Plan follows a published brochure."), or null for none */

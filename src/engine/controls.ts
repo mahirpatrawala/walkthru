@@ -43,6 +43,8 @@ const UI_SELECTOR = 'button, a, input, select, textarea, label, [data-ui]';
 interface PointerState {
   role: 'joystick' | 'look' | 'claimed';
   startX: number; startY: number; startT: number;
+  /** when the press happened by the event's own clock: a tap is judged on that, so a slow frame between press and release does not turn a tap into a hold */
+  startStamp: number;
   lastX: number; lastY: number;
   moved: boolean;
 }
@@ -234,7 +236,7 @@ class InputImpl implements Input {
     if (t && typeof t.closest === 'function' && t.closest(UI_SELECTOR)) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     this.capture(e);
-    const base = { startX: e.clientX, startY: e.clientY, startT: performance.now(), lastX: e.clientX, lastY: e.clientY, moved: false };
+    const base = { startX: e.clientX, startY: e.clientY, startT: performance.now(), startStamp: e.timeStamp, lastX: e.clientX, lastY: e.clientY, moved: false };
 
     if (this.claim) {
       let taken = false;
@@ -346,7 +348,8 @@ class InputImpl implements Input {
     }
     if (this.lookPointers().length < 2) this.pinchDist = null;
 
-    if (isUp && !p.moved && performance.now() - p.startT <= TAP_MS) {
+    const heldMs = e.timeStamp > 0 && p.startStamp > 0 ? e.timeStamp - p.startStamp : performance.now() - p.startT;
+    if (isUp && !p.moved && heldMs <= TAP_MS) {
       const evt = this.evt('up', e);
       for (const cb of [...this.tapListeners]) {
         try { cb(evt); } catch (err) { console.error('[walkthru] tap handler threw', err); }

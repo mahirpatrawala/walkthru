@@ -10,6 +10,7 @@ import { planSvg } from '../../start/plan-svg';
 import type { Doors } from '../doors';
 import type { BuyerContext } from '../context';
 import { el } from '../hud';
+import { UNITS_EVENT, areaIn } from '../identity';
 import { storageGet, storageSet } from '../store';
 import type { FurnitureStoreImpl, StorageLike, UnverifiedRooms } from '../store';
 import { Driver, TOUR_PITCH_DEG } from './driver';
@@ -24,6 +25,8 @@ import './nav.css';
 
 const DOTS = ['#F0906F', '#8FBFC4', '#E6C072', '#A7C99B', '#B7A2D6', '#E59AA6'];
 const MAP_KEY = 'walkthru:nav:map-collapsed';
+/** the plan card comes in small; a press on its corner button makes it large, and the choice is kept */
+const MAP_BIG_KEY = 'walkthru:nav:map-big';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 /** px: the plan's walker dot, and the length of the view cone */
 const DOT_PX = 5, CONE_PX = 30;
@@ -86,6 +89,8 @@ const ICONS = {
   pause: ICON('<path d="M8 5.5v13M16 5.5v13" stroke-width="3"/>'),
   stop: ICON('<rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/>'),
   chev: ICON('<path d="M6 9l6 6 6-6"/>'),
+  grow: ICON('<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>'),
+  shrink: ICON('<path d="M19 11h-6V5M5 13h6v6M13 11l7-7M11 13l-7 7"/>'),
   chevUp: ICON('<path d="M6 15l6-6 6 6"/>'),
   next: ICON('<path d="M5 12h14M13 6l6 6-6 6"/>'),
 };
@@ -204,6 +209,7 @@ export function mountNav(d: NavDeps): MountedNav {
   const mapWrap = el('aside', 'wt-nav-map', undefined, parent);
   mapWrap.dataset.ui = '1';
   mapWrap.dataset.testid = 'nav-map';
+  mapWrap.dataset.zone = 'map';
   mapWrap.setAttribute('aria-label', 'Plan of this space');
   mapWrap.classList.add('wt-glass');
   const mapHead = el('div', 'wt-nav-map-head', undefined, mapWrap);
@@ -214,7 +220,9 @@ export function mountNav(d: NavDeps): MountedNav {
   mapToggle.type = 'button';
   mapToggle.dataset.testid = 'nav-map-toggle';
   mapToggle.setAttribute('aria-controls', mapBody.id);
-  let mapOpen = storageGet(d.storage, MAP_KEY) !== '1';
+  // the card only shows when reached for (src/buyer/chrome.ts), so it always opens with its plan; the corner button sizes it
+  let mapOpen = true;
+  let mapBig = storageGet(d.storage, MAP_BIG_KEY) === '1';
 
   const plan = planSvg(layout, d.unverified, {
     idPrefix: 'wtnav',
@@ -253,16 +261,24 @@ export function mountNav(d: NavDeps): MountedNav {
     mapOpen = open;
     mapWrap.classList.toggle('is-collapsed', !open);
     mapBody.hidden = !open;
-    mapToggle.innerHTML = open ? ICONS.chev : ICONS.chevUp;
-    mapToggle.setAttribute('aria-expanded', String(open));
-    const name = open ? 'Hide the floor plan' : 'Show the floor plan';
-    mapToggle.setAttribute('aria-label', name);
-    mapToggle.title = name;
     if (remember) storageSet(d.storage, MAP_KEY, open ? '0' : '1');
     lastDrawn = null;
     measure();
   };
-  mapToggle.addEventListener('click', (e) => { e.stopPropagation(); setMapOpen(!mapOpen); });
+  const setMapBig = (big: boolean, remember = true): void => {
+    mapBig = big;
+    mapWrap.classList.toggle('is-big', big);
+    mapToggle.innerHTML = big ? ICONS.shrink : ICONS.grow;
+    mapToggle.setAttribute('aria-expanded', String(big));
+    const name = big ? 'Make the floor plan smaller' : 'Make the floor plan larger';
+    mapToggle.setAttribute('aria-label', name);
+    mapToggle.title = name;
+    if (remember) storageSet(d.storage, MAP_BIG_KEY, big ? '1' : '0');
+    lastDrawn = null;
+    later(() => measure(), 260);
+    measure();
+  };
+  mapToggle.addEventListener('click', (e) => { e.stopPropagation(); setMapBig(!mapBig); mapToggle.blur(); });
 
   const planPoint = (e: MouseEvent): Vec2 | null => {
     const m = svg.getScreenCTM();
@@ -331,6 +347,7 @@ export function mountNav(d: NavDeps): MountedNav {
   const tourFill = el('i', undefined, undefined, tourProg);
 
   const row = el('div', 'wt-nav-row', undefined, bar);
+  row.dataset.zone = 'bottom';
   // the Tour control lives in the tools bar at the top (first tool); it reads Stop while a tour runs
   const tourBtn = el('button', 'wt-btn wt-tool wt-nav-tourbtn', undefined);
   tourBtn.type = 'button';
@@ -344,11 +361,17 @@ export function mountNav(d: NavDeps): MountedNav {
   tourBtn.hidden = !multi;
   const toolsHost = parent.querySelector<HTMLElement>('.wt-tools');
   if (toolsHost) toolsHost.insertBefore(tourBtn, toolsHost.firstChild); else row.appendChild(tourBtn);
-  const scroller = el('div', 'wt-nav-chips', undefined, row);
+  // the strip: a narrow pill of glass in the centre, about five rooms wide, the room you are in in the middle, the ends fading out
+  const strip = el('div', 'wt-nav-strip', undefined, row);
+  const scroller = el('div', 'wt-nav-chips', undefined, strip);
   scroller.setAttribute('role', 'group');
   scroller.setAttribute('aria-label', 'Rooms');
   scroller.dataset.testid = 'nav-chips';
   const chipEls = new Map<string, HTMLButtonElement>();
+  const areaEls: [HTMLElement, string][] = [];
+  // one unit of area at a time (the identity card's switch)
+  const onUnits = (): void => { const u = d.ctx.hud.units?.() ?? 'sqft'; for (const [e, text] of areaEls) e.textContent = areaIn(text, u); };
+  window.addEventListener(UNITS_EVENT, onUnits);
   for (const c of chips) {
     const b = el('button', 'wt-nav-chip', undefined, scroller);
     b.type = 'button';
@@ -357,7 +380,8 @@ export function mountNav(d: NavDeps): MountedNav {
     const dotEl = el('span', 'wt-nav-chip-dot', undefined, b);
     dotEl.style.setProperty('--dot', DOTS[chips.indexOf(c) % DOTS.length]);
     el('span', 'wt-nav-chip-name', c.label, b);
-    el('span', 'wt-nav-chip-area', c.area, b);
+    const areaEl = el('span', 'wt-nav-chip-area', areaIn(c.area, d.ctx.hud.units?.() ?? 'sqft'), b);
+    areaEls.push([areaEl, c.area]);
     if (!c.goable) { b.classList.add('is-partial'); b.setAttribute('aria-disabled', 'true'); }
     b.addEventListener('click', (e) => { e.stopPropagation(); if (c.goable) void go(c.id); else d.ctx.hud.toast(`${c.label} is only partly on the drawing, so you cannot walk there.`); });
     chipEls.set(c.id, b);
@@ -394,7 +418,7 @@ export function mountNav(d: NavDeps): MountedNav {
       tourTitle.textContent = t.phase === 'looking' && chip ? chip.label
         : t.phase === 'returning' ? 'Back to where you started'
           : t.roomLabel ? t.roomLabel : 'Starting the tour';
-      tourSub.textContent = t.paused ? 'Paused' : t.phase === 'looking' && chip ? chip.area : 'On the way';
+      tourSub.textContent = t.paused ? 'Paused' : t.phase === 'looking' && chip ? areaIn(chip.area, d.ctx.hud.units?.() ?? 'sqft') : 'On the way';
       tourPause.innerHTML = t.paused ? ICONS.play : ICONS.pause;
       tourPause.setAttribute('aria-label', t.paused ? 'Resume the tour' : 'Pause the tour');
       tourPause.hidden = false;
@@ -555,6 +579,7 @@ export function mountNav(d: NavDeps): MountedNav {
   });
 
   setMapOpen(mapOpen, false);
+  setMapBig(mapBig, false);
   syncBarHeight();
   applyVisibility();
 
@@ -570,6 +595,7 @@ export function mountNav(d: NavDeps): MountedNav {
       barObserver?.disconnect();
       mapObserver?.disconnect();
       window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener(UNITS_EVENT, onUnits);
       canvas.removeEventListener('pointerdown', interrupt, true);
       parent.removeEventListener('pointerdown', onHudPress, true);
       canvas.removeEventListener('wheel', interrupt, true);

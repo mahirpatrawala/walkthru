@@ -2,13 +2,7 @@
    (translucent, rounded, a white pill for the selected mode). Every class is wt-views-... so the top bar that adopts the control can restyle or drop it. */
 
 :root {
-  --wtv-glass: var(--wt-glass, rgba(26, 21, 19, 0.74));
-  --wtv-glass-border: var(--wt-glass-line, rgba(255, 255, 255, 0.14));
-  --wtv-ink: var(--wt-glass-text, #fff);
-  --wtv-muted: var(--wt-glass-dim, rgba(255, 255, 255, 0.74));
-  --wtv-pill: var(--wt-glass-on, rgba(255, 255, 255, 0.94));
   --wtv-pill-ink: #14171c;
-  --wtv-blur: var(--wt-glass-blur, blur(calc(14 * var(--wt-u, 1px))) saturate(1.25));
   --wtv-accent: #c0502e;
 }
 
@@ -16,17 +10,17 @@
 .wt-views-bar {
   position: absolute; z-index: 5; left: 50%; top: calc(calc(12 * var(--wt-u, 1px)) + var(--wt-safe-t, 0px)); transform: translateX(-50%);
   display: flex; gap: calc(2 * var(--wt-u, 1px)); padding: calc(4 * var(--wt-u, 1px)); border-radius: calc(16 * var(--wt-u, 1px)); pointer-events: auto;
-  background: var(--wtv-glass); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur);
+  background: var(--wt-glass); border: 1px solid var(--wt-glass-line); -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur);
   box-shadow: 0 calc(4 * var(--wt-u, 1px)) calc(18 * var(--wt-u, 1px)) rgba(8, 10, 16, 0.28);
 }
 .wt-views-seg {
-  display: inline-flex; align-items: center; gap: calc(7 * var(--wt-u, 1px)); min-height: calc(40 * var(--wt-u, 1px)); padding: 0 calc(14 * var(--wt-u, 1px)) 0 calc(12 * var(--wt-u, 1px)); border: 0; border-radius: calc(12 * var(--wt-u, 1px)); background: transparent; color: var(--wtv-muted);
+  display: inline-flex; align-items: center; gap: calc(7 * var(--wt-u, 1px)); min-height: calc(40 * var(--wt-u, 1px)); padding: 0 calc(14 * var(--wt-u, 1px)) 0 calc(12 * var(--wt-u, 1px)); border: 0; border-radius: calc(12 * var(--wt-u, 1px)); background: transparent; color: var(--wt-glass-dim);
   font-family: var(--wt-font, system-ui, sans-serif); font-size: calc(14 * var(--wt-u, 1px)); font-weight: 600; letter-spacing: -0.005em; cursor: pointer; white-space: nowrap;
   transition: background 160ms ease, color 160ms ease;
 }
 .wt-views-seg svg { display: block; flex: none; }
-.wt-views-seg:hover { color: var(--wtv-ink); background: rgba(255, 255, 255, 0.08); }
-.wt-views-seg.is-on { background: var(--wtv-pill); color: var(--wtv-pill-ink); box-shadow: 0 1px calc(6 * var(--wt-u, 1px)) rgba(0, 0, 0, 0.22); }
+.wt-views-seg:hover { color: var(--wt-glass-text); background: rgba(255, 255, 255, 0.08); }
+.wt-views-seg.is-on { background: var(--wt-glass-on); color: var(--wtv-pill-ink); box-shadow: 0 1px calc(6 * var(--wt-u, 1px)) rgba(0, 0, 0, 0.22); }
 .wt-views-seg:focus-visible { outline: calc(2 * var(--wt-u, 1px)) solid #fff; outline-offset: calc(2 * var(--wt-u, 1px)); }
 /* the toast and the mode bar sit under the control */
 .wt-has-views .wt-top { top: calc(calc(68 * var(--wt-u, 1px)) + var(--wt-safe-t, 0px)); }
@@ -44,18 +38,18 @@
 .wt-view-dollhouse .wt-btn[data-btn='measure'],
 .wt-view-plan .wt-btn[data-btn='measure'], .wt-view-plan .wt-btn[data-btn='furnish'] { display: none; }
 .wt-view-dollhouse .wt-stack .wt-pill, .wt-view-plan .wt-stack .wt-pill { display: none; }
-.wt-view-plan .wt-nav-map, .wt-view-plan .wt-nav-bar, .wt-view-plan .wt-chip, .wt-view-plan .wt-layout-chip { display: none !important; }
+.wt-view-plan .wt-nav-map, .wt-view-plan .wt-nav-bar, .wt-view-plan .wt-layout-chip { display: none !important; }
 .wt-view-plan .wt-stack { display: none; }
 
 /* ---- the doll house: room names floating over the rooms, and the hover tip */
 .wt-views-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
 .wt-views-label {
   position: absolute; left: 0; top: 0; display: inline-flex; align-items: baseline; gap: calc(6 * var(--wt-u, 1px)); padding: calc(2 * var(--wt-u, 1px)) calc(8 * var(--wt-u, 1px)) calc(3 * var(--wt-u, 1px)); border-radius: calc(8 * var(--wt-u, 1px)); white-space: nowrap; line-height: 1.2;
-  background: rgba(26, 29, 36, 0.5); color: var(--wtv-ink); -webkit-backdrop-filter: blur(calc(5 * var(--wt-u, 1px))); backdrop-filter: blur(calc(5 * var(--wt-u, 1px)));
+  background: rgba(26, 29, 36, 0.5); color: #fff; -webkit-backdrop-filter: blur(calc(5 * var(--wt-u, 1px))); backdrop-filter: blur(calc(5 * var(--wt-u, 1px)));
   font-family: var(--wt-font, system-ui, sans-serif); will-change: transform, opacity; opacity: 0; transition: background 140ms ease;
 }
 .wt-views-label-name { font-size: calc(11.5 * var(--wt-u, 1px)); font-weight: 650; letter-spacing: -0.005em; }
-.wt-views-label-area { font-size: calc(10.5 * var(--wt-u, 1px)); font-weight: 500; color: var(--wtv-muted); }
+.wt-views-label-area { font-size: calc(10.5 * var(--wt-u, 1px)); font-weight: 500; color: rgba(255, 255, 255, 0.8); }
 .wt-views-label-area[hidden] { display: none; }
 .wt-views-label.is-partial { background: rgba(70, 82, 96, 0.5); }
 /* a tiny room (a toilet, a passage) is a dot that opens to its name when the pointer is on it or the view is close */
@@ -63,10 +57,10 @@
 .wt-views-label.is-dot > span { display: none; }
 .wt-views-tip {
   position: absolute; left: 0; top: 0; z-index: 3; margin: -46px 0 0 0; padding: calc(7 * var(--wt-u, 1px)) calc(12 * var(--wt-u, 1px)); border-radius: calc(12 * var(--wt-u, 1px)); pointer-events: none; white-space: nowrap; will-change: transform;
-  background: var(--wtv-glass); color: var(--wtv-ink); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur);
-  font-family: var(--wt-font, system-ui, sans-serif); font-size: calc(13 * var(--wt-u, 1px)); font-weight: 600; box-shadow: 0 calc(4 * var(--wt-u, 1px)) calc(16 * var(--wt-u, 1px)) rgba(8, 10, 16, 0.3);
+  background: var(--wt-glass); color: var(--wt-glass-text); border: 1px solid var(--wt-glass-line); -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur);
+  font-family: var(--wt-font, system-ui, sans-serif); font-size: calc(13 * var(--wt-u, 1px)); font-weight: 600; box-shadow: var(--wt-glass-shadow); text-shadow: var(--wt-glass-halo);
 }
-.wt-views-tip::after { content: ''; position: absolute; left: calc(14 * var(--wt-u, 1px)); bottom: -5px; width: calc(10 * var(--wt-u, 1px)); height: calc(10 * var(--wt-u, 1px)); background: inherit; border-right: 1px solid var(--wtv-glass-border); border-bottom: 1px solid var(--wtv-glass-border); transform: rotate(45deg); }
+.wt-views-tip::after { content: ''; position: absolute; left: calc(14 * var(--wt-u, 1px)); bottom: -5px; width: calc(10 * var(--wt-u, 1px)); height: calc(10 * var(--wt-u, 1px)); background: inherit; border-right: 1px solid var(--wt-glass-line); border-bottom: 1px solid var(--wt-glass-line); transform: rotate(45deg); }
 .wt-views-tip[hidden] { display: none; }
 
 /* ---- the plan */
@@ -127,14 +121,14 @@
 .wt-views-plan .wt-views-dot { fill: var(--wtv-accent); stroke: #fff; }
 .wt-views-plan-ctl {
   position: absolute; right: calc(calc(16 * var(--wt-u, 1px)) + var(--wt-safe-r, 0px)); bottom: calc(calc(22 * var(--wt-u, 1px)) + var(--wt-safe-b, 0px)); display: flex; flex-direction: column; gap: calc(2 * var(--wt-u, 1px)); padding: calc(4 * var(--wt-u, 1px)); border-radius: calc(14 * var(--wt-u, 1px));
-  background: var(--wtv-glass); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur); cursor: default;
+  background: var(--wt-glass); border: 1px solid var(--wt-glass-line); -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur); box-shadow: var(--wt-glass-shadow); cursor: default;
 }
-.wt-views-plan-ctl button { width: calc(40 * var(--wt-u, 1px)); height: calc(40 * var(--wt-u, 1px)); border: 0; border-radius: calc(10 * var(--wt-u, 1px)); background: transparent; color: var(--wtv-ink); font-size: calc(20 * var(--wt-u, 1px)); line-height: 1; cursor: pointer; font-family: inherit; }
-.wt-views-plan-ctl button:hover { background: rgba(255, 255, 255, 0.12); }
+.wt-views-plan-ctl button { width: calc(40 * var(--wt-u, 1px)); height: calc(40 * var(--wt-u, 1px)); border: 0; border-radius: calc(10 * var(--wt-u, 1px)); background: transparent; color: var(--wt-glass-text); font-size: calc(20 * var(--wt-u, 1px)); line-height: 1; cursor: pointer; font-family: inherit; }
+.wt-views-plan-ctl button:hover { background: var(--wt-glass-hover); }
 .wt-views-plan-ctl button:focus-visible { outline: calc(2 * var(--wt-u, 1px)) solid #fff; outline-offset: 1px; }
 .wt-views-plan-hint {
   position: absolute; left: 50%; bottom: calc(calc(22 * var(--wt-u, 1px)) + var(--wt-safe-b, 0px)); transform: translateX(-50%); padding: calc(8 * var(--wt-u, 1px)) calc(14 * var(--wt-u, 1px)); border-radius: calc(999 * var(--wt-u, 1px)); pointer-events: none; white-space: nowrap;
-  background: var(--wtv-glass); color: var(--wtv-ink); border: 1px solid var(--wtv-glass-border); -webkit-backdrop-filter: var(--wtv-blur); backdrop-filter: var(--wtv-blur); font-size: calc(13 * var(--wt-u, 1px)); font-weight: 600;
+  background: var(--wt-glass); color: var(--wt-glass-text); border: 1px solid var(--wt-glass-line); -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur); font-size: calc(13 * var(--wt-u, 1px)); font-weight: 600; box-shadow: var(--wt-glass-shadow);
 }
 @media (max-width: 720px) { .wt-views-plan-hint { bottom: calc(80px + var(--wt-safe-b, 0px)); } }
 

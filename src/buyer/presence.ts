@@ -1,19 +1,23 @@
-// A walk on a screen nobody holds (SPEC 2.7.4): the chrome steps away after a few seconds without input and comes back at the first touch, a mouse
-// move or a key; and, when the display is a kiosk, a long idle starts the tour by itself and loops it until someone touches the screen.
-// Parameters: `?kiosk=1` (no height picker, attract mode after 90 s), `?idle=<seconds>` (attract mode after that long, on its own or with kiosk),
-// `?autohide=<seconds>` (how long before the chrome fades, default 8, 0 = never). Pure rule in `parsePresence`, the DOM and timers in `mountPresence`.
-import type { HudImpl } from './hud';
+// A walk on a screen nobody holds (SPEC 2.7.4): when the display is a kiosk, a long idle starts the tour by itself and loops it until someone
+// touches the screen. The chrome's own coming and going is src/buyer/chrome.ts (calm by default, reveal on intent); this file reads the level a
+// link asks for and runs the idle tour.
+// Parameters: `?chrome=auto|always|hidden`, `?kiosk=1` (no height picker, chrome hidden, attract mode after 90 s), `?idle=<seconds>` (attract mode
+// after that long, on its own or with kiosk), `?autohide=<seconds>` (the older switch: 0 = `always`, a number = `auto` with that linger).
+// Pure rule in `parsePresence`, the timers in `mountPresence`.
+import { parseChromeLevel } from './chrome';
+import type { ChromeLevel } from './chrome';
 
 export interface PresenceConfig {
   kiosk: boolean;
   /** seconds of no input before the tour starts by itself, or null for never */
   attractAfterS: number | null;
-  /** seconds of no input before the chrome fades, or null for never */
-  hideAfterS: number | null;
+  /** how much of the chrome shows (src/buyer/chrome.ts) */
+  chrome: ChromeLevel;
+  /** seconds the chrome stays after a touch or a key, or null for the default */
+  lingerS: number | null;
 }
 
 export const DEFAULT_ATTRACT_S = 90;
-export const DEFAULT_HIDE_S = 8;
 
 const num = (v: string | null, lo: number, hi: number): number | null => {
   if (v === null || v.trim() === '') return null;
@@ -25,17 +29,13 @@ export function parsePresence(search: string): PresenceConfig {
   const q = new URLSearchParams(search);
   const kiosk = q.get('kiosk') === '1' || q.get('kiosk') === 'true';
   const idle = num(q.get('idle'), 10, 3600);
-  const hide = q.get('autohide');
-  const hideN = num(hide, 0, 600);
-  return {
-    kiosk,
-    attractAfterS: idle ?? (kiosk ? DEFAULT_ATTRACT_S : null),
-    hideAfterS: hideN === 0 ? null : hideN ?? DEFAULT_HIDE_S,
-  };
+  const c = parseChromeLevel(search);
+  return { kiosk, attractAfterS: idle ?? (kiosk ? DEFAULT_ATTRACT_S : null), chrome: c.level, lingerS: c.lingerMs === null ? null : c.lingerMs / 1000 };
 }
 
 export interface PresenceDeps {
-  hud: HudImpl;
+  /** the HUD root (the look sheet's close button is found in it) */
+  root: HTMLElement;
   cfg: PresenceConfig;
   /** the walker is free to be shown to: walk mode, no sheet that needs an answer */
   free(): boolean;
@@ -54,12 +54,12 @@ export function mountPresence(d: PresenceDeps): Presence {
   let attract = false;
   let lastX = -1, lastY = -1;
   const idleS = (): number => (performance.now() - last) / 1000;
-  const wake = (): void => { last = performance.now(); d.hud.setIdle(false); };
+  const wake = (): void => { last = performance.now(); };
   const stopAttract = (): void => { if (!attract) return; attract = false; d.stopTour(); };
   const closeSheets = (): void => {
     // every sheet answers Escape (the people sheets, Rooms, the lift, the map, the height picker); the look sheet has a close button
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    d.hud.root.querySelector<HTMLElement>('.wt-look-x')?.click();
+    d.root.querySelector<HTMLElement>('.wt-look-x')?.click();
   };
   // a press, a key or the wheel ends an attract tour and wakes the chrome; a mouse move only wakes the chrome
   const onPress = (): void => { stopAttract(); wake(); };
@@ -74,8 +74,7 @@ export function mountPresence(d: PresenceDeps): Presence {
   window.addEventListener('pointermove', onMove, { capture: true, passive: true });
   const timer = setInterval(() => {
     const idle = idleS();
-    const { hideAfterS, attractAfterS } = d.cfg;
-    if (hideAfterS !== null && idle >= hideAfterS && (d.free() || attract) && !d.hud.root.classList.contains('is-idle')) d.hud.setIdle(true);
+    const { attractAfterS } = d.cfg;
     if (attractAfterS !== null && !attract && idle >= attractAfterS && !d.touring()) {
       closeSheets();
       if (!d.free()) { setTimeout(() => { if (!attract && idleS() >= attractAfterS && d.free()) begin(); }, 400); return; }
@@ -84,7 +83,6 @@ export function mountPresence(d: PresenceDeps): Presence {
   }, 500);
   function begin(): void {
     attract = true;
-    d.hud.setIdle(true);
     void d.startTour().finally(() => { if (attract && !d.touring()) attract = false; });
   }
   return {
