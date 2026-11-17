@@ -24,6 +24,8 @@ const TUCK_IN_S = 0.07;
 const TUCK_OUT_S = 0.3;
 /** How fast a shift that is no longer needed goes away, seconds. */
 const SHIFT_EASE_S = 0.18;
+/** The most the shift may grow, metres a second (5 cm a frame at 30 fps: a stride of a walk is 4.7 cm a frame). */
+const SHIFT_ATTACK_MPS = 1.5;
 /** The furthest any clip reaches from the root, as a share of the body's height (the jog: 0.51), and so how much of the grid is looked at. */
 const REACH_RATIO = 0.56;
 /** A held-in arm hangs this far out from straight down, and its forearm this far forward, degrees. */
@@ -247,8 +249,14 @@ export class BodyGuard {
     if (field) {
       this.collect();
       const fit = solveBodyFit(field, this.pts, this.probes.length, BODY_FIT_MARGIN_M, this.shift.x * k, this.shift.z * k);
-      this.shift.x = fit.x; this.shift.z = fit.z;
-      this.residual = fit.residual;
+      // the shift may grow by this much a frame and no more: a foot swinging up to a wall asks for centimetres a frame, the body follows it a little
+      // behind (the margin takes up the difference) rather than jumping 10 cm in one. The first frame after a reset takes the whole of it.
+      let nx = fit.x, nz = fit.z;
+      const cap = this.snap || !(dt > 0) ? Infinity : SHIFT_ATTACK_MPS * dt;
+      const dx = nx - this.shift.x, dz = nz - this.shift.z, d = Math.hypot(dx, dz);
+      if (d > cap) { nx = this.shift.x + (dx * cap) / d; nz = this.shift.z + (dz * cap) / d; }
+      this.shift.x = nx; this.shift.z = nz;
+      this.residual = d > cap ? fitResidual(field, this.pts, this.probes.length, BODY_FIT_MARGIN_M, nx, nz) : fit.residual;
     } else {
       this.shift.x *= k; this.shift.z *= k;
       this.residual = 0;

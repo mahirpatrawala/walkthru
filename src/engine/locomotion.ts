@@ -24,9 +24,11 @@ const FACE_NONE_DEG = 90;
  * SPEC 4.12, walking at a wall. The walker looks this far ahead along its heading and slows so that it can stop where the way ends
  * (v^2 = 2 a d, with the stopping rate above): it arrives at a wall or a shut door at a crawl, standing, not in mid-stride.
  */
-const LOOK_AHEAD_M = 1.0;
+const LOOK_AHEAD_M = 1.2;
 /** The look-ahead plans to stop at this share of the stopping rate: a frame of lag in the speed then still leaves a crawl at the wall, not a stride. */
 const BRAKE_SHARE = 0.8;
+/** The approach to a dead end is planned at this gentle rate, m/s^2 (the speed at d metres from the end is sqrt(2 a d) and a crawl): a stride that was meant for open floor is not swung up to a wall, and the body is not asked to move off it in one frame. */
+const APPROACH_MPS2 = 1.1;
 /** The last of the way is taken at this pace, m/s, so the walker does reach the wall; under `ARRIVED_M` of free way it stands. */
 const CREEP_MPS = 0.18;
 const ARRIVED_M = 0.012;
@@ -118,7 +120,7 @@ export function stepLocomotion(ch: Character, input: Input, cameraYawDeg: number
   // the way ends ahead: slow down in time to stop there
   const ahead = wayAhead(grid, ch.position, ux, uz);
   mem.open = ahead >= LOOK_AHEAD_M;
-  if (ahead < LOOK_AHEAD_M) goal = Math.min(goal, ahead < ARRIVED_M ? 0 : Math.sqrt(2 * BRAKE_SHARE * DECEL_MPS2 * scale * (ahead - ARRIVED_M)) + CREEP_MPS * scale);
+  if (ahead < LOOK_AHEAD_M) goal = Math.min(goal, ahead < ARRIVED_M ? 0 : Math.sqrt(2 * Math.min(APPROACH_MPS2 * scale, BRAKE_SHARE * DECEL_MPS2 * scale) * (ahead - ARRIVED_M)) + CREEP_MPS * scale);
   mem.v = mem.v < goal ? Math.min(goal, mem.v + ACCEL_MPS2 * scale * dt) : Math.max(goal, mem.v - DECEL_MPS2 * scale * dt);
   mem.ux = ux; mem.uz = uz; mem.jog = jog;
   return glide(ch, mem, grid, dt, turnRate, scale);

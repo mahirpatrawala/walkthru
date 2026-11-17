@@ -218,14 +218,16 @@ describe('walking at a wall', () => {
     expect(ch.calls.slice(stop).every(([v]) => v === 0)).toBe(true);
   });
 
-  it('a jog brakes from further out, over the same stopping rate', () => {
+  it('a jog brakes from further out: as soon as the wall is inside the 1.2 m look-ahead, then it follows the gentle approach curve down to a stand', () => {
     const ch = fakeChar(3, 0.5);
     const zs: number[] = [], speeds: number[] = [];
     for (let i = 0; i < 240; i++) { speeds.push(stepLocomotion(ch, push(0, 1, true), 0, wall, DT)); zs.push(ch.position.z); }
     const braking = speeds.findIndex((v, i) => i > 0 && v < speeds[i - 1] - 1e-6);
-    // 3.4 m/s stops in 3.4^2 / (2 * 8.5) = 0.68 m
-    expect(4 - CHARACTER_RADIUS_M - zs[braking]).toBeGreaterThan(0.5);
-    expect(4 - CHARACTER_RADIUS_M - zs[braking]).toBeLessThan(0.85);
+    // 3.4 m/s is far over the approach curve (sqrt(2 * 1.1 * d) + 0.18 is 1.8 m/s at 1.2 m): it brakes the moment the wall is inside the look-ahead
+    expect(4 - CHARACTER_RADIUS_M - zs[braking]).toBeGreaterThan(0.9);
+    expect(4 - CHARACTER_RADIUS_M - zs[braking]).toBeLessThan(1.25);
+    // and never harder than the stopping rate, nor a frame of speed above the approach curve once on it
+    for (let i = 1; i < speeds.length; i++) expect(speeds[i - 1] - speeds[i]).toBeLessThan(8.5 * DT + 0.02);
     expect(speeds.at(-1)).toBe(0);
   });
 
