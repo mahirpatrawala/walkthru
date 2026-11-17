@@ -149,8 +149,10 @@ vec3 owWave(vec2 p, float t){
   ${fine ? 'vec2 q = p * 14.0 + vec2(t * 0.6, -t * 0.4); dx += (owN(q) - 0.5) * 0.02; dz += (owN(q + 17.0) - 0.5) * 0.02;' : ''}
   ${ultra ? `// 2K: soft ripples at three scales crossing each other, never still (a slow drift), gentle enough not to shimmer
   vec2 q1 = p * 4.3 + vec2(t * 0.21, t * 0.13); vec2 q2 = p * 9.7 + vec2(-t * 0.33, t * 0.27); vec2 q3 = p * 23.0 + vec2(t * 0.5, -t * 0.4);
-  dx += (owN(q1) - 0.5) * 0.034 + (owN(q2 + 5.0) - 0.5) * 0.022 + (owN(q3 + 9.0) - 0.5) * 0.012;
-  dz += (owN(q1 + 31.0) - 0.5) * 0.034 + (owN(q2 + 19.0) - 0.5) * 0.022 + (owN(q3 + 27.0) - 0.5) * 0.012;` : ''}
+  // the finer two fade with distance (a ripple smaller than a pixel only shimmers)
+  float fd = length(cameraPosition.xz - p); float f2 = 1.0 - smoothstep(5.0, 18.0, fd), f3 = 1.0 - smoothstep(2.5, 9.0, fd);
+  dx += (owN(q1) - 0.5) * 0.034 + (owN(q2 + 5.0) - 0.5) * 0.02 * f2 + (owN(q3 + 9.0) - 0.5) * 0.008 * f3;
+  dz += (owN(q1 + 31.0) - 0.5) * 0.034 + (owN(q2 + 19.0) - 0.5) * 0.02 * f2 + (owN(q3 + 27.0) - 0.5) * 0.008 * f3;` : ''}
   return normalize(vec3(-dx, 1.0, -dz));
 }
 void main(){

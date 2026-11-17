@@ -31,6 +31,9 @@ function settle(g: THREE.BufferGeometry, kind: 'quilt' | 'pillow', seed: number)
   const pos = g.attributes.position as THREE.BufferAttribute;
   const cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2, hx = (b.max.x - b.min.x) / 2, hz = (b.max.z - b.min.z) / 2, h = b.max.y - b.min.y;
   const ph = seed * 1.7;
+  // the valleys are a little darker (a soft occlusion in the vertex colour): the folds read under the flat, even light of a room, where a slope alone shows nothing
+  const col = new Float32Array(pos.count * 3).fill(1);
+  const deep = kind === 'quilt' ? 0.0085 : 0.0135, dark = kind === 'quilt' ? 0.16 : 0.12;
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i);
     // only the upper skin moves: a vertex within a third of the thickness of the top, weighted so the edge stays put
@@ -41,14 +44,17 @@ function settle(g: THREE.BufferGeometry, kind: 'quilt' | 'pillow', seed: number)
     const edge = Math.max(0, Math.min(ex, ez));
     let dy = 0;
     if (kind === 'quilt') {
-      // long soft ridges across the width and a few diagonal creases, 1 to 4 mm deep, with a sag over the middle of the mattress
-      dy = 0.0021 * (0.5 + 0.5 * Math.sin(z * 11 + Math.sin(x * 2.6 + ph) * 1.4 + ph)) + 0.0014 * (0.5 + 0.5 * Math.sin(x * 7.5 - z * 4.2 + ph * 2)) + 0.0012 * Math.max(0, 1 - Math.abs(x) / (hx * 0.9));
+      // soft ridges across the bed about 18 cm apart and diagonal creases, up to 8.5 mm deep in all, with a sag over the middle (the cover stays above the mattress)
+      dy = 0.0042 * (0.5 + 0.5 * Math.sin(z * 34 + Math.sin(x * 3.1 + ph) * 1.6 + ph)) + 0.0025 * (0.5 + 0.5 * Math.sin(x * 21 - z * 16 + ph * 2)) + 0.0018 * Math.max(0, 1 - Math.abs(x) / (hx * 0.9));
     } else {
       // a hollow where a head rests, and the case drawn a little tight at the corners
-      dy = 0.011 * Math.exp(-((x / (hx * 0.55)) ** 2 + (z / (hz * 0.55)) ** 2)) + 0.0016 * (0.5 + 0.5 * Math.sin(x * 23 + z * 17 + ph));
+      dy = 0.011 * Math.exp(-((x / (hx * 0.55)) ** 2 + (z / (hz * 0.55)) ** 2)) + 0.0025 * (0.5 + 0.5 * Math.sin(x * 38 + z * 29 + ph));
     }
     pos.setY(i, y - dy * up * edge);
+    const k = 1 - dark * Math.min(1, (dy * up * edge) / deep);
+    col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = k;
   }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   pos.needsUpdate = true;
   g.computeVertexNormals();
   return g;
@@ -152,7 +158,7 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
     const top = Math.min(S + QUILT_PROUD_M, H - 0.004);
     const bottom = S - Math.min(0.14, S - baseTop - 0.01);
     const duvetMat = p.duvet === 'quilted' ? duvetM : { key: 'cotton' as const, tint: duvetM.tint };
-    const body = q.puff > 0 ? softCushion(cw, top - bottom, zB - zA, { r: 0.03, seg: softSeg(q) }) : roundedBoxBetween(-cw / 2, cw / 2, -(top - bottom) / 2, (top - bottom) / 2, -(zB - zA) / 2, (zB - zA) / 2, 0.03, 1);
+    const body = q.puff > 0 ? softCushion(cw, top - bottom, zB - zA, { r: 0.03, seg: q.ultra ? 5 : softSeg(q) }) : roundedBoxBetween(-cw / 2, cw / 2, -(top - bottom) / 2, (top - bottom) / 2, -(zB - zA) / 2, (zB - zA) / 2, 0.03, 1);
     body.translate(0, (top + bottom) / 2, (zA + zB) / 2);
     if (q.ultra) settle(body, 'quilt', w * 3 + d);
     parts.put('duvet', duvetMat, body, { grain: 'x' });

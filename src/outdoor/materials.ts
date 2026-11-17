@@ -90,7 +90,7 @@ export class OutdoorMaterials {
   private readonly made = new Set<THREE.Material>();
   private readonly cache = new Map<string, THREE.MeshStandardMaterial>();
   /** the ground materials by finish, with what the 2K level replaced on them (SPEC 16.24), to put back */
-  private readonly grounds: { kind: GroundKind; mat: THREE.MeshStandardMaterial; uniforms: Patched['uniforms']; saved: { map: THREE.Texture | null; normalMap: THREE.Texture | null; roughness: number; mean: number } | null }[] = [];
+  private readonly grounds: { kind: GroundKind; mat: THREE.MeshStandardMaterial; uniforms: Patched['uniforms']; saved: { map: THREE.Texture | null; normalMap: THREE.Texture | null; roughness: number; mean: number; strength: number } | null }[] = [];
   private premium: THREE.Texture[] = [];
   private ultra = false;
   private disposed = false;
@@ -149,7 +149,7 @@ export class OutdoorMaterials {
       if (on) void this.premiumFor(g);
       else if (g.saved) {
         const s = g.saved;
-        g.mat.map = s.map; g.mat.normalMap = s.normalMap; g.mat.roughnessMap = null; g.mat.roughness = s.roughness; g.uniforms.uMean.value = s.mean;
+        g.mat.map = s.map; g.mat.normalMap = s.normalMap; g.mat.roughnessMap = null; g.mat.roughness = s.roughness; g.uniforms.uMean.value = s.mean; g.uniforms.uStrength.value = s.strength;
         g.mat.needsUpdate = true;
         g.saved = null;
       }
@@ -157,7 +157,7 @@ export class OutdoorMaterials {
     if (!on) { for (const t of this.premium) t.dispose(); this.premium = []; }
   }
 
-  private async premiumFor(g: { kind: GroundKind; mat: THREE.MeshStandardMaterial; uniforms: Patched['uniforms']; saved: { map: THREE.Texture | null; normalMap: THREE.Texture | null; roughness: number; mean: number } | null }): Promise<void> {
+  private async premiumFor(g: { kind: GroundKind; mat: THREE.MeshStandardMaterial; uniforms: Patched['uniforms']; saved: { map: THREE.Texture | null; normalMap: THREE.Texture | null; roughness: number; mean: number; strength: number } | null }): Promise<void> {
     const set = PREMIUM_GROUND[g.kind];
     if (!set || g.saved) return;
     const p = premiumPaths(set);
@@ -168,9 +168,10 @@ export class OutdoorMaterials {
         this.loader.texture(p.rough, { srgb: false, anisotropy: 8 }),
       ]);
       if (this.disposed || !this.ultra || g.saved) return;
-      g.saved = { map: g.mat.map, normalMap: g.mat.normalMap, roughness: g.mat.roughness, mean: g.uniforms.uMean.value };
+      g.saved = { map: g.mat.map, normalMap: g.mat.normalMap, roughness: g.mat.roughness, mean: g.uniforms.uMean.value, strength: g.uniforms.uStrength.value };
       g.mat.map = diff; g.mat.normalMap = nor; g.mat.roughnessMap = rough; g.mat.roughness = 1;
       g.uniforms.uMean.value = meanLuminance(diff);
+      g.uniforms.uStrength.value = Math.min(g.uniforms.uStrength.value, 0.8); // a 2K photograph has more contrast than the 512 px one it replaces: the finish keeps its own mean colour
       this.premium.push(diff, nor, rough);
       g.mat.needsUpdate = true;
     } catch (e) {

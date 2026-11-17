@@ -27,18 +27,18 @@ export interface Pbr {
 }
 
 export const PBR: Record<PbrClass, Pbr> = {
-  steel: { colour: '#D3D7DB', metalness: 1, rough: { k: 0.7, min: 0.2, max: 0.34 }, env: 1 },
-  chrome: { colour: '#F3F5F6', metalness: 1, rough: { k: 0.2, min: 0.035, max: 0.08 }, env: 1.1 },
+  steel: { colour: '#CBCFD3', metalness: 1, rough: { k: 0.55, min: 0.12, max: 0.3 }, env: 0.9 },
+  chrome: { colour: '#E2E5E7', metalness: 1, rough: { k: 0.2, min: 0.035, max: 0.08 }, env: 0.85 },
   brass: { metalness: 1, rough: { k: 0.8, min: 0.22, max: 0.34 }, env: 1 },
   darkMetal: { metalness: 0.9, rough: { k: 0.85, min: 0.3, max: 0.42 }, clearcoat: 0.3, clearcoatRoughness: 0.3, env: 0.9 },
-  ceramic: { metalness: 0, rough: { k: 0.2, min: 0.05, max: 0.09 }, clearcoat: 1, clearcoatRoughness: 0.03, env: 1 },
+  ceramic: { metalness: 0, rough: { k: 0.2, min: 0.05, max: 0.09 }, clearcoat: 1, clearcoatRoughness: 0.03, env: 0.72 },
   glass: { metalness: 0, rough: { k: 0.05, min: 0.01, max: 0.04 }, transmission: 1, thickness: 0.012, tintKeep: 0.45, env: 1.2 },
   mirror: { colour: '#EEF3F5', metalness: 1, rough: { k: 0.05, min: 0.012, max: 0.03 }, env: 1.25 },
-  lacquer: { metalness: 0, rough: { k: 0.55, min: 0.1, max: 0.2 }, clearcoat: 0.9, clearcoatRoughness: 0.07, env: 1 },
+  lacquer: { metalness: 0, rough: { k: 0.55, min: 0.1, max: 0.2 }, clearcoat: 0.9, clearcoatRoughness: 0.07, env: 0.85 },
   satin: { metalness: 0, rough: { k: 0.9, min: 0.4, max: 0.58 }, clearcoat: 0.28, clearcoatRoughness: 0.34, env: 0.9 },
   veneer: { metalness: 0, rough: { k: 0.8, min: 0.34, max: 0.5 }, clearcoat: 0.32, clearcoatRoughness: 0.26, env: 0.9 },
-  fabric: { metalness: 0, rough: { k: 1, min: 0.85, max: 1 }, sheen: 0.4, sheenRoughness: 0.55, env: 0.5 },
-  bedding: { metalness: 0, rough: { k: 1, min: 0.8, max: 0.95 }, sheen: 0.5, sheenRoughness: 0.45, env: 0.45 },
+  fabric: { metalness: 0, rough: { k: 1, min: 0.85, max: 1 }, sheen: 0.35, sheenRoughness: 0.5, env: 0.5 },
+  bedding: { metalness: 0, rough: { k: 1, min: 0.8, max: 0.95 }, sheen: 0.35, sheenRoughness: 0.42, env: 0.45 },
   leather: { metalness: 0, rough: { k: 0.8, min: 0.4, max: 0.55 }, clearcoat: 0.3, clearcoatRoughness: 0.33, sheen: 0.25, sheenRoughness: 0.5, env: 0.8 },
   plastic: { metalness: 0, rough: { k: 0.65, min: 0.3, max: 0.5 }, clearcoat: 0.2, clearcoatRoughness: 0.25, env: 0.85 },
   screen: { metalness: 0, rough: { k: 0.1, min: 0.03, max: 0.06 }, clearcoat: 1, clearcoatRoughness: 0.02, env: 1.1 },
@@ -93,6 +93,8 @@ export function classify(p: PbrProbe): PbrClass | null {
     case 'cotton': case 'quilt': return 'bedding';
     case 'lamp': return 'shade';
     case 'dark': return 'plastic';
+    case 'kit-grill': case 'kit-railing': case 'kit-fixtures': case 'kit-fan': return 'plastic';
+    case 'kit-alu': return 'steel';
     case 'outdoor-glass': case 'outdoor-facade-glass': return 'glass';
     case 'outdoor-chrome': return 'chrome';
     case 'outdoor-metal': return 'plastic';
