@@ -66,7 +66,7 @@ describe.skipIf(!have)('hair reads as hair (16.6.12)', () => {
         const hm = hair.material as THREE.MeshPhysicalMaterial;
         expect(hm.roughness).toBeGreaterThanOrEqual(0.95);
         expect(hm.specularIntensity, 'a specular lobe is what read as a pale bald patch on the crown').toBeLessThanOrEqual(0.1);
-        expect(hm.sheen).toBeLessThanOrEqual(0.3);
+        expect(hm.sheen).toBeLessThanOrEqual(0.4);
         expect(hm.metalness).toBe(0);
         expect(hm.vertexColors).toBe(true);
         expect(hm.alphaHash).toBe(true);

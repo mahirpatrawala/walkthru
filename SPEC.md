@@ -2740,17 +2740,17 @@ The owner looked at the live site (the man in the clubhouse foyer, the camera bo
 
 The owner, watching the man jog from the follow camera (about 1.2 m behind and 0.6 m above the head): "why does his clothes look torn when he runs?", and earlier "looks bad clothes". Three defects, all in the character assets (`tools/make_family.py`, `tools/optimise-people.mjs`) and one material (`src/look/people-materials.ts`). Earlier clothes checks were made from 2 to 4 m with contact sheets of a few poses and missed all three; **the close, high view in every clip is now the one the clothes are judged from**, and `tests/people-cloth.test.ts` does it for every frame it samples.
 
-**1. Skin showing through the cloth.** Reproduced first, in the browser (frozen clip phases, `freeCam`-style cameras 0.6 to 1.6 m away) and then measured without one: `tests/helpers/people-skin.ts` poses the shipped GLB with three's own skinning (the clip library retargeted onto it, as the page does) and asks what a camera would see. Measured worst pose, cm2 of skin (and, second, of trousers under a top) visible where cloth must be, before and after, first tier:
+**1. Skin showing through the cloth.** Reproduced first, in the browser (frozen clip phases, `freeCam`-style cameras 0.6 to 1.6 m away) and then measured without one: `tests/helpers/people-skin.ts` poses the shipped GLB with three's own skinning (the clip library retargeted onto it, as the page does) and asks what a camera would see. Measured worst pose of each kind (`Sitting_Idle_Loop` or `Sitting_Enter`, a jog, a walk and so on; every sampled frame of it), cm2 of skin (and, second, of trousers under a top) visible where cloth must be, before and after, first tier:
 
 | | idle | walk | jog | sitting | fold arms |
 |---|---|---|---|---|---|
-| man, before | 7 | 53 | 84 | 122 | 44 |
-| man, after | 0 | 1 | 1 | 5 | 3 |
-| woman, before (skin / trousers) | 0 | 1 / 16 | 62 / 18 | 58 / 20 | 41 / 0 |
+| man, before | 7 | 53 | 84 | 124 | 44 |
+| man, after | 0 | 1 | 1 | 6 | 3 |
+| woman, before (skin / trousers) | 0 | 1 / 16 | 62 / 18 | 62 / 20 | 41 / 0 |
 | woman, after | 0 | 0 | 2 / 0 | 0 | 0 |
 | elder, before | 0 | 1 | 53 / 16 | 32 / 17 | 13 |
 | elder, after | 0 | 0 | 4 / 4 | 5 | 0 |
-| child, before | 0 | 0 / 14 | 14 / 3 | 0 / 6 | 6 |
+| child, before | 0 | 0 / 2 | 14 / 3 | 0 / 6 | 6 |
 | child, after | 0 | 0 / 4 | 2 / 8 | 0 / 5 | 1 |
 
 The causes, each found by looking at where the exposed triangles were (a table of bone, bind position and views) and then at a close render of that place:
@@ -2762,7 +2762,7 @@ The causes, each found by looking at where the exposed triangles were (a table o
 - **Simplification.** `optimise-people.mjs` simplifies the second (low) tier to a fifth of the cloth and a sixth of the skin; at 4 mm and 2 mm of error the skin came through the cloth by up to 238 cm2 in a jog. The second tier now uses 2 mm for the cloth and 1.2 mm for the skin; the file grows (man 122 to 144 kB).
 - **Not the cause:** hidden body faces (the skin keeps every face under the cloth, there is no mask), nor the retargeted clips.
 
-**2. Hair.** From behind, the hair was one dark dome with a hairline cut along a smooth curve, plus a specular band that read as a pale bald patch on the crown under realistic materials. Now: the hair cap has 64 columns (the outline is still measured in 40 bins and resampled), a ragged hairline (a step of up to 1.2 cm from one column to the next and a few locks 1.2 to 2.6 cm longer at the nape, `hair_cap(ragged, tufts)`), ridges between the strands that stand up to 30 % of the cap's thickness, and a vertex colour `COLOR_0`: rgb is the shade (0.8 to 1.0 strand to strand, darker toward the nape by up to 30 %), alpha feathers the last three rows to nothing (the plait of a braid, the swirl of a bun and the pigtails carry shade too). The page gives it a matte material: roughness 1, `specularIntensity` 0.06, sheen 0.25, colour lifted by 1.18 to make up for the shade, vertex colours and `alphaHash` on for the feathered edge (no sorting, no halo; the old height-based fade is gone). No light on the crown can make a pale patch (there is no specular lobe left to put one there); checked at Materials Off, 1K and 2K and three hours (sheet below). The crown's geometry test (`tests/people-hair.test.ts`) still passes for all four, both tiers.
+**2. Hair.** From behind, the hair was one dark dome with a hairline cut along a smooth curve, plus a specular band that read as a pale bald patch on the crown under realistic materials. Now: the hair cap has 64 columns (the outline is still measured in 40 bins and resampled), a ragged hairline (a step of up to 1.2 cm from one column to the next and a few locks 1.2 to 2.6 cm longer at the nape, `hair_cap(ragged, tufts)`), ridges between the strands that stand up to 30 % of the cap's thickness, and a vertex colour `COLOR_0`: rgb is the shade (0.8 to 1.0 strand to strand, darker toward the nape by up to 30 %), alpha feathers the last three rows to nothing (the plait of a braid, the swirl of a bun and the pigtails carry shade too). The page gives it a matte material: roughness 1, `specularIntensity` 0.06, sheen 0.35 (a brown, not white, sheen colour), colour lifted by 1.32 to make up for the shade, vertex colours and `alphaHash` on for the feathered edge (no sorting, no halo; the old height-based fade is gone). No light on the crown can make a pale patch (there is no specular lobe left to put one there); checked in the browser at Materials Off, 1K and 2K and at morning, afternoon and evening, against the old hair, which shows the patch at 1K and 2K. The crown's geometry test (`tests/people-hair.test.ts`) still passes for all four, both tiers.
 
 **3. White scraps.** The neck band (`trim` of the woman's, the elder's and the child's tops) was a separate loft from the body's outline, so its lower edge was inside the top at the breastbone (a white trapezoid under the neck) and slivers of it showed at the back of the neck on the elder and the child. It is now cut from the top's own rings, 4.2 or 4.5 mm off them, with a 3 mm lip, so it lies on the cloth wherever the cloth goes. The thigh scrap seated was the top of the trousers' leg showing under a T-shirt that rode up (the child) and the hip crease (the others): covered by the changes above, measured by the same test.
 

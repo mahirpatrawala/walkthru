@@ -78,8 +78,8 @@ const ROUGHNESS: Record<string, number> = { skin: 0.62, eyes: 0.25, pupil: 0.12,
  * Prepares the materials of a freshly parsed person. Every skinned mesh gets its own material (tint and tone never leak
  * between characters). Call once per parsed GLB.
  */
-/** The hair's vertex shade averages about 0.85 (the lightest strand is 1), so the colour is lifted by the same amount and the hair keeps its colour overall. */
-const HAIR_LIFT = 1.18;
+/** The hair's vertex shade averages about 0.8 (the lightest strand is 1), so the colour is lifted by a little more than that and the hair keeps its colour overall. */
+const HAIR_LIFT = 1.32;
 
 export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: number): PersonLook {
   const mats: THREE.MeshStandardMaterial[] = [];
@@ -96,7 +96,7 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
       const old = s.material as THREE.MeshStandardMaterial;
       const hm = new THREE.MeshPhysicalMaterial({
         color: new THREE.Color(fixed.hair).multiplyScalar(HAIR_LIFT), roughness: 1, metalness: 0, specularIntensity: 0.06, envMapIntensity: 0.55,
-        sheen: 0.25, sheenRoughness: 0.9, sheenColor: new THREE.Color(body === 'elder' ? '#BDB8AE' : '#5A4638'), side: old.side,
+        sheen: 0.35, sheenRoughness: 0.9, sheenColor: new THREE.Color(body === 'elder' ? '#BDB8AE' : '#6A5242'), side: old.side,
       });
       old.dispose();
       const col = s.geometry.getAttribute('color');
