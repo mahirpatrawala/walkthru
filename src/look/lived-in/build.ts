@@ -392,7 +392,7 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
       parts.add(rotY(box(x - 0.04, x + 0.04, 0.016, 0.034, 0.02, 0.07), yaw, x, 0), strap, 0.85);
     };
     const j = (): number => (rnd() - 0.5) * 8;
-    shoe(-0.2, j(), '#2F3A56', '#EFE9DC'); shoe(-0.09, j(), '#2F3A56', '#EFE9DC');
+    shoe(-0.2, j(), '#6A7C9E', '#EFE9DC'); shoe(-0.09, j(), '#6A7C9E', '#EFE9DC');
     chappal(0.11, j(), tone(p)); chappal(0.2, j(), tone(p));
   },
   curtain(p, parts, kit, seg) {
