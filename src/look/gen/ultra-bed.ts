@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { roundedBoxBetween } from '../furniture-parts';
 import { QUILT_PROUD_M, PILLOW_HEIGHT_M } from '../../core/bed-layout';
 import type { BedLayout } from '../../core/bed-layout';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { softCushion } from './soft';
 import { shade } from './core';
 import type { MatSpec, Parts } from './core';
@@ -21,39 +22,52 @@ export interface BedDress {
 
 const smooth = (a: number, b: number, x: number): number => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
-/** a pillowcase seam: a thin cord round the pillow's equator, following its rounded plan outline */
-function seamRing(w: number, d: number, r: number, y: number, cx: number, cz: number, rad: number): THREE.BufferGeometry {
-  const pts: THREE.Vector3[] = [];
-  const hw = w / 2 - 0.0015, hd = d / 2 - 0.0015, rr = Math.min(r, hw, hd);
-  const corner = (ox: number, oz: number, a0: number): void => { for (let i = 0; i <= 6; i++) { const a = a0 + (i / 6) * (Math.PI / 2); pts.push(new THREE.Vector3(cx + ox + Math.cos(a) * rr, y, cz + oz + Math.sin(a) * rr)); } };
-  corner(hw - rr, hd - rr, 0); corner(-(hw - rr), hd - rr, Math.PI / 2); corner(-(hw - rr), -(hd - rr), Math.PI); corner(hw - rr, -(hd - rr), Math.PI * 1.5);
-  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true, 'centripetal'), 96, rad, 8, true);
-}
-
-/** a pillow: crowned, a hollow in the middle where a head rests (only ever pressing down), the corners pinched in a little, and wrinkles at the case's edge */
+/** a pillow is a lens: two domed faces that meet at the seam round its edge (the plan is a squared-off oval), plump in the middle, a flat Oxford flange near the edge, a hollow on the top where a head rests */
+const NU = 56, NV = 40;
+const lens = (u: number, v: number): number => Math.pow(Math.pow(Math.abs(u), 4) + Math.pow(Math.abs(v), 4), 0.25); // 0 in the middle, 1 on the seam
+const dome = (r: number): number => Math.pow(Math.max(0, 1 - Math.pow(r, 2.4)), 0.62);
 function pillowGeo(w: number, d: number, seed: number): THREE.BufferGeometry {
-  const g = softCushion(w, PILLOW_HEIGHT_M, d, { r: 0.045, puff: 0.04, seg: 5 });
-  g.computeBoundingBox();
-  const b = g.boundingBox!;
-  const pos = g.attributes.position as THREE.BufferAttribute;
-  const hx = w / 2, hz = d / 2, ph = seed * 1.7;
-  for (let i = 0; i < pos.count; i++) {
-    let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    const u = x / hx, v = z / hz;
-    // the corners of the case are pulled in (only inward)
-    const pinch = 1 - 0.07 * Math.pow(Math.abs(u) * Math.abs(v), 1.5);
-    x *= pinch; z *= pinch;
-    const up = smooth(b.max.y - 0.04, b.max.y, y);
-    if (up > 0) {
-      const hollow = 0.014 * Math.exp(-((u / 0.55) ** 2 + (v / 0.5) ** 2));
-      const wrinkle = 0.0022 * (0.5 + 0.5 * Math.sin(x * 40 + z * 31 + ph)) * smooth(0.45, 0.95, Math.max(Math.abs(u), Math.abs(v)));
-      y -= (hollow + wrinkle) * up;
+  const hx = w / 2, hz = d / 2, H = PILLOW_HEIGHT_M, ph = seed * 1.7;
+  const pos: number[] = [], idx: number[] = [];
+  const grid = (sign: 1 | -1): void => {
+    const base = pos.length / 3;
+    for (let j = 0; j <= NV; j++) for (let i = 0; i <= NU; i++) {
+      let u = (i / NU) * 2 - 1, v = (j / NV) * 2 - 1;
+      const r = lens(u, v);
+      if (r > 1) { u /= r; v /= r; }
+      const rr = Math.min(1, r);
+      let f = dome(rr) * (H / 2);
+      if (sign > 0) {
+        const hollow = 0.014 * Math.exp(-((u / 0.5) ** 2 + (v / 0.46) ** 2));
+        const wrinkle = 0.0016 * (0.5 + 0.5 * Math.sin(u * hx * 38 + v * hz * 30 + ph)) * smooth(0.5, 0.95, rr);
+        f = Math.max(0, f - (hollow + wrinkle) * smooth(0, 0.35, f / (H / 2)));
+      }
+      pos.push(u * hx, sign * f, v * hz);
     }
-    pos.setXYZ(i, x, y, z);
-  }
-  pos.needsUpdate = true;
+    for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) {
+      const a = base + j * (NU + 1) + i, b = a + 1, c = a + NU + 1, e = c + 1;
+      if (sign > 0) idx.push(a, c, b, b, c, e); else idx.push(a, b, c, b, e, c);
+    }
+  };
+  grid(1); grid(-1);
+  let g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g = mergeVertices(g, 1e-6);
   g.computeVertexNormals();
   return g;
+}
+
+/** a cord or a line of thread on a pillow at `k` of the way from its middle to its seam (1 = the seam); on the top face when `top` is true, else the seam's own height */
+function pillowLine(w: number, d: number, k: number, top: boolean, cx: number, cy: number, cz: number, rad: number): THREE.BufferGeometry {
+  const hx = w / 2, hz = d / 2, pts: THREE.Vector3[] = [];
+  for (let i = 0; i < 96; i++) {
+    const t = (i / 96) * Math.PI * 2, c = Math.cos(t), s = Math.sin(t);
+    const u = Math.sign(c) * Math.pow(Math.abs(c), 0.5) * k, v = Math.sign(s) * Math.pow(Math.abs(s), 0.5) * k;
+    const y = top ? dome(Math.min(1, lens(u, v))) * (PILLOW_HEIGHT_M / 2) : 0;
+    pts.push(new THREE.Vector3(cx + u * hx, cy + y + (top ? 0.0008 : 0), cz + v * hz));
+  }
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true, 'centripetal'), 144, rad, 6, true);
 }
 
 /** how far the top of the cover is pressed down at (x, z), metres, 0 to about 9 mm: soft broad folds, the cloth drawn down toward its edge, and quilting channels (the stitched seam is the valley) */
@@ -151,6 +165,8 @@ export function dressBedUltra(parts: Parts, c: BedDress): void {
     const dy = over > 0 ? -over : 0;
     if (dy) g.translate(0, dy, 0);
     parts.put('pillows', c.pillow, g, { grain: 'x' });
-    parts.put('pillow-seams', seam, seamRing(pl.w, pl.d, 0.045, S + PILLOW_HEIGHT_M / 2 - 0.004 + dy, pl.x, pz, 0.0032), { noShadow: true });
+    // the seam cord round the edge, and the Oxford flange stitch 5 cm in
+    parts.put('pillow-seams', seam, pillowLine(pl.w, pl.d, 1, false, pl.x, S + PILLOW_HEIGHT_M / 2 + dy, pz, 0.0034), { noShadow: true });
+    parts.put('pillow-seams', shade(c.pillow, 0.82), pillowLine(pl.w, pl.d, 0.8, true, pl.x, S + PILLOW_HEIGHT_M / 2 + dy, pz, 0.0014), { noShadow: true });
   }
 }
