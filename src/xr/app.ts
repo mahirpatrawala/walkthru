@@ -153,7 +153,7 @@ export class VrApp {
     const pack = t.kind === 'space' ? this.opts.buildings.get(t.building)?.levels.flatMap((l) => l.spaces).find((s) => s.id === t.space)?.pack ?? null : null;
     try {
       const home = await loadHome(sceneId, this.viewer, {
-        quality: this.opts.url.quality, room: t.kind === 'scene' ? t.room ?? null : null, pack,
+        quality: this.opts.url.quality, room: t.kind === 'scene' ? t.room ?? null : null, pack, bare: t.kind === 'space' ? this.opts.buildings.get(t.building)?.bare === true : entry?.bare === true,
         toast: (text) => this.say(text),
         progress: (f, text) => this.set({ progress: f, progressText: text }),
       });
@@ -195,10 +195,13 @@ export class VrApp {
   }
 
   private panelModel(home: Home, key: string | null, currentRoomId: string | null): Partial<PanelModel> {
+    const group = this.homes.find((h) => h.key === key)?.group ?? 'homes';
     return {
       title: home.title, subtitle: home.subtitle ?? '',
       rooms: home.rooms.map((r) => ({ id: r.id, label: r.label, area: r.area, goable: r.goable })),
-      homes: this.homes.map((h) => ({ key: h.key, label: h.label, sub: h.sub })),
+      homes: this.homes.map((h) => ({ key: h.key, label: h.label, sub: h.sub, group: h.group })),
+      homeTab: group,
+      roomsHeading: group === 'shared' ? (home.rooms.length <= 1 ? 'This space' : 'Parts of this space') : 'Rooms in this home',
       currentHomeKey: key, currentRoomId, roomPage: 0, homePage: 0, status: null,
     };
   }
@@ -382,7 +385,7 @@ export class VrApp {
     }
     this.vis.setDoor(null, '', null);
     this.vis.setLine(obj, null);
-    const aim = aimTeleport(home.grid(), home.layout, f.origin, f.dir);
+    const aim = aimTeleport(home.grid(), home.layout, f.origin, f.dir, undefined, home.ceilingM);
     const landing = aim.end.kind === 'floor' && aim.check ? { point: aim.end.point, ok: aim.check.ok } : null;
     this.vis.setArc(aim.end.points, landing);
     if (f.triggerPressed && !busy) {

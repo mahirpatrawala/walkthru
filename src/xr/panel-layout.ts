@@ -7,7 +7,8 @@ export const PANEL_H = Math.round(PANEL_H_M * PANEL_PX_PER_M);
 
 export interface Rect { x: number; y: number; w: number; h: number }
 export interface PanelRoom { id: string; label: string; /** "12.4 m² · 133 sq ft", or why there is no size */ area: string; goable: boolean }
-export interface PanelHome { key: string; label: string; sub: string }
+export type HomeTab = 'homes' | 'shared';
+export interface PanelHome { key: string; label: string; sub: string; group?: HomeTab }
 
 export interface PanelModel {
   title: string;
@@ -18,6 +19,10 @@ export interface PanelModel {
   currentRoomId: string | null;
   roomPage: number;
   homePage: number;
+  /** the right-hand list shows homes, or the shared spaces of buildings */
+  homeTab?: HomeTab;
+  /** the left column's heading ("Rooms in this home" by default) */
+  roomsHeading?: string;
   /** a line in the footer: "Loading ...", or an error */
   status?: string | null;
 }
@@ -26,6 +31,7 @@ export type ButtonAction =
   | { type: 'room'; id: string }
   | { type: 'home'; key: string }
   | { type: 'page'; list: 'rooms' | 'homes'; delta: -1 | 1 }
+  | { type: 'tab'; tab: HomeTab }
   | { type: 'exit' }
   | { type: 'close' };
 
@@ -54,10 +60,15 @@ export const ROW_H = 64;
 export const ROW_PITCH = 70;
 export const ROWS_PER_PAGE = 7;
 export const ROWS_Y = 168;
+export const TAB_Y = ROWS_Y - 62;
+export const TAB_H = 50;
 export const PAGER_Y = ROWS_Y + ROWS_PER_PAGE * ROW_PITCH + 8;
 export const PAGER_H = 52;
 export const FOOTER_Y = PANEL_H - 96;
 export const FOOTER_H = 68;
+
+/** The entries the right-hand list shows now: the homes, or the shared spaces. An entry with no group is a home. */
+export const homesOfTab = (m: Pick<PanelModel, 'homes' | 'homeTab'>): PanelHome[] => m.homes.filter((h) => (h.group ?? 'homes') === (m.homeTab ?? 'homes'));
 
 export const pageCount = (n: number, per = ROWS_PER_PAGE): number => Math.max(1, Math.ceil(n / per));
 export const clampPage = (page: number, n: number, per = ROWS_PER_PAGE): number => Math.min(pageCount(n, per) - 1, Math.max(0, Math.floor(page) || 0));
@@ -65,12 +76,17 @@ export const clampPage = (page: number, n: number, per = ROWS_PER_PAGE): number 
 export function layoutPanel(m: PanelModel): PanelLayout {
   const buttons: PanelButton[] = [];
   const pagers: PanelLayout['pagers'] = [];
-  const headings = [
-    { text: 'Rooms in this home', x: COL_X[0], y: ROWS_Y - 22 },
-    { text: 'Other homes', x: COL_X[1], y: ROWS_Y - 22 },
-  ];
+  const headings = [{ text: m.roomsHeading ?? 'Rooms in this home', x: COL_X[0], y: ROWS_Y - 22 }];
+  const tab = m.homeTab ?? 'homes';
+  const shown = homesOfTab(m);
+  const hasShared = m.homes.some((h) => h.group === 'shared');
+  if (hasShared) {
+    const w = 310;
+    buttons.push({ action: { type: 'tab', tab: 'homes' }, rect: { x: COL_X[1], y: TAB_Y, w, h: TAB_H }, label: 'Other homes', enabled: true, active: tab === 'homes' });
+    buttons.push({ action: { type: 'tab', tab: 'shared' }, rect: { x: COL_X[1] + w + 20, y: TAB_Y, w, h: TAB_H }, label: 'Shared spaces', enabled: true, active: tab === 'shared' });
+  } else headings.push({ text: 'Other homes', x: COL_X[1], y: ROWS_Y - 22 });
   const column = (list: 'rooms' | 'homes', x: number): void => {
-    const n = list === 'rooms' ? m.rooms.length : m.homes.length;
+    const n = list === 'rooms' ? m.rooms.length : shown.length;
     const page = clampPage(list === 'rooms' ? m.roomPage : m.homePage, n);
     const from = page * ROWS_PER_PAGE;
     for (let i = from; i < Math.min(n, from + ROWS_PER_PAGE); i++) {
@@ -79,7 +95,7 @@ export function layoutPanel(m: PanelModel): PanelLayout {
         const r = m.rooms[i];
         buttons.push({ action: { type: 'room', id: r.id }, rect, label: r.label, sub: r.area, enabled: r.goable, active: r.id === m.currentRoomId });
       } else {
-        const h = m.homes[i];
+        const h = shown[i];
         const here = h.key === m.currentHomeKey;
         buttons.push({ action: { type: 'home', key: h.key }, rect, label: h.label, sub: here ? 'You are here' : h.sub, enabled: !here, active: here });
       }

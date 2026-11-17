@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { PANEL_DISTANCE_M, PANEL_H_M, PANEL_PX_PER_M, PANEL_RAY_M, PANEL_W_M } from './config';
 import { CanvasMesh, CARD, FONT, OCHRE, TERRACOTTA, fit, roundRect } from './canvas-mesh';
-import { clampPage, hitButton, layoutPanel, panelPlacement, rayToPanelPixel } from './panel-layout';
+import { clampPage, hitButton, homesOfTab, layoutPanel, panelPlacement, rayToPanelPixel } from './panel-layout';
 import type { ButtonAction, PanelButton, PanelLayout, PanelModel } from './panel-layout';
 import type { V3 } from './teleport';
 
@@ -42,7 +42,7 @@ export class VrPanel {
   update(patch: Partial<PanelModel>): void {
     this.model = { ...this.model, ...patch };
     this.model.roomPage = clampPage(this.model.roomPage, this.model.rooms.length);
-    this.model.homePage = clampPage(this.model.homePage, this.model.homes.length);
+    this.model.homePage = clampPage(this.model.homePage, homesOfTab(this.model).length);
     this.layout = layoutPanel(this.model);
     this.hover = null;
     this.redraw();
@@ -92,6 +92,7 @@ export class VrPanel {
   /** What a press on a button does to the panel's own state; the caller handles the rest (a teleport, a swap, exit). Returns the action for the caller. */
   press(b: PanelButton): ButtonAction | null {
     if (!b.enabled) return null;
+    if (b.action.type === 'tab') { this.update({ homeTab: b.action.tab, homePage: 0 }); return null; }
     if (b.action.type === 'page') {
       const a = b.action;
       if (a.list === 'rooms') this.update({ roomPage: this.model.roomPage + a.delta });
@@ -109,13 +110,13 @@ export class VrPanel {
       ctx.strokeStyle = 'rgba(255, 253, 248, 0.18)'; ctx.lineWidth = 3;
       roundRect(ctx, 2, 2, w - 4, h - 4, 42); ctx.stroke();
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = CARD; ctx.font = `800 54px ${FONT}`; ctx.textAlign = 'left';
+      ctx.fillStyle = CARD; ctx.font = `800 56px ${FONT}`; ctx.textAlign = 'left';
       ctx.fillText(fit(ctx, m.title, w - 72 - 20), 36, 52);
-      ctx.fillStyle = 'rgba(255, 253, 248, 0.62)'; ctx.font = `500 28px ${FONT}`;
+      ctx.fillStyle = 'rgba(255, 253, 248, 0.62)'; ctx.font = `500 30px ${FONT}`;
       ctx.fillText(fit(ctx, m.subtitle, w - 72), 36, 108);
-      for (const hd of L.headings) { ctx.fillStyle = OCHRE; ctx.font = `700 26px ${FONT}`; ctx.fillText(hd.text.toUpperCase(), hd.x, hd.y); }
+      for (const hd of L.headings) { ctx.fillStyle = OCHRE; ctx.font = `700 30px ${FONT}`; ctx.fillText(hd.text.toUpperCase(), hd.x, hd.y); }
       for (const b of L.buttons) this.drawButton(ctx, b, !!hov && JSON.stringify(hov.action) === JSON.stringify(b.action));
-      for (const p of L.pagers) { ctx.fillStyle = 'rgba(255, 253, 248, 0.6)'; ctx.font = `600 26px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText(p.text, p.x, p.y); }
+      for (const p of L.pagers) { ctx.fillStyle = 'rgba(255, 253, 248, 0.6)'; ctx.font = `600 30px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText(p.text, p.x, p.y); }
       if (m.status) {
         ctx.textAlign = 'center'; ctx.fillStyle = OCHRE; ctx.font = `600 28px ${FONT}`;
         ctx.fillText(fit(ctx, m.status, w - 700), w / 2, L.h - 62);
@@ -132,17 +133,19 @@ export class VrPanel {
     ctx.fill();
     if (b.active) { ctx.strokeStyle = OCHRE; ctx.lineWidth = 3; roundRect(ctx, r.x + 1.5, r.y + 1.5, r.w - 3, r.h - 3, 15); ctx.stroke(); }
     ctx.fillStyle = b.enabled ? CARD : 'rgba(255, 253, 248, 0.34)';
-    const centred = b.action.type === 'exit' || b.action.type === 'close' || b.action.type === 'page';
+    const centred = b.action.type === 'exit' || b.action.type === 'close' || b.action.type === 'page' || b.action.type === 'tab';
     if (centred) {
-      ctx.textAlign = 'center'; ctx.font = `700 ${b.action.type === 'page' ? 28 : 34}px ${FONT}`;
+      ctx.textAlign = 'center'; ctx.font = `700 ${b.action.type === 'page' ? 31 : b.action.type === 'tab' ? 32 : 36}px ${FONT}`;
       ctx.fillText(b.label, r.x + r.w / 2, r.y + r.h / 2 + 1);
       return;
     }
-    ctx.font = `700 31px ${FONT}`;
-    const subW = b.sub ? 250 : 0;
-    ctx.fillText(fit(ctx, b.label, r.w - 40 - subW), r.x + 20, r.y + r.h / 2 + 1);
+    // the second line of words takes the room it needs (up to 300 px) and the name takes the rest
+    ctx.font = `500 28px ${FONT}`;
+    const subW = b.sub ? Math.min(300, Math.ceil(ctx.measureText(b.sub).width)) : 0;
+    ctx.font = `700 35px ${FONT}`;
+    ctx.fillText(fit(ctx, b.label, r.w - 52 - subW), r.x + 20, r.y + r.h / 2 + 1);
     if (b.sub) {
-      ctx.textAlign = 'right'; ctx.font = `500 25px ${FONT}`;
+      ctx.textAlign = 'right'; ctx.font = `500 28px ${FONT}`;
       ctx.fillStyle = b.enabled ? 'rgba(255, 253, 248, 0.72)' : 'rgba(255, 253, 248, 0.38)';
       ctx.fillText(fit(ctx, b.sub, subW), r.x + r.w - 20, r.y + r.h / 2 + 1);
     }

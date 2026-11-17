@@ -47,13 +47,20 @@ export function mountLanding(root: HTMLElement, homes: HomeEntry[], opts: { debu
   const list = h('ul', 'xl-list');
   list.dataset.testid = 'home-list';
   homesSec.append(list);
-  wrap.append(top, stage, homesSec);
+  // the shared spaces of buildings (lobby, clubhouse, gym, halls, the pool area ...) under a second heading
+  const sharedSec = h('section', 'xl-homes');
+  sharedSec.append(h('h2', undefined, 'Shared spaces'));
+  const sharedList = h('ul', 'xl-list');
+  sharedList.dataset.testid = 'shared-list';
+  sharedSec.append(sharedList);
+  sharedSec.hidden = !homes.some((e) => e.group === 'shared');
+  wrap.append(top, stage, homesSec, sharedSec);
   root.append(wrap);
   document.title = 'walkthru VR';
 
   const base = mainSiteBase();
   const buttons = new Map<string, HTMLButtonElement>();
-  if (homes.length === 0) list.append(Object.assign(h('li', 'xl-empty', 'No homes are listed on this site yet.')));
+  if (!homes.some((e) => e.group === 'homes')) list.append(h('li', 'xl-empty', 'No homes are listed on this site yet.'));
   for (const e of homes) {
     const li = h('li');
     const b = h('button', 'xl-home');
@@ -61,7 +68,7 @@ export function mountLanding(root: HTMLElement, homes: HomeEntry[], opts: { debu
     b.dataset.key = e.key;
     b.append(h('b', undefined, e.label), h('span', undefined, e.sub));
     li.append(b);
-    list.append(li);
+    (e.group === 'shared' ? sharedList : list).append(li);
     buttons.set(e.key, b);
   }
   let dbg: HTMLElement | null = null;

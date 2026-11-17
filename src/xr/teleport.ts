@@ -92,8 +92,8 @@ export function validateTeleport(grid: Grid, layout: Layout, p: { x: number; z: 
 /** The whole aim: the arc, where it ends, and whether the viewer may go there. */
 export interface Aim { end: ArcEnd; check: TeleportCheck | null }
 
-export function aimTeleport(grid: Grid, layout: Layout, origin: V3, dir: V3, opts?: Parameters<typeof arcPoints>[2]): Aim {
-  const end = marchArc(grid, layout.wallHeightM, arcPoints(origin, dir, opts));
+export function aimTeleport(grid: Grid, layout: Layout, origin: V3, dir: V3, opts?: Parameters<typeof arcPoints>[2], ceilingM: number = layout.wallHeightM): Aim {
+  const end = marchArc(grid, ceilingM, arcPoints(origin, dir, opts));
   return { end, check: end.kind === 'floor' ? validateTeleport(grid, layout, end.point) : null };
 }
 
