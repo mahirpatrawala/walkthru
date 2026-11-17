@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import type { FurnitureItem, FurnitureKind, Tone } from '../types';
 import { buildRealFurniture } from '../look/furniture-real';
 import { applyFinish } from '../look/furniture-finish';
+import { PILLOW_HEIGHT_M, bedLayout } from '../core/bed-layout';
 import type { Tier } from '../look/types';
 
 const DEG = Math.PI / 180;
@@ -42,11 +43,9 @@ function buildBed(g: THREE.Group, item: FurnitureItem): void {
   addBox(g, 'mattress', C_MATTRESS, 0, 0, inner.w, inner.d, 0.3, Math.max(0.31, item.surfaceHeightM));
   // headboard: 0.05 deep across the back, up to the item's height
   addBox(g, 'headboard', C_BED_FRAME, 0, -d / 2 + 0.025, w, 0.05, 0, Math.max(item.heightM, item.surfaceHeightM + 0.05));
-  // pillows 0.45 x 0.30 x 0.10 at the head, one for a single bed
-  const pz = -inner.d / 2 + 0.15;
+  // sleeping pillows at the head, one for a single bed, where a person lying on the bed rests their head (src/core/bed-layout.ts)
   const py = Math.max(0.31, item.surfaceHeightM);
-  const xs = inner.w < 1.1 ? [0] : [-inner.w / 4, inner.w / 4];
-  xs.forEach((x, i) => addBox(g, `pillow${i}`, C_PILLOW, x, pz, 0.45, 0.3, py, py + 0.1));
+  bedLayout(item.box, item.inner).pillows.forEach((p, i) => addBox(g, `pillow${i}`, C_PILLOW, p.x, p.z, p.w, p.d, py, py + PILLOW_HEIGHT_M));
 }
 
 function buildSofa(g: THREE.Group, item: FurnitureItem): void {

@@ -5,6 +5,7 @@ import { polygonArea } from '../core/geometry';
 import { createEmptyProperty, validateProperty } from '../core/layout-validate';
 import { applyProposal, proposalToPatch } from '../editor/save';
 import { chooseSpawn } from '../import/propose';
+import { clearRoutes } from '../building/clear-routes';
 import type { PropertyFile } from '../types';
 
 /** The largest whole living room, else bedroom, else any room is where the home starts (the importer's own pick is the largest room, which can be a store). */
@@ -12,6 +13,8 @@ export function buildHome(sceneId: string, proposal: unknown, extras: unknown, t
   const p = createEmptyProperty(sceneId);
   const patch = proposalToPatch(proposal, extras);
   applyProposal(p, patch);
+  // the drawing's loose furniture never shuts a room away or blocks a door (src/building/clear-routes.ts): sofas and chairs slide aside, accent pieces go
+  p.furniture = clearRoutes(p.layout, p.furniture, patch.spawn ?? undefined).furniture;
   const area = (r: (typeof p.layout.rooms)[number]): number => Math.abs(polygonArea(r.polygon));
   const best = (rooms: typeof p.layout.rooms): (typeof p.layout.rooms)[number] | undefined => [...rooms].sort((a, b) => area(b) - area(a))[0];
   const home = best(p.layout.rooms.filter((x) => x.roomType === 'living' && !x.partial)) ?? best(p.layout.rooms.filter((x) => x.roomType === 'bedroom' && !x.partial)) ?? best(p.layout.rooms);

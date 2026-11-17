@@ -12,6 +12,9 @@ import { knownFinish } from '../src/look/finishes';
 import { resetStyle, setStyle } from '../src/look/style';
 import type { FurnitureItem } from '../src/types';
 import type { Tier } from '../src/look/types';
+import { BED_BASES, BED_HEADBOARDS } from '../src/look/gen/bed';
+import { SOFA_MAX_CUSHIONS } from '../src/look/gen/seating';
+import { BED_SIZES, YAWS, bedOf, expectLieClear, expectPlainBed, islands } from './helpers/bed-checks';
 
 const TIERS: Tier[] = ['low', 'medium', 'high'];
 const STYLE_PACKS = PACKS.filter((p) => !p.classic);
@@ -212,5 +215,74 @@ describe.skipIf(!process.env.GEN_COUNTS)('triangle counts (printed for the repor
       rows.push(`${pack.id} ${tier} ${parts.join(' ')}`);
     }
     (await import('node:fs')).writeFileSync(process.env.GEN_COUNTS!, rows.join('\n'));
+  });
+});
+
+describe('a bed carries a mattress, a flat quilt and its sleeping pillows, and nothing else', () => {
+  const styled = (packId: string, item: FurnitureItem, params: Record<string, unknown>, tier: Tier = 'medium'): THREE.Group => {
+    setStyle({ packId, sheet: { version: 1, pack: packId, source: 'typical', items: { [item.id]: { params } }, rooms: {}, fixtures: [] } });
+    return buildFurnitureMesh(item, { style: 'real', tier });
+  };
+  for (const pack of STYLE_PACKS) {
+    it(`${pack.id}: every base and headboard, single to king: two pillows (one on a single), no accent parts`, () => {
+      for (const base of BED_BASES) for (const headboard of BED_HEADBOARDS) for (const size of BED_SIZES) {
+        const item = bedOf(size);
+        const g = styled(pack.id, item, { base, headboard });
+        expect(g.children.some((c) => c.name === 'mattress')).toBe(true);
+        expectPlainBed(g, size.pillows);
+      }
+    });
+  }
+  it('a design that asks for cushions or more pillows on a bed gets none: they are not design values any more', () => {
+    expect(sanitizeParams('bed', { cushions: 2, pillows: 4, headboard: 'slatted' })).toEqual({ headboard: 'slatted' });
+    for (const p of STYLE_PACKS) expect(Object.keys(p.generators.bed ?? {}).filter((k) => /cushion|pillow/.test(k))).toEqual([]);
+  });
+  it('a person lies with their head on a pillow and nothing of the bed in them: every size, four ways round, every variant and tier', () => {
+    const pack = STYLE_PACKS[0].id;
+    for (const size of BED_SIZES) for (const yaw of YAWS) {
+      for (const base of BED_BASES) for (const headboard of BED_HEADBOARDS) expectLieClear(styled(pack, bedOf(size, yaw), { base, headboard }), bedOf(size, yaw));
+      for (const tier of TIERS) for (const duvet of ['quilted', 'plain', 'none']) expectLieClear(styled(pack, bedOf(size, yaw), { duvet }, tier), bedOf(size, yaw));
+      // a bed drawn as one box (no mattress size given) and people of other heights
+      expectLieClear(styled(pack, bedOf({ w: size.w, d: 2.0 }, yaw, false), { headboard: 'upholstered' }), bedOf({ w: size.w, d: 2.0 }, yaw, false));
+      for (const H of [1.5, 1.9]) expectLieClear(styled(pack, bedOf(size, yaw), {}), bedOf(size, yaw), H);
+    }
+  });
+  it('under every pack as shipped, the catalogue beds pass the same check', () => {
+    for (const pack of STYLE_PACKS) for (const id of ['bed-single', 'bed-double', 'bed-queen', 'bed-king']) for (const yaw of YAWS) {
+      const c = CATALOG.find((x) => x.id === id)!;
+      const item = itemFromCatalog(id, { cx: 2, cz: 3, w: c.footprint.w, d: c.footprint.d, yawDeg: yaw }, 'virtual');
+      setStyle({ packId: pack.id });
+      const g = buildFurnitureMesh(item, { style: 'real', tier: 'medium' });
+      expectPlainBed(g, id === 'bed-single' ? 1 : 2);
+      expectLieClear(g, item);
+    }
+  });
+});
+
+describe('a sofa carries at most two loose cushions, at its arms and behind where a person sits', () => {
+  it('two by default, never more, each behind the line of a sitter\'s hips', () => {
+    expect(SOFA_MAX_CUSHIONS).toBe(2);
+    expect(sanitizeParams('sofa', { cushions: 4 })).toEqual({});
+    for (const pack of STYLE_PACKS) for (const [w, d] of [[1.5, 0.85], [2.1, 0.9], [2.6, 1.6]]) {
+      setStyle({ packId: pack.id });
+      const item = imported('sofa', 'Sofa', w, d, 0.85, 0.43);
+      const g = new THREE.Group();
+      buildRealFurniture(g, item, 'medium', createFurnitureKit());
+      const cushions = g.children.filter((c) => c.name === 'sofa-cushions') as THREE.Mesh[];
+      const xs: number[] = [];
+      let n = 0;
+      for (const m of cushions) {
+        n += islands(m);
+        const pos = m.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) xs.push(pos.getX(i));
+        const bb = new THREE.Box3().setFromObject(m);
+        // core/poses.ts seats the hips 0.30 m behind the front edge: the cushions stay behind that line, and below the shoulders
+        expect(bb.max.z).toBeLessThan(d / 2 - 0.3 - 0.02);
+        expect(bb.max.y).toBeLessThan(0.43 + 0.45);
+      }
+      expect(n).toBe(2);
+      // pushed to the arms: each lies within its own width (and a little) of an arm's inner face
+      expect(xs.every((x) => Math.abs(x) > w / 2 - 0.17 - 0.45)).toBe(true);
+    }
   });
 });

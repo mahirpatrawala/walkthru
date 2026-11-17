@@ -534,7 +534,7 @@ describe('the planners apply the overlay deterministically', () => {
     built.group.traverse((o) => { if ((o as THREE.Mesh).isMesh) expect(new THREE.Raycaster(new THREE.Vector3(0, 5, 0), new THREE.Vector3(0, -1, 0)).intersectObject(o, false)).toEqual([]); });
   });
 
-  it('lived-in: a plant moves on free floor, a clock is moved and resized on its wall, cushions follow a moved bed, a removed piece keeps its record', () => {
+  it('lived-in: a plant moves on free floor, a clock is moved and resized on its wall, cushions follow a moved sofa, a removed piece keeps its record', () => {
     const grid = rasterizeLayout(l);
     const planned = planLivedIn({ layout: l, items: livedInFurniture, grid });
     const base = livedInFittings(l, planned, null, livedInFurniture, livedInFurniture);
@@ -547,14 +547,14 @@ describe('the planners apply the overlay deterministically', () => {
     const ov: FittingsOverlay = { removed: [], moved: {}, sized: {} };
     if (plant) ov.moved[plant.id] = { m: 'f', x: plant.centre.x + 0.3, z: plant.centre.z, yawDeg: 0 };
     if (clock) { ov.sized[clock.id] = [0.45]; }
-    const bed = livedInFurniture.find((i) => i.kind === 'bed')!;
-    const moved = livedInFurniture.map((i) => (i.id === bed.id ? { ...i, box: { ...i.box, cx: i.box.cx + 0.6 } } : i));
+    const sofa = livedInFurniture.find((i) => i.kind === 'sofa')!;
+    const moved = livedInFurniture.map((i) => (i.id === sofa.id ? { ...i, box: { ...i.box, cx: i.box.cx + 0.6 } } : i));
     const edited = livedInFittings(l, planned, ov, moved, livedInFurniture);
     expect(edited.records.find((r) => r.id === plant!.id)!.centre.x).toBeCloseTo(plant!.centre.x + 0.3, 6);
     if (clock) expect(edited.records.find((r) => r.id === clock.id)!.size.w).toBeCloseTo(0.45, 6);
-    const bedCushion = base.records.find((r) => r.kind === 'cushion' && r.hostLabel?.toLowerCase().includes('bed'))!;
-    const bc2 = edited.records.find((r) => r.id === bedCushion.id)!;
-    expect(bc2.centre.x).toBeCloseTo(bedCushion.centre.x + 0.6, 6);
+    const sofaCushion = base.records.find((r) => r.kind === 'cushion' && r.hostLabel?.toLowerCase().includes('sofa'))!;
+    const bc2 = edited.records.find((r) => r.id === sofaCushion.id)!;
+    expect(bc2.centre.x).toBeCloseTo(sofaCushion.centre.x + 0.6, 6);
     const rem = livedInFittings(l, planned, { removed: [cushion!.id], moved: {}, sized: {} }, livedInFurniture, livedInFurniture);
     expect(rem.records.find((r) => r.id === cushion!.id)!.removed).toBe(true);
     expect(rem.pieces.length).toBe(planned.length - 1);

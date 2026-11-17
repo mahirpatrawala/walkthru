@@ -17,7 +17,7 @@
   },
   "generators": {
     "wardrobe": { "shutterStyle": "flat", "handle": "groove" },
-    "bed": { "base": "legs", "headboard": "slatted", "duvet": "plain", "cushions": 1 },
+    "bed": { "base": "legs", "headboard": "slatted", "duvet": "plain" },
     "sofa": { "arms": "box", "legs": "metal" },
     "bench": { "shape": "curved-end", "cushion": true },
     "study": { "top": "slab", "handle": "groove" },

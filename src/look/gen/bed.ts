@@ -1,12 +1,14 @@
 // Bed generator: a base (platform, storage box or frame on legs), a headboard (panel, upholstered, slatted or none), a mattress with
-// a fitted sheet, a draped quilted duvet with a turned-down fold, pillows and striped cushions. The footprint, the total height
-// and the mattress top are exactly the item's (the bounding box is the box), and every soft part stays inside them.
+// a fitted sheet, a flat quilt that follows the mattress and sleeping pillows (two, or one on a single: src/core/bed-layout.ts, which
+// also places the head of a person lying on the bed). Nothing else lies on a bed: no accent cushions, bolster, throw or turned-down roll.
+// The footprint, the total height and the mattress top are exactly the item's (the bounding box is the box), and every soft part stays inside them.
 import * as THREE from 'three';
 import { roundedBoxBetween } from '../furniture-parts';
 import { softCushion } from './soft';
 import { Parts, role, shade } from './core';
 import type { GenEnv, GenSize, Roles } from './core';
 import { rod } from './geo';
+import { PILLOW_HEIGHT_M, QUILT_PROUD_M, bedLayout } from '../../core/bed-layout';
 
 export type BedBase = 'platform' | 'box' | 'legs';
 export type BedHeadboard = 'panel' | 'upholstered' | 'slatted' | 'none';
@@ -18,15 +20,11 @@ export interface BedParams {
   headboard: BedHeadboard;
   /** top of the base, 0 = from the surface height */
   baseTopM: number;
-  /** pillows, 0 = automatic (two on a bed 1.2 m wide or more) */
-  pillows: number;
-  /** striped accent cushions in front of the pillows */
-  cushions: number;
   duvet: 'quilted' | 'plain' | 'none';
 }
-export const BED_DEFAULTS: BedParams = { base: 'platform', headboard: 'panel', baseTopM: 0, pillows: 0, cushions: 2, duvet: 'quilted' };
+export const BED_DEFAULTS: BedParams = { base: 'platform', headboard: 'panel', baseTopM: 0, duvet: 'quilted' };
 
-/** moves a soft part down if its top would rise above `top` (a pillow or cushion on a low bed stays inside the item's height) */
+/** moves a soft part down if its top would rise above `top` (a pillow on a low bed stays inside the item's height) */
 function fitTop(g: THREE.BufferGeometry, top: number): THREE.BufferGeometry {
   g.computeBoundingBox();
   const over = g.boundingBox!.max.y - top;
@@ -44,7 +42,6 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
   const sheet = role(roles, 'bedding');
   const duvetM = role(roles, 'duvet', 'bedding');
   const pillowM = role(roles, 'pillow', 'bedding');
-  const cushionM = role(roles, 'cushion', 'fabric');
   const dark = role(roles, 'plinth', 'handle');
   const legM = role(roles, 'legs', 'case');
 
@@ -107,52 +104,31 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
   const mh = S - baseTop;
   parts.put('mattress', sheet, roundedBoxBetween(-m.w / 2, m.w / 2, baseTop, S, mz0, mz1, Math.min(0.05, mh / 2.2), Math.max(2, q.seg)), { grain: 'x' });
 
-  // ---- duvet: a tailored quilt, one soft block over the mattress from the foot to a turned-down roll, its sides and foot hanging past the mattress
+  // ---- quilt: one flat cover that follows the mattress from just below the pillows to the foot, its sides and foot hanging past the mattress.
+  // Its top stands QUILT_PROUD_M above the mattress top and no more: a person lies on it, it never reaches into them
+  const lay = bedLayout({ w, d }, size.inner);
   if (p.duvet !== 'none') {
-    const cover = 0.72;
-    const zA = mz1 - cover * (mz1 - mz0), zB = Math.min(d / 2 - 0.003, mz1 + 0.02);
+    const zA = Math.max(mz0, lay.quiltZ0), zB = Math.min(d / 2 - 0.003, mz1 + 0.02);
     const cw = Math.min(m.w + 0.07, w - 0.012);
-    const thick = p.duvet === 'quilted' ? 0.05 : 0.038;
-    const top = Math.min(S + thick, H - 0.004);
+    const top = Math.min(S + QUILT_PROUD_M, H - 0.004);
     const bottom = S - Math.min(0.14, S - baseTop - 0.01);
     const duvetMat = p.duvet === 'quilted' ? duvetM : { key: 'cotton' as const, tint: duvetM.tint };
-    const body = q.puff > 0 ? softCushion(cw, top - bottom, zB - zA, { r: 0.045, puff: 0.012, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-cw / 2, cw / 2, -(top - bottom) / 2, (top - bottom) / 2, -(zB - zA) / 2, (zB - zA) / 2, 0.04, 1);
+    const body = q.puff > 0 ? softCushion(cw, top - bottom, zB - zA, { r: 0.03, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-cw / 2, cw / 2, -(top - bottom) / 2, (top - bottom) / 2, -(zB - zA) / 2, (zB - zA) / 2, 0.03, 1);
     body.translate(0, (top + bottom) / 2, (zA + zB) / 2);
     parts.put('duvet', duvetMat, body, { grain: 'x' });
     if (p.duvet === 'quilted') {
-      // quilting channels across the quilt, as thin darker bands standing 1.5 mm proud of its top
+      // quilting channels across the quilt, as thin darker bands standing 1 mm proud of its top
       const seam = shade(duvetM, 0.88);
-      for (let z = zA + 0.42; z < zB - 0.1; z += 0.22) parts.box('duvet-seams', seam, -cw / 2 + 0.05, cw / 2 - 0.05, top - 0.0015, top + 0.0015, z - 0.0025, z + 0.0025, { c: 0 });
+      for (let z = zA + 0.22; z < zB - 0.1; z += 0.22) parts.box('duvet-seams', seam, -cw / 2 + 0.05, cw / 2 - 0.05, top - 0.0015, top + 0.001, z - 0.0025, z + 0.0025, { c: 0 });
     }
-    const rollTop = Math.min(S + thick + 0.045, H - 0.004);
-    const roll = q.puff > 0 ? softCushion(cw - 0.03, rollTop - S, 0.2, { r: Math.min(0.05, (rollTop - S) / 2.2), seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-(cw - 0.03) / 2, (cw - 0.03) / 2, -(rollTop - S) / 2, (rollTop - S) / 2, -0.1, 0.1, 0.04, 1);
-    roll.translate(0, (rollTop + S) / 2, zA + 0.1);
-    parts.put('duvet-fold', duvetMat, roll, { grain: 'x' });
   }
 
-  // ---- pillows lean against the headboard
-  const two = m.w >= 1.2;
-  const nPillow = p.pillows > 0 ? p.pillows : two ? 2 : 1;
-  const pw = Math.min(0.66, (m.w - 0.06) / nPillow - 0.02), pd = 0.42, ph = 0.15;
-  const tilt = 0.26;
-  const pz = Math.max(mz0, hz1) + 0.05 + pd / 2 * Math.cos(tilt);
-  for (let i = 0; i < nPillow; i++) {
-    const x = nPillow === 1 ? 0 : ((i + 0.5) / nPillow - 0.5) * (m.w - 0.06);
-    const g = q.puff > 0 ? softCushion(pw, ph, pd, { r: 0.06, puff: 0.04, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-pw / 2, pw / 2, -ph / 2, ph / 2, -pd / 2, pd / 2, 0.04, 1);
-    g.rotateX(tilt);
-    g.translate(x, S + 0.035 + ph / 2, pz);
+  // ---- sleeping pillows, flat on the mattress at the head, where a person lying on the bed rests their head
+  for (const pl of lay.pillows) {
+    const pz = Math.max(pl.z, mz0 + 0.01 + pl.d / 2);
+    const g = q.puff > 0 ? softCushion(pl.w, PILLOW_HEIGHT_M, pl.d, { r: 0.045, puff: 0.03, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-pl.w / 2, pl.w / 2, -PILLOW_HEIGHT_M / 2, PILLOW_HEIGHT_M / 2, -pl.d / 2, pl.d / 2, 0.04, 1);
+    g.translate(pl.x, S + PILLOW_HEIGHT_M / 2, pz);
     parts.put('pillows', pillowM, fitTop(g, H - 0.004), { grain: 'x' });
-  }
-  // striped cushions in front of the pillows
-  const nC = Math.max(0, Math.min(4, Math.round(p.cushions)));
-  for (let i = 0; i < nC; i++) {
-    const cwid = 0.46, cth = 0.13;
-    const g = q.puff > 0 ? softCushion(cwid, cth, cwid, { r: 0.06, puff: 0.04, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-cwid / 2, cwid / 2, -cth / 2, cth / 2, -cwid / 2, cwid / 2, 0.04, 1);
-    g.rotateX(0.9 + 0.1 * (i % 2));
-    g.rotateY((i % 2 ? 1 : -1) * 0.12);
-    const x = nC === 1 ? 0 : ((i + 0.5) / nC - 0.5) * Math.min(m.w - 0.3, 0.85);
-    g.translate(x, S + 0.19, pz + 0.3 + (i % 2) * 0.03);
-    parts.put('cushions', cushionM, fitTop(g, H - 0.004), { tile: 0.42 });
   }
   void H;
   return parts.done();

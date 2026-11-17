@@ -9,6 +9,7 @@ import { createFurnitureKit } from '../src/look/furniture-materials';
 import type { FurnitureItem } from '../src/types';
 import type { Tier } from '../src/look/types';
 import { TRUTH, makeBedroom } from './helpers/synthetic-bedroom';
+import { BED_SIZES, YAWS, bedOf, expectLieClear, expectPlainBed } from './helpers/bed-checks';
 
 const TIERS: Tier[] = ['low', 'medium', 'high'];
 const box = (w: number, d: number) => ({ cx: 0, cz: 0, w, d, yawDeg: 0 });
@@ -108,11 +109,21 @@ describe('counts (check 4)', () => {
     expect(count(mk(2.1), /^seat-cushion/)).toBe(3);
     expect(count(mk(1.5), /^seat-cushion/)).toBe(2);
   });
-  it('a bed has a headboard, pillows and a folded cover', () => {
+  it('a bed has a headboard, two sleeping pillows and a flat cover, and nothing else on it', () => {
     const g = buildFurnitureMesh(itemFromCatalog('bed-queen', box(1.62, 2.08), 'virtual'), { style: 'real', tier: 'medium' });
     expect(count(g, /^headboard$/)).toBe(1);
     expect(count(g, /^pillow/)).toBe(2);
-    expect(count(g, /^bedcover-fold$/)).toBe(1);
+    expect(count(g, /^bedcover$/)).toBe(1);
+    expect(count(g, /fold|cushion|throw|bolster|runner/)).toBe(0);
+  });
+  it('classic and grey-box beds: one pillow on a single, two otherwise, and a person lies with their head on one and nothing in them', () => {
+    for (const style of ['real', 'plain'] as const) for (const tier of TIERS) for (const size of BED_SIZES) for (const yaw of YAWS) for (const withInner of [true, false]) {
+      const item = bedOf(withInner ? size : { w: size.w, d: 2.0 }, yaw, withInner);
+      const g = buildFurnitureMesh(item, { style, tier });
+      expectPlainBed(g, size.pillows);
+      expectLieClear(g, item);
+      for (const H of [1.5, 1.9]) expectLieClear(g, item, H);
+    }
   });
 });
 

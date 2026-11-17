@@ -7,15 +7,13 @@
     "bed-1": {
       "params": {
         "base": "legs",
-        "headboard": "slatted",
-        "cushions": 1
+        "headboard": "slatted"
       }
     },
     "bed-2": {
       "params": {
         "base": "legs",
-        "headboard": "upholstered",
-        "cushions": 1
+        "headboard": "upholstered"
       }
     },
     "sofa-1": {

@@ -5,9 +5,10 @@ import * as THREE from 'three';
 import type { FurnitureItem } from '../types';
 import type { Tier } from './types';
 import {
-  barBetween, boxBetween, dropFacing, foldedCloth, mergeAll, piping, puffedCushion, roundedBoxBetween, worldUV,
+  barBetween, boxBetween, dropFacing, mergeAll, piping, puffedCushion, roundedBoxBetween, worldUV,
 } from './furniture-parts';
 import { furnitureKit } from './furniture-materials';
+import { PILLOW_HEIGHT_M, QUILT_PROUD_M, bedLayout } from '../core/bed-layout';
 import type { FurnitureKit, MatKey } from './furniture-materials';
 import { GENERATORS, GEN_QUALITY, sizeOf } from './gen';
 import { moveChildren } from './gen/core';
@@ -181,30 +182,19 @@ function buildBed(b: Build, item: FurnitureItem): void {
     b.merged('mattress-piping', 'cotton', geos);
   }
 
-  // bedcover over the foot end, folded back at its head edge
+  // a flat bedcover that follows the mattress from just below the pillows to the foot. It stands QUILT_PROUD_M above the mattress top and no
+  // more (a person lies on it), and nothing else lies on the bed: no folded band, cushions or throw (src/core/bed-layout.ts)
+  const lay = bedLayout({ w, d }, item.inner);
   const cw = Math.min(m.w + 0.06, w - 0.01);
-  const clen = 0.6 * (mz1 - mz0);
-  const cz1 = mz1, cz0 = mz1 - clen;
-  const cTop = Math.min(S + 0.025, H);
-  if (q.cloth > 0) {
-    const g = foldedCloth(cw, clen, cTop - (S - 0.002), 7, q.cloth);
-    g.translate(0, (cTop + S - 0.002) / 2, (cz0 + cz1) / 2);
-    b.add('bedcover', 'cover', g);
-  } else {
-    b.add('bedcover', 'cover', b.rbox(-cw / 2, cw / 2, S - 0.002, cTop, cz0, cz1, 0.008));
-  }
-  const bandTop = Math.min(S + 0.038, H);
-  b.add('bedcover-fold', 'cover', b.rbox(-cw / 2, cw / 2, S - 0.002, bandTop, cz0, Math.min(cz0 + 0.25, cz1), 0.015), '#B9A58D');
+  const cz1 = mz1, cz0 = Math.max(mz0, lay.quiltZ0);
+  const cTop = Math.min(S + QUILT_PROUD_M, H);
+  b.add('bedcover', 'cover', b.rbox(-cw / 2, cw / 2, S - 0.03, cTop, cz0, cz1, 0.008));
 
-  // pillows: two side by side on anything 1.2 m wide or more, one centred otherwise
-  const two = m.w >= 1.2;
-  const pw = Math.min(0.65, two ? m.w / 2 - 0.02 : m.w - 0.06);
-  const pd = 0.42, ph = 0.14;
-  const pTop = Math.min(S + ph, H);
-  const pz = Math.max(mz0, hz1) + 0.04 + pd / 2;
-  (two ? [-m.w / 4, m.w / 4] : [0]).forEach((x, i) => {
-    const g = b.cushion(pw, ph, pd, 0.025);
-    g.translate(x, pTop - ph / 2, pz);
+  // sleeping pillows, flat at the head where a person lying on the bed rests their head: two on a mattress 1.2 m wide or more, one otherwise
+  const pTop = Math.min(S + PILLOW_HEIGHT_M, H);
+  lay.pillows.forEach((pl, i) => {
+    const g = b.cushion(pl.w, PILLOW_HEIGHT_M, pl.d, 0.02);
+    g.translate(pl.x, pTop - PILLOW_HEIGHT_M / 2, pl.z);
     b.add(`pillow${i}`, 'cotton', g, '#FFFFFF');
   });
 }

@@ -66,7 +66,7 @@ export const DEFS: Record<MatKey, Def> = {
   stripe: { color: '#FFFFFF', roughness: 0.95, metalness: 0, tex: 'stripe', tile: 0.34 },
   brass: { color: '#D4AD66', roughness: 0.38, metalness: 0.35, tile: 1 },
   blackMetal: { color: '#1D1D1F', roughness: 0.42, metalness: 0.75, tile: 1 },
-  sheer: { color: '#F1EEE8', roughness: 1, metalness: 0, tile: 1, opacity: 0.88, doubleSide: true },
+  sheer: { color: '#F4F1EB', roughness: 1, metalness: 0, tile: 1, opacity: 0.8, doubleSide: true },
   drape: { color: '#8A8D92', roughness: 0.97, metalness: 0, tex: 'rough_linen', detail: true, tile: 0.5, doubleSide: true },
   // a quartz worktop: near-uniform, with a fine speckle and a polished sheen
   quartz: { color: '#E9E6E0', roughness: 0.2, metalness: 0, tex: 'grey_plaster', detail: true, tile: 0.8, strength: 0.1, norScale: 0.1 },

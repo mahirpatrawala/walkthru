@@ -87,7 +87,7 @@ export class ProbeVolume {
   get count(): number { return this.grid.dims[0] * this.grid.dims[1] * this.grid.dims[2]; }
 
   /** weights: per component, an rgb multiplier. Rebuilds the mixed SH of every probe (cheap: it only runs when the light changes). */
-  setWeights(w: Partial<Record<string, [number, number, number]>>, fill: [number, number, number] = [0, 0, 0]): void {
+  setWeights(w: Partial<Record<string, [number, number, number]>>, fill: [number, number, number] = [0, 0, 0], saturation = 1): void {
     const n = this.count, C = this.comps;
     const wr = this.grid.components.map((c) => w[c] ?? [0, 0, 0]);
     const m = this.mixed;
@@ -101,9 +101,12 @@ export class ProbeVolume {
         if (r === 0 && g === 0 && b === 0) continue;
         const o = (p * C + c) * SH_FLOATS, d = p * SH_FLOATS;
         for (let k = 0; k < SH_COEFFS; k++) {
-          m[d + k * 3] += this.raw[o + k * 3] * r;
-          m[d + k * 3 + 1] += this.raw[o + k * 3 + 1] * g;
-          m[d + k * 3 + 2] += this.raw[o + k * 3 + 2] * b;
+          // white balance (weights.ts): the probe keeps `saturation` of the colour the room's surfaces gave its light (linear, so it holds per coefficient)
+          const cr = this.raw[o + k * 3], cg = this.raw[o + k * 3 + 1], cb = this.raw[o + k * 3 + 2];
+          const l = 0.2126 * cr + 0.7152 * cg + 0.0722 * cb;
+          m[d + k * 3] += (l + (cr - l) * saturation) * r;
+          m[d + k * 3 + 1] += (l + (cg - l) * saturation) * g;
+          m[d + k * 3 + 2] += (l + (cb - l) * saturation) * b;
         }
       }
     }

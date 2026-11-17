@@ -67,8 +67,6 @@ function walkableComponents(g: Grid, blocked: { x: number; z: number; r: number 
 describe('lived-in plan: what a home gets', () => {
   it('dresses the usual places of an Indian flat', () => {
     expect(kinds('cushion').some((p) => p.hostId === 'sofa')).toBe(true);
-    expect(kinds('cushion').some((p) => p.hostId === 'bed')).toBe(true);
-    expect(kinds('throw').length).toBeGreaterThan(0);
     expect(kinds('books').some((p) => p.hostId === 'study')).toBe(true);
     expect(kinds('lamp').some((p) => p.hostId === 'side')).toBe(true);
     expect(kinds('cooker').some((p) => p.hostId === 'platform')).toBe(true);
@@ -81,6 +79,41 @@ describe('lived-in plan: what a home gets', () => {
     expect(kinds('frame').length).toBeGreaterThan(0);
     expect(kinds('pooja').map((p) => p.roomId)).toEqual(['pooja']);
     expect(kinds('curtain').some((p) => p.roomId === 'bedroom')).toBe(true);
+  });
+
+  it('puts nothing on a bed: it keeps its own two sleeping pillows and flat quilt, and a person lies on all of it', () => {
+    const beds = livedInFurniture.filter((i) => i.kind === 'bed');
+    expect(beds.length).toBeGreaterThan(0);
+    for (const p of pieces) {
+      expect(beds.some((b) => b.id === p.hostId), `${p.kind} is put on a bed`).toBe(false);
+      // nor over one: the only things inside a bed's footprint hang on the wall above its head
+      if (p.place !== 'wall') for (const b of beds) expect(pointInBox({ x: p.x, z: p.z }, b.box), `${p.kind} lies over ${b.id}`).toBe(false);
+    }
+    expect(kinds('throw')).toEqual([]);
+  });
+
+  it('a sofa gets at most two cushions, at its arms and behind where a person sits, and nothing on its seat', () => {
+    const sofas = livedInFurniture.filter((i) => i.kind === 'sofa');
+    for (const sofa of sofas) {
+      const on = pieces.filter((p) => p.hostId === sofa.id);
+      expect(on.every((p) => p.kind === 'cushion')).toBe(true);
+      expect(on.length).toBeGreaterThan(0);
+      expect(on.length).toBeLessThanOrEqual(2);
+      const { a, b } = boxAxes(sofa.box);
+      for (const p of on) {
+        const u = (p.x - sofa.box.cx) * b.x + (p.z - sofa.box.cz) * b.z, v = (p.x - sofa.box.cx) * a.x + (p.z - sofa.box.cz) * a.z;
+        // against an arm (0.16 m) with no room for a person between them
+        expect(sofa.box.w / 2 - Math.abs(u) - p.w / 2).toBeLessThan(0.16 + 0.05);
+        // core/poses.ts seats the hips 0.30 m behind the front edge: the cushion's front stays behind that line
+        expect(v + p.d / 2).toBeLessThan(sofa.box.d / 2 - 0.3 - 0.02);
+        expect(p.d).toBeLessThanOrEqual(0.1);
+      }
+    }
+    // two sofas in a room: still no more than two each
+    const second = { ...sofas[0], id: 'sofa-b', box: { ...sofas[0].box, cx: sofas[0].box.cx - 0.9, cz: 0.6, w: 1.5, yawDeg: 0 } };
+    const more = planLivedIn({ layout: livedInLayout, items: [...livedInFurniture, second], grid: stampFurniture(baseGrid, [...livedInFurniture, second]) });
+    for (const id of [sofas[0].id, 'sofa-b']) expect(more.filter((p) => p.hostId === id).length).toBeLessThanOrEqual(2);
+    expect(more.filter((p) => p.kind === 'throw')).toEqual([]);
   });
 
   it('is the same list every time (a buyer sees one home on every visit)', () => {

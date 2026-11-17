@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { doorLabels, doorLabelWidthM, mountDoorLabels } from '../src/buyer/door-labels';
+import { doorLabels, doorLabelWidthM, mountDoorLabels, signText } from '../src/buyer/door-labels';
 import { resolveDoors } from '../src/core/doors';
 import * as THREE from 'three';
 import type { PropertyFile } from '../src/types';
@@ -48,5 +48,14 @@ describe('door labels', () => {
     expect(doorLabelWidthM('Exit')).toBe(0.34);
     expect(doorLabelWidthM('Master bedroom')).toBeCloseTo(0.84);
     expect(doorLabelWidthM('x'.repeat(60))).toBe(1.3);
+  });
+  it('a sign spells out a plan\'s shorthand and leaves every other label alone', () => {
+    expect(signText('Mbr')).toBe('Master Bedroom');
+    expect(signText('Kit')).toBe('Kitchen');
+    expect(signText('W.c.')).toBe('WC');
+    expect(signText('Br 2')).toBe('Bedroom 2');
+    expect(signText('Drawing Room')).toBe('Drawing Room');
+    expect(signText('Kitchen')).toBe('Kitchen');
+    expect(signText('Bedroom 2')).toBe('Bedroom 2');
   });
 });

@@ -41,8 +41,7 @@
     "bed": {
       "base": "legs",
       "headboard": "slatted",
-      "duvet": "plain",
-      "cushions": 1
+      "duvet": "plain"
     },
     "sofa": {
       "arms": "box",

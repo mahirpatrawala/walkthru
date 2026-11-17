@@ -618,8 +618,8 @@
       "catalogId": "dining-6",
       "label": "Dining table with six chairs",
       "box": {
-        "cx": 3.43,
-        "cz": 0.98,
+        "cx": 4.34,
+        "cz": 0.96,
         "w": 1.8,
         "d": 1.7,
         "yawDeg": 0
@@ -921,22 +921,6 @@
       "label": "Armchair",
       "box": {
         "cx": 1.25,
-        "cz": 5.4,
-        "w": 0.8,
-        "d": 0.85,
-        "yawDeg": 0
-      },
-      "heightM": 0.85,
-      "surfaceHeightM": 0.43
-    },
-    {
-      "id": "chair-deck-2",
-      "source": "real",
-      "kind": "sofa",
-      "catalogId": "armchair",
-      "label": "Armchair",
-      "box": {
-        "cx": 2.53,
         "cz": 5.4,
         "w": 0.8,
         "d": 0.85,

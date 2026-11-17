@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import type { EdgeFrame, Layout, Vec2 } from '../../types';
 import { computeEdgeFrames } from '../../core/layout-geom';
+import { COVE_WIDTH_M } from './rules';
 import type { BoardSite, CoveSite, FanSite, KitPlan, MirrorSite, SkirtingRun, TubeSite, WindowSite } from './rules';
 import { PLATE_H_M, PLATE_W_M, SKIRTING_H_M, SKIRTING_T_M } from './rules';
 import type { WallPiece } from '../../types';
@@ -297,24 +298,35 @@ export function fanRotorGeometry(wallHeightM: number, radiusM: number): THREE.Bu
 
 // ---------------------------------------------------------------- cove
 
-/** the slot between the top of the fascia and the ceiling (round 4: 7 cm showed as a hard dark line in a baked home, where the slot is correctly unlit; 2.5 cm is a hairline of shade) */
-const COVE_SLOT_M = 0.025;
+/**
+ * The reveal at the top of the fascia (round 5). A cove used to be a fascia that stopped 2.5 cm short of the ceiling with the LED strip lying
+ * behind it: the slot showed the unlit void above the dropped ceiling, a hard black line in a baked home (and the void's black texels bled
+ * onto the ceiling beside it). It is now a shallow recess, as a plasterer builds one: the fascia stops `COVE_REVEAL_M` short, a ledge runs
+ * `COVE_REVEAL_DEPTH_M` back from its top, and the back of the recess is the LED's diffuser, a pale strip facing the room that glows when the
+ * cove is on. The void behind is closed on every side, so nothing dark can be seen and the bake can tell it is never lit.
+ */
+export const COVE_REVEAL_M = 0.06;
+export const COVE_REVEAL_DEPTH_M = 0.05;
 export function addCove(b: KitBuckets, s: CoveSite): void {
-  const H = s.wallHeightM, yLow = H - s.dropM;
+  const H = s.wallHeightM, yLow = H - s.dropM, yTop = H - COVE_REVEAL_M;
   const n = s.outer.length;
   const at = (p: Vec2, y: number): V3 => [p.x, y, p.z];
+  // the recess's back line: the inner outline moved `COVE_REVEAL_DEPTH_M` towards the wall, mitred (both outlines are mitred offsets of
+  // one polygon, so a point between a pair of their corners is the mitred corner of the offset in between)
+  const t = COVE_REVEAL_DEPTH_M / COVE_WIDTH_M;
+  const back = s.inner.map((p, i): Vec2 => ({ x: p.x + (s.outer[i].x - p.x) * t, z: p.z + (s.outer[i].z - p.z) * t }));
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n;
-    const o0 = s.outer[i], o1 = s.outer[j], i0 = s.inner[i], i1 = s.inner[j];
+    const o0 = s.outer[i], o1 = s.outer[j], i0 = s.inner[i], i1 = s.inner[j], k0 = back[i], k1 = back[j];
     b.cove.quad([at(o0, yLow), at(o1, yLow), at(i1, yLow), at(i0, yLow)], [0, -1, 0]);
-    // the fascia: from the soffit up to 7 cm short of the ceiling, facing the room
+    // the fascia: from the soffit up to the reveal, facing the room
     const dx = i1.x - i0.x, dz = i1.z - i0.z, l = Math.hypot(dx, dz) || 1;
     const nIn: V3 = [-dz / l, 0, dx / l];
-    b.cove.quad([at(i0, yLow), at(i1, yLow), at(i1, H - COVE_SLOT_M), at(i0, H - COVE_SLOT_M)], nIn);
-    // the LED strip lies on the real ceiling just behind the fascia: seen through the slot, never directly
-    const back = (p: Vec2, d: number): V3 => [p.x - nIn[0] * d, H - 0.004, p.z - nIn[2] * d];
-    // (its shading normal points up: lit from the ceiling's side it reads as a pale strip, where a downward normal went near black in the slot)
-    b.coveLed.quad([back(i0, 0.01), back(i1, 0.01), back(i1, 0.04), back(i0, 0.04)], [0, 1, 0]);
+    b.cove.quad([at(i0, yLow), at(i1, yLow), at(i1, yTop), at(i0, yTop)], nIn);
+    // the ledge on top of the fascia: the floor of the recess
+    b.cove.quad([at(i0, yTop), at(i1, yTop), at(k1, yTop), at(k0, yTop)], [0, 1, 0]);
+    // the back of the recess: the LED's diffuser, from the ledge to the ceiling, facing the room
+    b.coveLed.quad([at(k0, yTop), at(k1, yTop), at(k1, H - 0.001), at(k0, H - 0.001)], nIn);
   }
 }
 

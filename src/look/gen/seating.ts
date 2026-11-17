@@ -18,9 +18,12 @@ export interface SofaParams {
   legs: SofaLegs;
   /** an L: a chaise at one end, only when the box is deep and wide enough */
   chaise: 'auto' | 'none' | 'left' | 'right';
-  /** accent cushions at the ends */
+  /** loose cushions, one at each arm: 0, 1 or 2 (never more) */
   cushions: number;
 }
+/** a sofa carries at most this many loose cushions, pushed to its arms */
+export const SOFA_MAX_CUSHIONS = 2;
+const SOFA_CUSHION_M = 0.38;
 export const SOFA_DEFAULTS: SofaParams = { seats: 0, arms: 'round', legs: 'wood', chaise: 'auto', cushions: 2 };
 
 export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Roles): THREE.Group {
@@ -114,15 +117,18 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
     g.translate(x, H - g.boundingBox!.max.y, zb0 + 0.2 + 0.07);
     parts.put('sofa-back', fab, g, { grain: 'x' });
   }
-  // accent cushions at the ends of the seat
-  const nA = Math.max(0, Math.min(4, Math.round(p.cushions)));
+  // loose cushions: at most two, one at each arm, standing against the back pad (thin, leaning with it). They stay behind the line of a
+  // sitter's hips (core/poses.ts seats them 0.30 m from the front edge), so a person sits in front of one and is never under it
+  // the two ends of the whole back: an arm's inner face, or the outer edge of a chaise (its back runs on behind it)
+  const o0 = chaise === 'left' ? -w / 2 + 0.04 : inner0, o1 = chaise === 'right' ? w / 2 - 0.04 : inner1;
+  const nA = Math.max(0, Math.min(SOFA_MAX_CUSHIONS, Math.round(p.cushions)));
   for (let i = 0; i < nA; i++) {
     const side = i % 2 === 0 ? -1 : 1;
-    const x = side * ((inner1 - inner0) / 2 - 0.26) + (inner0 + inner1) / 2;
-    const g = cush(0.42, 0.42, 0.14, 0.035, 0.07);
-    g.rotateX(-0.34);
-    g.rotateY(side * 0.2);
-    g.translate(x, S + 0.18, zb0 + 0.2 + 0.2);
+    const x = side * ((o1 - o0) / 2 - SOFA_CUSHION_M / 2 - 0.02) + (o0 + o1) / 2;
+    const g = cush(SOFA_CUSHION_M, SOFA_CUSHION_M, 0.1, 0.03, 0.045);
+    g.rotateX(-0.2);
+    g.rotateY(side * 0.12);
+    g.translate(x, S + 0.03 + SOFA_CUSHION_M / 2 - 0.005, zb0 + 0.2 + 0.2);
     parts.put('sofa-cushions', acc, g, { tile: 0.34 });
   }
   return parts.done();

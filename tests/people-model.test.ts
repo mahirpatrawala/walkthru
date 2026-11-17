@@ -176,8 +176,11 @@ describe('sitting and lying: the walker\'s own poses, at the person\'s own size'
       expect(p).toEqual(liePose(bedItem, cm / 100, { x: 1.0, z: 2.25 }));
     }
     const short = hostPose(bedItem, 'lie', 120, { x: 1, z: 2.25 }).lie!;
-    const long = hostPose(bedItem, 'lie', 190, { x: 1, z: 2.25 }).lie!;
-    expect(Math.hypot(long.feet.x - short.feet.x, long.feet.z - short.feet.z)).toBeCloseTo(0.7, 6);
+    const long = hostPose(bedItem, 'lie', 175, { x: 1, z: 2.25 }).lie!;
+    expect(Math.hypot(long.feet.x - short.feet.x, long.feet.z - short.feet.z)).toBeCloseTo(0.55, 6);
+    // someone nearly as long as the mattress lies a little higher up it, so their feet end at its foot and not past it
+    const tall = hostPose(bedItem, 'lie', 190, { x: 1, z: 2.25 }).lie!;
+    expect(Math.hypot(tall.feet.x - short.feet.x, tall.feet.z - short.feet.z)).toBeCloseTo(0.675, 6);
   });
   it('the card line says how they fit the piece, in the third person', () => {
     expect(fitLine(bedItem, 'lie', 150)).toBe('Bed · 200 cm long. 50 cm to spare.');

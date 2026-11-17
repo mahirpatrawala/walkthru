@@ -488,6 +488,72 @@ for name, c in comps.items():
     c['tex'] = tex
 
 
+
+# ------------------------------------------------------------------ heal the voids
+def heal_unlit():
+    """A texel that no light of any component reaches and whose AO is shut lies in a void nobody can see: above a dropped ceiling, behind a
+    built-in. Left black, the denoiser and the bilinear filter drag it a texel or two into the lit surface beside it, which shows as a hard
+    dark line along every cove and boxing. Such texels (and one ring round them, which the denoiser has already smeared) take the light of
+    the nearest lit texel of their own chart instead, in every component."""
+    lights = [n for n in comps if n != 'ao' and 'tex' in comps[n]]
+    if not lights or 'ao' not in comps:
+        return
+    total = np.zeros((SIZE, SIZE), dtype=np.float64)
+    for n in lights:
+        total += comps[n]['tex'].sum(axis=2)
+    core = (total < float(JOB.get('healMaxE', 0.004))) & (comps['ao']['tex'].mean(axis=2) < float(JOB.get('healMaxAo', 0.03)))
+    healed = 0
+    charts = 0
+    names = lights + ['ao']
+    for o in static_baked:
+        for (x, y, w, h) in RECTS.get(o.m['key'], []):
+            d = core[y:y + h, x:x + w]
+            if not d.any() or d.all():
+                continue  # nothing to heal, or a chart that is all void (the inside of a box): nothing to heal it from
+            # one ring wider: the texels the denoiser mixed with the void
+            dead = d.copy()
+            dead[1:, :] |= d[:-1, :]
+            dead[:-1, :] |= d[1:, :]
+            dead[:, 1:] |= d[:, :-1]
+            dead[:, :-1] |= d[:, 1:]
+            if dead.all():
+                continue
+            charts += 1
+            healed += int(dead.sum())
+            vals = [comps[n]['tex'][y:y + h, x:x + w].astype(np.float64).copy() for n in names]
+            todo = dead.copy()
+            for _ in range(w + h):
+                if not todo.any():
+                    break
+                ok = ~todo
+                cnt = np.zeros((h, w), dtype=np.float64)
+                acc = [np.zeros_like(v) for v in vals]
+                for (dy, dx) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    src_ok = np.zeros((h, w), dtype=bool)
+                    ys = slice(max(0, dy), h + min(0, dy))
+                    yd = slice(max(0, -dy), h + min(0, -dy))
+                    xs = slice(max(0, dx), w + min(0, dx))
+                    xd = slice(max(0, -dx), w + min(0, -dx))
+                    src_ok[yd, xd] = ok[ys, xs]
+                    cnt += src_ok
+                    for k, v in enumerate(vals):
+                        sh = np.zeros_like(v)
+                        sh[yd, xd] = v[ys, xs]
+                        acc[k] += sh * src_ok[:, :, None]
+                fill = todo & (cnt > 0)
+                if not fill.any():
+                    break
+                for k, v in enumerate(vals):
+                    v[fill] = acc[k][fill] / cnt[fill][:, None]
+                todo &= ~fill
+            for k, n in enumerate(names):
+                comps[n]['tex'][y:y + h, x:x + w] = vals[k].astype(comps[n]['tex'].dtype)
+    results['healed'] = {'texels': healed, 'charts': charts}
+    log('healed', healed, 'void texels in', charts, 'charts')
+
+
+heal_unlit()
+
 # ------------------------------------------------------------------ light probes (SH L2) from the baked room
 def sh_basis(d):
     x, y, z = d[:, 0], d[:, 1], d[:, 2]

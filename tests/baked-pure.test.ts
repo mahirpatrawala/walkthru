@@ -27,7 +27,7 @@ import { BAKE_FORMAT_VERSION } from '../src/look/baked/types';
 import type { BakedManifest, MeshEntry } from '../src/look/baked/types';
 import { buildCharts, unwrapAtlas } from '../src/look/baked/unwrap';
 import type { UnwrapMesh } from '../src/look/baked/unwrap';
-import { ambientFill, componentWeights, sunBlend } from '../src/look/baked/weights';
+import { AO_SHADE, BOUNCE_SATURATION, FILL_FRACTION, SUN_BOUNCE_TINT, ambientFill, bounceWeights, componentWeights, desaturate, luma, sunBlend } from '../src/look/baked/weights';
 import { decideBake, inputsHashOf } from '../scripts/bake/hash';
 
 const ROOT = path.resolve(__dirname, '..');
@@ -188,6 +188,46 @@ describe('weights (16.14)', () => {
     const gap = componentWeights({ grade: gradeAt(PRESET_HOURS.afternoon), skyScale: 1, sunScale: 1, sunHours: [8.5, null, 17.8], skyBoost: 1 });
     expect(gap.sun0[0] + gap.sun2[0]).toBeGreaterThan(1);
     expect(gap.sun1).toEqual([0, 0, 0]);
+  });
+});
+
+describe('white balance of the baked light (16.14, round 5)', () => {
+  const day = componentWeights({ grade: gradeAt(PRESET_HOURS.afternoon), skyScale: 1, sunScale: 1, sunHours: [8.5, 15, 17.8], skyBoost: 1 });
+  it('the sky component has the colour the live look gives a wall: the two halves of the hemisphere, not a warm tint', () => {
+    const g = gradeAt(PRESET_HOURS.afternoon);
+    const mid = [0, 1, 2].map((k) => 0.5 * (g.hemiSky[k] + g.hemiGround[k]));
+    for (let k = 0; k < 3; k++) expect(day.sky[k] / g.hemiIntensity).toBeCloseTo(mid[k], 2);
+    expect(day.sky[0] / day.sky[2]).toBeLessThan(1.08); // it was 1.33
+    const fill = ambientFill(g);
+    expect(fill[0] / fill[2]).toBeLessThan(1.08);
+  });
+  it('bounced sunlight keeps a tenth of the sun tint at the same luminance; the sun patch and the lamps keep their colour', () => {
+    const b = bounceWeights(day);
+    expect(luma(b.sun1)).toBeCloseTo(luma(day.sun1), 6);
+    const sat = (c: [number, number, number]): number => (Math.max(...c) - Math.min(...c)) / Math.max(...c);
+    expect(sat(b.sun1)).toBeLessThan(sat(day.sun1) * (SUN_BOUNCE_TINT + 0.05));
+    expect(b.sky).toEqual(day.sky); expect(b.lamps).toEqual(day.lamps); expect(b.cove).toEqual(day.cove);
+    expect(desaturate([1, 0.5, 0.2], 1)).toEqual([1, 0.5, 0.2]);
+    const grey = desaturate([1, 0.5, 0.2], 0);
+    expect(grey[0]).toBeCloseTo(grey[1], 9); expect(grey[1]).toBeCloseTo(grey[2], 9);
+  });
+  it('a probe keeps only the given share of the colour its light picked up from the room', () => {
+    const grid = { origin: [0, 0, 0] as [number, number, number], spacing: [1, 1, 1] as [number, number, number], dims: [2, 2, 2] as [number, number, number], coeffs: 9 as const, components: ['sky' as const], file: 'p.bin', bytes: 0, validCount: 8 };
+    const a = new Float32Array(8 * SH_FLOATS);
+    for (let p = 0; p < 8; p++) { a[p * SH_FLOATS] = 1.0; a[p * SH_FLOATS + 1] = 0.6; a[p * SH_FLOATS + 2] = 0.2; } // an orange bounce
+    const vol = new ProbeVolume(grid, a);
+    vol.setWeights({ sky: [1, 1, 1] });
+    const full = Array.from(vol.sample(0.5, 0.5, 0.5).subarray(0, 3));
+    expect(full[0]).toBeCloseTo(1, 6); expect(full[2]).toBeCloseTo(0.2, 6);
+    vol.setWeights({ sky: [1, 1, 1] }, [0, 0, 0], BOUNCE_SATURATION);
+    const wb = Array.from(vol.sample(0.5, 0.5, 0.5).subarray(0, 3)) as [number, number, number];
+    expect(luma(wb)).toBeCloseTo(luma(full as [number, number, number]), 5);
+    expect(wb[0] / wb[2]).toBeLessThan(1.4); // from 5
+    expect(wb[0]).toBeGreaterThan(wb[2]); // a hint of the floor stays
+  });
+  it('the ambient level carries a baked room by day, softly shaded by the AO', () => {
+    expect(FILL_FRACTION).toBeGreaterThan(1); expect(AO_SHADE).toBeGreaterThan(0.4); expect(AO_SHADE).toBeLessThan(1);
+    expect(fs.readFileSync(path.join(ROOT, 'src/look/baked/composite.ts'), 'utf8')).toMatch(/uSat/);
   });
 });
 

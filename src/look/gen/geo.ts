@@ -270,14 +270,16 @@ export function mergeGeos(list: THREE.BufferGeometry[]): THREE.BufferGeometry {
     if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
   }
   const merged = mergeAll(list);
-  // keep vertex colours (curtain folds are shaded in the vertices) when every part has them
+  // keep vertex colours (curtain folds are shaded in the vertices) when every part has them; four components when every part carries an
+  // alpha (a sheer thins out at its edge), else three
   if (list.length && list.every((g) => g.attributes.color)) {
+    const size = list.every((g) => g.attributes.color.itemSize === 4) ? 4 : 3;
     let n = 0;
     for (const g of list) n += g.attributes.position.count;
-    const col = new Float32Array(n * 3);
+    const col = new Float32Array(n * size);
     let o = 0;
-    for (const g of list) { const c = g.attributes.color; for (let i = 0; i < c.count; i++) { col[o++] = c.getX(i); col[o++] = c.getY(i); col[o++] = c.getZ(i); } }
-    merged.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    for (const g of list) { const c = g.attributes.color; for (let i = 0; i < c.count; i++) { col[o++] = c.getX(i); col[o++] = c.getY(i); col[o++] = c.getZ(i); if (size === 4) col[o++] = c.getW(i); } }
+    merged.setAttribute('color', new THREE.BufferAttribute(col, size));
   }
   return merged;
 }

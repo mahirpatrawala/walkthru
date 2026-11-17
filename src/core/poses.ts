@@ -2,6 +2,7 @@
 import { SIT_HIP_BACK_RATIO, SIT_SEAT_RATIO } from '../types';
 import type { Box, FurnitureItem, LiePose, SeatPose, StandPose, Vec2 } from '../types';
 import { boxAxes } from './geometry';
+import { lieCrownZ, lieLateral } from './bed-layout';
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
@@ -14,17 +15,16 @@ function lateral(item: FurnitureItem, approach: Vec2): number {
 }
 
 /**
- * Lying along the item's length, head 5 cm from the head end of the mattress, feet `heightM` further toward +a.
- * On a mattress 1.2 m wide or more the body takes the half nearest to `approach` (a quarter of the width off centre).
+ * Lying along the item's length with the head on a pillow (src/core/bed-layout.ts decides both): the crown 5 cm inside the head line of the
+ * sleeping area (which keeps clear of a headboard), feet `heightM` further toward +a. On a mattress 1.2 m wide or more the body takes the
+ * half nearest to `approach` (a quarter of the width off centre, where that half's pillow lies).
  */
 export function liePose(item: FurnitureItem, heightM: number, approach: Vec2): LiePose {
   const box = item.box;
   const { a, b } = boxAxes(box);
-  const inner = item.inner ?? { w: box.w, d: box.d };
-  const headInset = (box.d - inner.d) / 2 + 0.05;
-  const lat = inner.w < 1.2 ? 0 : Math.sign(lateral(item, approach)) * (inner.w / 4);
-  const along = box.d / 2 - headInset;
-  const head = { x: box.cx - a.x * along + b.x * lat, z: box.cz - a.z * along + b.z * lat };
+  const lat = lieLateral(box, item.inner, lateral(item, approach));
+  const along = lieCrownZ(box, item.inner, heightM);
+  const head = { x: box.cx + a.x * along + b.x * lat, z: box.cz + a.z * along + b.z * lat };
   return {
     feet: { x: head.x + a.x * heightM, z: head.z + a.z * heightM },
     yawDeg: box.yawDeg,

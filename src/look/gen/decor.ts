@@ -69,21 +69,87 @@ function clothPanel(x0: number, x1: number, y0: number, y1: number, z: number, a
   return g;
 }
 
+/** the pleat period and depth of a gathered sheer, and how many vertices one pleat gets per tier (two is a crisp zigzag: crest, trough) */
+export const SHEER_PLEAT_M = 0.048;
+export const SHEER_PLEAT_DEPTH_M = 0.014;
+const SHEER_SAMPLES: Record<string, number> = { low: 2, medium: 6, high: 8 };
+
+/**
+ * A gathered sheer (round 5): a panel of fine pleats, floor to track, that reads as thin cloth and not as a column. What makes it cloth:
+ * the pleats are sampled finely enough to be pleats (the old panel put fewer than one vertex on a 7 cm fold, so a 50 cm stack came out as
+ * two or three fat flutes); the cloth is see-through, more where it faces you and less on the flanks of a pleat, where you look along it;
+ * its shading is nearly flat (light goes through a sheer, so a pleat has no dark side); and its free edge thins out over the last pleat
+ * instead of ending in a hard line. `free` is the edge that hangs loose towards the glass.
+ */
+function sheerPanel(x0: number, x1: number, y0: number, y1: number, z: number, tier: string, free: 'left' | 'right' | 'none', phase: number): THREE.BufferGeometry {
+  const per = SHEER_SAMPLES[tier] ?? 6;
+  const pleats = Math.max(3, Math.round((x1 - x0) / SHEER_PLEAT_M));
+  const cols = pleats * per;
+  const rows = tier === 'low' ? 2 : 5;
+  const pos: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = [], col: number[] = [];
+  const W = x1 - x0;
+  const smooth = (t: number): number => { const c = Math.min(1, Math.max(0, t)); return c * c * (3 - 2 * c); };
+  for (let j = 0; j <= rows; j++) {
+    const ty = j / rows;
+    const y = y0 + ty * (y1 - y0);
+    for (let i = 0; i <= cols; i++) {
+      const tx = i / cols;
+      const x = x0 + tx * W;
+      // a quarter turn in, so the two-vertex pleat of the low tier lands on crest and trough
+      const a = (i / per) * Math.PI * 2 + Math.PI / 2;
+      // how far this point is from the free edge, in metres (the loose edge hangs flatter and thinner)
+      const edge = free === 'left' ? x - x0 : free === 'right' ? x1 - x : Infinity;
+      const loose = smooth(edge / (SHEER_PLEAT_M * 1.5));
+      // pleats are pinched at the track and open a little towards the hem; a slow sway keeps the hem from being a ruled line
+      const k = SHEER_PLEAT_DEPTH_M * (0.7 + 0.3 * (1 - ty)) * (0.45 + 0.55 * loose);
+      const sway = 0.006 * (1 - ty) * Math.sin(x * 3.1 + phase);
+      pos.push(x, y, z + k * Math.sin(a) + sway);
+      const slope = (k * Math.cos(a) * Math.PI * 2) / SHEER_PLEAT_M;
+      // light passes through a sheer: the shading normal leans only a third of the way into the pleat
+      const nx = -slope * 0.33, l = Math.hypot(nx, 1);
+      nor.push(nx / l, 0, 1 / l);
+      uv.push(x, y);
+      const flank = Math.abs(Math.cos(a));
+      // a faint tone in the troughs, and the cloth a touch denser at the gathered top
+      const sh = 0.95 + 0.05 * (0.5 + 0.5 * Math.sin(a));
+      const alpha = (0.7 + 0.2 * flank + 0.06 * ty) * (0.3 + 0.7 * loose);
+      col.push(sh, sh, sh, Math.min(1, alpha));
+    }
+  }
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    const a = j * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
+    idx.push(a, b, d, a, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
+  g.setIndex(idx);
+  return g;
+}
+
+/** how wide each gathered sheer stack is on a track of this width (the track runs 25 cm past the window each side) */
+export function sheerGatherM(trackWidthM: number): number {
+  return Math.min(trackWidthM / 2 - 0.1, Math.max(0.32, 0.25 + 0.14 * Math.max(0, trackWidthM - 0.5)));
+}
+
 export function buildCurtain(env: GenEnv, p: CurtainParams, roles: Roles): THREE.Group {
   const parts = new Parts(env, 'gen:curtain');
   const q = env.q;
   const sheer = role(roles, 'curtainSheer'), drape = role(roles, 'curtainDrape'), track = role(roles, 'handle');
   const y0 = 0.02, y1 = p.trackYM - 0.04;
-  const density = q.tier === 'low' ? 0.5 : q.tier === 'medium' ? 0.8 : 1.2;
+  // vertices per fold: a fold needs at least four to be a fold (below two per fold the wave aliases into a few fat flutes)
+  const density = q.tier === 'low' ? 4 : q.tier === 'medium' ? 6 : 8;
   parts.put('curtain-track', track, rod({ x: -0.03, y: p.trackYM, z: 0.05 }, { x: p.widthM + 0.03, y: p.trackYM, z: 0.05 }, 0.012, 6), { noShadow: true });
   if (p.sheer && p.sheerClosed) {
     parts.put('curtain-sheer', sheer, clothPanel(0, p.widthM, y0, y1, 0.07, 0.045, p.foldM * 0.8, density, 0.3), { uv: 'keep', noShadow: true });
   } else if (p.sheer) {
-    // drawn open (round 4): two pleated panels gathered at the sides of the window, each about a fifth of the glass wide, the glass between them clear. The track
-    // runs 25 cm past the window each side (design-mount), so the stack covers that margin and a little of the glass.
-    const gather = Math.min(p.widthM / 2 - 0.1, Math.max(0.35, 0.25 + 0.22 * Math.max(0, p.widthM - 0.5)));
-    if (p.drape !== 'right') parts.put('curtain-sheer', sheer, clothPanel(0, gather, y0, y1, 0.07, 0.04, 0.07, density, 0.3), { uv: 'keep', noShadow: true });
-    if (p.drape !== 'left') parts.put('curtain-sheer', sheer, clothPanel(p.widthM - gather, p.widthM, y0, y1, 0.07, 0.04, 0.07, density, 1.9), { uv: 'keep', noShadow: true });
+    // drawn open: two finely pleated panels gathered at the sides of the window, the glass between them clear. The track runs 25 cm past
+    // the window each side (design-mount), so a stack covers that margin and the edge of the glass.
+    const gather = sheerGatherM(p.widthM);
+    if (p.drape !== 'right') parts.put('curtain-sheer', sheer, sheerPanel(0, gather, y0, y1, 0.06, q.tier, 'right', 0.3), { uv: 'keep', noShadow: true });
+    if (p.drape !== 'left') parts.put('curtain-sheer', sheer, sheerPanel(p.widthM - gather, p.widthM, y0, y1, 0.06, q.tier, 'left', 1.9), { uv: 'keep', noShadow: true });
   }
   const dw = Math.min(p.drapeWidthM, p.widthM / 2 - 0.05);
   if (p.drape !== 'none' && dw > 0.1) {
@@ -92,7 +158,8 @@ export function buildCurtain(env: GenEnv, p: CurtainParams, roles: Roles): THREE
   }
   const g = parts.done();
   // drawn after the kit's window mesh veil (renderOrder 3), so a sheer closes the window over the grill instead of under it
-  g.traverse((o) => { if (o.name === 'curtain-sheer') o.renderOrder = 5; });
+  // a sheer is light, not mass: the bake neither shades it with an AO of its own (which painted every pleat dark) nor lets it shade the room
+  g.traverse((o) => { if (o.name === 'curtain-sheer') { o.renderOrder = 5; o.userData.walkthruBake = 'skip'; } });
   return g;
 }
 
