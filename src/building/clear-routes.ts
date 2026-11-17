@@ -4,15 +4,14 @@
 // Only the movable pieces (sofas and chairs, dining sets, coffee and side tables, planters, banquet sets) are ever moved: a bed, a wardrobe, a WC or a
 // counter is where the drawing puts it, and where those alone leave a room out of reach (a 0.62 m toilet door) that is the drawing's, not the dressing's.
 // Pure: no I/O.
-import { boxCorners, pointInPolygon } from '../core/geometry';
+import { boxAxes, boxCorners, pointInBox, pointInPolygon } from '../core/geometry';
 import { cellIndex } from '../core/grid-codec';
 import { circleFree, nearestFree } from '../core/grid-query';
 import { rasterizeLayout, stampFurniture } from '../core/layout-raster';
 import { polygonCentroid } from '../core/spawn';
 import { resolveDoors } from '../core/doors';
-import { boxesOverlap } from '../look/lived-in/plan';
 import { GRID_FREE } from '../types';
-import type { FurnitureItem, Grid, Layout, Vec2 } from '../types';
+import type { Box, FurnitureItem, Grid, Layout, Vec2 } from '../types';
 import { arrivalAtDoor } from './arrival';
 import { doorFrame } from './geom';
 
@@ -166,6 +165,17 @@ export function routeReport(layout: Layout, furniture: FurnitureItem[], spawn?: 
   }
   const pts = blockedDoorPoints(layout, fixed, grid);
   return { shut, blockedDoors: Object.keys(pts), blockedPoints: Object.values(pts).reduce((a, b) => a + b, 0) };
+}
+
+/** do two footprints overlap (`pad` metres of margin round the first)? Corners, then a 3 x 3 sample of the grown box for a plus sign */
+function boxesOverlap(a: Box, b: Box, pad = 0): boolean {
+  const grow = { ...a, w: a.w + 2 * pad, d: a.d + 2 * pad };
+  if (boxCorners(grow).some((p) => pointInBox(p, b)) || boxCorners(b).some((p) => pointInBox(p, grow))) return true;
+  const { a: da, b: db } = boxAxes(grow);
+  for (const u of [-0.5, 0, 0.5]) for (const v of [-0.5, 0, 0.5]) {
+    if (pointInBox({ x: grow.cx + db.x * u * grow.w + da.x * v * grow.d, z: grow.cz + db.z * u * grow.w + da.z * v * grow.d }, b)) return true;
+  }
+  return false;
 }
 
 const cost = (r: RouteReport): number => r.shut.length * 1000 + r.blockedPoints;
