@@ -548,7 +548,7 @@
         "sillM": 0,
         "headM": 2.1,
         "leaf": {
-          "hinge": "end",
+          "hinge": "start",
           "swing": "in",
           "kind": "sliding"
         }

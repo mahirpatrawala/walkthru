@@ -109,6 +109,8 @@ export interface MountedGlassTone {
 }
 
 const GW = 32, GH = 20, EVERY_MS = 380;
+/** The longest a read may back off to on a device where it is slow: a panel's variant is never older than this once the scene has drawn (it was 25 reads' worth, which on software GL left the first, default variant on screen for half a minute). */
+export const BACKOFF_MAX_MS = 2500;
 
 export function mountGlassTone(d: GlassToneDeps): MountedGlassTone {
   const doc = d.root.ownerDocument;
@@ -140,7 +142,7 @@ export function mountGlassTone(d: GlassToneDeps): MountedGlassTone {
   function afterFrame(): void {
     const t = performance.now();
     // a few times a second where the read is cheap; where it is not (software GL reads the whole canvas back) it backs off so it never takes more than about 4% of the time
-    if (t - lastAt < Math.max(EVERY_MS, lastMs * 25)) return;
+    if (t - lastAt < Math.min(BACKOFF_MAX_MS, Math.max(EVERY_MS, lastMs * 25))) return;
     lastAt = t;
     setFlat();
     let data: Uint8ClampedArray | null = null;
@@ -155,6 +157,8 @@ export function mountGlassTone(d: GlassToneDeps): MountedGlassTone {
     const whole = plan ?? (data ? sampleRect(data, GW, GH, { x0: 0, y0: 0, x1: 1, y1: 1 }) : null);
     const hour = d.hour();
     lastL = whole;
+    // nothing drawn yet (the first frames): the default variant stands, and the next frame reads again instead of waiting a whole interval
+    if (whole === null && samples === 0) lastAt = 0;
     global = whole !== null ? chooseTone(whole, global) : hour !== null ? toneFromHour(hour) : global;
     if (d.root.dataset.lens !== global) d.root.dataset.lens = global;
     if (html.dataset.glassTone !== global) html.dataset.glassTone = global;

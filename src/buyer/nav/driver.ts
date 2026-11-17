@@ -15,6 +15,7 @@ import { CHARACTER_RADIUS_M } from '../../types';
 import type { Grid, Layout, Vec2 } from '../../types';
 import { circleFree, moveCircle, nearestFree } from '../../core/grid-query';
 import { pointInPolygon } from '../../core/geometry';
+import { reachableFast } from '../../building/clear-routes';
 import { chooseSpawn } from '../../core/spawn';
 import { freePos } from '../../core/doors';
 
@@ -481,13 +482,45 @@ export class Driver {
     return q && room && pointInPolygon(q, room.polygon) ? q : { x: p.x, z: p.z };
   }
 
+  /**
+   * `p` when a body can walk to it from inside the room's own doorway with every leaf open, else the nearest spot that is clear and can be (a door that stands open
+   * into a room and a wardrobe can cut the room in two: the spot is on the side the doorway is on).
+   */
+  private reachableIn(roomId: string, p: Vec2, open: Grid): Vec2 {
+    const room = this.deps.layout.rooms.find((r) => r.id === roomId);
+    if (!room) return p;
+    const R = CHARACTER_RADIUS_M + 0.005;
+    const starts: Vec2[] = [];
+    for (const l of this.deps.leaves()) {
+      const d = l.door;
+      if (!d.rooms.includes(roomId)) continue;
+      const w = doorway(d), c = { x: (w.a.x + w.b.x) / 2, z: (w.a.z + w.b.z) / 2 };
+      for (const sg of [1, -1]) for (const off of [0.5, 0.8, 1.1]) {
+        const q = { x: c.x + d.out.x * sg * off, z: c.z + d.out.z * sg * off };
+        if (pointInPolygon(q, room.polygon) && circleFree(open, q.x, q.z, R)) starts.push(q);
+      }
+    }
+    if (starts.length === 0) return p;
+    if (starts.some((q) => reachableFast(open, q, [p], R)[0])) return p;
+    const xs = room.polygon.map((q) => q.x), zs = room.polygon.map((q) => q.z);
+    const cands: Vec2[] = [];
+    for (let x = Math.min(...xs); x <= Math.max(...xs); x += 0.25) for (let z = Math.min(...zs); z <= Math.max(...zs); z += 0.25) {
+      const q = { x, z };
+      if (pointInPolygon(q, room.polygon) && circleFree(open, x, z, CHARACTER_RADIUS_M + 0.25)) cands.push(q);
+    }
+    cands.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
+    const ok = starts.length ? reachableFast(open, starts[0], cands.slice(0, 200), R) : [];
+    const i = ok.findIndex(Boolean);
+    return i >= 0 ? cands[i] : p;
+  }
+
   /** The room's standing spot (the start page's smart spawn), or null for a room that has none. */
   spotIn(roomId: string): { x: number; z: number; yawDeg: number } | null {
     const open = this.openGrid();
     let s = chooseSpawn(this.deps.layout, roomId, open);
     // a pocket of a room (a toilet) may leave no clear spot once the leaf is in: then the start page's own spot
     if (!s || !circleFree(open, s.x, s.z, CHARACTER_RADIUS_M)) s = chooseSpawn(this.deps.layout, roomId, this.deps.staticGrid()) ?? s;
-    if (s) s = { ...s, ...this.clearIn(roomId, s, open) };
+    if (s) s = { ...s, ...this.reachableIn(roomId, this.clearIn(roomId, s, open), open) };
     return s ? { x: s.x, z: s.z, yawDeg: s.yawDeg } : null;
   }
 
@@ -568,7 +601,7 @@ export class Driver {
       const plain = withLeaves.stops.some((st) => !circleFree(open, st.spot.x, st.spot.z, CHARACTER_RADIUS_M)) ? tourStops(layout, this.deps.staticGrid(), this.deps.focal).stops : [];
       const stops = withLeaves.stops.map((st) => (circleFree(open, st.spot.x, st.spot.z, CHARACTER_RADIUS_M) ? st : plain.find((x) => x.room.id === st.room.id) ?? st));
       const skipped = withLeaves.skipped;
-      for (const st of stops) { const q = this.clearIn(st.room.id, st.spot, open); st.spot = { ...st.spot, x: q.x, z: q.z }; }
+      for (const st of stops) { const q = this.reachableIn(st.room.id, this.clearIn(st.room.id, st.spot, open), open); st.spot = { ...st.spot, x: q.x, z: q.z }; }
       // the order and the reachability are judged on the grid without any leaf (a leaf is a thing of the moment: how far a door has swung when a stop is chosen
       // depends on the frame rate, and so would the tour's order); a leaf that really shuts a room off fails the walk there, and that room is named as left out
       const first = routesFrom(this.deps.staticGrid(), this.deps.character.position, stops.map((s) => s.spot), Infinity, gatesOf(this.deps.leaves()));

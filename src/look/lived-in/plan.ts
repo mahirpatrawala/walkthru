@@ -363,7 +363,9 @@ class Planner {
 
   private rugFor(room: RoomTag): DecorPiece | null {
     const sofa = this.items.find((i) => i.kind === 'sofa' && i.box.w >= 1.2 && i.box.d <= 1.3 && this.itemRoom(i)?.id === room.id);
-    const others = this.items.filter((i) => i !== sofa).map((i) => i.box);
+    // a centre table stands ON the rug, so it is not one of the things the rug keeps clear of
+    const tables = this.items.filter((i) => /^coffee/.test(i.catalogId ?? '')).map((i) => i.box);
+    const others = this.items.filter((i) => i !== sofa && !/^coffee/.test(i.catalogId ?? '')).map((i) => i.box);
     const tryBox = (box: Box, allow: Box[]): boolean => {
       if (!this.onFreeFloor(box, room, allow)) return false;
       if (others.some((b) => boxesOverlap(box, b, 0.02))) return false;
@@ -386,7 +388,7 @@ class Planner {
       for (const k of [1, 0.8, 0.65]) cands.push({ cx: c.x, cz: c.z, w: 1.9 * k, d: 1.3 * k, yawDeg: yaw });
     }
     for (const box of cands) {
-      if (!tryBox(box, sofa ? [sofa.box] : [])) continue;
+      if (!tryBox(box, sofa ? [sofa.box, ...tables] : tables)) continue;
       return this.push({ kind: 'rug', roomId: room.id, place: 'floor', x: box.cx, y: 0.008, z: box.cz, yawDeg: box.yawDeg, w: box.w, d: box.d, height: 0.012 }, 'rug');
     }
     return null;
@@ -421,13 +423,13 @@ class Planner {
 
   /** wall edges of whole rooms, with the stretches of them that something occupies */
   private tubes: { roomId: string; edge: number; u: number; lengthM: number }[] = [];
-  private wallBlocks(f: EdgeFrame, bottomY: number, withTubes = bottomY > 1.0): { u0: number; u1: number }[] {
+  private wallBlocks(f: EdgeFrame, bottomY: number, withTubes = bottomY > 1.0, skipWindows = false): { u0: number; u1: number }[] {
     const out: { u0: number; u1: number }[] = [];
     if (withTubes) for (const t of this.tubes) {
       if (t.roomId === f.roomId && t.edge === f.edge) out.push({ u0: t.u - (t.lengthM || TUBE_LEN_M) / 2 - 0.15, u1: t.u + (t.lengthM || TUBE_LEN_M) / 2 + 0.15 });
     }
     for (const o of this.input.layout.openings) {
-      if (o.roomId !== f.roomId || o.edge !== f.edge) continue;
+      if (o.roomId !== f.roomId || o.edge !== f.edge || (skipWindows && o.type === 'window')) continue;
       out.push({ u0: o.centreM - o.widthM / 2 - 0.1, u1: o.centreM + o.widthM / 2 + 0.1 });
     }
     // an opening cut into the facing room's wall at this spot (a door seen from both sides)
@@ -754,7 +756,18 @@ class Planner {
         }
       }
       // the backsplash along the worktop, between its end tiles: the stretches the window and the doors leave (a hand's breadth under a sill is not tiled)
-      for (const st of this.freeStretches(lo, hi, this.wallBlocks(f, S + 0.9, false), 0.4)) this.wallPiece('dado', room, f, (st.a + st.b) / 2, S, st.b - st.a, 0.012, 0.62);
+      // the tiles run the worktop's whole length: 0.62 m up where there is wall, and up to the sill under a window (a few centimetres where the sill is just above the worktop)
+      const windows = this.input.layout.openings.filter((o) => o.type === 'window' && o.roomId === f.roomId && o.edge === f.edge).map((o) => ({ u0: o.centreM - o.widthM / 2, u1: o.centreM + o.widthM / 2, sill: o.sillM }));
+      for (const st of this.freeStretches(lo, hi, this.wallBlocks(f, S + 0.9, false, true), 0.1)) {
+        const cuts = [st.a, st.b, ...windows.flatMap((w) => [w.u0, w.u1]).filter((u) => u > st.a && u < st.b)].sort((x, y) => x - y);
+        for (let i = 1; i < cuts.length; i++) {
+          const a = cuts[i - 1], b = cuts[i], m = (a + b) / 2;
+          if (b - a < 0.05) continue;
+          const win = windows.find((w) => m > w.u0 && m < w.u1);
+          const hgt = win ? Math.min(0.62, win.sill - S - 0.004) : 0.62;
+          if (hgt >= 0.03) this.wallPiece('dado', room, f, m, S, b - a, 0.012, hgt);
+        }
+      }
       // the hood over the hob (where the hob's spot left room for it)
       let hoodSpan: { u0: number; u1: number } | null = null;
       if (ks.hob && ks.hob.id === h.id && ks.hob.hood && w >= 1.2) {

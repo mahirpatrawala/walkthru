@@ -9,7 +9,7 @@ import { cellIndex } from '../core/grid-codec';
 import { circleFree, nearestFree } from '../core/grid-query';
 import { rasterizeLayout, stampFurniture } from '../core/layout-raster';
 import { polygonCentroid } from '../core/spawn';
-import { resolveDoors } from '../core/doors';
+import { leafObstacle, resolveDoors } from '../core/doors';
 import { GRID_FREE } from '../types';
 import type { Box, FurnitureItem, Grid, Layout, Vec2 } from '../types';
 import { arrivalAtDoor } from './arrival';
@@ -123,19 +123,31 @@ export function blockedDoorPoints(layout: Layout, bare: Grid, grid: Grid): Recor
     const f = doorFrame(layout, o.id);
     if (!f) continue;
     // a clear run of `need` metres somewhere across the opening, at every depth from 0.2 to 0.6 m on both sides of it
-    const need = Math.min(DOOR_STRIP_M, f.widthM) - 1e-6;
+    // a sliding door opens about half its width (its other pane is fixed): 0.7 m of a 2 m door, never under 0.6 m, is the run it must keep
+    const slider = f.leaf?.kind === 'sliding' && f.widthM >= 1.4;
+    const need = (slider ? 0.6 : Math.min(DOOR_STRIP_M, f.widthM)) - 1e-6;
     const half = f.widthM / 2 - 0.02;
+    // a sliding door is walked straight through (a body 0.3 m clear, 0.6 m wide): 0.15 to 0.45 m either side; any other door keeps 0.2 to 0.6 m
+    const depths = slider ? [-0.45, -0.3, -0.15, 0.15, 0.3, 0.45] : [-0.6, -0.4, -0.2, 0.2, 0.4, 0.6];
     let run = 0, bestRun = 0, anyBlocked = false;
+    // each depth's own best run too: it gives the clearing pass a slope when two pieces, one on each side of the door, share the blame (moving one alone leaves the common run short)
+    const runT = depths.map(() => 0), bestT = depths.map(() => 0);
     for (let u = -half; u <= half + 1e-9; u += 0.05) {
       let ok = true;
-      for (const t of [-0.6, -0.4, -0.2, 0.2, 0.4, 0.6]) {
+      depths.forEach((t, i) => {
         const p = { x: f.centre.x + f.dir.x * u + f.out.x * t, z: f.centre.z + f.dir.z * u + f.out.z * t };
-        if (free(bare, p) && !free(grid, p)) { ok = false; anyBlocked = true; break; }
-      }
+        const bad = free(bare, p) && !free(grid, p);
+        if (bad) { ok = false; anyBlocked = true; }
+        runT[i] = bad ? 0 : runT[i] + 0.05;
+        bestT[i] = Math.max(bestT[i], runT[i]);
+      });
       run = ok ? run + 0.05 : 0;
       bestRun = Math.max(bestRun, run);
     }
-    if (anyBlocked && bestRun + 0.05 < need) out[o.id] = Math.max(1, Math.ceil((need - bestRun) / 0.05));
+    if (anyBlocked && bestRun + 0.05 < need) {
+      const slope = bestT.reduce((sum, r) => sum + Math.max(0, Math.ceil((need - r) / 0.05)), 0);
+      out[o.id] = Math.max(1, Math.ceil((need - bestRun) / 0.05)) + slope;
+    }
   }
   return out;
 }
@@ -153,11 +165,22 @@ export interface RouteReport {
 export interface RouteCtx { bare: Grid; fixed: Grid; eB: Vec2 | null; roomsF: { id: string; at: Vec2 }[]; okF: boolean[] }
 /** What a pass asks again and again and only the movable pieces change: the empty home's grid and everything about the home with just its fixed pieces. */
 export function routeCtx(layout: Layout, furniture: FurnitureItem[], spawn?: { x: number; z: number }, radius = CLEAR_RADIUS_M): RouteCtx {
-  const bare = rasterizeLayout(layout);
+  const bare = withSlidersOpen(rasterizeLayout(layout), layout);
   const fixed = stampFurniture(bare, furniture.filter((i) => !isMovable(i)));
   const eB = entryOf(layout, fixed, spawn);
   const roomsF = spotsOf(layout, fixed);
   return { bare, fixed, eB, roomsF, okF: eB ? reachableFast(fixed, eB, roomsF.map((r) => r.at), radius) : [] };
+}
+
+/**
+ * The empty home with every sliding door slid open: what stands in such a doorway then is its fixed pane (src/core/doors.ts). A balcony, a deck or a utility room
+ * is reached through that opening, so the loose pieces beside it are held to "reachable through this door when it is open" (the 0.9 m run and a body 0.30 m
+ * clear), not to the whole shut doorway.
+ */
+export function withSlidersOpen(grid: Grid, layout: Layout): Grid {
+  const sliders = resolveDoors(layout).filter((d) => d.kind === 'sliding' && d.panes === 2 && d.maxPos > 0);
+  if (sliders.length === 0) return grid;
+  return stampFurniture(grid, sliders.map((d, i) => { const o = leafObstacle(d, d.maxPos); return { id: `slider:${i}`, source: 'virtual' as const, kind: 'wardrobe' as const, label: 'fixed pane', box: o.box, heightM: o.heightM, surfaceHeightM: o.heightM }; }));
 }
 
 export function routeReport(layout: Layout, furniture: FurnitureItem[], spawn?: { x: number; z: number }, radius = CLEAR_RADIUS_M, ctx?: RouteCtx): RouteReport {
@@ -193,9 +216,9 @@ export function hasBack(it: FurnitureItem): boolean {
   return it.kind === 'sofa' && !/^(lobby-|gym-)/.test(it.catalogId ?? '') && !/^ottoman|armchair|chair/.test(`${it.id} ${it.catalogId ?? ''}`) && it.box.w >= 1.2 && it.box.d >= 0.7;
 }
 
-interface WallEdge { a: Vec2; dir: Vec2; into: Vec2; length: number }
+export interface WallEdge { a: Vec2; dir: Vec2; into: Vec2; length: number }
 /** the edges of a room's outline, each with the unit vector along it and the one pointing into the room */
-function wallEdges(poly: Vec2[]): WallEdge[] {
+export function wallEdges(poly: Vec2[]): WallEdge[] {
   const out: WallEdge[] = [];
   for (let i = 0; i < poly.length; i++) {
     const a = poly[i], b = poly[(i + 1) % poly.length];
@@ -262,7 +285,7 @@ function wallSpots(layout: Layout, it: FurnitureItem, room: { polygon: Vec2[] },
 }
 
 export function clearRoutes(layout: Layout, furniture: FurnitureItem[], spawn?: { x: number; z: number }): ClearResult {
-  const key = JSON.stringify([layout.rooms.map((r) => [r.id, r.polygon]), layout.openings.map((o) => [o.id, o.edge, o.centreM, o.widthM]), furniture.map((f) => [f.id, f.kind, f.catalogId, f.box]), spawn ?? null]);
+  const key = JSON.stringify([layout.rooms.map((r) => [r.id, r.polygon]), layout.openings.map((o) => [o.id, o.edge, o.centreM, o.widthM, o.leaf ? [o.leaf.kind, o.leaf.hinge, o.leaf.swing] : null]), furniture.map((f) => [f.id, f.kind, f.catalogId, f.box]), spawn ?? null]);
   const hit = CACHE.get(key);
   if (hit) return hit;
   const out = clearRoutesUncached(layout, furniture, spawn);
@@ -275,6 +298,8 @@ const CACHE = new Map<string, ClearResult>();
 /** the whole pass is given this long (ms); a plan too tangled to settle in it keeps what it has */
 /** A work budget, counted in route measurements, not in time: the result must be the same on a slow machine as on a fast one (the generator's output is committed and tested). */
 const BUDGET_MEASURES = 60000;
+/** the most one joint nudge may use of it */
+const JOINT_SLICE = 9000;
 /** a joint nudge moves a piece at most this far from where the drawing put it, metres */
 const NUDGE_MAX_M = 1.0;
 
@@ -344,10 +369,92 @@ function jointNudge(layout: Layout, items: FurnitureItem[], original: FurnitureI
   return best.ok ? cur : null;
 }
 
-function clearRoutesUncached(layout: Layout, furniture: FurnitureItem[], spawn?: { x: number; z: number }): { furniture: FurnitureItem[]; dropped: string[]; moved: { id: string; dx: number; dz: number }[]; left: RouteReport } {
-  let items = furniture;
-  const moved = new Map<string, { dx: number; dz: number }>();
+/**
+ * The part of a sliding door that is open when the door is: the near half of the opening (the other half is the fixed pane), as far as a body needs it, and 0.45 m
+ * out on both sides. Loose pieces keep out of it (a footstool and a chair either side of a balcony door, each alone no great harm, shut it between them).
+ */
+export function sliderZoneCandidates(layout: Layout): Box[][] {
+  return resolveDoors(layout).filter((d) => d.kind === 'sliding' && d.panes === 2 && d.maxPos > 0).map((d) => {
+    const full = d.widthM - 0.06, open = full - d.panelWidthM, need = 0.6;
+    const len = Math.min(open, need);
+    const yawDeg = (((Math.atan2(d.out.x, d.out.z) * 180) / Math.PI) % 360 + 360) % 360;
+    // the clear run may sit anywhere in the open half
+    const out: Box[] = [];
+    for (let off = 0; off <= open - len + 1e-9; off += 0.05) out.push({ cx: d.hingeAt.x + d.closedDir.x * (off + len / 2), cz: d.hingeAt.z + d.closedDir.z * (off + len / 2), w: len, d: 0.9, yawDeg });
+    return out;
+  });
+}
+
+/** a piece that may be slid clear of a sliding door's open half: the loose pieces, and a fridge or a washer (a freestanding appliance, 5 to 10 cm either way on a brochure plan anyway) */
+const slidable = (it: FurnitureItem): boolean => isMovable(it) || /^(fridge|washer)/.test(it.catalogId ?? '');
+
+/** Slides every movable piece out of the open-slider zones, the least each, inside its own room and clear of the rest; where its place is taken by another loose piece, that one is slid on (one step); a loose accent piece with nowhere to go is the only thing left out. */
+function clearSliderZones(layout: Layout, items: FurnitureItem[], dropped: string[]): FurnitureItem[] {
+  const cands = sliderZoneCandidates(layout);
+  if (cands.length === 0) return items;
+  // door by door, the place for the clear run that costs the fewest pieces left out, then the least sliding
+  const chosen: Box[] = [];
+  let cur = items;
+  for (const list of cands) {
+    let best: { cur: FurnitureItem[]; dropped: string[]; score: number; zone: Box } | null = null;
+    for (const zone of list) {
+      const dr: string[] = [];
+      const res = slideOutOf(layout, cur, [...chosen, zone], dr);
+      // a zone with a fixed piece (a fridge, a WC) in it is no place for the clear run
+      const fixedHits = items.filter((it) => !slidable(it) && boxesOverlap(zone, it.box, 0)).length;
+      const score = fixedHits * 5000 + dr.length * 1000 + res.reduce((sum, it) => { const o = items.find((x) => x.id === it.id); return sum + (o ? Math.hypot(o.box.cx - it.box.cx, o.box.cz - it.box.cz) : 0); }, 0);
+      if (!best || score < best.score - 1e-9) best = { cur: res, dropped: dr, score, zone };
+    }
+    if (best) { cur = best.cur; dropped.push(...best.dropped); chosen.push(best.zone); }
+  }
+  return cur;
+}
+
+/** What the sliding doors of a layout cost the loose pieces: pieces left out (1000 each) and metres slid. The cheap half of the pass, for choosing which side a sliding pane parks on. */
+export function sliderCost(layout: Layout, furniture: FurnitureItem[]): number {
   const dropped: string[] = [];
+  const res = clearSliderZones(layout, furniture, dropped);
+  const fixedHits = sliderZoneCandidates(layout).reduce((n, list) => n + Math.min(...list.map((z) => furniture.filter((it) => !slidable(it) && boxesOverlap(z, it.box, 0)).length)), 0);
+  return fixedHits * 5000 + dropped.length * 1000 + res.reduce((sum, it) => { const o = furniture.find((x) => x.id === it.id); return sum + (o ? Math.hypot(o.box.cx - it.box.cx, o.box.cz - it.box.cz) : 0); }, 0);
+}
+
+function slideOutOf(layout: Layout, items: FurnitureItem[], zones: Box[], dropped: string[]): FurnitureItem[] {
+  let cur = items;
+  const hit = (b: Box): boolean => zones.some((z) => boxesOverlap(b, z, 0.04));
+  const roomOf = (it: FurnitureItem) => layout.rooms.find((r) => !r.partial && pointInPolygon({ x: it.box.cx, z: it.box.cz }, r.polygon));
+  const spotsOf = (it: FurnitureItem, reach: number): Box[] => {
+    const out: { box: Box; d: number }[] = [];
+    for (let dx = -reach; dx <= reach + 1e-9; dx += 0.05) for (let dz = -reach; dz <= reach + 1e-9; dz += 0.05) {
+      const dd = Math.hypot(dx, dz);
+      if (dd > reach || dd < 1e-9) continue;
+      out.push({ box: { ...it.box, cx: Math.round((it.box.cx + dx) * 100) / 100, cz: Math.round((it.box.cz + dz) * 100) / 100 }, d: dd });
+    }
+    return out.sort((a, b) => a.d - b.d).map((o) => o.box);
+  };
+  const inside = (it: FurnitureItem, b: Box): boolean => { const r = roomOf(it); return !r || boxCorners(b).every((p) => pointInPolygon(p, r.polygon)); };
+  for (const it0 of items) {
+    const it = cur.find((x) => x.id === it0.id);
+    if (!it || !slidable(it) || !hit(it.box)) continue;
+    let done = false;
+    for (const box of spotsOf(it, 1.6)) {
+      if (!inside(it, box) || hit(box)) continue;
+      const blockers = cur.filter((o) => o.id !== it.id && boxesOverlap(box, o.box, 0.03));
+      if (blockers.length === 0) { cur = cur.map((x) => (x.id === it.id ? { ...x, box } : x)); done = true; break; }
+      // another loose piece stands there: it steps aside (to the nearest place clear of the zone and of everything, this piece included)
+      if (blockers.length > 1 || !slidable(blockers[0])) continue;
+      const bl = blockers[0], moved = { ...it, box };
+      const alt = spotsOf(bl, 1.0).find((b2) => inside(bl, b2) && !hit(b2) && !boxesOverlap(b2, box, 0.03) && !cur.some((o) => o.id !== it.id && o.id !== bl.id && boxesOverlap(b2, o.box, 0.03)));
+      if (alt) { cur = cur.map((x) => (x.id === it.id ? moved : x.id === bl.id ? { ...x, box: alt } : x)); done = true; break; }
+    }
+    if (!done && isDroppable(it)) { cur = cur.filter((x) => x.id !== it.id); dropped.push(it.id); }
+  }
+  return cur;
+}
+
+function clearRoutesUncached(layout: Layout, furniture: FurnitureItem[], spawn?: { x: number; z: number }): { furniture: FurnitureItem[]; dropped: string[]; moved: { id: string; dx: number; dz: number }[]; left: RouteReport } {
+  const dropped: string[] = [];
+  let items = clearSliderZones(layout, furniture, dropped);
+  const moved = new Map<string, { dx: number; dz: number }>();
   const ctx = routeCtx(layout, furniture, spawn);
   const report = (list: FurnitureItem[]): RouteReport => routeReport(layout, list, spawn, CLEAR_RADIUS_M, ctx);
   let rep = report(items);
@@ -407,7 +514,14 @@ function clearRoutesUncached(layout: Layout, furniture: FurnitureItem[], spawn?:
       let kept = false;
       for (const d of droppable) {
         // the accent pieces alone first (a footstool, a chair and a table sliding a little is the smallest change), then the sofa and dining set too
-        const joint = jointNudge(layout, items, furniture, d.id, spawn, ctx, work, true) ?? jointNudge(layout, items, furniture, d.id, spawn, ctx, work);
+        const tryJoint = (accentsOnly: boolean): FurnitureItem[] | null => {
+          // each attempt gets a slice of the work, so one hopeless piece cannot use up what the next could have solved with
+          const slice = { left: Math.min(work.left, JOINT_SLICE) };
+          const r = jointNudge(layout, items, furniture, d.id, spawn, ctx, slice, accentsOnly);
+          work.left -= Math.min(work.left, JOINT_SLICE) - slice.left;
+          return r;
+        };
+        const joint = tryJoint(true) ?? tryJoint(false);
         if (!joint) continue;
         items = joint;
         for (const j of joint) {
@@ -425,5 +539,9 @@ function clearRoutesUncached(layout: Layout, furniture: FurnitureItem[], spawn?:
       rep = report(items);
     }
   }
-  return { furniture: items, dropped, moved: [...moved].map(([id, v]) => ({ id, ...v })), left: rep };
+  // what moved is read off the result against the drawing (the slider zones and the search both move pieces)
+  const was = new Map(furniture.map((f) => [f.id, f.box]));
+  void moved;
+  const movedOut = items.flatMap((it) => { const b = was.get(it.id); return b && (Math.abs(b.cx - it.box.cx) > 1e-9 || Math.abs(b.cz - it.box.cz) > 1e-9) ? [{ id: it.id, dx: it.box.cx - b.cx, dz: it.box.cz - b.cz }] : []; });
+  return { furniture: items, dropped, moved: movedOut, left: rep };
 }

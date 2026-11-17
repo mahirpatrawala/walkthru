@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CLEAR_RADIUS_M, clearRoutes, isMovable, routeReport } from '../src/building/clear-routes';
+import { CLEAR_RADIUS_M, clearRoutes, isMovable, routeReport, sliderZoneCandidates } from '../src/building/clear-routes';
 import { planLivedIn, pieceBox } from '../src/look/lived-in';
 import { rasterizeLayout, stampFurniture } from '../src/core/layout-raster';
 import type { FurnitureItem } from '../src/types';
@@ -54,7 +54,9 @@ describe('the clearing pass', () => {
   it('slides a chair that shuts a balcony door aside (a balcony 1.4 m deep, a chair in front of its door)', () => {
     const s = readScene('test-tower-flat-3bhk-a')!;
     const chair = s.furniture.find((f) => f.id === 'chair-balcony-2')!;
-    const blocked = s.furniture.map((f) => (f.id === chair.id ? { ...f, box: { ...f.box, cx: 1.95, cz: 11.35 } } : f.id === 'chair-balcony-1' ? { ...f, box: { ...f.box, cx: 1.25, cz: 11.35 } } : f));
+    // both chairs stood in the open half of the sliding door (the half the sliding pane leaves clear)
+    const zone = sliderZoneCandidates(s.layout)[0][0];
+    const blocked = s.furniture.map((f) => (f.id === chair.id ? { ...f, box: { ...f.box, cx: zone.cx, cz: 11.35 } } : f.id === 'chair-balcony-1' ? { ...f, box: { ...f.box, cx: zone.cx + 0.3, cz: 11.35 } } : f));
     expect(routeReport(s.layout, blocked, s.spawn).shut.length + routeReport(s.layout, blocked, s.spawn).blockedDoors.length).toBeGreaterThan(0);
     const out = clearRoutes(s.layout, blocked, s.spawn);
     expect(out.left.shut).toEqual([]);

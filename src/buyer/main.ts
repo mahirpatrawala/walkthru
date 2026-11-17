@@ -663,6 +663,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   // a screen nobody holds: the chrome fades after a few seconds, and with ?kiosk=1 or ?idle=<s> the tour starts by itself and loops (src/buyer/presence.ts)
   // calm by default, reveal on intent (src/buyer/chrome.ts): the top row, the room strip, the plan and the identity card come in when reached for
   const lookSheetOpen = (): boolean => [...hud.root.querySelectorAll<HTMLElement>('.wt-look-sheet, .wt-mat-pop')].some((s) => !s.hidden);
+  // a part of the chrome that comes in is read against the scene behind it at the next frame (its variant may be a stale one: the glass was last read while it was hidden)
+  let glassKick: (() => void) | null = null;
   const chrome = mountChrome({
     root: hud.root,
     machine: createChromeMachine({ level: chromeLevel, touch: isTouch, lingerMs: presenceCfg.lingerS === null ? null : presenceCfg.lingerS * 1000 }),
@@ -672,7 +674,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
       touring: nav.debug.driver.touring,
       sheet: blocking() || lookSheetOpen() || !!document.querySelector('.wb-flats-back, .wb-lift-back'),
     }),
-    apply: (f, l) => hud.setChrome(f, l),
+    apply: (f, l) => { hud.setChrome(f, l); glassKick?.(); },
     unit: () => Number(getComputedStyle(document.documentElement).getPropertyValue('--wt-z')) || 1,
   });
   cleanup.push(() => chrome.dispose());
@@ -681,6 +683,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   hud.onShown(() => { chrome.begin(); });
   // the glass reads the scene behind it (src/buyer/glass-tone.ts): light glass over a bright room, dark glass over a dark one; no blur on the low tier
   const glassTone = mountGlassTone({ root: hud.root, canvas: viewer.canvas, hour: () => look?.hour ?? null, flat: () => params.get('glass') === 'flat' || (params.get('glass') !== 'blur' && (look?.tier ?? startTier) === 'low') }); // `?glass=blur|flat` forces it (captures, a slow device)
+  glassKick = () => glassTone.kick();
   cleanup.push(() => glassTone.dispose());
   // the drawing buffer can only be read in the task that drew it: a microtask queued from a frame callback runs after the frame's render
   cleanup.push(viewer.onFrame(() => { queueMicrotask(glassTone.afterFrame); }));

@@ -673,11 +673,11 @@
       "kind": "sofa",
       "label": "Sofa",
       "box": {
-        "cx": 3.868,
-        "cz": -2.976,
+        "cx": 8.085,
+        "cz": -2.184,
         "w": 1.9812102696409257,
         "d": 0.9143947166020743,
-        "yawDeg": 90
+        "yawDeg": -90
       },
       "heightM": 0.85,
       "surfaceHeightM": 0.43
@@ -696,11 +696,75 @@
       },
       "heightM": 0.85,
       "surfaceHeightM": 0.85
+    },
+    {
+      "id": "dress-tv",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "tv-unit-150",
+      "label": "TV unit",
+      "box": {
+        "cx": 3.611,
+        "cz": -2.184,
+        "w": 1.5,
+        "d": 0.4,
+        "yawDeg": 90
+      },
+      "heightM": 1.48,
+      "surfaceHeightM": 0.45
+    },
+    {
+      "id": "dress-table-centre",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "coffee-rect",
+      "label": "Centre table",
+      "box": {
+        "cx": 6.803,
+        "cz": -2.184,
+        "w": 1,
+        "d": 0.55,
+        "yawDeg": -90
+      },
+      "heightM": 0.42,
+      "surfaceHeightM": 0.42
+    },
+    {
+      "id": "dress-dining",
+      "source": "real",
+      "kind": "dining",
+      "catalogId": "dining-4",
+      "label": "Dining table with four chairs",
+      "box": {
+        "cx": 5.378,
+        "cz": -3.213,
+        "w": 1.2,
+        "d": 1.48,
+        "yawDeg": 0
+      },
+      "heightM": 0.95,
+      "surfaceHeightM": 0.75
+    },
+    {
+      "id": "dress-fridge",
+      "source": "real",
+      "kind": "counter",
+      "catalogId": "fridge-1",
+      "label": "Fridge",
+      "box": {
+        "cx": -3.117,
+        "cz": 1.473,
+        "w": 0.58,
+        "d": 0.67,
+        "yawDeg": 0
+      },
+      "heightM": 1.45,
+      "surfaceHeightM": 1.45
     }
   ],
   "spawn": {
-    "x": 5.98169726874139,
-    "z": -2.1843948852484676,
+    "x": 5.782,
+    "z": -2.134,
     "yawDeg": 0
   },
   "updatedAt": "2026-11-14T14:02:00.008Z",

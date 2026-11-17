@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLSL_NOISE, GLSL_WOOD } from '../look/procedural';
 import { furnitureKit } from '../look/furniture-materials';
-import { DOOR_FLOOR_GAP_M, DOOR_THICKNESS_M, leafSegment } from '../core/doors';
+import { DOOR_FLOOR_GAP_M, DOOR_THICKNESS_M, fixedPaneSegment, leafSegment } from '../core/doors';
 import type { Door } from '../core/doors';
 import type { DoorStyle } from '../building/space-host';
 
@@ -104,8 +104,12 @@ function hingeGeometry(H: number): THREE.BufferGeometry {
 }
 
 export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): DoorModel {
+  // `root` stays where the door is; `group` is the leaf that moves (a sliding door's fixed pane is a child of the root)
+  const root = new THREE.Group();
+  root.name = `door:${d.id}`;
   const group = new THREE.Group();
-  group.name = `door:${d.id}`;
+  group.name = `leaf:${d.id}`;
+  root.add(group);
   const kind = style?.kind ?? 'plain';
   // a sliding leaf is the balcony's glazed door (an aluminium frame round tinted glass), not a flush panel; a building's portal styles keep their own look
   const glazed = kind === 'glass' || (kind === 'plain' && d.kind === 'sliding');
@@ -168,6 +172,29 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
     add(new RoundedBoxGeometry(W - 0.005, H - 0.005, T, 2, 0.0025), panelMat, 'door-panel', W / 2, DOOR_FLOOR_GAP_M + H / 2, 0);
     if (kind !== 'lift') add(hingeGeometry(H), handleMat, 'door-hinges', 0, 0, 0);
   }
+  if (glazed && d.kind === 'sliding' && d.panes === 2) {
+    // the fixed pane of the pair: the far half of the opening, never moving, a hair behind the sliding pane so the two do not fight where they overlap when shut
+    const fx = fixedPaneSegment(d);
+    const fixed = new THREE.Group();
+    fixed.name = `fixed-pane:${d.id}`;
+    const frame = mat(new THREE.MeshStandardMaterial({ color: '#C5CBCF', roughness: 0.32, metalness: 0.55 }));
+    const glass = mat(new THREE.MeshPhysicalMaterial({ color: '#9DBFC8', roughness: 0.03, metalness: 0, transparent: true, opacity: 0.3, specularIntensity: 1, envMapIntensity: 1.6, side: THREE.DoubleSide }));
+    const stile = 0.045, rail = 0.045, railLow = 0.12;
+    const addF = (g: THREE.BufferGeometry, m: THREE.Material, name: string, x: number, y: number): void => {
+      geoms.push(g);
+      const me = new THREE.Mesh(g, m);
+      me.name = name; me.position.set(x, y, 0); me.castShadow = name !== 'door-glass'; me.receiveShadow = true;
+      fixed.add(me);
+    };
+    addF(new THREE.BoxGeometry(stile, H, T), frame, 'door-frame', stile / 2, DOOR_FLOOR_GAP_M + H / 2);
+    addF(new THREE.BoxGeometry(stile, H, T), frame, 'door-frame', W - stile / 2, DOOR_FLOOR_GAP_M + H / 2);
+    addF(new THREE.BoxGeometry(W - 2 * stile, rail, T), frame, 'door-frame', W / 2, DOOR_FLOOR_GAP_M + H - rail / 2);
+    addF(new THREE.BoxGeometry(W - 2 * stile, railLow, T), frame, 'door-frame', W / 2, DOOR_FLOOR_GAP_M + railLow / 2);
+    addF(new THREE.BoxGeometry(W - 2 * stile, H - rail - railLow, 0.008), glass, 'door-glass', W / 2, DOOR_FLOOR_GAP_M + railLow + (H - rail - railLow) / 2);
+    fixed.position.set(fx.a.x - d.swingNormal.x * 0.012, 0, fx.a.z - d.swingNormal.z * 0.012);
+    fixed.rotation.y = Math.atan2(-fx.dir.z, fx.dir.x);
+    root.add(fixed);
+  }
   if (kind === 'lift') {
     // two leaves meeting in the middle, a dark joint and a pair of call-button plates beside the opening are drawn by the lobby
     const dark = mat(new THREE.MeshStandardMaterial({ color: '#2A2C2E', roughness: 0.6 }));
@@ -203,6 +230,7 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   }
   void styled;
   group.userData.doorId = d.id;
+  root.userData.doorId = d.id;
   const setPos = (pos: number): void => {
     const s = leafSegment(d, pos);
     group.position.set(s.a.x, 0, s.a.z);
@@ -212,7 +240,7 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
   };
   setPos(0);
   return {
-    group,
+    group: root,
     setPos,
     // the style's door finish is for ordinary doors; a main, lift or stairs door keeps its own
     setPanelColour(hex) { if (kind === 'plain') panelMat.color.set(hex ?? defaultPanel); },
@@ -226,7 +254,7 @@ export function buildDoorModel(d: Door, frameColor: string, style?: DoorStyle): 
       handleMat.color.set(hex ?? DEFAULT_HANDLE); handleMat.roughness = hex ? 0.34 : 0.32; handleMat.metalness = hex ? 0.3 : 0.75;
     },
     dispose() {
-      group.removeFromParent();
+      root.removeFromParent();
       for (const g of geoms) g.dispose();
       panelMat.dispose();
       gapMat.dispose();

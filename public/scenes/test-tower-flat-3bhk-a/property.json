@@ -548,7 +548,7 @@
         "sillM": 0,
         "headM": 2.1,
         "leaf": {
-          "hinge": "end",
+          "hinge": "start",
           "swing": "in",
           "kind": "sliding"
         }
@@ -1355,8 +1355,8 @@
       "catalogId": "armchair",
       "label": "Armchair",
       "box": {
-        "cx": 2.1,
-        "cz": 11.76,
+        "cx": 1.9,
+        "cz": 11.41,
         "w": 0.8,
         "d": 0.85,
         "yawDeg": 0
