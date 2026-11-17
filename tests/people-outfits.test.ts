@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { OUTFITS, SKIN_TONES, TOP_TINTS, fabricColour, stylePerson } from '../src/look/people-materials';
+import { OUTFITS, SKIN_TONES, TOP_TINTS, fabricColour, neckBandColour, stylePerson } from '../src/look/people-materials';
 import { BODY_CHIPS_CM, BODY_DEFAULT_CM, tintForPerson } from '../src/buyer/person-store';
 import type { PersonBody } from '../src/look/people';
 
@@ -49,7 +49,7 @@ describe.skipIf(!have)('outfits (16.6.11)', () => {
         const rel = (v: number[]) => (v[1] - y0) / H;
         // the top ends at the hip joint (0.50 to 0.54 of the height, the crotch is at about 0.45): no kurta, no kameez, no dress
         const top = verts(p.get('top')!);
-        expect(Math.min(...top.map(rel))).toBeGreaterThan(body === 'elder' ? 0.46 : 0.495);   // (the elder's tunic is cut to mid-hip and she stoops)
+        expect(Math.min(...top.map(rel))).toBeGreaterThan(body === 'elder' ? 0.46 : body === 'child' ? 0.48 : 0.495);   // (the elder's tunic is cut to mid-hip and she stoops; the child's T-shirt ends 2.5 % of the height below the hip joint, 16.6.12)
         // the bottom is trousers or shorts: between 0.18 and 0.40 of the height no vertex sits on the midline at the front or the back, so no cloth hangs between the legs
         const bottom = verts(p.get('bottom')!);
         const mid = bottom.filter((v) => rel(v) > 0.18 && rel(v) < 0.4);
@@ -81,7 +81,9 @@ describe.skipIf(!have)('outfits (16.6.11)', () => {
         look.setTop(tint);
         expect(colour('top')).toBe(`#${fabricColour(tint).getHexString()}`);
         expect(colour('bottom')).toBe(bottom0);
-        expect(colour('trim')).toBe(trim0);
+        // the man's trim is his belt and never changes; the others' neck band is the top's own colour, a little darker (16.6.12)
+        if (body === 'man') expect(colour('trim')).toBe(trim0);
+        else expect(colour('trim')).toBe(`#${neckBandColour(tint).getHexString()}`);
       }
     });
   }

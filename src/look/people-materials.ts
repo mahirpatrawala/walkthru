@@ -21,8 +21,8 @@ export const SKIN_ALBEDO_GAIN = [0.95, 0.91, 0.86] as const;
 type Body = 'man' | 'woman' | 'elder' | 'child';
 
 /** The fixed colours of each person. The top's colour comes from the height preset (`setTop`, `TOP_TINTS`).
- * `bottom` is never tinted: man charcoal trousers, woman beige trousers, child denim shorts, elder navy trousers. `trim` is the man's belt, the
- * neck piping of the woman and the elder, the child's crew-neck rib; `wrap` is the man's shirt buttons (and a saree's pallu, if one is ever built again). */
+ * `bottom` is never tinted: man charcoal trousers, woman beige trousers, child denim shorts, elder navy trousers. `trim` is the man's belt (the neck band of the
+ * woman's, the elder's and the child's top takes the top's own colour, `neckBandColour`: their `trim` entries here are not used since 16.6.12); `wrap` is the man's shirt buttons (and a saree's pallu, if one is ever built again). */
 export const OUTFITS: Record<Body, { bottom: string; wrap: string; trim: string; hair: string; brows: string; shoes: string; eyes: string; pupil: string }> = {
   man: { bottom: '#565C68', wrap: '#EFEBE0', trim: '#2B1D15', hair: '#2D2119', brows: '#221A15', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
   woman: { bottom: '#CBB994', wrap: '#CBB994', trim: '#EDE4CF', hair: '#2B1F19', brows: '#221A15', shoes: '#5A4232', eyes: '#F3F0EA', pupil: '#1B1311' },
@@ -78,58 +78,36 @@ const ROUGHNESS: Record<string, number> = { skin: 0.62, eyes: 0.25, pupil: 0.12,
  * Prepares the materials of a freshly parsed person. Every skinned mesh gets its own material (tint and tone never leak
  * between characters). Call once per parsed GLB.
  */
-/**
- * SPEC 16.20: the hair is a cap with a hard lower edge; a real hairline is irregular and soft at the nape and the sideburns. The lowest few centimetres of the
- * cap (a fraction of its own height, so it follows any body's scale) dissolve into the skin through a stable hash (alpha hash, so no sorting and no blend
- * halo), per strand-sized cell. The crown and the forehead edge, which sit higher, are untouched, so the bald-spot cover (a geometry test) is unchanged.
- */
-function softenHairline(m: THREE.MeshPhysicalMaterial): void {
-  const u = { uHairY: { value: 0 }, uHairBand: { value: 1 } };
-  m.alphaHash = true;
-  m.onBeforeCompile = (shader) => {
-    shader.uniforms.uHairY = u.uHairY;
-    shader.uniforms.uHairBand = u.uHairBand;
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vHairP;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvHairP = position;');
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vHairP;\nuniform float uHairY;\nuniform float uHairBand;')
-      .replace('#include <map_fragment>', `#include <map_fragment>
-{
-  vec3 c = floor(vHairP * (60.0 / max(uHairBand, 1e-4) * 0.02));
-  float n = fract(sin(dot(c, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-  float k = (vHairP.y - uHairY) / uHairBand;
-  diffuseColor.a *= clamp(k * 1.6 + (n - 0.5) * 1.1, 0.0, 1.0);
-}`);
-  };
-  m.customProgramCacheKey = () => 'walkthru-hair-soft-v1';
-  m.onBeforeRender = (_r, _s, _c, geometry) => {
-    const g = geometry as THREE.BufferGeometry;
-    if (!g.boundingBox) g.computeBoundingBox();
-    const b = g.boundingBox;
-    if (!b) return;
-    u.uHairY.value = b.min.y;
-    u.uHairBand.value = Math.max(1e-4, (b.max.y - b.min.y) * 0.1);
-  };
-}
+/** The hair's vertex shade averages about 0.8 (the lightest strand is 1), so the colour is lifted by a little more than that and the hair keeps its colour overall. */
+const HAIR_LIFT = 1.32;
+
+/** How much darker than the top its neck band is (linear, as the man's collar is, `SHADE` in tools/make_family.py): the band is cut from the top's own rings, so it is the garment's colour, a little deeper, never a separate white strip (SPEC 16.6.12). */
+export const NECK_BAND_SHADE = 0.84;
+export const neckBandColour = (topHex: string): THREE.Color => fabricColour(topHex).multiplyScalar(NECK_BAND_SHADE);
 
 export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: number): PersonLook {
   const mats: THREE.MeshStandardMaterial[] = [];
   const skinMats: THREE.MeshStandardMaterial[] = [];
   const topMats: THREE.MeshStandardMaterial[] = [];
+  const bandMats: THREE.MeshStandardMaterial[] = [];     // the neck band of the woman's, the elder's and the child's tops (the man's trim is his belt)
   let toneIdx = clampTone(tone);
   const o = OUTFITS[body];
   const fixed: Record<string, string> = { bottom: o.bottom, wrap: o.wrap, trim: o.trim, hair: o.hair, brows: o.brows, shoes: o.shoes, eyes: o.eyes, pupil: o.pupil };
   for (const s of skinned) {
     if (s.name === 'hair') {
-      // hair is very dark brown, not black, with a soft sheen band that catches a window or a lamp (SPEC 16.20): it read as a hard black cap from behind
+      // Hair (SPEC 16.6.12, replacing 16.20's sheen): matte, so no light on the crown reads as a bald patch at any Materials level or hour. The form comes from the
+      // vertex colour the body carries (`shade`: strand-to-strand light and dark, darker toward the nape, in rgb; a ragged, feathered hairline in alpha, which the
+      // alpha hash turns into strand-sized breaks with no sorting and no halo).
       const old = s.material as THREE.MeshStandardMaterial;
       const hm = new THREE.MeshPhysicalMaterial({
-        color: fixed.hair, roughness: 0.5, metalness: 0, sheen: 0.9, sheenRoughness: 0.42,
-        sheenColor: new THREE.Color(body === 'elder' ? '#FFFFFF' : '#8A6F5C'), side: old.side,
+        color: new THREE.Color(fixed.hair).multiplyScalar(HAIR_LIFT), roughness: 1, metalness: 0, specularIntensity: 0.06, envMapIntensity: 0.55,
+        sheen: 0.35, sheenRoughness: 0.9, sheenColor: new THREE.Color(body === 'elder' ? '#BDB8AE' : '#6A5242'), side: old.side,
       });
       old.dispose();
-      softenHairline(hm);
+      const col = s.geometry.getAttribute('color');
+      // the feathered hairline is an ordinary blend of the vertex alpha (smooth, so it reads as a soft edge and not as pepper); the hair is one mesh drawn after the
+      // opaque skin it fades into, and it keeps writing depth, so nothing needs sorting
+      if (col) { hm.vertexColors = true; hm.transparent = col.itemSize === 4; }
       s.material = hm;
       mats.push(hm);
       s.castShadow = false;
@@ -144,6 +122,7 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
     mat.roughness = ROUGHNESS[s.name] ?? 0.8;
     if (s.name === 'skin') { mat.color.copy(skinTone(toneIdx)); skinMats.push(mat); }
     else if (s.name === 'top') { mat.color.copy(fabricColour(TOP_TINTS[body][1])); topMats.push(mat); }
+    else if (s.name === 'trim' && body !== 'man') { mat.color.copy(neckBandColour(TOP_TINTS[body][1])); bandMats.push(mat); }
     else if (fixed[s.name]) mat.color.set(fixed[s.name]);
     s.castShadow = false;
   }
@@ -156,6 +135,8 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
     setTop(hex) {
       const c = fabricColour(hex);
       for (const m of topMats) m.color.copy(c);
+      const b = neckBandColour(hex);
+      for (const m of bandMats) m.color.copy(b);
     },
     materials: mats,
   };
