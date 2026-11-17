@@ -351,6 +351,9 @@ export function mountFoliage(spots: PlantSpot[], hedges: HedgeSeg[], tier: Tier,
     const geo = buildSpecies(id, tier);
     const tex = geo.kind === 'frond' ? frondTexture(sp) : sprayTexture(sp, seed + id.length * 13);
     const leafMat = new THREE.MeshStandardMaterial({ map: tex ?? undefined, color: tex ? '#ffffff' : sp.leaf[0], alphaTest: 0.45, side: THREE.DoubleSide, vertexColors: true, roughness: 0.82, metalness: 0, emissive: new THREE.Color(sp.leaf[2]).multiplyScalar(0.5), emissiveIntensity: 0.55 }); // the emissive is a minimum ambient: from the doll house's high angle the cards face the sky and used to go near black
+    // palm fronds are long cards that lie nearly flat and face the sky from above: a constant dark emissive left them black in the doll house (round 5),
+    // so a frond lights itself with its own texture colour, as a leaf lit through would
+    if (tex && geo.kind === 'frond') { leafMat.emissiveMap = tex; leafMat.emissive = new THREE.Color('#ffffff'); leafMat.emissiveIntensity = 0.7; }
     if (windOn) withWind(leafMat, clock, geo.kind === 'frond' ? 0.07 : 0.045, Math.max(1, geo.heightM));
     const mk = (g: THREE.BufferGeometry, m: THREE.Material, name: string): THREE.InstancedMesh => {
       const im = new THREE.InstancedMesh(g, m, list.length);
