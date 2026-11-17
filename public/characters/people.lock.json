@@ -1,7 +1,7 @@
 {
-  "version": 7,
+  "version": 8,
   "built": "2026-11-17",
-  "route": "family: MakeHuman base meshes shaped in MPFB2, stylised, clothes and hair modelled by tools/make_family.py (SPEC 16.6.7); 15 Nov 2026: per-leg skirt panels, draped dupatta and pallu, shoulder caps; motion pass 15 Nov 2026: animation clips rebuilt from the free Quaternius Universal Animation Libraries 1 and 2 (CC0, SPEC 16.6.8); 16 Nov 2026: garments refitted close to the body (side slits, no flare, sleeves and legs measured by rays), head 6 % larger (child 14 %), hair dome closed over the crown (SPEC 16.6.9); 16 Nov 2026 (later): man in a collared shirt and trousers, woman in a hip-length top and trousers, child in a T-shirt and shorts, the elder keeps her saree (SPEC 16.6.11); 16 Nov 2026 (later still): elder in a tunic and trousers, the man's shirt tucked in with belt and buckle, slimmer tops, calf-weighted trouser hems, 6-pass leg weights (SPEC 16.6.11b to 16.6.11d); 16.6.12 rebuild: cloth that stays on the body (tuck, closest-point weights, elbow rings), hair with shade and a ragged feathered hairline, neck bands cut from the top",
+  "route": "family: MakeHuman base meshes shaped in MPFB2, stylised, clothes and hair modelled by tools/make_family.py (SPEC 16.6.7); 15 Nov 2026: per-leg skirt panels, draped dupatta and pallu, shoulder caps; motion pass 15 Nov 2026: animation clips rebuilt from the free Quaternius Universal Animation Libraries 1 and 2 (CC0, SPEC 16.6.8); 16 Nov 2026: garments refitted close to the body (side slits, no flare, sleeves and legs measured by rays), head 6 % larger (child 14 %), hair dome closed over the crown (SPEC 16.6.9); 16 Nov 2026 (later): man in a collared shirt and trousers, woman in a hip-length top and trousers, child in a T-shirt and shorts, the elder keeps her saree (SPEC 16.6.11); 16 Nov 2026 (later still): elder in a tunic and trousers, the man's shirt tucked in with belt and buckle, slimmer tops, calf-weighted trouser hems, 6-pass leg weights (SPEC 16.6.11b to 16.6.11d); 16.6.12 rebuild: cloth that stays on the body (tuck, closest-point weights, elbow rings), hair with shade and a ragged feathered hairline, neck bands cut from the top; 16.6.12 second pass: neck bands take the top's colour, child's T-shirt flare over the shorts, thumbnails re-rendered",
   "sources": {
     "mpfb": {
       "file": "mpfb-2.0.18.zip",
@@ -108,12 +108,12 @@
       "sha256": "998c73bd5a3c72caaa3bbf1248b9bf9a260021664e635c01a911bc2247fea1a0"
     },
     "person-child-low.glb": {
-      "bytes": 133836,
-      "sha256": "7549e05d967f908c70e239a56c74bdad8b0b924707a740226a04617aa4b9c01b"
+      "bytes": 133908,
+      "sha256": "bf8405f8ff89fde06b12faeb8084e3d95aedf0c0fcea749331b4095910a9a4ca"
     },
     "person-child.glb": {
-      "bytes": 160460,
-      "sha256": "abb30e8612a8efa4aeaee09b55b260c2ef15f4658339cd45cdebc56299e9cf0f"
+      "bytes": 160428,
+      "sha256": "f4fcc17208cb738ad217a9f0c937fe641f88d58ab6686f3a7066643517fe61fe"
     },
     "person-elder-low.glb": {
       "bytes": 135680,
@@ -140,20 +140,20 @@
       "sha256": "a03d482d85cfd8e83fbd3fd2163aba28aa188c58794d71421205c9321da15033"
     },
     "thumb-child.jpg": {
-      "bytes": 7993,
-      "sha256": "0b70cd8799d27190fd34b69e58152d9b6db9e997c59c853e1ec5d8100318a59a"
+      "bytes": 7940,
+      "sha256": "08959990b8a61e0f608c045170e53a04367c02e9d9273fff463837b41eb4340f"
     },
     "thumb-elder.jpg": {
-      "bytes": 7591,
-      "sha256": "ab65e2fa49cc51415083c469e5e810de89effc913ec3c65dd2cc3925f9b577d2"
+      "bytes": 7538,
+      "sha256": "f1d49dd632f0bead0b5b3495ee98050752a3aa563597e041d108a8c4ddfa8cd8"
     },
     "thumb-man.jpg": {
-      "bytes": 8038,
-      "sha256": "6ed35dcac97f4c8866b3bc3a388d2f184a8a4bee22c2f5b859e1380c6a8c17fe"
+      "bytes": 8046,
+      "sha256": "f9390404d3234d7ca4fb10b36ed460798d50768488afc7ed2acd4808005f2ebe"
     },
     "thumb-woman.jpg": {
-      "bytes": 7328,
-      "sha256": "6f2328014b7119176406c4f01ad80a91181b98e8847134e3b2539482dd262760"
+      "bytes": 7327,
+      "sha256": "72c8cd027a1a1ca1182d46fe7ffb6a941d35e62be5084843ff69e4ea83c2c2b8"
     }
   }
 }

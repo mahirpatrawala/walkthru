@@ -22,19 +22,23 @@ const CLIPS: [string, number][] = [
 const timeOf = (p: Posed, clip: string, i: number, n: number): number => (clip === 'Sitting_Enter' ? (p.duration(clip) * (i + 1)) / n * 0.999 : (p.duration(clip) * i) / n);
 
 /** Worst exposed area (cm2) of the skin and of the trousers over every pose of every clip, and where. */
-function exposure(p: Posed): { skin: number; skinAt: string; trousers: number; trousersAt: string } {
+/** Clips in which the hem of a top that is worn out (a kurti, a tunic, a T-shirt) stays where it is: there trousers must not show through the middle of the front and the back from 1.2 cm above the hem (the child's shorts came through the hem as a row of teeth). In a jog or sitting down the hem lifts, as cloth does. */
+const STATIC = new Set(['Idle_Loop', 'Turn_Step', 'Idle_FoldArms_Loop', 'Lie_Pose']);
+
+function exposure(p: Posed, tucked: boolean): { skin: number; skinAt: string; trousers: number; trousersAt: string } {
   p.pose(null);
   const restS = skinCover(p);
   const maskS = { cov: mustCover(p, restS, 2) };
   const OUT = ['top', 'wrap', 'trim'];
   const restB = skinCover(p, 'bottom', OUT);
-  const maskB = { cov: mustCoverBottom(p, restB, 1) };
+  const maskB = { cov: mustCoverBottom(p, restB, 1, false) };
+  const maskBs = { cov: mustCoverBottom(p, restB, 1, !tucked) };
   const r = { skin: 0, skinAt: '', trousers: 0, trousersAt: '' };
   for (const [clip, n] of CLIPS) {
     for (let i = 0; i < n; i++) {
       p.pose(clip, timeOf(p, clip, i, n));
       const a = exposedSkin(p, maskS);
-      const b = exposedSkin(p, maskB, undefined, 'bottom', OUT);
+      const b = exposedSkin(p, STATIC.has(clip) ? maskBs : maskB, undefined, 'bottom', OUT);
       let sa = 0, ba = 0;
       for (let k = 0; k < a.views.length; k++) if (a.views[k]) sa += a.now.area[k];
       for (let k = 0; k < b.views.length; k++) if (b.views[k]) ba += b.now.area[k];
@@ -56,7 +60,7 @@ describe.skipIf(!have)('the cloth stays on the body in every pose (16.6.12)', ()
     for (const body of BODIES) {
       it(`${body}${tier}: no skin or trousers visible through the cloth in idle, walk, jog, sit, lie, reach, fold and turn`, async () => {
         const p = await loadPosed(body, tier);
-        const r = exposure(p);
+        const r = exposure(p, body === 'man');   // (the man's shirt is tucked: his trousers are worn over it)
         const lim = LIMIT[tier];
         expect(r.skin, `skin visible through the cloth: ${r.skin.toFixed(1)} cm2 (${r.skinAt})`).toBeLessThanOrEqual(lim.skin);
         expect(r.trousers, `trousers visible through the top: ${r.trousers.toFixed(1)} cm2 (${r.trousersAt})`).toBeLessThanOrEqual(lim.trousers);

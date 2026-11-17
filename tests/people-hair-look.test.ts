@@ -69,7 +69,8 @@ describe.skipIf(!have)('hair reads as hair (16.6.12)', () => {
         expect(hm.sheen).toBeLessThanOrEqual(0.4);
         expect(hm.metalness).toBe(0);
         expect(hm.vertexColors).toBe(true);
-        expect(hm.alphaHash).toBe(true);
+        expect(hm.transparent, 'the feathered edge is a smooth blend, not a hash').toBe(true);
+        expect(hm.alphaHash).toBe(false);
       }, 60000);
     }
   }

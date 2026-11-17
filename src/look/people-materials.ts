@@ -21,8 +21,8 @@ export const SKIN_ALBEDO_GAIN = [0.95, 0.91, 0.86] as const;
 type Body = 'man' | 'woman' | 'elder' | 'child';
 
 /** The fixed colours of each person. The top's colour comes from the height preset (`setTop`, `TOP_TINTS`).
- * `bottom` is never tinted: man charcoal trousers, woman beige trousers, child denim shorts, elder navy trousers. `trim` is the man's belt, the
- * neck piping of the woman and the elder, the child's crew-neck rib; `wrap` is the man's shirt buttons (and a saree's pallu, if one is ever built again). */
+ * `bottom` is never tinted: man charcoal trousers, woman beige trousers, child denim shorts, elder navy trousers. `trim` is the man's belt (the neck band of the
+ * woman's, the elder's and the child's top takes the top's own colour, `neckBandColour`: their `trim` entries here are not used since 16.6.12); `wrap` is the man's shirt buttons (and a saree's pallu, if one is ever built again). */
 export const OUTFITS: Record<Body, { bottom: string; wrap: string; trim: string; hair: string; brows: string; shoes: string; eyes: string; pupil: string }> = {
   man: { bottom: '#565C68', wrap: '#EFEBE0', trim: '#2B1D15', hair: '#2D2119', brows: '#221A15', shoes: '#4B3A2E', eyes: '#F3F0EA', pupil: '#1B1311' },
   woman: { bottom: '#CBB994', wrap: '#CBB994', trim: '#EDE4CF', hair: '#2B1F19', brows: '#221A15', shoes: '#5A4232', eyes: '#F3F0EA', pupil: '#1B1311' },
@@ -81,10 +81,15 @@ const ROUGHNESS: Record<string, number> = { skin: 0.62, eyes: 0.25, pupil: 0.12,
 /** The hair's vertex shade averages about 0.8 (the lightest strand is 1), so the colour is lifted by a little more than that and the hair keeps its colour overall. */
 const HAIR_LIFT = 1.32;
 
+/** How much darker than the top its neck band is (linear, as the man's collar is, `SHADE` in tools/make_family.py): the band is cut from the top's own rings, so it is the garment's colour, a little deeper, never a separate white strip (SPEC 16.6.12). */
+export const NECK_BAND_SHADE = 0.84;
+export const neckBandColour = (topHex: string): THREE.Color => fabricColour(topHex).multiplyScalar(NECK_BAND_SHADE);
+
 export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: number): PersonLook {
   const mats: THREE.MeshStandardMaterial[] = [];
   const skinMats: THREE.MeshStandardMaterial[] = [];
   const topMats: THREE.MeshStandardMaterial[] = [];
+  const bandMats: THREE.MeshStandardMaterial[] = [];     // the neck band of the woman's, the elder's and the child's tops (the man's trim is his belt)
   let toneIdx = clampTone(tone);
   const o = OUTFITS[body];
   const fixed: Record<string, string> = { bottom: o.bottom, wrap: o.wrap, trim: o.trim, hair: o.hair, brows: o.brows, shoes: o.shoes, eyes: o.eyes, pupil: o.pupil };
@@ -100,7 +105,9 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
       });
       old.dispose();
       const col = s.geometry.getAttribute('color');
-      if (col) { hm.vertexColors = true; hm.alphaHash = col.itemSize === 4; }
+      // the feathered hairline is an ordinary blend of the vertex alpha (smooth, so it reads as a soft edge and not as pepper); the hair is one mesh drawn after the
+      // opaque skin it fades into, and it keeps writing depth, so nothing needs sorting
+      if (col) { hm.vertexColors = true; hm.transparent = col.itemSize === 4; }
       s.material = hm;
       mats.push(hm);
       s.castShadow = false;
@@ -115,6 +122,7 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
     mat.roughness = ROUGHNESS[s.name] ?? 0.8;
     if (s.name === 'skin') { mat.color.copy(skinTone(toneIdx)); skinMats.push(mat); }
     else if (s.name === 'top') { mat.color.copy(fabricColour(TOP_TINTS[body][1])); topMats.push(mat); }
+    else if (s.name === 'trim' && body !== 'man') { mat.color.copy(neckBandColour(TOP_TINTS[body][1])); bandMats.push(mat); }
     else if (fixed[s.name]) mat.color.set(fixed[s.name]);
     s.castShadow = false;
   }
@@ -127,6 +135,8 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
     setTop(hex) {
       const c = fabricColour(hex);
       for (const m of topMats) m.color.copy(c);
+      const b = neckBandColour(hex);
+      for (const m of bandMats) m.color.copy(b);
     },
     materials: mats,
   };

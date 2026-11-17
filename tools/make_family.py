@@ -1036,7 +1036,7 @@ def build_garments(key, spec, body, extra=None):
             hang, vent = (zsh - 0.12 * H, 0.0050, 0.0070, hem, (hem - 0.03, hem + 0.07)), 0.05 * u
         else:                        # tee: a child's T-shirt, to the hip, short sleeves, crew neck
             hem = zh - TEE_HEM * H
-            off = lerp_off([(z_collar, 0.0065), (zsh, 0.0065), (zw, 0.0075), (zh, 0.0100), (hem, 0.0110)])
+            off = lerp_off([(z_collar, 0.0065), (zsh, 0.0065), (zw, 0.0075 + TEE_OVER), (zh, 0.0100 + TEE_OVER), (hem, 0.0110 + TEE_OVER)])
             sleeve = (0.25, 0.0060, 0.0050)
             hang, vent = (zw, 0.0080, 0.0110, hem, (hem - 0.03, hem + 0.07)), 0.0
         if tucked:
@@ -1278,6 +1278,7 @@ ELBOW_STEP = float(arg('--elbow-step', '0.007'))  # ring spacing across a sleeve
 ELBOW_SPAN = float(arg('--elbow-span', '0.05'))   # how far each side of the elbow it applies
 DELTOID = float(arg('--deltoid', '0.0025'))      # metres of extra sleeve over the deltoid
 SHOULDER_EXT = float(arg('--shoulder-ext', '0.02'))  # how far past the shoulder joint the torso cloth reaches over the top of the arm (m)
+TEE_OVER = float(arg('--tee-over', '0.012'))          # extra room of the child's T-shirt from the waist down, over the shorts the fit grows under it
 EXACT_COPY = '--knn-weights' not in argv        # cloth takes the weights of the skin's closest surface point, not a k-nearest average
 TOP_PASSES = int(arg('--top-passes', '16'))     # smoothing passes of the top's weights (the sleeves stop at SLEEVE_PASSES)
 LEG_PASSES = int(arg('--leg-passes', '6'))   # smoothing passes of the trousers' weights: fewer follow the skin more closely at the knee
@@ -1750,6 +1751,8 @@ def thumb_colours(key, objs):
     for role, o in objs.items():
         if role in cols and o.data.materials:
             o.data.materials[0].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (*srgb_lin(cols[role]), 1)
+    if key != 'man' and 'trim' in objs and objs['trim'].data.materials:      # the neck band is the top's own colour, 16 % darker (neckBandColour in src/look/people-materials.ts)
+        objs['trim'].data.materials[0].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (*(0.84 * x for x in srgb_lin(TOP_TINT[key])), 1)
 
 def relax_arms(rig, body):
     """Lower the arms out of the T for the thumbnail: upper arms down and a little out, forearms slightly forward."""

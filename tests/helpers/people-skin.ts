@@ -289,15 +289,22 @@ export function mustCover(p: Posed, rest: Cover, rings = 1): Uint8Array {
 
 /**
  * The trousers' own must-cover set: what the top covered well inside at the bind pose, and everything higher than 8 cm above the top's lowest hem (the
- * side vents of a kurti and a tunic are 4 to 7 cm and are open by design), covered or not at bind. Call with the bind pose posed.
+ * side vents of a kurti and a tunic are 4 to 7 cm and are open by design), and the middle of the front and the back from 1.2 cm above it, covered or not at bind. Call with the bind pose posed.
  */
-export function mustCoverBottom(p: Posed, rest: Cover, rings = 1): Uint8Array {
+export function mustCoverBottom(p: Posed, rest: Cover, rings = 1, strip = true): Uint8Array {
   const bottom = p.parts.get('bottom')!;
   const tp = p.positions('top');
   let hem = Infinity;
   for (let i = 1; i < tp.length; i += 3) hem = Math.min(hem, tp[i]);
   const out = interior(p, rest.cov, rings, 'bottom');
-  for (let t = 0; t < out.length; t++) if (rest.centre[t * 3 + 1] > hem + 0.08) out[t] = 1;
+  // the middle of the front and the back (the vents are at the sides): trousers must not show through the top from 1.2 cm above the lowest hem, which is
+  // where a trouser leg grown by the fit against a T-shirt that ends just below it came through as a row of teeth (the child's shorts, 16.6.12)
+  let half = 0;
+  for (let i = 0; i < tp.length; i += 3) if (tp[i + 1] < hem + 0.03) half = Math.max(half, Math.abs(tp[i]));
+  for (let t = 0; t < out.length; t++) {
+    const y = rest.centre[t * 3 + 1];
+    if (y > hem + 0.08 || (strip && y > hem + 0.012 && Math.abs(rest.centre[t * 3]) < 0.6 * half)) out[t] = 1;
+  }
   void bottom;
   return out;
 }

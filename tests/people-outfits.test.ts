@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { OUTFITS, SKIN_TONES, TOP_TINTS, fabricColour, stylePerson } from '../src/look/people-materials';
+import { OUTFITS, SKIN_TONES, TOP_TINTS, fabricColour, neckBandColour, stylePerson } from '../src/look/people-materials';
 import { BODY_CHIPS_CM, BODY_DEFAULT_CM, tintForPerson } from '../src/buyer/person-store';
 import type { PersonBody } from '../src/look/people';
 
@@ -81,7 +81,9 @@ describe.skipIf(!have)('outfits (16.6.11)', () => {
         look.setTop(tint);
         expect(colour('top')).toBe(`#${fabricColour(tint).getHexString()}`);
         expect(colour('bottom')).toBe(bottom0);
-        expect(colour('trim')).toBe(trim0);
+        // the man's trim is his belt and never changes; the others' neck band is the top's own colour, a little darker (16.6.12)
+        if (body === 'man') expect(colour('trim')).toBe(trim0);
+        else expect(colour('trim')).toBe(`#${neckBandColour(tint).getHexString()}`);
       }
     });
   }
