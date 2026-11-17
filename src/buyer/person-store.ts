@@ -82,15 +82,16 @@ export function savePerson(storage: StorageLike | null, p: PersonState): void {
 
 /** SPEC 16.6.8: 'third' = see yourself (the follow camera, the default), 'first' = through your own eyes, no body in shot. */
 export type ViewMode = 'third' | 'first';
-export const VIEW_KEY = 'walkthru:view';
+export const VIEW_KEY = 'walkthru:view.v2'; // v2: the default became first person on 17 Nov 2026, so earlier saved defaults are not carried over
 /**
- * THE one place to flip which view a buyer opens in (SPEC 16.18): change this to 'first' and every home opens through the walker's eyes. A saved choice
+ * THE one place to flip which view a buyer opens in (SPEC 16.18). Since 17 Nov 2026 every home opens through the walker's eyes (the owner's choice); the picker
+ * still asks who is walking and how tall, and "See yourself" there switches to third person. A saved choice
  * (`walkthru:view`) and `?view=first|third` in the URL still win. Both views are crisp: the third-person camera glides to the eyes when a wall is close behind.
  */
-export const DEFAULT_VIEW: ViewMode = 'third';
+export const DEFAULT_VIEW: ViewMode = 'first';
 
 export function viewFrom(v: unknown): ViewMode {
-  return v === 'first' ? 'first' : DEFAULT_VIEW;
+  return v === 'first' || v === 'third' ? v : DEFAULT_VIEW;
 }
 /** Reads `walkthru:view`; anything else (nothing stored, blocked storage, junk) is the default. */
 export function loadView(storage: StorageLike | null): ViewMode {

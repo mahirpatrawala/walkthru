@@ -75,21 +75,21 @@ describe('retargetClips on the starter man skeleton (check 5)', () => {
 });
 
 describe('view: see yourself or first person (SPEC 16.6.8)', () => {
-  it('is third person (see yourself) until the viewer chooses, and remembers the choice per viewer', () => {
+  it('is first person until the viewer chooses, and remembers the choice per viewer', () => {
     const s = mem();
-    expect(loadView(s)).toBe('third');
-    saveView(s, 'first');
-    expect(s.m.get(VIEW_KEY)).toBe('first');
     expect(loadView(s)).toBe('first');
     saveView(s, 'third');
+    expect(s.m.get(VIEW_KEY)).toBe('third');
     expect(loadView(s)).toBe('third');
+    saveView(s, 'first');
+    expect(loadView(s)).toBe('first');
   });
   it('reads junk, missing or blocked storage as the default, and does not touch the person key', () => {
-    expect(loadView(mem({ [VIEW_KEY]: 'sideways' }))).toBe('third');
-    expect(loadView(null)).toBe('third');
+    expect(loadView(mem({ [VIEW_KEY]: 'sideways' }))).toBe('first');
+    expect(loadView(null)).toBe('first');
     expect(() => saveView(null, 'first')).not.toThrow();
     const throwing = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); }, removeItem: () => {} };
-    expect(loadView(throwing)).toBe('third');
+    expect(loadView(throwing)).toBe('first');
     expect(() => saveView(throwing, 'first')).not.toThrow();
     const s = mem();
     saveView(s, 'first');
