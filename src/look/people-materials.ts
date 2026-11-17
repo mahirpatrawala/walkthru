@@ -78,40 +78,8 @@ const ROUGHNESS: Record<string, number> = { skin: 0.62, eyes: 0.25, pupil: 0.12,
  * Prepares the materials of a freshly parsed person. Every skinned mesh gets its own material (tint and tone never leak
  * between characters). Call once per parsed GLB.
  */
-/**
- * SPEC 16.20: the hair is a cap with a hard lower edge; a real hairline is irregular and soft at the nape and the sideburns. The lowest few centimetres of the
- * cap (a fraction of its own height, so it follows any body's scale) dissolve into the skin through a stable hash (alpha hash, so no sorting and no blend
- * halo), per strand-sized cell. The crown and the forehead edge, which sit higher, are untouched, so the bald-spot cover (a geometry test) is unchanged.
- */
-function softenHairline(m: THREE.MeshPhysicalMaterial): void {
-  const u = { uHairY: { value: 0 }, uHairBand: { value: 1 } };
-  m.alphaHash = true;
-  m.onBeforeCompile = (shader) => {
-    shader.uniforms.uHairY = u.uHairY;
-    shader.uniforms.uHairBand = u.uHairBand;
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vHairP;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvHairP = position;');
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vHairP;\nuniform float uHairY;\nuniform float uHairBand;')
-      .replace('#include <map_fragment>', `#include <map_fragment>
-{
-  vec3 c = floor(vHairP * (60.0 / max(uHairBand, 1e-4) * 0.02));
-  float n = fract(sin(dot(c, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-  float k = (vHairP.y - uHairY) / uHairBand;
-  diffuseColor.a *= clamp(k * 1.6 + (n - 0.5) * 1.1, 0.0, 1.0);
-}`);
-  };
-  m.customProgramCacheKey = () => 'walkthru-hair-soft-v1';
-  m.onBeforeRender = (_r, _s, _c, geometry) => {
-    const g = geometry as THREE.BufferGeometry;
-    if (!g.boundingBox) g.computeBoundingBox();
-    const b = g.boundingBox;
-    if (!b) return;
-    u.uHairY.value = b.min.y;
-    u.uHairBand.value = Math.max(1e-4, (b.max.y - b.min.y) * 0.1);
-  };
-}
+/** The hair's vertex shade averages about 0.85 (the lightest strand is 1), so the colour is lifted by the same amount and the hair keeps its colour overall. */
+const HAIR_LIFT = 1.18;
 
 export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: number): PersonLook {
   const mats: THREE.MeshStandardMaterial[] = [];
@@ -122,14 +90,17 @@ export function stylePerson(skinned: THREE.SkinnedMesh[], body: Body, tone: numb
   const fixed: Record<string, string> = { bottom: o.bottom, wrap: o.wrap, trim: o.trim, hair: o.hair, brows: o.brows, shoes: o.shoes, eyes: o.eyes, pupil: o.pupil };
   for (const s of skinned) {
     if (s.name === 'hair') {
-      // hair is very dark brown, not black, with a soft sheen band that catches a window or a lamp (SPEC 16.20): it read as a hard black cap from behind
+      // Hair (SPEC 16.6.12, replacing 16.20's sheen): matte, so no light on the crown reads as a bald patch at any Materials level or hour. The form comes from the
+      // vertex colour the body carries (`shade`: strand-to-strand light and dark, darker toward the nape, in rgb; a ragged, feathered hairline in alpha, which the
+      // alpha hash turns into strand-sized breaks with no sorting and no halo).
       const old = s.material as THREE.MeshStandardMaterial;
       const hm = new THREE.MeshPhysicalMaterial({
-        color: fixed.hair, roughness: 0.5, metalness: 0, sheen: 0.9, sheenRoughness: 0.42,
-        sheenColor: new THREE.Color(body === 'elder' ? '#FFFFFF' : '#8A6F5C'), side: old.side,
+        color: new THREE.Color(fixed.hair).multiplyScalar(HAIR_LIFT), roughness: 1, metalness: 0, specularIntensity: 0.06, envMapIntensity: 0.55,
+        sheen: 0.25, sheenRoughness: 0.9, sheenColor: new THREE.Color(body === 'elder' ? '#BDB8AE' : '#5A4638'), side: old.side,
       });
       old.dispose();
-      softenHairline(hm);
+      const col = s.geometry.getAttribute('color');
+      if (col) { hm.vertexColors = true; hm.alphaHash = col.itemSize === 4; }
       s.material = hm;
       mats.push(hm);
       s.castShadow = false;

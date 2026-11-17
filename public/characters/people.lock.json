@@ -1,7 +1,7 @@
 {
-  "version": 6,
-  "built": "2026-11-16",
-  "route": "family: MakeHuman base meshes shaped in MPFB2, stylised, clothes and hair modelled by tools/make_family.py (SPEC 16.6.7); 15 Nov 2026: per-leg skirt panels, draped dupatta and pallu, shoulder caps; motion pass 15 Nov 2026: animation clips rebuilt from the free Quaternius Universal Animation Libraries 1 and 2 (CC0, SPEC 16.6.8); 16 Nov 2026: garments refitted close to the body (side slits, no flare, sleeves and legs measured by rays), head 6 % larger (child 14 %), hair dome closed over the crown (SPEC 16.6.9); 16 Nov 2026 (later): man in a collared shirt and trousers, woman in a hip-length top and trousers, child in a T-shirt and shorts, the elder keeps her saree (SPEC 16.6.11); 16 Nov 2026 (later still): elder in a tunic and trousers, the man's shirt tucked in with belt and buckle, slimmer tops, calf-weighted trouser hems, 6-pass leg weights (SPEC 16.6.11b to 16.6.11d)",
+  "version": 7,
+  "built": "2026-11-17",
+  "route": "family: MakeHuman base meshes shaped in MPFB2, stylised, clothes and hair modelled by tools/make_family.py (SPEC 16.6.7); 15 Nov 2026: per-leg skirt panels, draped dupatta and pallu, shoulder caps; motion pass 15 Nov 2026: animation clips rebuilt from the free Quaternius Universal Animation Libraries 1 and 2 (CC0, SPEC 16.6.8); 16 Nov 2026: garments refitted close to the body (side slits, no flare, sleeves and legs measured by rays), head 6 % larger (child 14 %), hair dome closed over the crown (SPEC 16.6.9); 16 Nov 2026 (later): man in a collared shirt and trousers, woman in a hip-length top and trousers, child in a T-shirt and shorts, the elder keeps her saree (SPEC 16.6.11); 16 Nov 2026 (later still): elder in a tunic and trousers, the man's shirt tucked in with belt and buckle, slimmer tops, calf-weighted trouser hems, 6-pass leg weights (SPEC 16.6.11b to 16.6.11d); 16.6.12 rebuild: cloth that stays on the body (tuck, closest-point weights, elbow rings), hair with shade and a ragged feathered hairline, neck bands cut from the top",
   "sources": {
     "mpfb": {
       "file": "mpfb-2.0.18.zip",
@@ -108,36 +108,36 @@
       "sha256": "998c73bd5a3c72caaa3bbf1248b9bf9a260021664e635c01a911bc2247fea1a0"
     },
     "person-child-low.glb": {
-      "bytes": 112068,
-      "sha256": "e885425b5426eec555c49bee3686f0fc2ff88c926a5e1363002b500e3587a111"
+      "bytes": 133836,
+      "sha256": "7549e05d967f908c70e239a56c74bdad8b0b924707a740226a04617aa4b9c01b"
     },
     "person-child.glb": {
-      "bytes": 152296,
-      "sha256": "d9142130feeb0d696e0c53844f176423b0d4b5dde30e3f27259b63d2647770aa"
+      "bytes": 160460,
+      "sha256": "abb30e8612a8efa4aeaee09b55b260c2ef15f4658339cd45cdebc56299e9cf0f"
     },
     "person-elder-low.glb": {
-      "bytes": 110668,
-      "sha256": "6e7e8df51652dc21ba2d097da08e6700c303bf3e99c975f5d6a7e345c561a036"
+      "bytes": 135680,
+      "sha256": "fa44beddc6ad4560cf79019726438331852bb8ed5e0911e1debe9d64c256ccbd"
     },
     "person-elder.glb": {
-      "bytes": 165876,
-      "sha256": "6a64be5f3ffb4071bdb4fb891ba4e589c84837609c979864175bff571b7f2e4f"
+      "bytes": 175916,
+      "sha256": "ac1e99554493295797b26e1da9177079321f3efd0ea53da3711b1f379f93cb35"
     },
     "person-man-low.glb": {
-      "bytes": 122036,
-      "sha256": "830143ebf65ac244ac18dd5a99608d71ace066f9fe66655e87c5ae6c84dea6b5"
+      "bytes": 144032,
+      "sha256": "129b699ecd4b81fb2e3f8d813323315030a8f2eef7d741b54c90f19175a15b1e"
     },
     "person-man.glb": {
-      "bytes": 177312,
-      "sha256": "0d8d830af9b20cd7aa0247eca02e4c5008455614206bac7ed1a47801c1ed4415"
+      "bytes": 186976,
+      "sha256": "6842e082b7d54c8dd5b2723de014aa390d53c1d1b1d56a90ca1197d134e467be"
     },
     "person-woman-low.glb": {
-      "bytes": 110752,
-      "sha256": "14b61de80e097320c2cce9f805b0f673669fa1e051785f9adfe59f59ec06d7d3"
+      "bytes": 134924,
+      "sha256": "86b4315611e571fac5d4d796504d4abf4024494aa38becaca3f7ab951014a165"
     },
     "person-woman.glb": {
-      "bytes": 165224,
-      "sha256": "b0e4f2b6bf41a8d262c124c90bbadbcdaebd611ef79426229a3da6bf0525efdd"
+      "bytes": 174716,
+      "sha256": "a03d482d85cfd8e83fbd3fd2163aba28aa188c58794d71421205c9321da15033"
     },
     "thumb-child.jpg": {
       "bytes": 7993,

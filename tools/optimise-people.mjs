@@ -20,7 +20,7 @@ const [rawDir, outDir] = process.argv.slice(2);
 fs.mkdirSync(outDir, { recursive: true });
 await MeshoptEncoder.ready; await MeshoptSimplifier.ready;
 
-const KEYS = ['man', 'woman', 'elder', 'child'];
+const KEYS = process.env.KEYS ? process.env.KEYS.split(',') : ['man', 'woman', 'elder', 'child'];   // KEYS=man rebuilds one body
 // meshopt simplify ratios per part: [medium, low]. The trim is never simplified (its gold borders are thin closed shells, which
 // simplification turns into teeth) and the wrap (dupatta, pallu) only a little in the low tier. The hair is the crown's only cover
 // (a dome over the skull, SPEC 16.6.9), so it keeps all of its triangles in the first tier and 60 % in the low one.
@@ -31,7 +31,10 @@ const DOUBLE = new Set(['top', 'bottom', 'trim', 'wrap', 'hair']);
 // The error cap is a fraction of the part's own extent. It used to be 0.02 for everything, which is 3 cm on the whole-body skin and
 // let simplification push the skin out through garments cut only 6 to 12 mm off it (a hole in a sleeve, SPEC 16.6.9): the skin now
 // stops at 2 mm of its extent and the cloth at 4 mm, and a part keeps more triangles than its ratio asks if that is what it takes.
-const ERROR = { skin: 0.002 };
+// (Per tier [medium, low]. The low tier is simplified to a fifth of the cloth and a sixth of the skin, and at 4 mm and 2 mm it let the skin through the cloth
+// in a jog or when seated by up to 100 cm2, SPEC 16.6.12: the cloth stays within 2 mm and the skin within 1.2 mm of the shape they were drawn with there.)
+const ERROR = { skin: [0.002, 0.0012] };
+const CLOTH_ERROR = [0.004, 0.002];
 function simplifyMesh(mesh, ratio, error) {
   for (const prim of mesh.listPrimitives()) {
     const pos = prim.getAttribute('POSITION');
@@ -65,7 +68,7 @@ for (const key of KEYS) {
     await doc.transform(weld({ tolerance: 0.00001 }), dedup());
     for (const mesh of root.listMeshes()) {
       const ratio = RATIO[mesh.getName()][tier];
-      if (ratio < 1) simplifyMesh(mesh, ratio, ERROR[mesh.getName()] ?? 0.004);
+      if (ratio < 1) simplifyMesh(mesh, ratio, (ERROR[mesh.getName()] ?? CLOTH_ERROR)[tier]);
     }
     await doc.transform(prune());
     await doc.transform(meshopt({ encoder: MeshoptEncoder, level: 'high' }));

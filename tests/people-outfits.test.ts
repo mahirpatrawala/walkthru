@@ -49,7 +49,7 @@ describe.skipIf(!have)('outfits (16.6.11)', () => {
         const rel = (v: number[]) => (v[1] - y0) / H;
         // the top ends at the hip joint (0.50 to 0.54 of the height, the crotch is at about 0.45): no kurta, no kameez, no dress
         const top = verts(p.get('top')!);
-        expect(Math.min(...top.map(rel))).toBeGreaterThan(body === 'elder' ? 0.46 : 0.495);   // (the elder's tunic is cut to mid-hip and she stoops)
+        expect(Math.min(...top.map(rel))).toBeGreaterThan(body === 'elder' ? 0.46 : body === 'child' ? 0.48 : 0.495);   // (the elder's tunic is cut to mid-hip and she stoops; the child's T-shirt ends 2.5 % of the height below the hip joint, 16.6.12)
         // the bottom is trousers or shorts: between 0.18 and 0.40 of the height no vertex sits on the midline at the front or the back, so no cloth hangs between the legs
         const bottom = verts(p.get('bottom')!);
         const mid = bottom.filter((v) => rel(v) > 0.18 && rel(v) < 0.4);
