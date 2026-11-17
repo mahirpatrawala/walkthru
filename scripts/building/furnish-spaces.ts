@@ -2,6 +2,7 @@
 // scene's real bounds and with its own doors kept clear. Kept apart from spaces.ts and make-sample-building.ts so the other stages' edits to those files merge.
 // Pure: a bare scene in, a furnished copy out; the same scene always gives the same pieces.
 import type { Opening, PropertyFile, Vec2 } from '../../src/types';
+import { clearRoutes } from '../../src/building/clear-routes';
 import { sampleLayout } from '../../src/core/space-samples';
 import type { RoomBounds, SampleAnchor, SampleDoor, SampleKind, Wall } from '../../src/core/space-samples';
 
@@ -41,7 +42,8 @@ export function doorsOn(p: PropertyFile, bounds: RoomBounds): SampleDoor[] {
 export function furnishScene(bare: PropertyFile, kind: SampleKind, roomId: string, o: { id?: string; anchors?: SampleAnchor[] } = {}): PropertyFile {
   const bounds = bboxOf(bare, roomId);
   const furniture = sampleLayout(kind, bounds, { doors: doorsOn(bare, bounds), idPrefix: `${kind}`, ...(o.anchors ? { anchors: o.anchors } : {}) });
-  return { ...bare, id: o.id ?? bare.id, furniture: [...bare.furniture, ...furniture] };
+  const all = [...bare.furniture, ...furniture];
+  return { ...bare, id: o.id ?? bare.id, furniture: clearRoutes(bare.layout, all, bare.spawn).furniture };
 }
 
 /** the same scene under another id, with nothing in it (the empty tower's hall and gym) */

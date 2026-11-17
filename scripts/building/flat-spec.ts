@@ -8,6 +8,7 @@
 // scaled off the drawing's picture (about 5 cm); a door's width, a window's width, sills, heads, wall thicknesses and the ceiling are NOT printed
 // and are scaled or typical: the scene says so (`proposal-extras.json` `assumptions`, the ceiling is marked not confirmed). Furniture is the
 // drawing's "artist's conception": it is drawn where the plan draws it, at the catalogue's size, and is sample furniture a viewer can move or delete.
+import { clearRoutes } from '../../src/building/clear-routes';
 import { catalogItem } from '../../src/core/catalog';
 import { DEFAULT_FINISHES } from '../../src/types';
 import { boxCorners, pointInPolygon, polygonArea } from '../../src/core/geometry';
@@ -475,7 +476,7 @@ export function buildFlatScene(spec: AuthoredFlat, updatedAt: string): { propert
     finishes: { ...DEFAULT_FINISHES, tile: DEFAULT_FINISHES.tile ? { ...DEFAULT_FINISHES.tile } : null }, scaleSource: 'typed-sizes',
   };
   const property: PropertyFile = {
-    version: 1, id: spec.sceneId, title: spec.title, layout, furniture: buildPieces(spec), spawn: { ...spec.spawn }, unlisted: true, spaceKind: 'home', updatedAt,
+    version: 1, id: spec.sceneId, title: spec.title, layout, furniture: clearRoutes(layout, buildPieces(spec), spec.spawn).furniture, spawn: { ...spec.spawn }, unlisted: true, spaceKind: 'home', updatedAt,
   };
   return { property, report, built };
 }

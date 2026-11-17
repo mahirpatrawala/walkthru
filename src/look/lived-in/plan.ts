@@ -69,6 +69,8 @@ export function pieceBox(p: Pick<DecorPiece, 'x' | 'z' | 'yawDeg' | 'w' | 'd' | 
 
 const DEG = Math.PI / 180;
 const POOJA_RE = /pooja|puja|mandir|mandap|prayer/i;
+/** the body clearance decor must leave on every route (the same 0.30 m as src/building/clear-routes.ts, which imports this file and so cannot be imported here) */
+const DECOR_CLEAR_M = 0.3;
 /** footprint sampling step, metres */
 const STEP = 0.05;
 /** doors: how far from a doorway's centre floor pieces keep, beyond half its width */
@@ -216,7 +218,7 @@ class Planner {
     this.items = input.items.filter((i) => i.source === 'real');
     // the kit's wall battens hang at 2.05 m: high wall decor (clock, picture) keeps clear of them
     this.tubes = tubeSites(input.layout, this.items);
-    this.walk = new Walk(input.grid, CHARACTER_RADIUS_M);
+    this.walk = new Walk(input.grid, Math.max(CHARACTER_RADIUS_M, DECOR_CLEAR_M));
     for (const o of layout.openings) {
       if (o.type === 'window') continue;
       const f = this.frameOf.get(`${o.roomId}:${o.edge}`);

@@ -512,21 +512,6 @@
       "surfaceHeightM": 0.43
     },
     {
-      "id": "ottoman-1",
-      "source": "real",
-      "kind": "sofa",
-      "label": "Ottoman",
-      "box": {
-        "cx": 1.12,
-        "cz": 6.02,
-        "w": 0.71,
-        "d": 0.7,
-        "yawDeg": 90
-      },
-      "heightM": 0.4,
-      "surfaceHeightM": 0.4
-    },
-    {
       "id": "table-centre",
       "source": "real",
       "kind": "counter",
@@ -873,8 +858,8 @@
       "catalogId": "armchair",
       "label": "Armchair",
       "box": {
-        "cx": 2.31,
-        "cz": 7.2,
+        "cx": 2.64,
+        "cz": 7.24,
         "w": 0.8,
         "d": 0.85,
         "yawDeg": 0

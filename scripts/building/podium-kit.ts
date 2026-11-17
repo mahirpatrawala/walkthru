@@ -4,6 +4,7 @@ import { DEFAULT_FINISHES } from '../../src/types';
 import type { DoorLeaf, EdgeKind, Finishes, FurnitureItem, Layout, Opening, PropertyFile, RoomTag, SpaceKind, Vec2 } from '../../src/types';
 import { normalizeRoom } from '../../src/core/layout-validate';
 import { doorFrame } from '../../src/building/geom';
+import { clearRoutes } from '../../src/building/clear-routes';
 import { unionOutline } from '../../src/outdoor/outline';
 import type { Rect } from '../../src/outdoor/types';
 import { sceneFile } from './scene-kit';
@@ -57,7 +58,9 @@ export const layoutOf = (d: Draft): Layout => ({
 });
 
 export const propertyOf = (d: Draft): PropertyFile => sceneFile({
-  id: d.id, title: d.title, subtitle: d.subtitle, wallHeightM: d.wallHeightM, rooms: d.rooms, openings: d.openings, furniture: d.furniture, finishes: d.finishes, spawn: d.spawn, updatedAt: d.updatedAt, spaceKind: d.kind,
+  id: d.id, title: d.title, subtitle: d.subtitle, wallHeightM: d.wallHeightM, rooms: d.rooms, openings: d.openings,
+  // loose seating and sets never shut a room away or block a door (src/building/clear-routes.ts)
+  furniture: clearRoutes(layoutOf(d), d.furniture, d.spawn).furniture, finishes: d.finishes, spawn: d.spawn, updatedAt: d.updatedAt, spaceKind: d.kind,
 });
 
 export interface DoorSpec { id: string; widthM: number; headM?: number; type?: 'door' | 'opening' }
