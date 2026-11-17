@@ -56,7 +56,7 @@ export function lookKindOf(item: Pick<FurnitureItem, 'kind' | 'label'> & { catal
   if (rule) return rule.look.kind as LookKind;
   switch (item.kind) {
     case 'bed': return 'bed';
-    case 'sofa': return /bench|window seat|settee/i.test(item.label ?? '') ? 'bench' : 'sofa';
+    case 'sofa': return /bench|window seat|settee|ottoman|pouf/i.test(item.label ?? '') ? 'bench' : 'sofa';
     case 'wardrobe': return 'wardrobe';
     case 'dining': return 'dining';
     default: {
