@@ -30,7 +30,7 @@ export function softCushion(w: number, h: number, d: number, o: SoftOpts = {}): 
   const half = [Math.max(0.001, w) / 2, Math.max(0.001, h) / 2, Math.max(0.001, d) / 2];
   const r = Math.max(0.002, Math.min(o.r ?? 0.04, Math.min(...half) - 0.0005));
   const seg = Math.max(1, Math.round(o.seg ?? 3));
-  const kc = seg >= 3 ? 2 : 1, m = seg >= 3 ? 5 : seg >= 2 ? 3 : 2;
+  const kc = seg >= 4 ? 3 : seg >= 3 ? 2 : 1, m = seg >= 5 ? 19 : seg >= 4 ? 9 : seg >= 3 ? 5 : seg >= 2 ? 3 : 2;
   const puff = Math.max(0, o.puff ?? 0);
   const s = half.map((hh) => axisSamples(hh, Math.min(r, hh - 0.0005), kc, m));
   const pos: number[] = [], idx: number[] = [];

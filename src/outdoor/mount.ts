@@ -57,6 +57,9 @@ export async function mountOutdoor(o: MountOptions): Promise<OutdoorMount> {
   const { scene, layout, file } = o;
   let tier = o.tier;
   const mats = new OutdoorMaterials(tier);
+  // SPEC 16.24: at 2K the deck and paving take their 2K sets, the water mirrors the surroundings and swims, the rails are smooth
+  let ultra = o.look?.ultra ?? false;
+  mats.setUltra(ultra);
   const group = new THREE.Group();
   group.name = 'outdoor';
   const structure = buildStructure({ layout, file, mats, tier });
@@ -76,7 +79,7 @@ export async function mountOutdoor(o: MountOptions): Promise<OutdoorMount> {
   const growPools = (): void => {
     if (pools) { pools.dispose(); pools = null; }
     if (file.pools.length === 0) return;
-    pools = buildPools(file.pools, mats, tier, o.look);
+    pools = buildPools(file.pools, mats, tier, o.look, ultra);
     group.add(pools.group);
     pools.sync(o.look);
   };
@@ -94,7 +97,10 @@ export async function mountOutdoor(o: MountOptions): Promise<OutdoorMount> {
   applyShadows();
   const off = o.look?.onChange(() => {
     const t = o.look!.tier;
-    if (t !== tier) { tier = t; mats.setTier(t); growPlants(); growPools(); applyShadows(); } else pools?.sync(o.look);
+    const u = o.look!.ultra;
+    if (t !== tier) { tier = t; mats.setTier(t); growPlants(); growPools(); applyShadows(); }
+    else if (u !== ultra) { ultra = u; mats.setUltra(u); growPools(); applyShadows(); }
+    else pools?.sync(o.look);
   });
 
   let disposed = false;

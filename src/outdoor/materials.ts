@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import type { Tier } from '../look/types';
 import { AssetLoader } from '../look/assets';
 import type { GroundFinish } from './types';
+import { PREMIUM_GROUND, meanLuminance, premiumPaths } from '../look/premium/texture';
 
 export type GroundKind = GroundFinish | 'soil-kerb';
 interface GroundSpec {
@@ -88,6 +89,10 @@ export class OutdoorMaterials {
   readonly loader: AssetLoader;
   private readonly made = new Set<THREE.Material>();
   private readonly cache = new Map<string, THREE.MeshStandardMaterial>();
+  /** the ground materials by finish, with what the 2K level replaced on them (SPEC 16.24), to put back */
+  private readonly grounds: { kind: GroundKind; mat: THREE.MeshStandardMaterial; uniforms: Patched['uniforms']; saved: { map: THREE.Texture | null; normalMap: THREE.Texture | null; roughness: number; mean: number; strength: number } | null }[] = [];
+  private premium: THREE.Texture[] = [];
+  private ultra = false;
   private disposed = false;
   constructor(private tier: Tier, loader?: AssetLoader) { this.loader = loader ?? new AssetLoader(); }
 
@@ -99,7 +104,9 @@ export class OutdoorMaterials {
     if (m) return m;
     m = new THREE.MeshStandardMaterial({ color: tweaks.colour ?? spec.tint, roughness: spec.roughness, metalness: 0 });
     m.userData.shared = false;
-    patchGround(m, { mean: spec.mean, strength: spec.strength, noise: spec.noise, dry: spec.dry, stripes: !!tweaks.stripes, lumps: kind === 'lawn' });
+    const patched = patchGround(m, { mean: spec.mean, strength: spec.strength, noise: spec.noise, dry: spec.dry, stripes: !!tweaks.stripes, lumps: kind === 'lawn' });
+    this.grounds.push({ kind, mat: m, uniforms: patched.uniforms, saved: null });
+    if (this.ultra && PREMIUM_GROUND[kind]) void this.premiumFor(this.grounds[this.grounds.length - 1]);
     this.cache.set(key, m);
     this.made.add(m);
     if (spec.tex) void this.attachTextures(m, spec);
@@ -133,6 +140,45 @@ export class OutdoorMaterials {
 
   setTier(t: Tier): void { this.tier = t; }
 
+  /** SPEC 16.24: at 2K the deck and the paving (and the coping, which is paving) take 2K photographed sets with a roughness map; off, they go back to the 512 px ones */
+  setUltra(on: boolean): void {
+    if (on === this.ultra) return;
+    this.ultra = on;
+    for (const g of this.grounds) {
+      if (!PREMIUM_GROUND[g.kind]) continue;
+      if (on) void this.premiumFor(g);
+      else if (g.saved) {
+        const s = g.saved;
+        g.mat.map = s.map; g.mat.normalMap = s.normalMap; g.mat.roughnessMap = null; g.mat.roughness = s.roughness; g.uniforms.uMean.value = s.mean; g.uniforms.uStrength.value = s.strength;
+        g.mat.needsUpdate = true;
+        g.saved = null;
+      }
+    }
+    if (!on) { for (const t of this.premium) t.dispose(); this.premium = []; }
+  }
+
+  private async premiumFor(g: { kind: GroundKind; mat: THREE.MeshStandardMaterial; uniforms: Patched['uniforms']; saved: { map: THREE.Texture | null; normalMap: THREE.Texture | null; roughness: number; mean: number; strength: number } | null }): Promise<void> {
+    const set = PREMIUM_GROUND[g.kind];
+    if (!set || g.saved) return;
+    const p = premiumPaths(set);
+    try {
+      const [diff, nor, rough] = await Promise.all([
+        this.loader.texture(p.diff, { srgb: true, anisotropy: 16 }),
+        this.loader.texture(p.nor, { srgb: false, anisotropy: 16 }),
+        this.loader.texture(p.rough, { srgb: false, anisotropy: 8 }),
+      ]);
+      if (this.disposed || !this.ultra || g.saved) return;
+      g.saved = { map: g.mat.map, normalMap: g.mat.normalMap, roughness: g.mat.roughness, mean: g.uniforms.uMean.value, strength: g.uniforms.uStrength.value };
+      g.mat.map = diff; g.mat.normalMap = nor; g.mat.roughnessMap = rough; g.mat.roughness = 1;
+      g.uniforms.uMean.value = meanLuminance(diff);
+      g.uniforms.uStrength.value = Math.min(g.uniforms.uStrength.value, 0.8); // a 2K photograph has more contrast than the 512 px one it replaces: the finish keeps its own mean colour
+      this.premium.push(diff, nor, rough);
+      g.mat.needsUpdate = true;
+    } catch (e) {
+      console.warn('[walkthru] a 2K outdoor texture did not load, the finish keeps its 512 px set', e);
+    }
+  }
+
   dispose(): void {
     this.disposed = true;
     for (const m of this.made) {
@@ -143,6 +189,9 @@ export class OutdoorMaterials {
     }
     this.made.clear();
     this.cache.clear();
+    this.grounds.length = 0;
+    for (const t of this.premium) t.dispose();
+    this.premium = [];
     this.loader.dispose();
   }
 }

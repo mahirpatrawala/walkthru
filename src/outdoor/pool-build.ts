@@ -8,7 +8,7 @@ import { boxGeometry, flatGeometry, mergeAndFree, segmentBox, tube } from './geo
 import { OutdoorMaterials } from './materials';
 import { copingRects, exposureOf, isExposedAt, markerStations, profileDepth, stepRects, waterLevelY } from './pool';
 import type { PoolBasin, Rect, Side } from './types';
-import { makeUnderwater, makeWaterSurface, makeWaterUniforms, syncWaterUniforms } from './water';
+import { cubeUvDefines, makeUnderwater, makeWaterSurface, makeWaterUniforms, syncWaterUniforms } from './water';
 import type { WaterUniforms } from './water';
 
 const TILE_M = 0.1;
@@ -68,12 +68,13 @@ export interface PoolBuild {
   dispose(): void;
 }
 
-export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, tier: Tier, look: Look | null): PoolBuild {
+export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, tier: Tier, look: Look | null, ultra = false): PoolBuild {
   const group = new THREE.Group();
   group.name = 'outdoor-pools';
   const free: { dispose(): void }[] = [];
   const uniforms: WaterUniforms[] = [];
   const waters: THREE.Mesh[] = [];
+  const surfaces: THREE.ShaderMaterial[] = [];
   const lights: THREE.Mesh[] = [];
   for (const b of pools) {
     const wl = waterLevelY(b);
@@ -84,10 +85,10 @@ export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, 
       const tex = tileTexture(hex, '#D9DFE2', seed);
       const m = new THREE.MeshStandardMaterial({ color: tex ? '#ffffff' : hex, map: tex ?? undefined, roughness: rough, metalness: 0 });
       free.push(m); if (tex) free.push(tex);
-      return makeUnderwater(m, u, tier);
+      return makeUnderwater(m, u, tier, ultra);
     };
     const wallMat = mk(col.main, 3, 0.35), bandMat = mk(col.band, 5, 0.3), floorMat = mk(col.floor, 7, 0.4);
-    const slipMat = (() => { const m = new THREE.MeshStandardMaterial({ color: '#EAF0F2', roughness: 0.6 }); free.push(m); return makeUnderwater(m, u, tier); })();
+    const slipMat = (() => { const m = new THREE.MeshStandardMaterial({ color: '#EAF0F2', roughness: 0.6 }); free.push(m); return makeUnderwater(m, u, tier, ultra); })();
     const R = b.rect;
     const deepest = Math.max(...b.profile.map((p) => p[1]));
     const floorY = (d: number): number => wl - d;
@@ -200,7 +201,7 @@ export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, 
     add(wallG, wallMat, `pool:${b.id}:walls`);
     add(bandG, bandMat, `pool:${b.id}:band`);
     add(slipG, slipMat, `pool:${b.id}:slip`);
-    if (laneGeos.length) { const lm = new THREE.MeshStandardMaterial({ color: '#1E2F44', roughness: 0.5 }); free.push(lm); add(laneGeos, makeUnderwater(lm, u, tier), `pool:${b.id}:lanes`); }
+    if (laneGeos.length) { const lm = new THREE.MeshStandardMaterial({ color: '#1E2F44', roughness: 0.5 }); free.push(lm); add(laneGeos, makeUnderwater(lm, u, tier, ultra), `pool:${b.id}:lanes`); }
 
     // coping: a stone ring round the basin, a little proud of the deck, with the numerals of the depth let into it
     const cm = b.copingM;
@@ -231,10 +232,10 @@ export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, 
     }
 
     // ladders: two stainless rails curving over the coping, two rungs under the water
-    const chrome = new THREE.MeshStandardMaterial({ color: '#D2D6D9', roughness: 0.28, metalness: 0.85 });
+    const chrome = new THREE.MeshStandardMaterial({ color: '#D2D6D9', roughness: 0.28, metalness: 0.85, name: 'outdoor-chrome' });
     free.push(chrome);
     const rails: THREE.BufferGeometry[] = [];
-    for (const l of b.ladders) rails.push(...ladderGeos(b, l.edge, l.atM, wl));
+    for (const l of b.ladders) rails.push(...ladderGeos(b, l.edge, l.atM, wl, ultra));
     add(rails, chrome, `pool:${b.id}:ladders`, true);
 
     // pool lights: a pale lamp in each long wall every 3 m, lit at night (driven in sync(), not tagged for the look's pooled lamps)
@@ -257,7 +258,8 @@ export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, 
     if (lampMesh) lights.push(lampMesh);
 
     // the water: a plane over the basin at the water level
-    const wsurf = makeWaterSurface(u, tier);
+    const wsurf = makeWaterSurface(u, tier, ultra);
+    surfaces.push(wsurf);
     free.push(wsurf);
     const wgeo = flatGeometry([{ x: R.x0, z: R.z0 }, { x: R.x1, z: R.z0 }, { x: R.x1, z: R.z1 }, { x: R.x0, z: R.z1 }], undefined, wl, 1);
     free.push(wgeo);
@@ -265,15 +267,24 @@ export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, 
     water.name = `pool:${b.id}:water`; water.userData.outdoor = water.name; water.renderOrder = 2; water.castShadow = false; water.receiveShadow = false;
     group.add(water); waters.push(water);
   }
+  /** 2K: the water mirrors the room probe's picture (the surroundings with the sky and its clouds), with the cube-UV constants of that texture */
+  const syncProbe = (lk: Look | null): void => {
+    if (!ultra || !lk) return;
+    const probe = lk.premiumProbe();
+    const h = (probe as (THREE.Texture & { image?: { height?: number } }) | null)?.image?.height;
+    for (const u of uniforms) { u.uProbeMap.value = probe; u.uProbeOn.value = probe && h ? 1 : 0; }
+    if (probe && h) for (const m of surfaces) { const d = cubeUvDefines(h); if (m.defines.CUBEUV_MAX_MIP !== d.CUBEUV_MAX_MIP) { m.defines = d; m.needsUpdate = true; } }
+  };
   let clock = 0;
   return {
     group, waters,
-    update(dt) { clock += dt; for (const u of uniforms) u.uTime.value = clock; },
+    update(dt) { clock += dt; for (const u of uniforms) u.uTime.value = clock; syncProbe(look); },
     sync(lk) {
       if (!lk) return;
       const g = lk.grade();
       const lamp = lk.trueColours ? 0 : Math.max(g.interior.tube, g.interior.cove);
       for (const u of uniforms) syncWaterUniforms(u, g, lk.sun(), lamp);
+      syncProbe(lk);
       for (const l of lights) (l.material as THREE.MeshStandardMaterial).emissiveIntensity = lamp * 2.2;
     },
     dispose() { for (const f of free) f.dispose(); group.removeFromParent(); },
@@ -292,7 +303,7 @@ function alongU(b: PoolBasin, p: { x: number; z: number }): number {
 }
 
 /** two handrails (each a path of tubes: up from the deck, over the coping, down into the water) and two rungs */
-function ladderGeos(b: PoolBasin, edge: Side, at: number, wl: number): THREE.BufferGeometry[] {
+function ladderGeos(b: PoolBasin, edge: Side, at: number, wl: number, ultra = false): THREE.BufferGeometry[] {
   const R = b.rect;
   const out: THREE.BufferGeometry[] = [];
   const inw = edge === 'N' ? { x: 0, z: 1 } : edge === 'S' ? { x: 0, z: -1 } : edge === 'W' ? { x: 1, z: 0 } : { x: -1, z: 0 };
@@ -302,6 +313,12 @@ function ladderGeos(b: PoolBasin, edge: Side, at: number, wl: number): THREE.Buf
   const P = (o: number, s: number, y: number): THREE.Vector3 => new THREE.Vector3(base.x + inw.x * o + tang.x * s, y, base.z + inw.z * o + tang.z * s);
   const path: [number, number][] = [[-b.copingM - 0.1, 0.0], [-b.copingM - 0.1, 0.55], [-0.1, 0.62], [0.12, 0.45], [0.2, wl - 0.0 - 0.55 + 0.0]];
   for (const s of [-half, half]) {
+    if (ultra) {
+      // 2K: each handrail is one smooth stainless tube (up from the deck, over the coping, down into the water), not five rods with open corners
+      const pts = path.map((q) => P(q[0], s, q[1]));
+      out.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'centripetal'), 48, 0.022, 20, false).toNonIndexed());
+      continue;
+    }
     for (let i = 1; i < path.length; i++) {
       const a = P(path[i - 1][0], s, path[i - 1][1] + (i === path.length - 1 ? 0 : 0)), c = P(path[i][0], s, path[i][1]);
       const dir = c.clone().sub(a);

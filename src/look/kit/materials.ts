@@ -91,5 +91,7 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
       skirting.dispose();
     },
   };
+  // names the 2K layer reads (SPEC 16.24); a name changes nothing at Off or 1K
+  m.grill.name = 'kit-grill'; m.railing.name = 'kit-railing'; m.fixtures.name = 'kit-fixtures'; m.fan.name = 'kit-fan'; m.alu.name = 'kit-alu';
   return m;
 }

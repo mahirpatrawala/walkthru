@@ -3,7 +3,7 @@
 // heights and every number a check reads are the item's and never change: only the meshes inside the group are swapped.
 import * as THREE from 'three';
 import type { FurnitureItem } from '../../types';
-import { GEN_QUALITY, sizeOf } from '../gen';
+import { genQuality, sizeOf } from '../gen';
 import type { GenEnv } from '../gen';
 import { buildDining, diningChairLayout } from '../gen/seating';
 import type { DiningParams } from '../gen/seating';
@@ -49,7 +49,7 @@ function buildFromTemplate(tpl: Template, item: FurnitureItem, look: ResolvedLoo
   const sc = plan.fit.scale;
   if (plan.model.use === 'chairs') {
     const size = sizeOf(item);
-    const env: GenEnv = { kit, q: GEN_QUALITY[tier] };
+    const env: GenEnv = { kit, q: genQuality(tier) };
     const table = buildDining(env, size, look.params as unknown as DiningParams, look.roles, { chairs: false });
     for (const c of [...table.children]) out.add(c);
     const lay = diningChairLayout(size, look.params as unknown as DiningParams);

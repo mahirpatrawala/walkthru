@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { roundedBoxBetween } from '../furniture-parts';
 import { softCushion } from './soft';
+import { softSeg } from './core';
 import type { GenEnv, MatSpec, Parts } from './core';
 import { cylinderY, rod } from './geo';
 
@@ -42,7 +43,7 @@ export function bar(p: Parts, name: string, mat: MatSpec, a: [number, number, nu
 export function soft(env: GenEnv, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, puff = 0.02): THREE.BufferGeometry {
   const w = x1 - x0, h = y1 - y0, d = z1 - z0;
   const grid = env.q.puff > 0;
-  const g = grid ? softCushion(w, h, d, { r: Math.min(0.05, h / 2.6), puff: Math.min(puff * 1.4, h / 3), seg: env.q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-w / 2, w / 2, -h / 2, h / 2, -d / 2, d / 2, Math.min(0.03, h / 2.5), 1);
+  const g = grid ? softCushion(w, h, d, { r: Math.min(0.05, h / 2.6), puff: Math.min(puff * 1.4, h / 3), seg: softSeg(env.q) }) : roundedBoxBetween(-w / 2, w / 2, -h / 2, h / 2, -d / 2, d / 2, Math.min(0.03, h / 2.5), 1);
   g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
   return g;
 }

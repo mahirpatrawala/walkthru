@@ -1,0 +1,69 @@
+{
+ "generated": "2026-11-17",
+ "licence": "CC0 1.0 (Poly Haven), https://polyhaven.com/license",
+ "files": [
+  {
+   "path": "wood_floor_deck/wood_floor_deck_diff_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/wood_floor_deck/wood_floor_deck_diff_2k.jpg",
+   "size": 3804436,
+   "md5": "c272fb52a326a8724a409bdb33db1ba0",
+   "sha256": "1b55c67104cf6398ab976ee7fe4f0d0831c8c9808c13ab286dfc1cf0e4fcf2d0"
+  },
+  {
+   "path": "wood_floor_deck/wood_floor_deck_nor_gl_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/wood_floor_deck/wood_floor_deck_nor_gl_2k.jpg",
+   "size": 3121998,
+   "md5": "4c4b56a2db12514e0e96abe57a4f4d03",
+   "sha256": "6d452c7511ca6797e9bb6809a1ae054d7448725b966d7d2f85ff139648ddd7ec"
+  },
+  {
+   "path": "wood_floor_deck/wood_floor_deck_rough_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_rough_1k.jpg",
+   "size": 658448,
+   "md5": "ff891ac48e0a9db02a665d2ae9bba36a",
+   "sha256": "5754d2c2a91a288bb257e0fa8c697d97b48472c9fb77c4c7f0ffcc302f3f60a2"
+  },
+  {
+   "path": "red_sandstone_pavement/red_sandstone_pavement_diff_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_sandstone_pavement/red_sandstone_pavement_diff_2k.jpg",
+   "size": 2722687,
+   "md5": "a1259b901bce5c5b428ca1fdbb5c8ac7",
+   "sha256": "2e6a5cda40785eb4a346673646ae603c4557feec3075d6b7023207952729d012"
+  },
+  {
+   "path": "red_sandstone_pavement/red_sandstone_pavement_nor_gl_2k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_sandstone_pavement/red_sandstone_pavement_nor_gl_2k.jpg",
+   "size": 3573918,
+   "md5": "331f734509e5354c74012364d1c19faa",
+   "sha256": "4fc01c8b3ddc6b9d2339f0620d825a39f4b8aefacc1ec6d64407ff374cdb7f3f"
+  },
+  {
+   "path": "red_sandstone_pavement/red_sandstone_pavement_rough_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/red_sandstone_pavement/red_sandstone_pavement_rough_1k.jpg",
+   "size": 486090,
+   "md5": "3010896be9f01f8939b8b1c46b4247d8",
+   "sha256": "13f0fc536a577bcf0f3c0cb9cc436ea4ffae228192de4a9e5c028dd6082bbcd5"
+  },
+  {
+   "path": "stone_tiles/stone_tiles_diff_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles/stone_tiles_diff_1k.jpg",
+   "size": 787339,
+   "md5": "2ee931a368a415f5cc2e916171e19bdf",
+   "sha256": "4eec49c2e56010e32bd9cdeedeb0de941982b28877473f822b11b102da8357f3"
+  },
+  {
+   "path": "stone_tiles/stone_tiles_nor_gl_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles/stone_tiles_nor_gl_1k.jpg",
+   "size": 786125,
+   "md5": "848f293b903096edaf4aae988c5a174f",
+   "sha256": "d0a2fccae6cfe54255d7fb4cb4591b05f0bdd324021e74263403555bdabef693"
+  },
+  {
+   "path": "stone_tiles/stone_tiles_rough_1k.jpg",
+   "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles/stone_tiles_rough_1k.jpg",
+   "size": 753871,
+   "md5": "d4119c754b8890a203ffcdf8acb2f70d",
+   "sha256": "ae7a7f79aa68a029c30a23b6a4866d31ba68b347bbe825856b0a3c64e248d242"
+  }
+ ]
+}

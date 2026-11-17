@@ -395,18 +395,22 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   if (look) {
     // a tier change rebuilds the furniture for it and swaps the body between its full and low files
     let seenTier = startTier;
+    // SPEC 16.24: the 2K level draws finer furniture; going into or out of it rebuilds the pieces exactly as a tier change does (the body keeps its tier)
+    let seenUltra = look.ultra;
     look.onChange(() => {
       const t = look!.tier;
-      if (t === seenTier) return;
-      seenTier = t;
+      const ultra = look!.ultra;
+      if (t === seenTier && ultra === seenUltra) return;
+      const tierChanged = t !== seenTier;
+      seenTier = t; seenUltra = ultra;
       void furnitureKit.setTier(t).then(() => {
         rebuildFurnitureTier(furnitureRoot, t);
         design?.rebuild(t);
-        livedIn?.setTier(t);
+        livedIn?.setTier(t, !tierChanged);
         for (const d of decor) d.rebuild(t);
         look!.refresh(store.grid());
       });
-      void character.setAppearance({ tier: t }).catch((err) => console.warn('[walkthru] body for this tier not loaded', err));
+      if (tierChanged) void character.setAppearance({ tier: t }).catch((err) => console.warn('[walkthru] body for this tier not loaded', err));
     });
   }
   loading.setProgress(0.85, 'Almost there…');

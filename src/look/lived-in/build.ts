@@ -11,6 +11,10 @@ import { mulberry32 } from '../../core/geometry';
 import { getStyle } from '../style';
 import type { DecorPiece } from './plan';
 import { attachDecorModel } from '../models/decor';
+import { ultraDetail } from '../gen/ultra';
+import { softCushion } from '../gen/soft';
+import type { PbrClass } from '../premium/pbr';
+import { ULTRA_BUILD, ULTRA_POT, ULTRA_REPLACES } from './ultra';
 import type { ModelPolicy } from '../models/library';
 
 const DEG = Math.PI / 180;
@@ -33,19 +37,20 @@ const CURTAIN_TONES = ['#E6D6BC', '#9DB39A', '#D79A7C', '#7FA3A6', '#E8C887', '#
 
 const noRaycast: THREE.Object3D['raycast'] = () => { /* decor is never hit by a ray */ };
 
-interface MatDef { hex: string; rough: number; metal: number; emissive?: string; side?: THREE.Side }
+interface MatDef { hex: string; rough: number; metal: number; emissive?: string; side?: THREE.Side; cls?: PbrClass }
 
 /** One set of materials shared by every piece of one home's decor; `dispose` frees them all. */
 export class DecorKit {
   private readonly mats = new Map<string, THREE.MeshStandardMaterial>();
   private readonly textures: THREE.Texture[] = [];
   mat(d: MatDef): THREE.MeshStandardMaterial {
-    const key = `${d.hex}|${d.rough}|${d.metal}|${d.emissive ?? ''}|${d.side ?? 0}`;
+    const key = `${d.hex}|${d.rough}|${d.metal}|${d.emissive ?? ''}|${d.side ?? 0}|${d.cls ?? ''}`;
     let m = this.mats.get(key);
     if (!m) {
       m = new THREE.MeshStandardMaterial({ color: d.hex, roughness: d.rough, metalness: d.metal, side: d.side ?? THREE.FrontSide });
       if (d.emissive) { m.emissive = new THREE.Color(d.emissive); m.emissiveIntensity = 1.1; }
       m.userData.decor = true;
+      if (d.cls) m.userData.pbr = d.cls;
       this.mats.set(key, m);
     }
     return m;
@@ -70,9 +75,9 @@ class Parts {
   private readonly byKey = new Map<string, { def: MatDef; geos: THREE.BufferGeometry[]; shadow: boolean }>();
   readonly group = new THREE.Group();
   constructor(private readonly kit: DecorKit) {}
-  add(geo: THREE.BufferGeometry, hex: string, rough = 0.85, metal = 0, opts: { emissive?: string; shadow?: boolean; side?: THREE.Side } = {}): void {
-    const def: MatDef = { hex, rough, metal, ...(opts.emissive ? { emissive: opts.emissive } : {}), ...(opts.side ? { side: opts.side } : {}) };
-    const key = `${hex}|${rough}|${metal}|${opts.emissive ?? ''}|${opts.side ?? 0}|${opts.shadow === false ? 0 : 1}`;
+  add(geo: THREE.BufferGeometry, hex: string, rough = 0.85, metal = 0, opts: { emissive?: string; shadow?: boolean; side?: THREE.Side; cls?: PbrClass } = {}): void {
+    const def: MatDef = { hex, rough, metal, ...(opts.emissive ? { emissive: opts.emissive } : {}), ...(opts.side ? { side: opts.side } : {}), ...(opts.cls ? { cls: opts.cls } : {}) };
+    const key = `${hex}|${rough}|${metal}|${opts.emissive ?? ''}|${opts.side ?? 0}|${opts.cls ?? ''}|${opts.shadow === false ? 0 : 1}`;
     let e = this.byKey.get(key);
     if (!e) { e = { def, geos: [], shadow: opts.shadow !== false }; this.byKey.set(key, e); }
     e.geos.push(geo.index ? geo.toNonIndexed() : geo);
@@ -208,7 +213,7 @@ const tone = (p: DecorPiece, shift = 0): string => tones()[(p.tone + shift) % to
 const BUILD: Record<DecorPiece['kind'], Builder> = {
   cushion(p, parts, _kit, seg) {
     const main = (noCream() && tone(p) === tones()[6] ? tone(p, 1) : tone(p));
-    const g = pillow(p.w, p.height, p.d, seg.s > 8 ? 8 : 5);
+    const g = seg.s > 32 ? softCushion(p.w, p.height, p.d, { r: Math.min(0.06, p.height / 2.6), puff: 0.028, seg: 4 }).translate(0, p.height / 2, 0) : pillow(p.w, p.height, p.d, seg.s > 8 ? 8 : 5);
     // the cushion leans back against the pillow or backrest, pivoting on its bottom edge
     g.rotateX(-(p.tiltDeg ?? 0) * DEG);
     parts.add(g, main, 0.95);
@@ -350,9 +355,12 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
   plant(p, parts, _kit, seg) {
     const rnd = mulberry32(p.seed);
     const pot = ['#B5573A', '#EFE3CD', '#2E7D84'][p.tone % 3];
-    parts.add(cyl(0.15, 0.1, 0, 0.22, seg.s), pot, 0.8);
-    parts.add(cyl(0.16, 0.16, 0.2, 0.03, seg.s), pot, 0.8);
-    parts.add(cyl(0.13, 0.13, 0.226, 0.006, seg.s), '#3B2B20', 1);
+    if (ultraDetail()) ULTRA_POT(p, parts);
+    else {
+      parts.add(cyl(0.15, 0.1, 0, 0.22, seg.s), pot, 0.8);
+      parts.add(cyl(0.16, 0.16, 0.2, 0.03, seg.s), pot, 0.8);
+      parts.add(cyl(0.13, 0.13, 0.226, 0.006, seg.s), '#3B2B20', 1);
+    }
     // a bushy tulsi / money plant: a cloud of flattened leaf clumps rising from the pot
     const n = 11;
     for (let i = 0; i < n; i++) {
@@ -506,11 +514,13 @@ export function buildDecorGroup(pieces: DecorPiece[], tier: 'low' | 'medium' | '
   root.name = 'lived-in';
   root.userData.livedIn = true;
   const byId = new Map<string, THREE.Object3D>();
-  const seg: Seg = { s: tier === 'low' ? 8 : tier === 'medium' ? 12 : 16 };
+  const ultra = ultraDetail() && tier !== 'low';
+  const seg: Seg = { s: ultra ? 48 : tier === 'low' ? 8 : tier === 'medium' ? 12 : 16 };
   let disposed = false;
   for (const p of pieces) {
     const parts = new Parts(kit);
-    BUILD[p.kind](p, parts, kit, seg);
+    if (ultra && ULTRA_REPLACES.has(p.kind)) ULTRA_BUILD[p.kind]!(p, parts);
+    else BUILD[p.kind](p, parts, kit, seg);
     const g = parts.finish();
     g.name = `decor:${p.id}`;
     g.userData.pieceId = p.id;

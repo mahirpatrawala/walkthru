@@ -20,6 +20,8 @@ export interface WaterUniforms {
   /** the pool lights: 0 by day, 1 at night */
   uGlow: U<number>;
   uAbsorb: U<THREE.Vector3>; uScatter: U<number>; uWaterCol: U<THREE.Color>;
+  /** SPEC 16.24: the surroundings as the room probe saw them (a PMREM like the sky's), which the 2K surface mirrors; off until it exists */
+  uProbeMap: U<THREE.Texture | null>; uProbeOn: U<number>;
 }
 
 export function makeWaterUniforms(waterY: number, tint: 'blue' | 'turquoise' | 'white'): WaterUniforms {
@@ -31,6 +33,7 @@ export function makeWaterUniforms(waterY: number, tint: 'blue' | 'turquoise' | '
     uLight: { value: 1 }, uGlow: { value: 0 },
     // per metre of water: red goes first
     uAbsorb: { value: new THREE.Vector3(0.62, 0.12, 0.07) }, uScatter: { value: 0.42 }, uWaterCol: { value: new THREE.Color(col).convertSRGBToLinear() },
+    uProbeMap: { value: null }, uProbeOn: { value: 0 },
   };
 }
 
@@ -69,7 +72,7 @@ float owCaustic(vec2 uv, float t, int iters){
 `;
 
 /** Patches a lit material so that whatever of it is under the water of `u` is tinted, wobbled and (medium, high) netted with caustics. */
-export function makeUnderwater(mat: THREE.MeshStandardMaterial, u: WaterUniforms, tier: Tier): THREE.MeshStandardMaterial {
+export function makeUnderwater(mat: THREE.MeshStandardMaterial, u: WaterUniforms, tier: Tier, ultra = false): THREE.MeshStandardMaterial {
   const caustic = tier === 'low' ? 0 : tier === 'medium' ? 3 : 5;
   const wobble = tier !== 'low';
   mat.onBeforeCompile = (sh) => {
@@ -87,7 +90,10 @@ ${NOISE}${CAUSTIC}`)
   float owDepth = max(0.0, uWaterY - vOW.y);
 #ifdef USE_MAP
   vec2 owUv = vMapUv;
-  ${wobble ? 'owUv += 0.01 * min(owDepth, 1.2) * vec2(sin(vOW.x*9.0 + uTime*1.3) + sin(vOW.z*7.0 - uTime*1.1), cos(vOW.z*8.0 + uTime*1.2) + cos(vOW.x*6.0 - uTime));' : ''}
+  ${wobble ? (ultra
+    // 2K: the refracted floor swims with the same crossing waves as the surface, two scales, and grows with depth (a thicker body of water bends the picture more)
+    ? 'owUv += 0.014 * min(owDepth, 1.6) * (vec2(sin(vOW.x*9.0 + uTime*1.3) + sin(vOW.z*7.0 - uTime*1.1), cos(vOW.z*8.0 + uTime*1.2) + cos(vOW.x*6.0 - uTime)) + 0.55 * vec2(sin(vOW.x*21.0 - uTime*1.9 + vOW.z*5.0), cos(vOW.z*19.0 + uTime*1.7 - vOW.x*4.0)));'
+    : 'owUv += 0.01 * min(owDepth, 1.2) * vec2(sin(vOW.x*9.0 + uTime*1.3) + sin(vOW.z*7.0 - uTime*1.1), cos(vOW.z*8.0 + uTime*1.2) + cos(vOW.x*6.0 - uTime));') : ''}
   diffuseColor *= texture2D(map, owUv);
 #endif
 `)
@@ -108,7 +114,7 @@ ${NOISE}${CAUSTIC}`)
   }
 #include <opaque_fragment>`);
   };
-  mat.customProgramCacheKey = () => `ow-underwater-${caustic}-${wobble ? 'w' : 'n'}`;
+  mat.customProgramCacheKey = () => `ow-underwater-${caustic}-${wobble ? 'w' : 'n'}${ultra ? 'u' : ''}`;
   return mat;
 }
 
@@ -116,7 +122,8 @@ const SURFACE_VERT = `
 varying vec3 vW;
 void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }
 `;
-const SURFACE_FRAG = (fine: boolean): string => `
+const SURFACE_FRAG = (fine: boolean, ultra: boolean): string => `
+${ultra ? '#include <cube_uv_reflection_fragment>\nuniform sampler2D uProbeMap; uniform float uProbeOn;' : ''}
 uniform float uTime; uniform vec3 uSunDir; uniform vec3 uSunCol; uniform float uSunStrength;
 uniform vec3 uZenith; uniform vec3 uHorizon; uniform vec3 uGround; uniform vec3 uWaterCol; uniform float uLight; uniform float uGlow;
 varying vec3 vW;
@@ -140,6 +147,12 @@ vec3 owWave(vec2 p, float t){
     dx += a * k * d.x * cos(ph); dz += a * k * d.y * cos(ph);
   }
   ${fine ? 'vec2 q = p * 14.0 + vec2(t * 0.6, -t * 0.4); dx += (owN(q) - 0.5) * 0.02; dz += (owN(q + 17.0) - 0.5) * 0.02;' : ''}
+  ${ultra ? `// 2K: soft ripples at three scales crossing each other, never still (a slow drift), gentle enough not to shimmer
+  vec2 q1 = p * 4.3 + vec2(t * 0.21, t * 0.13); vec2 q2 = p * 9.7 + vec2(-t * 0.33, t * 0.27); vec2 q3 = p * 23.0 + vec2(t * 0.5, -t * 0.4);
+  // the finer two fade with distance (a ripple smaller than a pixel only shimmers)
+  float fd = length(cameraPosition.xz - p); float f2 = 1.0 - smoothstep(5.0, 18.0, fd), f3 = 1.0 - smoothstep(2.5, 9.0, fd);
+  dx += (owN(q1) - 0.5) * 0.034 + (owN(q2 + 5.0) - 0.5) * 0.02 * f2 + (owN(q3 + 9.0) - 0.5) * 0.008 * f3;
+  dz += (owN(q1 + 31.0) - 0.5) * 0.034 + (owN(q2 + 19.0) - 0.5) * 0.02 * f2 + (owN(q3 + 27.0) - 0.5) * 0.008 * f3;` : ''}
   return normalize(vec3(-dx, 1.0, -dz));
 }
 void main(){
@@ -153,6 +166,11 @@ void main(){
   vec3 R = reflect(-V, n);
   if (R.y < 0.0) R.y = -R.y * 0.2;
   vec3 refl = owSky(R);
+  ${ultra ? `// 2K: the real surroundings (the facade, the planting, the sky with its clouds) mirrored, softly: the probe's picture where it has one, the plain sky at the horizon
+  if (uProbeOn > 0.5) {
+    vec3 pr = textureCubeUV(uProbeMap, normalize(R), 0.05).rgb;
+    refl = mix(refl, pr, 0.8);
+  }` : ''}
   // the sun's glint: a tight bright lobe, kept finite so a bloom pass does not flare
   refl += uSunCol * pow(max(dot(R, uSunDir), 0.0), 600.0) * 12.0 * uSunStrength;
   vec3 body = uWaterCol * (uLight * 0.5 + uGlow * 0.5);
@@ -164,10 +182,17 @@ void main(){
 }
 `;
 
-export function makeWaterSurface(u: WaterUniforms, tier: Tier): THREE.ShaderMaterial {
+/** the cube-UV constants of a PMREM texture, as three derives them from its image height (the surface shader reads the probe with the sky's lookup) */
+export function cubeUvDefines(imageHeight: number): Record<string, string> {
+  const maxMip = Math.log2(imageHeight) - 2;
+  return { ENVMAP_TYPE_CUBE_UV: '', CUBEUV_MAX_MIP: `${maxMip}.0`, CUBEUV_TEXEL_WIDTH: `${1 / (3 * Math.max(Math.pow(2, maxMip), 7 * 16))}`, CUBEUV_TEXEL_HEIGHT: `${1 / imageHeight}` };
+}
+
+export function makeWaterSurface(u: WaterUniforms, tier: Tier, ultra = false): THREE.ShaderMaterial {
   const m = new THREE.ShaderMaterial({
     uniforms: u as unknown as Record<string, THREE.IUniform>,
-    vertexShader: SURFACE_VERT, fragmentShader: SURFACE_FRAG(tier === 'high'),
+    vertexShader: SURFACE_VERT, fragmentShader: SURFACE_FRAG(tier === 'high' || ultra, ultra),
+    defines: ultra ? cubeUvDefines(256 * 4) : {},
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
     blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor, blendEquation: THREE.AddEquation,
   });

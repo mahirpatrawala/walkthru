@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import type { Tier } from '../types';
 import type { FurnitureKit, MatKey } from '../furniture-materials';
+import { roundedBoxBetween } from '../furniture-parts';
 import { boardOffset, chamferBox, frontUV, grainUV, mergeGeos } from './geo';
 import type { Axis } from './geo';
 
@@ -31,12 +32,17 @@ export interface GenQuality {
   slats: boolean;
   /** RoundedBoxGeometry segments for mattresses */
   seg: number;
+  /** SPEC 16.24: the 2K level. Boxes with an edge radius are rounded (smooth, 300 triangles), not chamfered, and the generators add the fine parts (see gen/ultra.ts) */
+  ultra?: boolean;
 }
 export const GEN_QUALITY: Record<Tier, GenQuality> = {
   low: { tier: 'low', chamfer: false, edge: 0.004, sides: 6, flutes: false, puff: 0, cloth: 8, slats: false, seg: 1 },
   medium: { tier: 'medium', chamfer: true, edge: 0.005, sides: 8, flutes: true, puff: 8, cloth: 20, slats: true, seg: 2 },
   high: { tier: 'high', chamfer: true, edge: 0.006, sides: 12, flutes: true, puff: 12, cloth: 32, slats: true, seg: 3 },
 };
+
+/** SPEC 16.24: segments of a welded soft pad (softCushion): 2 or 3 by tier, 4 at 2K (3,000 triangles a cushion, a rounded edge and a crown that shows) */
+export const softSeg = (q: GenQuality): number => (q.ultra ? 4 : q.tier === 'high' ? 3 : 2);
 
 export interface GenEnv { kit: FurnitureKit; q: GenQuality }
 
@@ -82,6 +88,11 @@ export class Parts {
   /** a box: chamfered when the tier allows it */
   box(name: string, mat: MatSpec, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, o: PutOpts & { c?: number } = {}): void {
     const c = o.c ?? this.env.q.edge;
+    // 2K: an edge radius worth seeing (2.5 mm and up) is a real round-over with smooth normals, so a highlight rolls round the edge instead of snapping at a facet
+    if (this.env.q.ultra && c >= 0.0025) {
+      const r = Math.min(c * 1.15, Math.min(x1 - x0, y1 - y0, z1 - z0) / 2.2);
+      if (r >= 0.0015) { this.put(name, mat, roundedBoxBetween(x0, x1, y0, y1, z0, z1, r, r > 0.006 ? 3 : 2), o); return; }
+    }
     this.put(name, mat, boxGeo(x0, x1, y0, y1, z0, z1, this.env.q.chamfer ? c : 0), o);
   }
 

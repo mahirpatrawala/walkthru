@@ -77,8 +77,8 @@ const wallPaint = (ctx: BuildCtx, colour: string): THREE.MeshStandardMaterial =>
   return m;
 });
 // powder-coated mid-grey, part diffuse: a dark steel rail with high metalness and no environment to reflect reads as a black pole against the bright deck
-const metal = (ctx: BuildCtx, colour = '#8C9296'): THREE.MeshStandardMaterial => ctx.mats.plain(`metal:${colour}`, () => new THREE.MeshStandardMaterial({ color: colour, roughness: 0.45, metalness: 0.25 }));
-const glassMat = (ctx: BuildCtx): THREE.MeshStandardMaterial => ctx.mats.plain('glass', () => new THREE.MeshStandardMaterial({ color: '#BFE0E3', roughness: 0.04, metalness: 0.05, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide }));
+const metal = (ctx: BuildCtx, colour = '#8C9296'): THREE.MeshStandardMaterial => ctx.mats.plain(`metal:${colour}`, () => new THREE.MeshStandardMaterial({ color: colour, roughness: 0.45, metalness: 0.25, name: 'outdoor-metal' }));
+const glassMat = (ctx: BuildCtx): THREE.MeshStandardMaterial => ctx.mats.plain('glass', () => new THREE.MeshStandardMaterial({ color: '#BFE0E3', roughness: 0.04, metalness: 0.05, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide, name: 'outdoor-glass' }));
 
 export interface BoundaryBuild { group: THREE.Group; hedges: HedgeSeg[] }
 
@@ -189,7 +189,7 @@ function roofMesh(ctx: BuildCtx, r: Roof): THREE.Group {
     geos.push(boxGeometry(c.x - 0.21, c.x + 0.21, 0, 0.12, c.z - 0.21, c.z + 0.21, 1));
   }
   const m = mergeAndFree(geos);
-  if (m) g.add(tag(new THREE.Mesh(m, r.kind === 'pergola' ? ctx.mats.plain('pergola', () => new THREE.MeshStandardMaterial({ color: '#6B4A32', roughness: 0.75 })) : paint), 'roof', true, true));
+  if (m) g.add(tag(new THREE.Mesh(m, r.kind === 'pergola' ? ctx.mats.plain('pergola', () => new THREE.MeshStandardMaterial({ color: '#6B4A32', roughness: 0.75, name: 'outdoor-timber' })) : paint), 'roof', true, true));
   return g;
 }
 
@@ -204,7 +204,7 @@ export function buildFacadeDecor(ctx: BuildCtx): THREE.Group {
   group.name = 'outdoor-facade';
   const frames = frameMap(ctx.layout);
   const H = ctx.layout.wallHeightM;
-  const glass = ctx.mats.plain('facade-glass', () => new THREE.MeshStandardMaterial({ color: '#5E8296', roughness: 0.12, metalness: 0.25 }));
+  const glass = ctx.mats.plain('facade-glass', () => new THREE.MeshStandardMaterial({ color: '#5E8296', roughness: 0.12, metalness: 0.25, name: 'outdoor-facade-glass' }));
   const frame = metal(ctx, '#D8D8D4');
   const paint = wallPaint(ctx, '#F1EADB');
   const gl: THREE.BufferGeometry[] = [], fr: THREE.BufferGeometry[] = [], pn: THREE.BufferGeometry[] = [];
