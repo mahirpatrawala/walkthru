@@ -37,6 +37,8 @@ export interface PostChain {
   setAO(on: boolean): void;
   /** 1 = the usual strength; a bake that already has the corner shade asks for less (SPEC 16.14) */
   setAoStrength(k: number): void;
+  /** SPEC 16.24: the 2K level draws the occlusion at full resolution with more samples (soft contact shadows under objects), 20 and 8 against 10 and 6 */
+  setUltra(on: boolean): void;
   dispose(): void;
 }
 
@@ -161,6 +163,12 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
     },
     setAO: (on) => { ao.enabled = on && !aoOff; },
     setAoStrength: (k) => { ao.configuration.intensity = AO_BASE * k; },
+    setUltra: (on) => {
+      ao.configuration.halfRes = !on;
+      ao.configuration.aoSamples = on ? 20 : init.ao === 'cheap' ? 6 : 10;
+      ao.configuration.denoiseSamples = on ? 8 : init.ao === 'cheap' ? 5 : 6;
+      ao.configuration.aoRadius = on ? 0.28 : 0.35;
+    },
     dispose() { off(); composer.dispose(); },
   };
 }

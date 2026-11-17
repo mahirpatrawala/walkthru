@@ -5,6 +5,9 @@ import * as THREE from 'three';
 import { Parts } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { cylinderY } from './geo';
+import { roundedBoxBetween } from '../furniture-parts';
+import { softCushion } from './soft';
+import { softSeg } from './core';
 import { CHROME, LEAF, RUBBER, SOIL, bar, disc, post, soft } from './kit';
 import { fitToBox } from './outdoor-fit';
 
@@ -61,20 +64,22 @@ function lounger(P: Parts, { w, d, h, s }: GenSize): void {
   const at = (t: number): { y: number; z: number } => ({ y: s + t * Math.sin(ang), z: hinge - t * Math.cos(ang) });
   for (const x of [x0 + 0.03, x1 - 0.03]) {
     const m = at(len / 2);
-    const g = new THREE.BoxGeometry(0.04, 0.04, len).rotateX(ang);
+    const g = P.env.q.ultra ? roundedBoxBetween(-0.02, 0.02, -0.02, 0.02, -len / 2, len / 2, 0.008, 3).rotateX(ang) : new THREE.BoxGeometry(0.04, 0.04, len).rotateX(ang);
     g.translate(x, m.y - 0.04, m.z);
     P.put('frame', RESIN, g);
   }
   for (let t = 0.04; t < len - 0.03; t += 0.07) {
     const m = at(t);
-    P.put('slats', RESIN, new THREE.BoxGeometry(w - 0.06, 0.03, 0.05).rotateX(ang).translate(0, m.y - 0.045, m.z));
+    P.put('slats', RESIN, P.env.q.ultra ? roundedBoxBetween(-(w - 0.06) / 2, (w - 0.06) / 2, -0.015, 0.015, -0.025, 0.025, 0.007, 2).rotateX(ang).translate(0, m.y - 0.045, m.z) : new THREE.BoxGeometry(w - 0.06, 0.03, 0.05).rotateX(ang).translate(0, m.y - 0.045, m.z));
   }
   // legs
   for (const [x, z] of [[x0 + 0.05, hinge + 0.07], [x1 - 0.05, hinge + 0.07], [x0 + 0.05, d / 2 - 0.07], [x1 - 0.05, d / 2 - 0.07]] as const) post(P, 'legs', RESIN, x, z, 0, s - 0.1, 0.018);
   // the cushion lies on the seat and follows the back
   P.put('cushion', NAVY, soft(P.env, x0 + 0.04, x1 - 0.04, s - 0.04, s + 0.03, hinge, d / 2 - 0.05, 0.012));
   const mid = at(len / 2);
-  P.put('cushion', NAVY, new THREE.BoxGeometry(w - 0.1, 0.05, len - 0.04).rotateX(ang).translate(0, mid.y - 0.01, mid.z));
+  P.put('cushion', NAVY, P.env.q.ultra
+    ? softCushion(w - 0.1, 0.05, len - 0.04, { r: 0.02, puff: 0.012, seg: softSeg(P.env.q) }).rotateX(ang).translate(0, mid.y - 0.01, mid.z)
+    : new THREE.BoxGeometry(w - 0.1, 0.05, len - 0.04).rotateX(ang).translate(0, mid.y - 0.01, mid.z));
 }
 
 /** A square-base parasol: weighted base, steel pole, an eight-gore canopy reaching `canopyM` across (beyond the base: it is drawn, not counted as floor). */
@@ -84,14 +89,23 @@ function umbrella(P: Parts, { w, d, h }: GenSize, canopyM: number): void {
   P.box('base', WHITE_PAINT, -w / 2, w / 2, 0, 0.1, -d / 2, d / 2, { c: 0.01 });
   P.box('base', WHITE_PAINT, -w / 2 + 0.06, w / 2 - 0.06, 0.1, 0.16, -d / 2 + 0.06, d / 2 - 0.06, { c: 0.008 });
   post(P, 'pole', CHROME, 0, 0, 0.16, topY, 0.022);
-  const cone = new THREE.ConeGeometry(r, topY - rimY + 0.02, 8, 1, true);
-  cone.translate(0, rimY + (topY - rimY) / 2, 0);
+  // 2K: a domed canopy of sixteen gores (a curved profile, not a cone), the valance with the same sixteen
+  const gores = P.env.q.ultra ? 16 : 8;
+  let cone: THREE.BufferGeometry;
+  if (P.env.q.ultra) {
+    const prof: THREE.Vector2[] = [];
+    for (let i = 0; i <= 14; i++) { const t = i / 14, rr = r * t; prof.push(new THREE.Vector2(rr, rimY + (topY + 0.02 - rimY) * (1 - Math.pow(t, 1.7)))); }
+    cone = new THREE.LatheGeometry(prof.reverse(), gores * 2);
+  } else {
+    cone = new THREE.ConeGeometry(r, topY - rimY + 0.02, 8, 1, true);
+    cone.translate(0, rimY + (topY - rimY) / 2, 0);
+  }
   P.put('umbrella-canopy', { key: 'cotton', tint: '#D9C7A4' }, cone, { double: true, noShadow: false });
   // a valance round the rim
-  const rim = new THREE.CylinderGeometry(r, r, 0.16, 8, 1, true);
+  const rim = new THREE.CylinderGeometry(r, r, 0.16, gores * (P.env.q.ultra ? 2 : 1), 1, true);
   rim.translate(0, rimY - 0.07, 0);
   P.put('umbrella-canopy', { key: 'cotton', tint: '#D9C7A4' }, rim, { double: true });
-  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; bar(P, 'umbrella-ribs', CHROME, [0, topY - 0.02, 0], [Math.sin(a) * r * 0.97, rimY - 0.02, Math.cos(a) * r * 0.97], 0.008); }
+  for (let i = 0; i < gores; i++) { const a = (i / gores) * Math.PI * 2; bar(P, 'umbrella-ribs', CHROME, [0, topY - 0.02, 0], [Math.sin(a) * r * 0.97, rimY - 0.02, Math.cos(a) * r * 0.97], 0.008); }
   const cap = new THREE.SphereGeometry(0.035, 8, 6); cap.translate(0, topY + 0.01, 0); P.put('umbrella-cap', CHROME, cap);
 }
 

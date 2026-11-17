@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { puffedCushion, roundedBoxBetween } from '../furniture-parts';
 import { softCushion } from './soft';
-import { Parts, role, roleOr } from './core';
+import { Parts, role, roleOr, softSeg } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { buildSofa } from './seating';
 import { rod } from './geo';
@@ -103,14 +103,14 @@ export function buildSeatX(env: GenEnv, size: GenSize, p: SeatXParams, roles: Ro
     parts.put('office-column', metal, new THREE.CylinderGeometry(0.026, 0.03, 0.22, sides).translate(0, 0.21, 0));
     parts.put('office-mechanism', metal, roundedBoxBetween(-0.07, 0.07, S - 0.13, S - 0.07, -0.1, 0.14, 0.015, 1));
     parts.put('office-pan', metal, roundedBoxBetween(-0.23, 0.23, S - 0.075, S - 0.05, -0.2, d / 2 - 0.05, 0.012, 1));
-    const seat = softCushion(0.5, 0.06, d / 2 + 0.22, { r: 0.028, puff: 0.012, seg: q.tier === 'high' ? 3 : 2 });
+    const seat = softCushion(0.5, 0.06, d / 2 + 0.22, { r: 0.028, puff: 0.012, seg: softSeg(q) });
     seat.translate(0, S - 0.03, (-0.22 + d / 2) / 2);
     parts.put('office-seat', fab, q.seg > 1 ? seat : roundedBoxBetween(-0.25, 0.25, S - 0.06, S, -0.22, d / 2, 0.025, 1), { grain: 'x' });
     const lean = (8 * Math.PI) / 180;
     parts.put('office-back-support', metal, rod({ x: 0, y: S - 0.06, z: -0.12 }, { x: 0, y: S + 0.04, z: -0.285 }, 0.014, sides));
     parts.put('office-back-support', metal, rod({ x: 0, y: S + 0.04, z: -0.285 }, { x: 0, y: S + 0.24, z: -0.29 }, 0.014, sides));
     const backH = H - S - 0.1;
-    const back = q.seg > 1 ? softCushion(0.46, backH, 0.06, { r: 0.028, puff: 0.014, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-0.23, 0.23, -backH / 2, backH / 2, -0.03, 0.03, 0.03, 1);
+    const back = q.seg > 1 ? softCushion(0.46, backH, 0.06, { r: 0.028, puff: 0.014, seg: softSeg(q) }) : roundedBoxBetween(-0.23, 0.23, -backH / 2, backH / 2, -0.03, 0.03, 0.03, 1);
     back.rotateX(-lean);
     back.translate(0, S + 0.1 + backH / 2, -0.26);
     back.computeBoundingBox();

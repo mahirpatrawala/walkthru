@@ -10,7 +10,7 @@ import {
 import { furnitureKit } from './furniture-materials';
 import { PILLOW_HEIGHT_M, QUILT_PROUD_M, bedLayout } from '../core/bed-layout';
 import type { FurnitureKit, MatKey } from './furniture-materials';
-import { GENERATORS, GEN_QUALITY, sizeOf } from './gen';
+import { GENERATORS, genQuality, sizeOf } from './gen';
 import { moveChildren } from './gen/core';
 import { getStyle, resolveLook } from './style';
 import type { ResolvedLook } from './style';
@@ -471,7 +471,7 @@ export function buildRealFurniture(group: THREE.Group, item: FurnitureItem, tier
   // a style pack other than Classic builds the piece with the parametric generators (src/look/gen), same box, same heights
   const look = resolveItemLook(item);
   if (look) {
-    const built = GENERATORS[look.kind].build({ kit, q: GEN_QUALITY[tier] }, sizeOf(item), look.params, look.roles);
+    const built = GENERATORS[look.kind].build({ kit, q: genQuality(tier) }, sizeOf(item), look.params, look.roles);
     moveChildren(built, group);
     // a swing's moving parts are driven by the buyer page (src/buyer/swing-motion.ts), which reads this from the item's mesh
     if (built.userData.swingRig) group.userData.swingRig = built.userData.swingRig; else delete group.userData.swingRig;

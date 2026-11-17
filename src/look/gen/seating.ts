@@ -86,7 +86,7 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
   // one welded soft pad per cushion (src/look/gen/soft.ts): plump, rounded, no creases; the lowest tier draws a plain rounded box
   const cush = (cwid: number, ch: number, cdep: number, puff: number, rad?: number): THREE.BufferGeometry =>
     q.tier === 'low' ? roundedBoxBetween(-cwid / 2, cwid / 2, -ch / 2, ch / 2, -cdep / 2, cdep / 2, Math.min(0.04, ch / 2.5), 1)
-      : softCushion(cwid, ch, cdep, { r: rad ?? Math.min(0.055, ch / 2.6), puff, seg: q.tier === 'high' && n <= 2 && chaise === 'none' ? 3 : 2 });
+      : softCushion(cwid, ch, cdep, { r: rad ?? Math.min(0.055, ch / 2.6), puff, seg: q.ultra ? 4 : q.tier === 'high' && n <= 2 && chaise === 'none' ? 3 : 2 });
   for (let i = 0; i < n; i++) {
     const x = inner0 + cw * (i + 0.5);
     const g = cush(cw - 0.01, seatH, cd, 0.014);
@@ -189,7 +189,7 @@ function diningChair(parts: Parts, size: GenSize, x: number, side: 1 | -1, wood:
   const seatW = 0.44, seatD = 0.43, seatY = 0.45;
   const zc = side * (size.d / 2 - seatD / 2);
   const rb = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, r: number): THREE.BufferGeometry =>
-    q.seg > 1 ? roundedBoxBetween(x0, x1, y0, y1, z0, z1, r, 1) : boxGeo(x0, x1, y0, y1, z0, z1, 0);
+    q.seg > 1 ? roundedBoxBetween(x0, x1, y0, y1, z0, z1, r, q.ultra ? 3 : 1) : boxGeo(x0, x1, y0, y1, z0, z1, 0);
   parts.put('chair-seats', fab, rb(x - seatW / 2, x + seatW / 2, seatY - 0.045, seatY + 0.005, zc - seatD / 2, zc + seatD / 2, 0.02), { grain: 'x' });
   const lh = seatY - 0.045;
   for (const lx of [-1, 1]) for (const lz of [-1, 1]) {

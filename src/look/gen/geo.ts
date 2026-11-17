@@ -347,3 +347,22 @@ export function loft(sections: LoftSection[], n = 32): { body: THREE.BufferGeome
   cap.setIndex(ci);
   return { body, cap };
 }
+
+/**
+ * SPEC 16.24: a smooth run of tube (a gooseneck tap, a shower arm, a hose) along the polyline `pts`, every corner rounded by `corner` metres, `r` thick.
+ * The end points are the polyline's own, so a run drawn as a few straight rods keeps its reach. `radial` sides all round.
+ */
+export function roundedRun(pts: [number, number, number][], r: number, corner: number, radial = 24): THREE.BufferGeometry {
+  const v = pts.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
+  const samples: THREE.Vector3[] = [v[0].clone()];
+  for (let i = 1; i < v.length - 1; i++) {
+    const a = v[i - 1], b = v[i], c = v[i + 1];
+    const rc = Math.min(corner, a.distanceTo(b) * 0.5, b.distanceTo(c) * 0.5);
+    const p0 = b.clone().add(a.clone().sub(b).setLength(rc)), p1 = b.clone().add(c.clone().sub(b).setLength(rc));
+    const q = new THREE.QuadraticBezierCurve3(p0, b, p1);
+    for (let k = 0; k <= 8; k++) samples.push(q.getPoint(k / 8));
+  }
+  samples.push(v[v.length - 1].clone());
+  const curve = new THREE.CatmullRomCurve3(samples, false, 'centripetal');
+  return new THREE.TubeGeometry(curve, samples.length * 3, r, radial, false);
+}

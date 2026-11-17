@@ -10,7 +10,7 @@ import type { Look } from './look';
 import type { Tier } from './types';
 import { furnitureKit } from './furniture-materials';
 import type { FurnitureKit } from './furniture-materials';
-import { GEN_QUALITY } from './gen';
+import { genQuality } from './gen';
 import type { GenEnv, Roles } from './gen';
 import { buildBench } from './gen/seating';
 import type { BenchParams } from './gen/seating';
@@ -139,7 +139,7 @@ export function buildDecorGroup(layout: Layout, items: FurnitureItem[], tier: Ti
   const counts: Record<string, number> = {};
   const records: FittingRecord[] = [];
   if (st.pack.classic) return { group, triangles: 0, counts, records };
-  const env: GenEnv = { kit, q: GEN_QUALITY[tier] };
+  const env: GenEnv = { kit, q: genQuality(tier) };
   const roles = decorRoles(st);
   const frames = computeEdgeFrames(layout);
   const infos = wallInfosOf(layout);

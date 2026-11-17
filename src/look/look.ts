@@ -14,6 +14,9 @@ import { createPostChain } from './post';
 import type { PostChain } from './post';
 import { TIERS, clampAnisotropy, lowerTier, loadSavedTier, readDevice, guessTier, saveTier, stepDown, tierFromQuery, postWanted, tierPixelCap, toneMapperFromQuery } from './quality';
 import { ResolutionGovernor } from './resolution';
+import { PremiumLayer } from './premium/layer';
+import type { PremiumStats } from './premium/layer';
+import { setUltraDetail } from './gen/ultra';
 import { REALISM_KEY, REALISTIC_SETS, defaultRealism, effectiveRealism, parseRealism, realismFromQuery, realisticPaths } from './realistic';
 import type { RealismLevel, RealisticFamily } from './realistic';
 import { furnitureKit } from './furniture-materials';
@@ -102,6 +105,16 @@ export interface Look {
   /** what is drawn now: low tier, a scan and an outdoor space are always off; the governor may have dropped 2k to 1k */
   readonly realismEffective: RealismLevel;
   setRealism(level: RealismLevel, persist?: boolean): void;
+  /** SPEC 16.24: the 2K top-quality extras are on right now (physical materials, room reflections, the finer furniture). False on every other level, the low tier and a shown scan. */
+  readonly ultra: boolean;
+  /** how many materials the 2K layer has promoted, the probes it holds and the room it is reflecting */
+  premiumStats(): PremiumStats;
+  /** the active room's reflection picture (a PMREM laid out like the sky's), while the 2K layer has one: the pool's water mirrors it */
+  premiumProbe(): THREE.Texture | null;
+  /** for the checks: the mean colour of each face of the active room's probe cube */
+  premiumFaces(): number[][] | null;
+  /** the uniforms the promoted materials share (probe on/off, chroma kept, the room's box): for the checks */
+  premiumUniforms(): Record<string, { value: unknown }>;
   /** textures of the level being loaded: `done` of `total` (0 of 0 when nothing is loading) */
   realismProgress(): { level: RealismLevel; done: number; total: number };
   /** Hooks for the rest of the scene. Safe to call any time, any number of times. */
@@ -223,7 +236,6 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let sun = sunState(layout, lookFile, hour);
   let disposed = false;
   let grid: Grid | null = null;
-  let parts: LookAttachments = {};
   let readyPromise: Promise<void> = Promise.resolve();
   let loadingTier = false;
   let steppedDown = false;
@@ -296,11 +308,12 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   function syncSky(force = false): void {
     if (opts.backdrop === false || scanVisible || lightOverride?.holdSky) return;
     const bd = chooseBackdrop(lookFile, hour, trueColours);
-    const key = bd ? `pic|${bd}|${cfg.hdri}` : `plain|${trueColours ? 'true' : hour.toFixed(2)}|${cfg.environment}`;
+    const rich = ultraApplied && !trueColours;
+    const key = bd ? `pic|${bd}|${cfg.hdri}` : `plain|${trueColours ? 'true' : hour.toFixed(2)}|${cfg.environment}|${rich ? 'rich' : ''}`;
     if (!force && key === skyKey) return;
     skyKey = key;
     if (bd) void sky.show(bd, cfg).catch((e) => console.warn('[walkthru] backdrop not loaded', e));
-    else sky.showPlain(grade.sky, grade.night ? 14 : sun.elevationDeg, cfg);
+    else sky.showPlain(grade.sky, grade.night ? 14 : sun.elevationDeg, cfg, rich);
   }
 
   // ---- daylight (SPEC 16.19): the nearest windows are soft light sources in the shell shader, a windowless room is lit by its downlights.
@@ -409,6 +422,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     lightOverride?.apply?.({ hemi, sun: sunLight, scene, renderer, cfg, shadows: shadowsOn() });
     needsShadowRefresh();
     updateDaylight(true);
+    premium.invalidate();
   }
 
   /** SPEC 16.14: while a bake lights the home, the pooled lamps (the bake has their light), the wall-edge darkening and the grid AO of walls step back;
@@ -503,6 +517,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
             if (disposed || !postWanted(TIERS[tier], device.touch)) { p.dispose(); return; }
             post = p;
             post.setAoStrength(bakedApplied ? BAKED_SSAO_STRENGTH : outdoor ? OUTDOOR_SSAO_STRENGTH : 1);
+            post.setUltra(ultraApplied);
             syncAo();
             applyLighting();
             applyRenderPath();
@@ -515,7 +530,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       if (post && scanVisible) { /* keep the chain, just do not use it */ }
     }
     const usePost = !!post && wantPost;
-    if (usePost || wantReflection === 'planar') viewer.setRenderOverride(renderFrame);
+    if (usePost || wantReflection === 'planar' || ultraApplied) viewer.setRenderOverride(renderFrame);
     else viewer.setRenderOverride(null);
     renderer.toneMapping = scanVisible || usePost || trueColours ? THREE.NoToneMapping : threeToneMapping();
     reflections.setMode(wantReflection);
@@ -535,6 +550,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
 
   function renderFrame(dt: number): void {
     if (cfg.reflection === 'planar' && !scanVisible && !trueColours) reflections.updatePlanar();
+    if (ultraApplied) premium.updateMirrors(camera);
     if (post && postOn() && !scanVisible) post.render(dt);
     else renderer.render(scene, camera);
   }
@@ -605,6 +621,22 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   const realismFam = new Map<RealisticFamily, { level: RealismLevel; mix: number; target: number }>();
   const realismLoading = new Map<string, Promise<void>>();
   let realismProg = { level: 'off' as RealismLevel, done: 0, total: 0 };
+  // ---- 2K top quality (SPEC 16.24): physical materials and room reflections over everything, and finer furniture; gated on the effective level being 2K
+  let parts: LookAttachments = {};
+  const premium = new PremiumLayer({ renderer, scene, layout, outdoor, hide: () => (parts.character ? [parts.character.object] : []) });
+  let ultraApplied = false;
+  const premiumWanted = (): boolean => cfg.tier !== 'low' && !scanVisible && effectiveRealism(realismChosen, realismDropped) === '2k';
+  function syncPremium(): void {
+    const want = premiumWanted();
+    if (want === ultraApplied) return;
+    ultraApplied = want;
+    setUltraDetail(want);
+    premium.setEnabled(want);
+    post?.setUltra(want);
+    applyRenderPath(); // the mirrors are drawn in the look's own render path
+    syncSky(true); // the 2K sky is a richer one (clouds, a sun with a core) and its environment is the size of a room probe
+    notify();
+  }
   const wantedRealism = (): RealismLevel => (cfg.tier === 'low' || scanVisible || outdoor ? 'off' : effectiveRealism(realismChosen, realismDropped));
 
   /** mean linear luminance of a colour map (a 32 px copy), so the map only modulates around the pack's colour */
@@ -670,7 +702,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let realismClock = 0;
   function updateRealism(dt: number): void {
     realismClock += dt;
-    if (realismClock > 0.25) { realismClock = 0; syncRealism(); }
+    if (realismClock > 0.25) { realismClock = 0; syncRealism(); syncPremium(); }
+    premium.update(dt, camera.position.x, camera.position.z);
     for (const [fam, st] of realismFam) {
       if (st.mix < st.target) { st.mix = Math.min(st.target, st.mix + dt / 0.7); materials.setRealisticMix(fam, st.mix); }
     }
@@ -724,12 +757,18 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     get outdoor() { return outdoor; },
     get quality() { return quality; },
     get realism() { return realismChosen; },
+    get ultra() { return ultraApplied; },
+    premiumStats: () => premium.stats(),
+    premiumProbe: () => premium.probeTexture,
+    premiumFaces: () => premium.faceMeans(),
+    premiumUniforms: () => premium.uniforms as unknown as Record<string, { value: unknown }>,
     get realismEffective() { return realismApplied === 'init' ? wantedRealism() : realismApplied; },
     setRealism(level, persist = true) {
       realismChosen = level;
       realismDropped = false;
       if (persist) { try { storage?.setItem(REALISM_KEY, level); } catch { /* private mode */ } }
       syncRealism();
+      syncPremium();
       notify();
     },
     realismProgress: () => ({ ...realismProg }),
@@ -794,6 +833,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       needsShadowRefresh();
       scheduleCube();
       interior.scan(true);
+      premium.rescan();
+      premium.invalidate();
     },
     setScanVisible(v) {
       if (scanVisible === v) return;
@@ -802,6 +843,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       if (!v && opts.hasSplat) postAllowed = true;
       materials.setPlain(v);
       applyTier();
+      syncPremium();
       notify();
     },
     materials: () => materials,
@@ -825,6 +867,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       interior.setLayout(l);
       windows = windowSources(l);
       lamps = lampSources(l, windows);
+      premium.setLayout(l);
       if (g) { grid = g; rebuildAo(g); }
       applyLighting();
       scheduleCube();
@@ -893,6 +936,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       offFrame();
       offAo();
       interior.dispose();
+      premium.dispose();
+      setUltraDetail(false);
       vignette?.remove();
       if (cubeTimer) clearTimeout(cubeTimer);
       viewer.setRenderOverride(null);

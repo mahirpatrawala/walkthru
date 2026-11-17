@@ -13,7 +13,7 @@ export const REALISM_CHOICE: Record<RealismLevel, string> = { off: 'Off', '1k': 
 export const REALISM_NOTE: Record<RealismLevel, string> = {
   off: 'Basic materials, drawn by the program: the lightest. Walls, doors and tile look the same at every setting.',
   '1k': 'Sharper floors, fabrics and wood. Photographed maps, light to load: they download once, then stay cached.',
-  '2k': 'Sharper floors, fabrics and wood, a little finer than 1K (about 3 times the download). They download once, then stay cached.',
+  '2k': 'Top quality, for a powerful computer: every object gets real metal, glass, ceramic and cloth, reflections of the room, finer furniture, mirrors that reflect, and a better pool and sky. The largest download (once, then cached) and the heaviest to draw.',
 };
 
 export function parseRealism(v: string | null | undefined): RealismLevel | null {

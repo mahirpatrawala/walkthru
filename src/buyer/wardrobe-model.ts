@@ -9,7 +9,7 @@ import { furnitureKit } from '../look/furniture-materials';
 import type { FurnitureKit, MatKey } from '../look/furniture-materials';
 import type { WardrobeDesign } from '../look/furniture-real';
 import { resolveItemLook } from '../look/furniture-real';
-import { GEN_QUALITY } from '../look/gen';
+import { genQuality } from '../look/gen';
 import { Parts as GenParts } from '../look/gen/core';
 import { FRONT_RECESS, addLeaf, wardrobeSpans } from '../look/gen/wardrobe';
 import type { WardrobeParams } from '../look/gen/wardrobe';
@@ -149,7 +149,7 @@ export function buildWardrobeModel(item: FurnitureItem, spec: OpenSpec, wd: Ward
     group.userData.finishApplied = true; // the leaves carry the viewer's finish already
     const wp = styled.params as unknown as WardrobeParams;
     const sp = wardrobeSpans(H, wp);
-    const env = { kit, q: GEN_QUALITY[kit.tier] };
+    const env = { kit, q: genQuality(kit.tier) };
     for (const s of spec.shutters) {
       const piv = new THREE.Group();
       piv.name = `shutter:${s.id}`;

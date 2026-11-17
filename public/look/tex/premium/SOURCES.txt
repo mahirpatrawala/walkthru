@@ -1,0 +1,55 @@
+Textures of the 2K top-quality level (SPEC 16.24). All from Poly Haven (https://polyhaven.com), CC0 1.0, fetched 2026-11-17 by scripts/fetch-premium.mjs.
+
+wood_floor_deck/wood_floor_deck_diff_2k.jpg
+  source: https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/wood_floor_deck/wood_floor_deck_diff_2k.jpg
+  licence: CC0 1.0 (public domain), https://polyhaven.com/license, no credit required
+  use: pool deck timber
+  size: 3804436 bytes, md5 c272fb52a326a8724a409bdb33db1ba0
+
+wood_floor_deck/wood_floor_deck_nor_gl_2k.jpg
+  source: https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/wood_floor_deck/wood_floor_deck_nor_gl_2k.jpg
+  licence: CC0 1.0 (public domain), https://polyhaven.com/license, no credit required
+  use: pool deck timber
+  size: 3121998 bytes, md5 4c4b56a2db12514e0e96abe57a4f4d03
+
+wood_floor_deck/wood_floor_deck_rough_1k.jpg
+  source: https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_rough_1k.jpg
+  licence: CC0 1.0 (public domain), https://polyhaven.com/license, no credit required
+  use: pool deck timber
+  size: 658448 bytes, md5 ff891ac48e0a9db02a665d2ae9bba36a
+
+red_sandstone_pavement/red_sandstone_pavement_diff_2k.jpg
+  source: https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_sandstone_pavement/red_sandstone_pavement_diff_2k.jpg
+  licence: CC0 1.0 (public domain), https://polyhaven.com/license, no credit required
+  use: paving round the pool and the podium
+  size: 2722687 bytes, md5 a1259b901bce5c5b428ca1fdbb5c8ac7
+
+red_sandstone_pavement/red_sandstone_pavement_nor_gl_2k.jpg
+  source: https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_sandstone_pavement/red_sandstone_pavement_nor_gl_2k.jpg
+  licence: CC0 1.0 (public domain), https://polyhaven.com/license, no credit required
+  use: paving round the pool and the podium
+  size: 3573918 bytes, md5 331f734509e5354c74012364d1c19faa
+
+red_sandstone_pavement/red_sandstone_pavement_rough_1k.jpg
+  source: https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/red_sandstone_pavement/red_sandstone_pavement_rough_1k.jpg
+  licence: CC0 1.0 (public domain), https://polyhaven.com/license, no credit required
+  use: paving round the pool and the podium
+  size: 486090 bytes, md5 3010896be9f01f8939b8b1c46b4247d8
+
+stone_tiles/stone_tiles_diff_1k.jpg
+  source: https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles/stone_tiles_diff_1k.jpg
+  licence: CC0 1.0 (public domain), https://polyhaven.com/license, no credit required
+  use: pool coping stone
+  size: 787339 bytes, md5 2ee931a368a415f5cc2e916171e19bdf
+
+stone_tiles/stone_tiles_nor_gl_1k.jpg
+  source: https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles/stone_tiles_nor_gl_1k.jpg
+  licence: CC0 1.0 (public domain), https://polyhaven.com/license, no credit required
+  use: pool coping stone
+  size: 786125 bytes, md5 848f293b903096edaf4aae988c5a174f
+
+stone_tiles/stone_tiles_rough_1k.jpg
+  source: https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles/stone_tiles_rough_1k.jpg
+  licence: CC0 1.0 (public domain), https://polyhaven.com/license, no credit required
+  use: pool coping stone
+  size: 753871 bytes, md5 d4119c754b8890a203ffcdf8acb2f70d

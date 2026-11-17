@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { roundedBoxBetween } from '../furniture-parts';
 import { softCushion } from './soft';
-import { Parts, role, shade } from './core';
+import { Parts, role, shade, softSeg } from './core';
 import type { GenEnv, GenSize, Roles } from './core';
 import { rod } from './geo';
 import { PILLOW_HEIGHT_M, QUILT_PROUD_M, bedLayout } from '../../core/bed-layout';
@@ -23,6 +23,36 @@ export interface BedParams {
   duvet: 'quilted' | 'plain' | 'none';
 }
 export const BED_DEFAULTS: BedParams = { base: 'platform', headboard: 'panel', baseTopM: 0, duvet: 'quilted' };
+
+/** 2K: gentle folds in a quilt and a dent in a pillow, only ever downward, so the top of the cover stays at the proud height the layout gives it (16.23) and nobody lying on it is inside it */
+function settle(g: THREE.BufferGeometry, kind: 'quilt' | 'pillow', seed: number): THREE.BufferGeometry {
+  g.computeBoundingBox();
+  const b = g.boundingBox!;
+  const pos = g.attributes.position as THREE.BufferAttribute;
+  const cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2, hx = (b.max.x - b.min.x) / 2, hz = (b.max.z - b.min.z) / 2, h = b.max.y - b.min.y;
+  const ph = seed * 1.7;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    // only the upper skin moves: a vertex within a third of the thickness of the top, weighted so the edge stays put
+    const up = Math.max(0, (y - (b.max.y - h * 0.34)) / (h * 0.34));
+    if (up <= 0) continue;
+    const x = pos.getX(i) - cx, z = pos.getZ(i) - cz;
+    const ex = Math.min(1, (1 - Math.abs(x) / hx) * 6), ez = Math.min(1, (1 - Math.abs(z) / hz) * 6);
+    const edge = Math.max(0, Math.min(ex, ez));
+    let dy = 0;
+    if (kind === 'quilt') {
+      // long soft ridges across the width and a few diagonal creases, 1 to 4 mm deep, with a sag over the middle of the mattress
+      dy = 0.0021 * (0.5 + 0.5 * Math.sin(z * 11 + Math.sin(x * 2.6 + ph) * 1.4 + ph)) + 0.0014 * (0.5 + 0.5 * Math.sin(x * 7.5 - z * 4.2 + ph * 2)) + 0.0012 * Math.max(0, 1 - Math.abs(x) / (hx * 0.9));
+    } else {
+      // a hollow where a head rests, and the case drawn a little tight at the corners
+      dy = 0.011 * Math.exp(-((x / (hx * 0.55)) ** 2 + (z / (hz * 0.55)) ** 2)) + 0.0016 * (0.5 + 0.5 * Math.sin(x * 23 + z * 17 + ph));
+    }
+    pos.setY(i, y - dy * up * edge);
+  }
+  pos.needsUpdate = true;
+  g.computeVertexNormals();
+  return g;
+}
 
 /** moves a soft part down if its top would rise above `top` (a pillow on a low bed stays inside the item's height) */
 function fitTop(g: THREE.BufferGeometry, top: number): THREE.BufferGeometry {
@@ -104,6 +134,15 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
   const mh = S - baseTop;
   parts.put('mattress', sheet, roundedBoxBetween(-m.w / 2, m.w / 2, baseTop, S, mz0, mz1, Math.min(0.05, mh / 2.2), Math.max(2, q.seg)), { grain: 'x' });
 
+  // 2K: the sheet is piped along the top and bottom edge of the mattress, a darker cord 5 mm thick
+  if (q.ultra) {
+    const cord = shade(sheet, 0.9), inset = Math.min(0.05, mh / 2.2) * 0.29 + 0.0012; // on the rounded edge at 45 degrees
+    for (const y of [S - inset, baseTop + inset]) {
+      for (const sx of [-1, 1]) parts.put('mattress-piping', cord, rod({ x: sx * (m.w / 2 - inset), y, z: mz0 + inset }, { x: sx * (m.w / 2 - inset), y, z: mz1 - inset }, 0.0045, 10), { noShadow: true });
+      parts.put('mattress-piping', cord, rod({ x: -(m.w / 2 - inset), y, z: mz1 - inset }, { x: m.w / 2 - inset, y, z: mz1 - inset }, 0.0045, 10), { noShadow: true });
+    }
+  }
+
   // ---- quilt: one flat cover that follows the mattress from just below the pillows to the foot, its sides and foot hanging past the mattress.
   // Its top stands QUILT_PROUD_M above the mattress top and no more: a person lies on it, it never reaches into them
   const lay = bedLayout({ w, d }, size.inner);
@@ -113,8 +152,9 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
     const top = Math.min(S + QUILT_PROUD_M, H - 0.004);
     const bottom = S - Math.min(0.14, S - baseTop - 0.01);
     const duvetMat = p.duvet === 'quilted' ? duvetM : { key: 'cotton' as const, tint: duvetM.tint };
-    const body = q.puff > 0 ? softCushion(cw, top - bottom, zB - zA, { r: 0.03, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-cw / 2, cw / 2, -(top - bottom) / 2, (top - bottom) / 2, -(zB - zA) / 2, (zB - zA) / 2, 0.03, 1);
+    const body = q.puff > 0 ? softCushion(cw, top - bottom, zB - zA, { r: 0.03, seg: softSeg(q) }) : roundedBoxBetween(-cw / 2, cw / 2, -(top - bottom) / 2, (top - bottom) / 2, -(zB - zA) / 2, (zB - zA) / 2, 0.03, 1);
     body.translate(0, (top + bottom) / 2, (zA + zB) / 2);
+    if (q.ultra) settle(body, 'quilt', w * 3 + d);
     parts.put('duvet', duvetMat, body, { grain: 'x' });
     if (p.duvet === 'quilted') {
       // quilting channels across the quilt, as thin darker bands standing 1 mm proud of its top
@@ -126,7 +166,8 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
   // ---- sleeping pillows, flat on the mattress at the head, where a person lying on the bed rests their head
   for (const pl of lay.pillows) {
     const pz = Math.max(pl.z, mz0 + 0.01 + pl.d / 2);
-    const g = q.puff > 0 ? softCushion(pl.w, PILLOW_HEIGHT_M, pl.d, { r: 0.045, puff: 0.03, seg: q.tier === 'high' ? 3 : 2 }) : roundedBoxBetween(-pl.w / 2, pl.w / 2, -PILLOW_HEIGHT_M / 2, PILLOW_HEIGHT_M / 2, -pl.d / 2, pl.d / 2, 0.04, 1);
+    const g = q.puff > 0 ? softCushion(pl.w, PILLOW_HEIGHT_M, pl.d, { r: 0.045, puff: 0.03, seg: softSeg(q) }) : roundedBoxBetween(-pl.w / 2, pl.w / 2, -PILLOW_HEIGHT_M / 2, PILLOW_HEIGHT_M / 2, -pl.d / 2, pl.d / 2, 0.04, 1);
+    if (q.ultra) settle(g, 'pillow', pl.x * 5 + 2);
     g.translate(pl.x, S + PILLOW_HEIGHT_M / 2, pz);
     parts.put('pillows', pillowM, fitTop(g, H - 0.004), { grain: 'x' });
   }

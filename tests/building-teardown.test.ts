@@ -96,3 +96,70 @@ describe('disposeTree', () => {
     expect(sd).toBe(1);
   });
 });
+
+// SPEC 16.24: the 2K layer owns promoted materials, probes, mirror targets, overlays and a pane glass; switching a space, a level or the level to 1K must give all of it back.
+describe('the 2K layer takes itself down', () => {
+  const layout = { rooms: [{ id: 'a', polygon: [{ x: 0, z: 0 }, { x: 4, z: 0 }, { x: 4, z: 3 }, { x: 0, z: 3 }], roomType: 'living' }], wallHeightM: 2.7 } as never;
+  const renderer = { coordinateSystem: THREE.WebGLCoordinateSystem, getRenderTarget: () => null, shadowMap: { autoUpdate: true }, xr: { enabled: false }, clippingPlanes: [] } as unknown as THREE.WebGLRenderer;
+  async function setup(): Promise<{ scene: THREE.Scene; layer: import('../src/look/premium/layer').PremiumLayer; steel: THREE.MeshStandardMaterial; panes: THREE.Mesh; basicPane: THREE.Material; mirrorMesh: THREE.Mesh }> {
+    const { PremiumLayer } = await import('../src/look/premium/layer');
+    const scene = new THREE.Scene();
+    const steel = new THREE.MeshStandardMaterial({ color: '#B8B8B8', roughness: 0.35, metalness: 0.8, name: 'metal' });
+    const tap = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), steel); tap.name = 'tap';
+    scene.add(tap);
+    const basicPane = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.55 }); basicPane.userData.shared = true;
+    const panes = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), basicPane); panes.name = 'panes';
+    scene.add(panes);
+    // one mirror: a quad facing +z at z = 0
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute([1, 1, 0, 1.5, 1, 0, 1.5, 1.7, 0, 1, 1, 0, 1.5, 1.7, 0, 1, 1.7, 0], 3));
+    const mirrorMesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial()); mirrorMesh.name = 'kit:mirror';
+    scene.add(mirrorMesh);
+    const layer = new PremiumLayer({ renderer, scene, layout, outdoor: false, hide: () => [] });
+    return { scene, layer, steel, panes, basicPane, mirrorMesh };
+  }
+  it('promotes while on, and demotes, restores the panes and removes every overlay when it is turned off', async () => {
+    const { scene, layer, steel, panes, basicPane } = await setup();
+    const before = scene.children.length;
+    layer.setEnabled(true);
+    expect(steel).toBeInstanceOf(THREE.MeshPhysicalMaterial);
+    expect(panes.material).not.toBe(basicPane);
+    expect((panes.material as THREE.Material).name).toBe('pane-glass');
+    expect(layer.stats().mirrors).toBe(1);
+    expect(scene.children.length).toBe(before + 1); // the mirror overlay
+    const glass = panes.material as THREE.Material;
+    let glassDisposed = 0; glass.addEventListener('dispose', () => glassDisposed++);
+    layer.setEnabled(false);
+    expect(steel).not.toBeInstanceOf(THREE.MeshPhysicalMaterial);
+    expect(steel.type).toBe('MeshStandardMaterial');
+    expect(panes.material).toBe(basicPane);
+    expect(glassDisposed).toBe(1);
+    expect(scene.children.length).toBe(before);
+    expect(layer.stats()).toMatchObject({ promoted: 0, mirrors: 0, probes: 0 });
+    expect(layer.probeTexture).toBeNull();
+  });
+  it('frees the mirror target and the overlay material and geometry', async () => {
+    const { scene, layer } = await setup();
+    layer.setEnabled(true);
+    const overlay = scene.children.find((c) => c.name === 'mirror-overlay') as THREE.Mesh;
+    expect(overlay).toBeTruthy();
+    const mat = overlay.material as THREE.ShaderMaterial;
+    const rt = mat.uniforms.tDiffuse.value as THREE.Texture;
+    let n = 0;
+    overlay.geometry.addEventListener('dispose', () => n++); mat.addEventListener('dispose', () => n++);
+    // the render target's texture is freed through its render target
+    const target = (layer as unknown as { mirrors: { mirrors: { rt: THREE.WebGLRenderTarget }[] } }).mirrors.mirrors[0].rt;
+    expect(target.texture).toBe(rt);
+    target.addEventListener('dispose', () => n++);
+    layer.dispose();
+    expect(n).toBe(3);
+    layer.dispose(); // twice is fine
+  });
+  it('turning it on and off again leaves the materials as they were, however often', async () => {
+    const { layer, steel } = await setup();
+    const color = steel.color.getHex(), rough = steel.roughness, metal = steel.metalness;
+    for (let i = 0; i < 4; i++) { layer.setEnabled(true); layer.rescan(); layer.setEnabled(false); }
+    expect(steel.color.getHex()).toBe(color); expect(steel.roughness).toBe(rough); expect(steel.metalness).toBe(metal);
+    expect(steel.type).toBe('MeshStandardMaterial');
+  });
+});

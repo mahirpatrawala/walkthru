@@ -77,7 +77,8 @@ export interface LivedIn {
   /** plan again (the set of kinds to leave out changed) */
   replan(): void;
   /** the quality tier changed: rebuild the pieces (and their model files) for it */
-  setTier(t: Tier): void;
+  /** `force` rebuilds on the same tier (the 2K level draws finer pieces: SPEC 16.24) */
+  setTier(t: Tier, force?: boolean): void;
   /** hide the decor without changing the switch (a scan is on show, an AI photo is being taken) */
   setSuppressed(on: boolean): void;
   onChange(cb: (enabled: boolean) => void): () => void;
@@ -192,8 +193,8 @@ export function createLivedIn(opts: LivedInOpts): LivedIn {
       apply();
       for (const cb of [...listeners]) cb(enabled);
     },
-    setTier(t) {
-      if (t === (opts.tier ?? 'medium')) return;
+    setTier(t, force = false) {
+      if (t === (opts.tier ?? 'medium') && !force) return;
       opts.tier = t;
       if (built) { built.dispose(); built = null; apply(); }
     },

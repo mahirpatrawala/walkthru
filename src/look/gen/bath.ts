@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { roundedBoxBetween } from '../furniture-parts';
 import { Parts, role, roleOr, shade } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
-import { loft, prism, roundedRectOutline, rod } from './geo';
+import { loft, prism, roundedRectOutline, rod, roundedRun } from './geo';
 import type { LoftSection } from './geo';
 import { CERAMIC, CHROME, GLASS, MIRROR, bar, disc, frontPanel, rsides, zfOf } from './kit';
 
@@ -35,19 +35,23 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
   /** an ellipsoid with exact radii, centre (cx, cy, cz) */
   const ell = (name: string, m: MatSpec, cx: number, cy: number, cz: number, rx: number, ry: number, rz: number): void =>
     parts.put(name, m, new THREE.SphereGeometry(1, seg, Math.max(6, seg / 2)).scale(rx, ry, rz).translate(cx, cy, cz));
+  /** a run of tap: straight rods of the radii given (the lower tiers), one smooth tube round rounded corners at 2K (the same points, so the reach is the same) */
+  const run = (name: string, pts: [number, number, number][], radii: number[]): void => {
+    if (q.ultra) { parts.put(name, tap, roundedRun(pts, radii.reduce((a, b) => a + b, 0) / radii.length * 0.96, 0.028, 24)); return; }
+    for (let i = 0; i + 1 < pts.length; i++) bar(parts, name, tap, pts[i], pts[i + 1], radii[Math.min(i, radii.length - 1)]);
+  };
+  const nLoft = q.ultra ? 72 : q.tier === 'low' ? 16 : 32;
   /** a wall tap: a spout from the wall plane out `reach`, at height y, with a lever */
   const faucet = (x: number, y: number, z: number, up: number, reach: number): void => {
-    bar(parts, 'tap', tap, [x, y, z], [x, y + up, z], 0.011);
-    bar(parts, 'tap', tap, [x, y + up, z], [x, y + up, z + reach], 0.009);
-    bar(parts, 'tap', tap, [x, y + up, z + reach], [x, y + up - 0.03, z + reach], 0.008);
-    parts.put('tap-lever', tap, new THREE.BoxGeometry(0.1, 0.012, 0.012).translate(x, y + up * 0.55, z - 0.0).rotateY(0));
-    parts.put('tap-base', tap, new THREE.CylinderGeometry(0.03, 0.036, 0.02, 10).translate(x, y + 0.01, z));
+    run('tap', [[x, y, z], [x, y + up, z], [x, y + up, z + reach], [x, y + up - 0.03, z + reach]], [0.011, 0.009, 0.008]);
+    parts.put('tap-lever', tap, q.ultra ? roundedBoxBetween(x - 0.05, x + 0.05, y + up * 0.55 - 0.007, y + up * 0.55 + 0.007, z - 0.007, z + 0.007, 0.0055, 3) : new THREE.BoxGeometry(0.1, 0.012, 0.012).translate(x, y + up * 0.55, z - 0.0).rotateY(0));
+    parts.put('tap-base', tap, new THREE.CylinderGeometry(0.03, 0.036, 0.02, q.ultra ? 36 : 10).translate(x, y + 0.01, z));
   };
 
   if (v === 'wc-floor') {
     const hw = w / 2;
     const n = q.tier === 'low' ? 16 : 32;
-    const put = (name: string, sec: LoftSection[]): void => { const l = loft(sec, n); parts.put(name, ceramic, l.body); parts.put(name, ceramic, l.cap); };
+    const put = (name: string, sec: LoftSection[]): void => { const l = loft(sec, q.ultra ? 72 : n); parts.put(name, ceramic, l.body); parts.put(name, ceramic, l.cap); };
     // the pan: one lofted body, a narrow foot widening to the rim; the seat and lid are a second, flatter loft on top, the cistern stands on the back
     const zf = d / 2 - 0.36;
     put('wc-pan', [
@@ -89,7 +93,7 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
   } else if (v === 'basin-wall' || v === 'basin-pedestal') {
     const y0 = v === 'basin-wall' ? lift : 0.7;
     // the bowl: one lofted body from a narrow base to the rim, a darker recess, a low back splash and a deck-mounted tap
-    const put = (name: string, sec: LoftSection[]): void => { const l = loft(sec, q.tier === 'low' ? 16 : 32); parts.put(name, ceramic, l.body); parts.put(name, ceramic, l.cap); };
+    const put = (name: string, sec: LoftSection[]): void => { const l = loft(sec, nLoft); parts.put(name, ceramic, l.body); parts.put(name, ceramic, l.cap); };
     put('basin-bowl', [
       { y: y0, w: w * 0.5, d: d * 0.45, zc: -d * 0.1, p: 2.6 },
       { y: y0 + (S - y0) * 0.45, w: w * 0.88, d: d * 0.86, zc: -d * 0.02, p: 3 },
@@ -99,11 +103,9 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
     parts.put('basin-recess', shade(ceramic, 0.82), prism(rr(-w / 2 + 0.07, w / 2 - 0.07, -d / 2 + 0.1, d / 2 - 0.06, 0.13), S + 0.0004, S + 0.0014, 0));
     box('basin-splash', ceramic, -w / 2 + 0.01, w / 2 - 0.01, S - 0.01, S + 0.035, -d / 2, -d / 2 + 0.03, 0.01);
     const tz = -d / 2 + 0.075;
-    parts.put('tap-base', tap, new THREE.CylinderGeometry(0.03, 0.034, 0.022, 16).translate(0, S + 0.011, tz));
-    bar(parts, 'tap', tap, [0, S + 0.01, tz], [0, S + 0.085, tz], 0.012);
-    bar(parts, 'tap', tap, [0, S + 0.085, tz], [0, S + 0.085, tz + 0.1], 0.0095);
-    bar(parts, 'tap', tap, [0, S + 0.085, tz + 0.1], [0, S + 0.06, tz + 0.1], 0.008);
-    parts.put('tap-lever', tap, new THREE.BoxGeometry(0.06, 0.01, 0.012).translate(0, S + 0.07, tz - 0.02));
+    parts.put('tap-base', tap, new THREE.CylinderGeometry(0.03, 0.034, 0.022, q.ultra ? 36 : 16).translate(0, S + 0.011, tz));
+    run('tap', [[0, S + 0.01, tz], [0, S + 0.085, tz], [0, S + 0.085, tz + 0.1], [0, S + 0.06, tz + 0.1]], [0.012, 0.0095, 0.008]);
+    parts.put('tap-lever', tap, q.ultra ? roundedBoxBetween(-0.03, 0.03, S + 0.065, S + 0.075, tz - 0.026, tz - 0.014, 0.004, 3) : new THREE.BoxGeometry(0.06, 0.01, 0.012).translate(0, S + 0.07, tz - 0.02));
     disc(parts, 'basin-drain', tap, 0, 0.02, S + 0.0014, S + 0.0024, 0.02);
     if (v === 'basin-pedestal') {
       const zp = -d / 2 + 0.12;
@@ -126,9 +128,7 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
     ell('vessel-bowl', ceramic, 0, cabH + 0.02 + bh / 2, 0.02, 0.21, bh / 2, 0.17);
     ell('vessel-water', shade(ceramic, 0.8), 0, S - 0.001, 0.02, 0.16, 0.002, 0.12);
     const ty = S, tz = -d / 2 + 0.07;
-    bar(parts, 'tap', tap, [0, cabH + 0.02, tz], [0, H - 0.012, tz], 0.012);
-    bar(parts, 'tap', tap, [0, H - 0.012, tz], [0, H - 0.012, tz + 0.12], 0.01);
-    bar(parts, 'tap', tap, [0, H - 0.012, tz + 0.12], [0, H - 0.05, tz + 0.12], 0.009);
+    run('tap', [[0, cabH + 0.02, tz], [0, H - 0.012, tz], [0, H - 0.012, tz + 0.12], [0, H - 0.05, tz + 0.12]], [0.012, 0.01, 0.009]);
     void ty;
   } else if (v === 'vanity-mirror') {
     const cabH = 0.8, leg = 0.1;
@@ -152,8 +152,11 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
     const wall = -d / 2;
     box('shower-plate', tap, -0.06, 0.06, lift, lift + 0.2, wall, wall + 0.016, 0.003);
     parts.put('shower-knob', tap, new THREE.CylinderGeometry(0.025, 0.025, 0.03, 12).rotateX(Math.PI / 2).translate(0, lift + 0.1, wall + 0.03));
-    bar(parts, 'shower-riser', tap, [0, lift + 0.2, wall + 0.012], [0, H - 0.01, wall + 0.012], 0.01);
-    bar(parts, 'shower-arm', tap, [0, H - 0.01, wall + 0.012], [0, H - 0.01, d / 2 - 0.15], 0.01);
+    if (q.ultra) run('shower-riser', [[0, lift + 0.2, wall + 0.012], [0, H - 0.01, wall + 0.012], [0, H - 0.01, d / 2 - 0.15]], [0.01]);
+    else {
+      bar(parts, 'shower-riser', tap, [0, lift + 0.2, wall + 0.012], [0, H - 0.01, wall + 0.012], 0.01);
+      bar(parts, 'shower-arm', tap, [0, H - 0.01, wall + 0.012], [0, H - 0.01, d / 2 - 0.15], 0.01);
+    }
     disc(parts, 'shower-head', tap, 0, d / 2 - 0.15, H - 0.07, H - 0.04, w / 2);
     disc(parts, 'shower-head', { key: 'dark', tint: '#8A8D90' }, 0, d / 2 - 0.15, H - 0.0705, H - 0.07, w / 2 - 0.02);
     bar(parts, 'shower-arm', tap, [0, H - 0.04, d / 2 - 0.15], [0, H - 0.01, d / 2 - 0.15], 0.012);
@@ -194,8 +197,7 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
     parts.put('tub-shell', ceramic, prism(rr(-w / 2, w / 2, -d / 2, d / 2, 0.1), 0.1, S, 0.015));
     parts.put('tub-inner', shade(ceramic, 0.84), prism(rr(-w / 2 + 0.07, w / 2 - 0.07, -d / 2 + 0.07, d / 2 - 0.07, 0.14), S - 0.0005, S + 0.0005, 0));
     // the tap on the left end, on the rim
-    bar(parts, 'tap', tap, [-w / 2 + 0.12, S, 0], [-w / 2 + 0.12, H - 0.02, 0], 0.014);
-    bar(parts, 'tap', tap, [-w / 2 + 0.12, H - 0.02, 0], [-w / 2 + 0.24, H - 0.02, 0], 0.012);
+    run('tap', [[-w / 2 + 0.12, S, 0], [-w / 2 + 0.12, H - 0.02, 0], [-w / 2 + 0.24, H - 0.02, 0]], [0.014, 0.012]);
     disc(parts, 'tub-drain', tap, w / 2 - 0.2, 0, S, S + 0.002, 0.03);
   } else if (v === 'towel') {
     const y0 = lift;
@@ -231,9 +233,7 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
     for (let x = dx0; x < w / 2 - 0.05; x += 0.035) box('sink-ridges', { key: 'metal', tint: '#A9ADB1' }, x, x + 0.012, S, S + 0.002, -d / 2 + 0.06, d / 2 - 0.06, 0);
     // tap on the back edge, between the bowls
     const tx = double ? (bowls[0] + bowls[1]) / 2 : bowls[0] + bw / 2 + 0.03, tz = -d / 2 + 0.07;
-    bar(parts, 'tap', tap, [tx, S, tz], [tx, H - 0.014, tz], 0.014);
-    bar(parts, 'tap', tap, [tx, H - 0.014, tz], [tx, H - 0.014, tz + 0.2], 0.012);
-    bar(parts, 'tap', tap, [tx, H - 0.014, tz + 0.2], [tx, H - 0.06, tz + 0.2], 0.011);
+    run('tap', [[tx, S, tz], [tx, H - 0.014, tz], [tx, H - 0.014, tz + 0.2], [tx, H - 0.06, tz + 0.2]], [0.014, 0.012, 0.011]);
     parts.put('tap-lever', tap, new THREE.BoxGeometry(0.012, 0.012, 0.07).translate(tx + 0.03, S + 0.07, tz));
     parts.put('tap-top', tap, new THREE.SphereGeometry(0.014, 8, 6).translate(tx, H - 0.014, tz));
   }

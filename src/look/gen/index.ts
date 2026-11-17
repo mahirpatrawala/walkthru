@@ -228,4 +228,5 @@ export function sizeOf(item: Pick<FurnitureItem, 'box' | 'heightM' | 'surfaceHei
 }
 
 export { GEN_QUALITY } from './core';
+export { genQuality, setUltraDetail, ultraDetail, ULTRA_QUALITY } from './ultra';
 export type { GenEnv, GenSize, MatSpec, Roles } from './core';
