@@ -47,6 +47,8 @@ export interface ProposalExtras {
   unmapped: { label: string; sizeM?: { w: number; l: number }; at: Vec2; reason: string }[];
   windowHeights?: { openingId: string; sillM: number; headM: number }[];
   spawn: { x: number; z: number; yawDeg: number } | null;
+  /** a north arrow found on the sheet, `{ deg, source: 'drawing' }` (SPEC 22.1). No detector writes this yet, so it is always absent: a north is never invented. */
+  north?: import('../core/north').NorthRef;
   warnings: string[];
 }
 export interface ImportResult { proposal: LayoutProposal; extras: ProposalExtras }

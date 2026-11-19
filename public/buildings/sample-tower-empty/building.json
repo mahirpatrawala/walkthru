@@ -1211,5 +1211,9 @@
     }
   ],
   "startSpace": "lobby",
+  "north": {
+    "deg": 0,
+    "source": "builder"
+  },
   "bare": true
 }

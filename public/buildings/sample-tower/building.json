@@ -1211,10 +1211,36 @@
     }
   ],
   "startSpace": "lobby",
+  "north": {
+    "deg": 0,
+    "source": "builder"
+  },
   "brand": {
     "name": "Sample Developers",
     "logo": "brand.svg",
     "accent": "#1F6F5C",
     "tagline": "A demonstration brand. Yours goes here."
+  },
+  "units": {
+    "firstFloor": 2,
+    "floors": 20,
+    "perFloor": [
+      {
+        "number": 1,
+        "type": "2bhk-b4"
+      },
+      {
+        "number": 2,
+        "type": "2bhk-b2"
+      },
+      {
+        "number": 3,
+        "type": "3bhk-b"
+      },
+      {
+        "number": 4,
+        "type": "3bhk-a"
+      }
+    ]
   }
 }

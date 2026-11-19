@@ -5,6 +5,8 @@ import type { FurnitureItem, Grid, PropertyFile, RoomTag, Opening, Finishes } fr
 import { circleFree } from '../core/grid-query';
 import { validateLayout, validateProperty } from '../core/layout-validate';
 import type { EditorContext } from './context';
+import { parseNorth } from '../core/north';
+import type { NorthRef } from '../core/north';
 
 export const SCENE_ID_RE = /^[a-z0-9-]{1,40}$/;
 export const SCENE_ID_HINT = 'Use lowercase letters, digits and dashes, up to 40 characters.';
@@ -65,6 +67,8 @@ export interface ProposalPatch {
   spawn: { x: number; z: number; yawDeg: number } | null;
   /** proposal.json notes plus proposal-extras.json warnings, as plain text */
   notes: string[];
+  /** a north arrow the drawing reader found (extras `north`, source `drawing`); absent when it found none, which is today's case: the reader has no north-arrow detection (SPEC 22.1) */
+  north?: NorthRef;
 }
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -112,7 +116,12 @@ export function proposalToPatch(proposal: unknown, extras?: unknown): ProposalPa
       spawn = { x: sp.x, z: sp.z, yawDeg: typeof sp.yawDeg === 'number' ? sp.yawDeg : 0 };
     }
   }
+  let north: NorthRef | undefined;
+  if (isObj(extras) && extras.north !== undefined) {
+    try { const n = parseNorth(extras.north); if (n.source === 'drawing') north = n; else notes.push('The north in proposal-extras.json is not marked as read from the drawing, so it was left out.'); } catch { notes.push('The north in proposal-extras.json could not be read, so it was left out.'); }
+  }
   return {
+    ...(north ? { north } : {}),
     rooms: checked.layout.rooms,
     openings: checked.layout.openings,
     wallHeightM: typeof proposal.wallHeightM === 'number' ? checked.layout.wallHeightM : undefined,
@@ -133,6 +142,8 @@ export function applyProposal(draft: PropertyFile, patch: ProposalPatch): void {
   draft.layout.openings = patch.openings;
   if (patch.wallHeightM !== undefined) draft.layout.wallHeightM = patch.wallHeightM;
   if (patch.finishes) draft.layout.finishes = { ...draft.layout.finishes, ...patch.finishes };
+  // an arrow read from the drawing fills an empty north; a north the builder set by hand is never overwritten
+  if (patch.north && draft.north?.source !== 'builder') draft.north = patch.north;
   if (fresh) {
     if (patch.furniture.length > 0) draft.furniture = patch.furniture;
     if (patch.spawn) draft.spawn = patch.spawn;
