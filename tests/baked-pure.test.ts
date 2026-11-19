@@ -182,7 +182,9 @@ describe('weights (16.14)', () => {
     const day = componentWeights({ grade: gradeAt(PRESET_HOURS.afternoon), skyScale: 1, sunScale: 1, sunHours: [null, 15, null], skyBoost: 1 });
     expect(day.sun1[0]).toBeGreaterThan(1);
     expect(day.sun0).toEqual([0, 0, 0]);
-    expect(day.lamps).toEqual([0, 0, 0]);
+    // by day the lamps component carries only the small share of the glowing downlights (SPEC 16.26), never the lights' full level
+    expect(day.lamps[0]).toBeGreaterThan(0);
+    expect(day.lamps[0]).toBeLessThan(0.2);
     expect(ambientFill(gradeAt(PRESET_HOURS.afternoon)).every((v) => v > 0)).toBe(true);
     // Morning and Evening baked, Afternoon not: the afternoon still has a sun (the nearest one)
     const gap = componentWeights({ grade: gradeAt(PRESET_HOURS.afternoon), skyScale: 1, sunScale: 1, sunHours: [8.5, null, 17.8], skyBoost: 1 });
