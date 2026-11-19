@@ -1,7 +1,7 @@
 // /admin (SPEC 22.3): the owner's page for a building's inventory. Pick a building, type the passcode (kept in sessionStorage for this tab only), see the
 // units as a sheet of floors x unit numbers with totals, tap a unit to flip it between available and sold, and switch the Vastu checklist for buyers on
 // or off. The passcode is sent in a request header on each change and never put in an address. Plain, in the product's own look.
-import '../brand/tokens.css';
+import '../brand/brand.css';
 import '../start/start.css';
 import './admin.css';
 import { installScale } from '../brand/scale';
@@ -71,7 +71,6 @@ async function main(): Promise<void> {
   save.type = 'button'; save.dataset.testid = 'admin-unlock';
   const msg = h('p', 'ad-msg', undefined, page);
   msg.id = 'ad-msg'; msg.setAttribute('role', 'status'); msg.dataset.testid = 'admin-msg';
-  let unlocked = false;
   const say = (t: string, bad = false): void => { msg.textContent = t; msg.classList.toggle('is-bad', bad); };
 
   const sheetBox = h('div', 'ad-sheet', undefined, page);
@@ -143,8 +142,8 @@ async function main(): Promise<void> {
     busy = true; render();
     const r = await sendChange(c, input.value);
     busy = false;
-    if (r.ok) { store.set(input.value); apply(); unlocked = true; say(r.body.changed ? 'Saved.' : 'Nothing to change.'); }
-    else { unlocked = false; say(problemText(r.error), true); if (r.error === 'unauthorized') store.set(''); }
+    if (r.ok) { store.set(input.value); apply(); say(r.body.changed ? 'Saved.' : 'Nothing to change.'); }
+    else { say(problemText(r.error), true); if (r.error === 'unauthorized') store.set(''); }
     render();
   }
 
@@ -153,11 +152,10 @@ async function main(): Promise<void> {
     void (async () => {
       if (!input.value) { say('Type the passcode first.', true); return; }
       const r = await sendChange({ building: b.id, check: true }, input.value);
-      if (r.ok) { store.set(input.value); unlocked = true; say('Unlocked. Tap a flat to change it.'); } else { unlocked = false; store.set(''); say(problemText(r.error), true); }
+      if (r.ok) { store.set(input.value); say('Unlocked. Tap a flat to change it.'); } else { store.set(''); say(problemText(r.error), true); }
     })();
   });
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save.click(); });
-  void unlocked;
   await reload();
 }
 

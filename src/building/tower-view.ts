@@ -226,12 +226,14 @@ export function mountTowerView(host: HTMLElement, o: TowerOptions): TowerView | 
         const i = indexOf.get(id);
         if (i === undefined) return null;
         const c = g.cells[i];
-        // the face of the box that looks at the camera, not its middle (which a nearer unit can stand in front of)
-        const dx = camera.position.x - c.x, dz = camera.position.z - c.z, dl = Math.hypot(dx, dz) || 1;
-        const reach = (Math.abs(dz / dl) * c.d / 2 + Math.abs(dx / dl) * c.w / 2) * 0.96;
-        const v = new THREE.Vector3(c.x + (dx / dl) * reach, c.y, c.z + (dz / dl) * reach).project(camera);
+        // the middle of a face of the box that looks at the camera (not the box's middle, which a nearer unit can stand in front of): the one that a pick lands on
         const r = canvas.getBoundingClientRect();
-        return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height };
+        const faces = [
+          new THREE.Vector3(c.x, c.y, c.z + Math.sign(camera.position.z - c.z || 1) * c.d * 0.48),
+          new THREE.Vector3(c.x + Math.sign(camera.position.x - c.x || 1) * c.w * 0.48, c.y, c.z),
+          new THREE.Vector3(c.x, c.y + c.h * 0.48, c.z),
+        ].map((p3) => { const v = p3.project(camera); return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height }; });
+        return faces.find((f) => pickAt(f.x, f.y) === id) ?? faces[0];
       },
       byStatus: () => byStatus,
       frames: () => frames,
