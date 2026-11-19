@@ -27,7 +27,9 @@
     "smoke:vision": "tsx scripts/vision-smoke.ts",
     "fetch:hershey": "tsx scripts/fetch-hershey.ts",
     "bake": "tsx scripts/bake-scene.ts",
-    "check:photo-bundle": "node scripts/check-photo-bundle.mjs"
+    "check:photo-bundle": "node scripts/check-photo-bundle.mjs",
+    "check:inventory-bundle": "node scripts/check-inventory-bundle.mjs",
+    "db:setup": "tsx scripts/db-setup.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.0",

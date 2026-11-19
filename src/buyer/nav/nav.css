@@ -128,3 +128,8 @@
   .wt-hud:not(.rv-map) .wt-nav-map { transform: translateY(calc(-8 * var(--wt-u))); }
   .wt-hud.rv-id .wt-nav-map { opacity: 0; pointer-events: none; }
 }
+
+/* ---- which way is which (SPEC 22.1): N E S W on the plan's edge and the facing of the door and balconies; text at a fixed size on screen, set in code */
+.wt-nav-plan .wt-nav-dir { fill: var(--wt-glass-text); font-family: var(--wt-font); font-weight: 700; paint-order: stroke; stroke: var(--wt-glass-lo); stroke-width: 0.18px; stroke-linejoin: round; opacity: 0.92; }
+.wt-nav-plan .wt-nav-dir.is-n { fill: var(--wt-accent-on-glass); }
+.wt-nav-plan .wt-nav-face { fill: var(--wt-glass-text); font-family: var(--wt-font); font-weight: 650; paint-order: stroke; stroke: var(--wt-glass-lo); stroke-width: 0.18px; stroke-linejoin: round; }

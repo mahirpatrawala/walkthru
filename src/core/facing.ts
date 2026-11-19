@@ -64,7 +64,7 @@ export interface RoomReading {
 export interface FacingReading {
   north: NorthRef;
   grid: ZoneGrid;
-  mainDoor: { openingId: string; facing: Dir8; at: Vec2 } | null;
+  mainDoor: { openingId: string; facing: Dir8; at: Vec2; /** unit, out of the flat */ out: Vec2 } | null;
   rooms: RoomReading[];
 }
 
@@ -91,7 +91,7 @@ export function readFacing(layout: Layout, north: NorthRef): FacingReading | nul
   const door = mainEntrance(layout);
   return {
     north, grid,
-    mainDoor: door ? { openingId: door.openingId, facing: facingOf(north, door.out), at: door.at } : null,
+    mainDoor: door ? { openingId: door.openingId, facing: facingOf(north, door.out), at: door.at, out: door.out } : null,
     rooms: layout.rooms.map((r) => {
       const centre = polygonCentroid(r.polygon);
       const look = roomOutlook(layout, frames, r);

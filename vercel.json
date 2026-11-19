@@ -54,12 +54,20 @@
   "functions": {
     "api/photo.ts": {
       "maxDuration": 60
+    },
+    "api/inventory.ts": {
+      "maxDuration": 10,
+      "includeFiles": "public/buildings/*/building.json"
     }
   },
   "rewrites": [
     {
       "source": "/vr",
       "destination": "/vr.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
     }
   ],
   "redirects": [
