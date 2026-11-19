@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { roomAt } from '../core/layout-geom';
 import type { Layout, Vec2 } from '../types';
-import { interiorLevel } from './grade';
+import { glowLevel, interiorLevel } from './grade';
 import type { Grade, InteriorLightKind } from './grade';
 
 export const LIGHT_KINDS: InteriorLightKind[] = ['tube', 'cove', 'fan', 'lamp'];
@@ -157,7 +157,8 @@ export class InteriorLights {
         for (const m of mats) {
           if (m.emissiveIntensity === undefined || !m.emissive) continue;
           m.userData.walkthruBase ??= m.emissiveIntensity;
-          m.emissiveIntensity = (m.userData.walkthruBase as number) * level;
+          // a glass that is only ever looked at keeps its glow by day (grade.interior.glow, SPEC 16.26); a real light does not
+          m.emissiveIntensity = (m.userData.walkthruBase as number) * glowLevel(d.kind, g);
         }
       }
     }

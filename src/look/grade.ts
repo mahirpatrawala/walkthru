@@ -27,30 +27,32 @@ interface Key {
   wb: string; sat: number; contrast: number; shadowTint: string; highlightTint: string; bloom: number; vignette: number;
   /** how far the interior lights are on, 0..1 (tube lights, cove lights) */
   tube: number; cove: number;
+  /** SPEC 16.26: how far the fixtures that are only ever SEEN (recessed downlight glass, cove LED, lamp shades) glow, 0..1. By day a lit fixture is part of a finished room, so it is up even when the real lights are off */
+  fglow: number;
 }
 
 const KEYS: Key[] = [
   { hour: 6, sun: '#FFBE86', sunI: 2.4, hemiSky: '#A5B6D2', hemiGround: '#B9A08A', hemiI: 0.95, env: 0.8, exposure: 1.2,
     zenith: '#5A82B6', mid: '#B4B8CA', horizon: '#F8C9A2', ground: '#C4A68E', glow: '#FFB87C', glowI: 1.0,
-    wb: '#FFF4E8', sat: 1.04, contrast: 1.04, shadowTint: '#EAF0FF', highlightTint: '#FFEBD6', bloom: 0.3, vignette: 0.26, tube: 0, cove: 0 },
-  { hour: 8.5, sun: '#FFEFD6', sunI: 4.6, hemiSky: '#E4E9EF', hemiGround: '#DAD8D4', hemiI: 0.98, env: 1, exposure: 1.16,
-    zenith: '#5F96D4', mid: '#9CC4E8', horizon: '#F1E6D2', ground: '#D4C8B2', glow: '#FFE6BE', glowI: 0.8,
-    wb: '#FFFBF6', sat: 1.04, contrast: 1.08, shadowTint: '#F6F6F7', highlightTint: '#FFF8EE', bloom: 0.3, vignette: 0.2, tube: 0, cove: 0 },
-  { hour: 15, sun: '#FFEED6', sunI: 5.9, hemiSky: '#EEEFEC', hemiGround: '#DAD8D4', hemiI: 0.95, env: 1, exposure: 1.16,
-    zenith: '#4F8CCE', mid: '#A9C9E6', horizon: '#ECE6D8', ground: '#D6C8AA', glow: '#FFDDA6', glowI: 0.9,
-    wb: '#FFFBF6', sat: 1.04, contrast: 1.1, shadowTint: '#F6F6F7', highlightTint: '#FFF8EE', bloom: 0.3, vignette: 0.18, tube: 0, cove: 0 },
+    wb: '#FFF4E8', sat: 1.04, contrast: 1.04, shadowTint: '#EAF0FF', highlightTint: '#FFEBD6', bloom: 0.3, vignette: 0.26, tube: 0, cove: 0, fglow: 0.45 },
+  { hour: 8.5, sun: '#FFEFD6', sunI: 4.6, hemiSky: '#EBEAEA', hemiGround: '#DAD8D4', hemiI: 0.98, env: 1, exposure: 1.3,
+    zenith: '#4F8AD0', mid: '#8EBCE8', horizon: '#DCE6EE', ground: '#D4C8B2', glow: '#FFE6BE', glowI: 0.8,
+    wb: '#FFF7F8', sat: 1.1, contrast: 1.45, shadowTint: '#F6F4F4', highlightTint: '#FFF9F2', bloom: 0.3, vignette: 0.2, tube: 0, cove: 0, fglow: 0.55 },
+  { hour: 15, sun: '#FFEED6', sunI: 5.9, hemiSky: '#F0EDEC', hemiGround: '#DAD8D4', hemiI: 0.95, env: 1, exposure: 1.3,
+    zenith: '#3F7FC8', mid: '#86B8E8', horizon: '#D8E4EE', ground: '#D6C8AA', glow: '#FFDDA6', glowI: 0.9,
+    wb: '#FFF7F8', sat: 1.1, contrast: 1.45, shadowTint: '#F6F4F4', highlightTint: '#FFF9F2', bloom: 0.3, vignette: 0.18, tube: 0, cove: 0, fglow: 0.6 },
   { hour: 17.8, sun: '#FFB674', sunI: 5.4, hemiSky: '#A8B9D8', hemiGround: '#BE9C78', hemiI: 0.95, env: 0.9, exposure: 1.15,
     zenith: '#4A74AC', mid: '#CDA98C', horizon: '#F6BC78', ground: '#B8906A', glow: '#FFAE66', glowI: 1.4,
-    wb: '#FFF2E0', sat: 1.04, contrast: 1.08, shadowTint: '#DCE6FF', highlightTint: '#FFE0B8', bloom: 0.4, vignette: 0.32, tube: 0.25, cove: 0.5 },
+    wb: '#FFF2E0', sat: 1.04, contrast: 1.08, shadowTint: '#DCE6FF', highlightTint: '#FFE0B8', bloom: 0.4, vignette: 0.32, tube: 0.25, cove: 0.5, fglow: 0.8 },
   { hour: 19.1, sun: '#FF8A4A', sunI: 0, hemiSky: '#5E70A0', hemiGround: '#5E4C48', hemiI: 0.7, env: 0.4, exposure: 1.25,
     zenith: '#243862', mid: '#625C84', horizon: '#D88C6C', ground: '#5E4A46', glow: '#FF8A55', glowI: 0.9,
-    wb: '#FFEFE0', sat: 1.04, contrast: 1.08, shadowTint: '#D8E0FF', highlightTint: '#FFD8A8', bloom: 0.45, vignette: 0.4, tube: 0.75, cove: 0.9 },
+    wb: '#FFEFE0', sat: 1.04, contrast: 1.08, shadowTint: '#D8E0FF', highlightTint: '#FFD8A8', bloom: 0.45, vignette: 0.4, tube: 0.75, cove: 0.9, fglow: 1 },
   { hour: 20.5, sun: '#8FA6D8', sunI: 0, hemiSky: '#4A5C92', hemiGround: '#352E3C', hemiI: 0.3, env: 0.15, exposure: 1.05,
     zenith: '#18233F', mid: '#222E55', horizon: '#34426A', ground: '#242B47', glow: '#34447A', glowI: 0.16,
-    wb: '#FFF3E6', sat: 1.04, contrast: 1.08, shadowTint: '#D0DCFF', highlightTint: '#FFDDB0', bloom: 0.5, vignette: 0.44, tube: 1, cove: 1 },
+    wb: '#FFF3E6', sat: 1.04, contrast: 1.08, shadowTint: '#D0DCFF', highlightTint: '#FFDDB0', bloom: 0.5, vignette: 0.44, tube: 1, cove: 1, fglow: 1 },
   { hour: HOUR_MAX, sun: '#8FA6D8', sunI: 0, hemiSky: '#4A5C92', hemiGround: '#352E3C', hemiI: 0.3, env: 0.15, exposure: 1.05,
     zenith: '#18233F', mid: '#222E55', horizon: '#34426A', ground: '#242B47', glow: '#34447A', glowI: 0.16,
-    wb: '#FFF3E6', sat: 1.04, contrast: 1.08, shadowTint: '#D0DCFF', highlightTint: '#FFDDB0', bloom: 0.5, vignette: 0.44, tube: 1, cove: 1 },
+    wb: '#FFF3E6', sat: 1.04, contrast: 1.08, shadowTint: '#D0DCFF', highlightTint: '#FFDDB0', bloom: 0.5, vignette: 0.44, tube: 1, cove: 1, fglow: 1 },
 ];
 
 export function hexToLinear(hex: string): Rgb {
@@ -78,12 +80,12 @@ export interface Grade {
   sky: { zenith: Rgb; mid: Rgb; horizon: Rgb; ground: Rgb; glow: Rgb; glowIntensity: number };
   post: { whiteBalance: Rgb; saturation: number; contrast: number; shadowTint: Rgb; highlightTint: Rgb; bloom: number };
   vignette: number;
-  interior: { tube: number; cove: number };
+  interior: { tube: number; cove: number; glow: number };
   /** true once the sun is below the horizon */ night: boolean;
 }
 
 const COLOUR_FIELDS = ['sun', 'hemiSky', 'hemiGround', 'zenith', 'mid', 'horizon', 'ground', 'glow', 'wb', 'shadowTint', 'highlightTint'] as const;
-const NUM_FIELDS = ['sunI', 'hemiI', 'env', 'exposure', 'glowI', 'sat', 'contrast', 'bloom', 'vignette', 'tube', 'cove'] as const;
+const NUM_FIELDS = ['sunI', 'hemiI', 'env', 'exposure', 'glowI', 'sat', 'contrast', 'bloom', 'vignette', 'tube', 'cove', 'fglow'] as const;
 type Mixed = { [K in (typeof COLOUR_FIELDS)[number]]: Rgb } & { [K in (typeof NUM_FIELDS)[number]]: number };
 
 const smooth = (t: number): number => t * t * (3 - 2 * t);
@@ -117,7 +119,7 @@ export function gradeAt(hourIn: number): Grade {
     sky: { zenith: c('zenith'), mid: c('mid'), horizon: c('horizon'), ground: c('ground'), glow: c('glow'), glowIntensity: n('glowI') },
     post: { whiteBalance: c('wb'), saturation: n('sat'), contrast: n('contrast'), shadowTint: c('shadowTint'), highlightTint: c('highlightTint'), bloom: n('bloom') },
     vignette: n('vignette'),
-    interior: { tube: n('tube'), cove: n('cove') },
+    interior: { tube: n('tube'), cove: n('cove'), glow: n('fglow') },
     night: hour >= SUN_SET_HOUR,
   };
 }
@@ -132,7 +134,7 @@ export const TRUE_GRADE: Grade = {
   sky: { zenith: hexToLinear('#8DB4DC'), mid: hexToLinear('#B6D0EA'), horizon: hexToLinear('#E4ECF4'), ground: hexToLinear('#D8DDE2'), glow: [1, 1, 1], glowIntensity: 0 },
   post: { whiteBalance: [1, 1, 1], saturation: 1, contrast: 1, shadowTint: [1, 1, 1], highlightTint: [1, 1, 1], bloom: 0 },
   vignette: 0,
-  interior: { tube: 0, cove: 0 },
+  interior: { tube: 0, cove: 0, glow: 0 },
   night: false,
 };
 
@@ -162,4 +164,10 @@ export type InteriorLightKind = 'tube' | 'cove' | 'fan' | 'lamp';
 /** 0..1: how much of its full output a fixture of this kind gives at this hour. A 'lamp' and a 'fan' light follow the tube lights. */
 export function interiorLevel(kind: InteriorLightKind, g: Grade): number {
   return kind === 'cove' ? g.interior.cove : g.interior.tube;
+}
+/** What a fixture's own glow (emissive material, never a real light) is at for this grade: the lights' level, but a recessed lamp or a cove LED
+ *  keeps a visible glow by day (`interior.glow`): a finished room is shown with its lights on. Tubes and fans only follow their level. */
+export function glowLevel(kind: InteriorLightKind, g: Grade): number {
+  const l = interiorLevel(kind, g);
+  return kind === 'lamp' || kind === 'cove' ? Math.max(l, g.interior.glow) : l;
 }

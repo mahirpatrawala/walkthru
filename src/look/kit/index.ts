@@ -53,6 +53,8 @@ export interface KitHandle {
   setPlain(on: boolean): void;
   /** switch the lit parts of one kind on or off (all off by default). The meshes also carry `userData.walkthruLight`. */
   setLit(kind: LightKind, on: boolean): void;
+  /** 0..1: how far a kind of glowing part is lit (SPEC 16.26) */
+  setLevel?(kind: LightKind, level: number): void;
   stats(): { meshes: number; triangles: number };
   dispose(): void;
 }
@@ -397,6 +399,7 @@ export function mountKit(o: KitOptions): KitHandle {
       apply();
     },
     setLit(kind, on) { mats.setLit(kind, on); },
+    setLevel(kind, level) { mats.setLevel(kind, level); },
     stats: () => ({ meshes: group.children.length, triangles: Math.round(triangles + rotorTris) }),
     dispose() {
       offLook?.();

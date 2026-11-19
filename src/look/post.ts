@@ -44,6 +44,10 @@ export interface PostChain {
 
 /** the strength of the screen-space occlusion before any scaling (a bake that has corner shade asks for less) */
 const AO_BASE = 0.95;
+/** the grade's contrast turns about this linear value (SPEC 16.26): about the mean of a lit interior, not 18% grey, so the walls (above it) go brighter and the shadows and corners (below it) go deeper */
+export const CONTRAST_PIVOT = 0.42;
+/** SPEC 16.26: at the 2K level the occlusion is drawn at full resolution with more samples, so it can afford to be stronger: furniture sits on the floor and corners have depth */
+const ULTRA_AO_GAIN = 1.75;
 
 export async function createPostChain(viewer: Viewer, init: PostOptions): Promise<PostChain> {
   const [pp, n8] = await Promise.all([import('postprocessing'), import('n8ao')]);
@@ -90,13 +94,13 @@ export async function createPostChain(viewer: Viewer, init: PostOptions): Promis
   // after tone mapping: saturation, contrast about mid grey, and the split tone (cool in the shadows, warm in the lights)
   class GradeEffect extends pp.Effect {
     constructor() {
-      super('GradeEffect', `uniform float sat;\nuniform float contrast;\nuniform vec3 shadowTint;\nuniform vec3 highlightTint;
+      super('GradeEffect', `const float CONTRAST_PIVOT = ${CONTRAST_PIVOT.toFixed(3)};\nuniform float sat;\nuniform float contrast;\nuniform vec3 shadowTint;\nuniform vec3 highlightTint;
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
   vec3 c = inputColor.rgb;
   float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
   c = mix(vec3(l), c, sat);
   c *= mix(shadowTint, highlightTint, smoothstep(0.04, 0.6, l));
-  c = max((c - 0.18) * contrast + 0.18, 0.0);
+  c = max((c - CONTRAST_PIVOT) * contrast + CONTRAST_PIVOT, 0.0);
   outputColor = vec4(c, inputColor.a);
 }`,
         { uniforms: new Map<string, THREE.Uniform>([['sat', new THREE.Uniform(1)], ['contrast', new THREE.Uniform(1)], ['shadowTint', new THREE.Uniform(new THREE.Vector3(1, 1, 1))], ['highlightTint', new THREE.Uniform(new THREE.Vector3(1, 1, 1))]]) });
@@ -144,6 +148,8 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 
   const off = viewer.onResize((w, h) => composer.setSize(w, h, false));
   let graded = false;
+  let aoK = 1;
+  let ultra = false;
   return {
     samples,
     render: (dt) => composer.render(dt),
@@ -162,8 +168,10 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
       else if (!graded) bloom.intensity = init.bloom ? 0.35 : 0;
     },
     setAO: (on) => { ao.enabled = on && !aoOff; },
-    setAoStrength: (k) => { ao.configuration.intensity = AO_BASE * k; },
+    setAoStrength: (k) => { aoK = k; ao.configuration.intensity = AO_BASE * aoK * (ultra ? ULTRA_AO_GAIN : 1); },
     setUltra: (on) => {
+      ultra = on;
+      ao.configuration.intensity = AO_BASE * aoK * (ultra ? ULTRA_AO_GAIN : 1);
       ao.configuration.halfRes = !on;
       ao.configuration.aoSamples = on ? 20 : init.ao === 'cheap' ? 6 : 10;
       ao.configuration.denoiseSamples = on ? 8 : init.ao === 'cheap' ? 5 : 6;

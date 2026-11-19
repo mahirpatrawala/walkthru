@@ -397,7 +397,7 @@ export function mountBaked(o: MountOptions): BakedHandle {
     const wkey = [...Object.values(wb).flat(), ...fill].map((v) => v.toFixed(4)).join(',');
     if (volume && wkey !== lastWeightsKey) { lastWeightsKey = wkey; const gw: typeof w = { ...wb }; for (const k of Object.keys(wb) as (keyof typeof w)[]) gw[k] = [wb[k][0] * PROBE_GAIN, wb[k][1] * PROBE_GAIN, wb[k][2] * PROBE_GAIN]; volume.setWeights(gw, [fill[0] * PROBE_FILL_SHADE * PROBE_GAIN, fill[1] * PROBE_FILL_SHADE * PROBE_GAIN, fill[2] * PROBE_FILL_SHADE * PROBE_GAIN], BOUNCE_SATURATION); weightsVersion++; }
     if (fixtures) {
-      const lvl = Math.min(1, up.grade.interior.tube);
+      const lvl = Math.min(1, Math.max(up.grade.interior.tube, up.grade.interior.glow ?? 0)); // the discs are only ever seen: they glow by day too (SPEC 16.26)
       (fixtures.material as THREE.MeshBasicMaterial).color.copy(FIXTURE_OFF).lerp(FIXTURE_ON, lvl);
     }
   }
@@ -425,7 +425,7 @@ export function mountBaked(o: MountOptions): BakedHandle {
     get active() { return state === 'ready' && !lastOff; },
     get lightmap() { return compositor?.target.texture ?? null; },
     update,
-    contactField: (grid) => buildAoField(grid, { furnitureOnly: true, minAo: 0.5, rangeM: 0.3 }),
+    contactField: (grid) => buildAoField(grid, { furnitureOnly: true, minAo: 0.42, rangeM: 0.36 }),
     rescan: scan,
     stats: () => ({
       state, tierSet, staticMeshes: [...applied.values()].filter((r) => r.kind === 'static').length, dynMeshes: [...applied.values()].filter((r) => r.kind === 'dyn').length,
