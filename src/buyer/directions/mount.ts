@@ -69,7 +69,7 @@ export function mountDirections(d: DirectionsDeps): MountedDirections {
   svgEl('circle', { r: '42', class: 'wt-compass-rim' }, ring);
   for (let i = 0; i < 8; i++) svgEl('line', { x1: '0', y1: i % 2 ? '-42' : '-42', x2: '0', y2: i % 2 ? '-37' : '-34', class: 'wt-compass-tick', transform: `rotate(${i * 45})` }, ring);
   for (const [i, letter] of ['N', 'E', 'S', 'W'].entries()) {
-    const t = svgEl('text', { x: '0', y: '-22', 'text-anchor': 'middle', 'dominant-baseline': 'central', class: `wt-compass-l${letter === 'N' ? ' is-n' : ''}`, transform: `rotate(${i * 90})` }, ring);
+    const t = svgEl('text', { x: '0', y: '-31', 'text-anchor': 'middle', 'dominant-baseline': 'central', class: `wt-compass-l${letter === 'N' ? ' is-n' : ''}`, transform: `rotate(${i * 90})` }, ring);
     // keep each letter upright against the ring's own turn only at rest: it turns with the ring, as a real card does
     t.textContent = letter;
   }
@@ -129,17 +129,23 @@ export function mountDirections(d: DirectionsDeps): MountedDirections {
   const render = (): void => {
     body.replaceChildren();
     el('p', 'wt-dir-src', `${SOURCE_NOTE[d.north.source]}${d.sample ? ' This is a sample building: its orientation is a demonstration value.' : ''}`, body);
-    const list = el('div', 'wt-dir-list', undefined, body);
-    list.dataset.testid = 'facing-list';
-    for (const l of facingLines(d.reading)) {
-      const row = el('div', 'wt-room-row', undefined, list);
-      el('span', undefined, l.what, row);
-      el('span', 'wt-room-area', l.text, row);
-    }
+    const all = facingLines(d.reading);
+    const rows = (parent: HTMLElement, lines: typeof all, testid?: string): void => {
+      const list = el('div', 'wt-dir-list', undefined, parent);
+      if (testid) list.dataset.testid = testid;
+      for (const l of lines) {
+        const row = el('div', 'wt-room-row', undefined, list);
+        el('span', undefined, l.what, row);
+        el('span', 'wt-room-area', l.text, row);
+      }
+    };
+    // the door and the balconies first (the first lines are the door, then the balconies), the checklist next, every room last
+    const nBalc = d.reading.rooms.filter((r) => r.roomType === 'balcony').length;
+    rows(body, all.slice(0, 1 + nBalc), 'facing-list');
     report = vastuOn && d.vastuAllowed ? vastuReport(d.layout, d.furniture(), d.north) : null;
     vastuLine.hidden = !report;
-    if (report) vastuLine.textContent = `Vastu checklist: ${summaryLine(report)}`;
-    if (report) renderVastu(body, report);
+    if (report) { vastuLine.textContent = `Vastu checklist: ${summaryLine(report)}`; renderVastu(body, report); }
+    if (all.length > 1 + nBalc) { el('h3', 'wt-dir-h', 'Where each room is', body); rows(body, all.slice(1 + nBalc), 'room-list'); }
   };
 
   const group = (parent: HTMLElement, title: string, rows: RuleResult[], cls: string): void => {

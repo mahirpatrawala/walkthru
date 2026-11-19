@@ -1,10 +1,13 @@
 // The address of a place in a building: `?building=<id>&space=<space id>`. Pure.
 import { BUILDING_ID_RE, SPACE_ID_RE } from './parse';
+import { UNIT_ID_RE } from './units';
 
 export interface BuildingUrl {
   building: string;
   /** null: the building's map page (no walk yet) */
   space: string | null;
+  /** the unit a walk was started from (the inventory picker, SPEC 22.3): `?unit=1204`. Absent when the address names none. */
+  unit?: string;
 }
 
 /** Reads a query string. Null when it names no valid building. A space that is not a valid id is dropped. */
@@ -13,7 +16,8 @@ export function parseBuildingUrl(search: string): BuildingUrl | null {
   const building = (q.get('building') ?? '').trim();
   if (!BUILDING_ID_RE.test(building)) return null;
   const space = (q.get('space') ?? '').trim();
-  return { building, space: SPACE_ID_RE.test(space) ? space : null };
+  const unit = (q.get('unit') ?? '').trim();
+  return { building, space: SPACE_ID_RE.test(space) ? space : null, ...(UNIT_ID_RE.test(unit) ? { unit } : {}) };
 }
 
 /**
@@ -28,6 +32,7 @@ export function buildingUrl(u: BuildingUrl, carry = ''): string {
   const q = new URLSearchParams();
   q.set('building', u.building);
   if (u.space) q.set('space', u.space);
+  if (u.unit && UNIT_ID_RE.test(u.unit)) q.set('unit', u.unit);
   if (carry) {
     try {
       const from = new URLSearchParams(carry);

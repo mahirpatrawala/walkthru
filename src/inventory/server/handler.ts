@@ -106,12 +106,17 @@ async function write(req: InventoryRequest, d: InventoryDeps): Promise<Inventory
   try { json = JSON.parse(req.body); } catch { return fail(400, 'bad-request', 'The request body is not valid JSON.'); }
   if (typeof json !== 'object' || json === null || Array.isArray(json)) return fail(400, 'bad-request', 'The request body must be a JSON object.');
   const o = json as Record<string, unknown>;
-  const allowed = new Set(['building', 'unit', 'status', 'vastuEnabled']);
+  const allowed = new Set(['building', 'unit', 'status', 'vastuEnabled', 'check']);
   for (const k of Object.keys(o)) if (!allowed.has(k)) return fail(400, 'bad-request', `Unknown field "${k}".`);
   const building = o.building;
   if (typeof building !== 'string' || !BUILDING_ID_RE.test(building)) return fail(400, 'bad-request', 'building must be a building id.');
   const ids = await d.unitsOf(building);
   if (!ids) return fail(404, 'unknown-building', 'There is no building with units by that id.');
+  // `{building, check: true}` changes nothing: it lets the admin page learn that the passcode is right before anyone edits
+  if (o.check !== undefined) {
+    if (o.check === true && Object.keys(o).length === 2) return { status: 200, body: { ok: true, building, changed: false }, headers: { 'cache-control': 'no-store' } };
+    return fail(400, 'bad-request', 'A check is {building, check: true} on its own.');
+  }
   const wantsUnit = o.unit !== undefined || o.status !== undefined, wantsVastu = o.vastuEnabled !== undefined;
   if (wantsUnit === wantsVastu) return fail(400, 'bad-request', 'Send either {unit, status} or {vastuEnabled}, one change at a time.');
   if (!d.store) return fail(503, 'not-configured', 'The inventory database is not configured on this server.');

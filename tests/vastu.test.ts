@@ -157,7 +157,7 @@ describe('the checklist', () => {
     });
     it('one bed against the rule is a mismatch even when another is fine', () => {
       const r = vastuReport(flat(), [bed('a', 180, 'Queen bed'), bed('b', 0, 'Single bed')], N(0))!.results.find((x) => x.id === 'bed-head')!;
-      expect(r.verdict).toBe('mismatch'); expect(r.detail).toMatch(/Single bed head to the north/);
+      expect(r.verdict).toBe('mismatch'); expect(r.detail).toMatch(/Single bed in Master bedroom: head to the north/);
     });
     it('is not checked when no bed is placed', () => {
       const r = vastuReport(flat(), [], N(0))!;

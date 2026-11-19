@@ -1,19 +1,19 @@
 /* The walk's direction aids (SPEC 22.1, 22.2): the compass dial, the identity card's lines, the Directions sheet. Glass and sheet tokens as the rest of the chrome. */
 .wt-compass {
   position: absolute; z-index: var(--wt-z-nav); right: calc(calc(14 * var(--wt-u)) + var(--wt-safe-r)); bottom: calc(max(calc(14 * var(--wt-u)) + var(--wt-safe-b), var(--wt-nav-h, 0px) + calc(22 * var(--wt-u))) + var(--wt-nav-lift, 0px));
-  width: calc(58 * var(--wt-u)); height: calc(58 * var(--wt-u)); padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; color: var(--wt-glass-text);
+  width: calc(72 * var(--wt-u)); height: calc(72 * var(--wt-u)); padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; color: var(--wt-glass-text);
   border: 1px solid var(--wt-glass-line); font-family: var(--wt-font);
 }
 .wt-compass[hidden] { display: none; }
 .wt-compass svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .wt-compass-rim { fill: none; stroke: var(--wt-glass-line); stroke-width: 1.4; }
 .wt-compass-tick { stroke: var(--wt-glass-dim); stroke-width: 1.6; stroke-linecap: round; }
-.wt-compass-l { fill: var(--wt-glass-text); font-size: 13px; font-weight: 700; font-family: var(--wt-font); }
-.wt-compass-l.is-n { fill: var(--wt-accent-on-glass); font-size: 15px; }
+.wt-compass-l { fill: var(--wt-glass-text); font-size: 17px; font-weight: 700; font-family: var(--wt-font); }
+.wt-compass-l.is-n { fill: var(--wt-accent-on-glass); font-size: 20px; }
 .wt-compass-pointer { fill: var(--wt-accent-on-glass); stroke: var(--wt-glass-lo); stroke-width: 0.8; }
-.wt-compass-read { position: relative; font-size: calc(13 * var(--wt-u)); font-weight: 700; letter-spacing: 0.02em; text-shadow: var(--wt-glass-halo); }
+.wt-compass-read { position: relative; font-size: calc(14 * var(--wt-u)); font-weight: 700; letter-spacing: 0.02em; text-shadow: var(--wt-glass-halo); }
 .wt-compass:focus-visible, .wt-id-dir-btn:focus-visible { outline: calc(3 * var(--wt-u)) solid var(--wt-ochre); outline-offset: 2px; }
-@media (max-width: 640px) { .wt-compass { width: calc(50 * var(--wt-u)); height: calc(50 * var(--wt-u)); } }
+@media (max-width: 640px) { .wt-compass { width: calc(60 * var(--wt-u)); height: calc(60 * var(--wt-u)); } }
 
 .wt-id-dir { display: flex; flex-direction: column; gap: calc(3 * var(--wt-u)); margin-top: calc(6 * var(--wt-u)); }
 .wt-id-dir[hidden] { display: none; }

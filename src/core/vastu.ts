@@ -5,6 +5,7 @@
 //   'mismatch'     it has it and it does not,
 //   'not-checked'  the flat lacks that room, the room's kind is not known, or (bed head) no bed is placed.
 // A not-checked rule is never a miss. The only number shown is how many rules match.
+import { pointInPolygon } from './geometry';
 import { facingOf } from './north';
 import type { Dir8, NorthRef } from './north';
 import { readFacing } from './facing';
@@ -132,7 +133,8 @@ export const RULES: readonly Rule[] = [
       if (beds.length === 0) return skip('bed-head', t, 'No bed is placed in this flat.');
       const dirs = beds.map((b) => ({ b, d: bedHeadDir(c.north, b) }));
       const bad = dirs.filter((x) => !(PREFERRED.bedHead as readonly Dir8[]).includes(x.d));
-      const where = (x: { b: FurnitureItem; d: Dir8 }): string => `${x.b.label} head to the ${WORD[x.d]}`;
+      const roomOf = (b: FurnitureItem): string | null => c.layout.rooms.find((r) => pointInPolygon({ x: b.box.cx, z: b.box.cz }, r.polygon))?.label ?? null;
+      const where = (x: { b: FurnitureItem; d: Dir8 }): string => `${x.b.label}${roomOf(x.b) ? ` in ${roomOf(x.b)}` : ''}: head to the ${WORD[x.d]}`;
       return bad.length === 0 ? ok('bed-head', t, `${dirs.map(where).join('; ')}.`) : miss('bed-head', t, `${bad.map(where).join('; ')}. The rule prefers ${list(PREFERRED.bedHead)}.`);
     },
   },

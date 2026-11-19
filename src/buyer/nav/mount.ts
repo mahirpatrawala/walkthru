@@ -292,7 +292,7 @@ export function mountNav(d: NavDeps): MountedNav {
       if (r.roomType !== 'balcony' || !r.facing) continue;
       const t = document.createElementNS(SVG_NS, 'text');
       t.setAttribute('class', 'wt-nav-face'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('dominant-baseline', 'central');
-      t.textContent = r.facing;
+      t.textContent = `${r.roomType === 'balcony' ? 'Balcony' : r.label} ${r.facing}`;
       g.appendChild(t); faceTags.push({ at: r.centre, out: null, t });
     }
     // a room's place in words, for a screen reader and a hover

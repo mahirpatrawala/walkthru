@@ -2,10 +2,13 @@
 // script writes the same rows. About a third of the units are sold, more on the lower floors, as a tower sells. Pure.
 import type { UnitStatus } from './types';
 
-/** FNV-1a, 32 bit: small, stable, no dependency. */
+/** FNV-1a, 32 bit, then murmur3's finaliser: ids that differ in one character (1203, 1204) must not get nearby numbers, which plain FNV gives. Small, stable, no dependency. */
 export function hash32(s: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b) >>> 0;
+  h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35) >>> 0;
+  h ^= h >>> 16;
   return h >>> 0;
 }
 

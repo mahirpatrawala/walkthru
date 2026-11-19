@@ -24,7 +24,7 @@ const deps = (over: Partial<InventoryDeps> = {}): InventoryDeps => ({
   ...over,
 });
 const get = (search: string): InventoryRequest => ({ method: 'GET', search, headers: {}, body: null });
-const post = (body: unknown, headers: Record<string, string> = { 'x-admin-passcode': PASS }, search = ''): InventoryRequest => ({ method: 'POST', search, headers, body: typeof body === 'string' ? body : JSON.stringify(body), client: 'c1' });
+const post = (body: unknown, headers: Record<string, string | undefined> = { 'x-admin-passcode': PASS }, search = ''): InventoryRequest => ({ method: 'POST', search, headers, body: typeof body === 'string' ? body : JSON.stringify(body), client: 'c1' });
 const err = (r: { body: unknown }): InventoryErr => r.body as InventoryErr;
 
 describe('GET', () => {
@@ -185,6 +185,16 @@ describe('POST: validation against the building\'s own unit list', () => {
     expect((await handleInventory(post({ building: 'sample-tower', vastuEnabled: false }), deps({ store }))).status).toBe(200);
     expect((await store.read('sample-tower')).settings.vastuEnabled).toBe(false);
   });
+  it('a check changes nothing and needs the right passcode and a real building', async () => {
+    const store = memoryStore();
+    const r = await handleInventory(post({ building: 'sample-tower', check: true }), deps({ store }));
+    expect(r.status).toBe(200); expect((r.body as InventoryChanged).changed).toBe(false);
+    expect(store.log).toEqual([]);
+    expect((await handleInventory(post({ building: 'sample-tower', check: true }, { 'x-admin-passcode': 'wrong' }), deps({ store }))).status).toBe(401);
+    expect((await handleInventory(post({ building: 'nobody', check: true }), deps({ store }))).status).toBe(404);
+    expect((await handleInventory(post({ building: 'sample-tower', check: true }), deps({ store, passcode: null }))).status).toBe(503);
+    expect((await handleInventory(post({ building: 'sample-tower', check: true, unit: '201', status: 'sold' }), deps({ store }))).status).toBe(400);
+  });
   it('the demo flag cannot be set over the API', async () => {
     expect((await ok({ building: 'sample-tower', demo: false })).status).toBe(400);
   });
@@ -202,7 +212,7 @@ describe('the Postgres store, against a mocked database', () => {
     const query = vi.fn(async (text: string) => (text.includes('FROM units ') ? [{ unit_id: '201', status: 'sold' }, { unit_id: '202', status: 'weird' }] : [{ vastu_enabled: true, demo: true }]));
     const r = await neonStore(query).read("x'; DROP TABLE units; --");
     expect(r).toEqual({ units: { '201': 'sold' }, settings: { vastuEnabled: true, demo: true } });
-    for (const [text, params] of query.mock.calls) { expect(text).not.toMatch(/DROP/); expect(params).toEqual(["x'; DROP TABLE units; --"]); }
+    for (const [text, params] of query.mock.calls as unknown as [string, unknown[]][]) { expect(text).not.toMatch(/DROP/); expect(params).toEqual(["x'; DROP TABLE units; --"]); }
   });
   it('no settings row reads as off and not demo', async () => {
     const r = await neonStore(async () => []).read('b');
@@ -266,6 +276,11 @@ describe('the seed, the schema and the setup script', () => {
     expect(sold).toBeGreaterThan(10); expect(sold).toBeLessThan(60);
     const low = s.slice(0, 40).filter((x) => x.status === 'sold').length, high = s.slice(40).filter((x) => x.status === 'sold').length;
     expect(low).toBeGreaterThan(high);
+  });
+  it('neighbours are not clumped: units of one floor do not all share a status', () => {
+    const s = seedStatuses('sample-tower', units);
+    const mixed = Array.from({ length: 20 }, (_, f) => new Set(s.slice(f * 4, f * 4 + 4).map((x) => x.status)).size > 1).filter(Boolean).length;
+    expect(mixed).toBeGreaterThanOrEqual(8); // plain FNV gave whole floors of one status
   });
   it('a different building gets different statuses (the seed is the building id too)', () => {
     expect(JSON.stringify(seedStatuses('a', units))).not.toBe(JSON.stringify(seedStatuses('b', units)));

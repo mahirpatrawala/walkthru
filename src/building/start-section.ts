@@ -3,6 +3,7 @@ import './building.css';
 import { BRAND_MARK } from '../brand/mark';
 import { NotFound, fetchBuilding } from './load';
 import { mountBuildingMap } from './map';
+import { mountInventoryPicker } from './inventory-picker';
 import { amenityLine, flatKindsLine, purposeLine } from './index-entry';
 import { buildingUrl } from './url';
 import type { BuildingIndex, BuildingIndexEntry } from './types';
@@ -87,4 +88,10 @@ export async function renderBuildingPage(root: HTMLElement, id: string, go: (url
     // a walk is its own page load: the lazy chunk with three.js
     onAction: (spaceId) => { location.assign(buildingUrl({ building: b.id, space: spaceId }, location.search)); },
   });
+  // a building with units also offers the flats a buyer can be sold: the tower and the floor list (SPEC 22.3), right under the building's name, above the map
+  const picker = mountInventoryPicker(holder, { building: b, onWalk: (spaceId, unit) => { location.assign(buildingUrl({ building: b.id, space: spaceId, unit }, location.search)); } });
+  if (picker) {
+    holder.querySelector('.bm-head')?.after(picker.root);
+    (window as unknown as { __walkthruInventory?: unknown }).__walkthruInventory = picker.debug; // debug hook, like window.__walkthru
+  }
 }
