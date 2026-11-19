@@ -1,6 +1,9 @@
 // A building (SPEC 18): a list of levels, each with spaces. A space is an ordinary scene (public/scenes/<sceneId>/property.json) with a
 // kind and a name; portals join a door opening in one space to a door opening in another, or a lift door to the levels the lift serves.
 // Pure data and rules: no DOM, no three.
+import type { NorthRef } from '../core/north';
+import type { UnitPlan } from './units';
+export type { NorthRef, UnitPlan };
 
 // the kind of place, as the scene itself carries it (`PropertyFile.spaceKind`, src/types.ts): a flat is a `home`
 import type { SpaceKind } from '../types';
@@ -128,6 +131,10 @@ export interface BuildingFile {
   brand?: BuilderBrand;
   /** a bare building: no added decor in any space (a builder starting from nothing) */
   bare?: boolean;
+  /** which way true north lies on the levels' plans (SPEC 22.1), degrees clockwise from the plan's up. Absent = not known: no compass, no facing, no Vastu. */
+  north?: NorthRef;
+  /** the flats a buyer can be sold, floor by floor (SPEC 22.3). Absent: no inventory picker. */
+  units?: UnitPlan;
 }
 
 /** The slim entry the start page lists (public/buildings/index.json). */

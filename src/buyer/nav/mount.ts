@@ -7,6 +7,9 @@ import type { Grid, Layout, Vec2 } from '../../types';
 import { circleFree, nearestFree } from '../../core/grid-query';
 import { roomAt } from '../../core/layout-geom';
 import { planSvg } from '../../start/plan-svg';
+import type { FacingReading } from '../../core/facing';
+import type { NorthRef } from '../../core/north';
+import { dirWord, edgeMarks, tagAt, zoneWord } from '../directions/model';
 import type { Doors } from '../doors';
 import type { BuyerContext } from '../context';
 import { el } from '../hud';
@@ -53,6 +56,9 @@ export interface NavDeps {
   storage: StorageLike | null;
   /** the HUD root: everything is mounted in it */
   parent: HTMLElement;
+  /** which way north lies and what faces where (SPEC 22.1): the plan then carries N, E, S and W and the facing of the door and the balconies. Absent: no marks. */
+  north?: NorthRef | null;
+  facing?: FacingReading | null;
 }
 
 export interface NavAudit { frames: number; bad: number; visited: string[]; samples: Vec2[] }
@@ -259,6 +265,56 @@ export function mountNav(d: NavDeps): MountedNav {
   const roomGroups = new Map<string, SVGGElement>();
   svg.querySelectorAll<SVGGElement>('g[data-room]').forEach((g) => roomGroups.set(g.dataset.room as string, g));
 
+  // which way is which (SPEC 22.1): N, E, S and W on the edge of the plan where they really lie, and the facing of the main door and each balcony.
+  // Only with a north. The letters are text at a fixed size on screen (set in `measure`), so the plan itself is untouched.
+  const compassTexts: { dir: 'N' | 'E' | 'S' | 'W'; t: SVGTextElement }[] = [];
+  const faceTags: { at: Vec2; out: Vec2 | null; t: SVGTextElement }[] = [];
+  if (d.north) {
+    const g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('class', 'wt-nav-dirs');
+    g.setAttribute('pointer-events', 'none');
+    g.dataset.testid = 'nav-map-compass';
+    for (const dir of ['N', 'E', 'S', 'W'] as const) {
+      const t = document.createElementNS(SVG_NS, 'text');
+      t.setAttribute('class', `wt-nav-dir${dir === 'N' ? ' is-n' : ''}`);
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('dominant-baseline', 'central');
+      t.textContent = dir;
+      g.appendChild(t); compassTexts.push({ dir, t });
+    }
+    const f = d.facing;
+    if (f?.mainDoor) {
+      const t = document.createElementNS(SVG_NS, 'text');
+      t.setAttribute('class', 'wt-nav-face'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('dominant-baseline', 'central');
+      t.textContent = `Door ${f.mainDoor.facing}`;
+      g.appendChild(t); faceTags.push({ at: f.mainDoor.at, out: f.mainDoor.out, t });
+    }
+    for (const r of f?.rooms ?? []) {
+      if (r.roomType !== 'balcony' || !r.facing) continue;
+      const t = document.createElementNS(SVG_NS, 'text');
+      t.setAttribute('class', 'wt-nav-face'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('dominant-baseline', 'central');
+      t.textContent = `${r.roomType === 'balcony' ? 'Balcony' : r.label} ${r.facing}`;
+      g.appendChild(t); faceTags.push({ at: r.centre, out: null, t });
+    }
+    // a room's place in words, for a screen reader and a hover
+    for (const r of f?.rooms ?? []) {
+      const rg = roomGroups.get(r.roomId);
+      if (rg) rg.setAttribute('aria-label', `${rg.getAttribute('aria-label') ?? r.label}. ${r.zone === 'C' ? 'In the centre of the flat' : `In the ${zoneWord(r.zone)} of the flat`}${r.facing ? `, looks ${dirWord(r.facing)}` : ''}`);
+    }
+    svg.appendChild(g);
+  }
+  const placeDirections = (): void => {
+    if (!d.north) return;
+    const fs = Math.min(vb.width, vb.height) * 0.16, px = Math.min(fs, 11 / pxPerM);
+    for (const { t } of compassTexts) t.style.fontSize = `${px.toFixed(4)}px`;
+    for (const { t } of faceTags) t.style.fontSize = `${(px * 0.82).toFixed(4)}px`;
+    const marks = edgeMarks(d.north, { x: vb.x, y: vb.y, width: vb.width, height: vb.height }, px * 0.75);
+    for (const m of marks) { const c = compassTexts.find((x) => x.dir === m.dir); if (c) { c.t.setAttribute('x', m.x.toFixed(3)); c.t.setAttribute('y', m.z.toFixed(3)); } }
+    for (const f of faceTags) {
+      const p = f.out ? tagAt(f.at, f.out, px * 1.6) : f.at;
+      f.t.setAttribute('x', p.x.toFixed(3)); f.t.setAttribute('y', p.z.toFixed(3));
+    }
+  };
+
   const setMapOpen = (open: boolean, remember = true): void => {
     mapOpen = open;
     mapWrap.classList.toggle('is-collapsed', !open);
@@ -302,6 +358,7 @@ export function mountNav(d: NavDeps): MountedNav {
     halo.setAttribute('r', m.halo.toFixed(4));
     dot.style.strokeWidth = `${m.stroke.toFixed(4)}px`;
     coneLen = m.cone;
+    placeDirections();
     lastDrawn = null;
   };
   // the HUD is hidden until the walker is chosen and the plan's size changes with the window: measure again whenever it does

@@ -1,3 +1,5 @@
+import type { NorthRef } from './core/north';
+
 // ---------- maths ----------
 export type Vec2 = { x: number; z: number };
 export type Vec3 = { x: number; y: number; z: number };
@@ -211,6 +213,8 @@ export interface PropertyFile {
   gallery?: boolean;
   /** what kind of place this scene is. Absent means a home. Buildings set it per space; the catalogue shows only what belongs there. */
   spaceKind?: SpaceKind;
+  /** which way true north lies on this plan (SPEC 22.1). Absent = not known: no compass, no facing labels, no Vastu. Never guessed. */
+  north?: NorthRef;
   updatedAt: string; // ISO 8601
 }
 

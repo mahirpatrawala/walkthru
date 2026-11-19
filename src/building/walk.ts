@@ -31,6 +31,9 @@ import type { BuildingFile, Portal } from './types';
 import { buildingUrl, parseBuildingUrl } from './url';
 import { withViewParam } from '../buyer/views/view-modes';
 import { applyBrandAccent, shownBrand } from '../brand/builder-brand';
+import { northInScene } from '../core/north';
+import { DEMO_TAG, fetchInventory, statusWord, vastuEnabledFor } from '../inventory/client';
+import { findUnit } from './units';
 
 const FLATS_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.2"/><rect x="13" y="4" width="7" height="7" rx="1.2"/><rect x="4" y="13" width="7" height="7" rx="1.2"/><rect x="13" y="13" width="7" height="7" rx="1.2"/></svg>';
 const MAP_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21"/><path d="M3.5 21h17"/><path d="M9.5 7h1M13.5 7h1M9.5 11h1M13.5 11h1M9.5 15h1M13.5 15h1"/><path d="M11 21v-3h2v3"/></svg>';
@@ -71,6 +74,8 @@ class BuildingWalk implements BuildingWalkApi {
   private count = 0;
   /** debug: how long the last space took to build, down to "ready" (ms) */
   private lastBootMs = 0;
+  /** the unit a walk was started from (`?unit=`, SPEC 22.3): said once, in a pill, when the first space is up */
+  pendingUnit: string | null = null;
 
   constructor(readonly building: BuildingFile) {}
 
@@ -98,6 +103,10 @@ class BuildingWalk implements BuildingWalkApi {
       placeText: loc.space.name,
       levelText: loc.level.label,
       brand: shownBrand(b.id, b.brand),
+      // which way north lies here (SPEC 22.1): the building's north turned by this space's placement; absent when the building does not say
+      north: b.north ? northInScene(b.north, loc.space.placement.rotDeg) : null,
+      sample: b.sample,
+      vastu: b.north && loc.space.kind === 'home' ? () => vastuEnabledFor(b.id) : null,
       tagText: b.sample ? 'Sample building. Plan follows a published brochure; furniture is illustrative.' : null,
       loading: o.screen,
       doorLooks: doorLooksFor(loc.space),
@@ -129,6 +138,7 @@ class BuildingWalk implements BuildingWalkApi {
 
   private onMounted(m: MountedSpace, loc: Located, host: SpaceHost, followers: PersonSpec[]): void {
     this.mounted = m;
+    if (this.pendingUnit) { const id = this.pendingUnit; this.pendingUnit = null; void this.sayUnit(m, id); }
     setSpaceContext(contextOf(this.building.id, loc.space));
     // stage 2: the tray offers what the kind of space allows (SPEC 16.17). The rule is installed with the space and goes with it: no stale rule in the next one.
     setCatalogueFilter((kind, item) => allowedIn(item.id, kind));
@@ -158,6 +168,17 @@ class BuildingWalk implements BuildingWalkApi {
       m.hud.tools.appendChild(fb);
       m.onDispose(() => fb.remove());
     }
+  }
+
+  /** "Flat 1204 · Sold": which flat the buyer picked, and what is known of it. The walk shows the flat type's plan; the pill says so. Nothing is said when the unit is not the building's. */
+  private async sayUnit(m: MountedSpace, unitId: string): Promise<void> {
+    const b = this.building, u = findUnit(b, unitId);
+    if (!u) return;
+    const inv = await fetchInventory(b.id);
+    if (this.mounted !== m) return;
+    const s = inv?.units[u.id];
+    const type = b.flatTypes[u.type]?.name.split(' · ')[0] ?? u.type;
+    m.hud.notice(`Flat ${u.id} · floor ${u.floor} · ${statusWord(s)}${s && inv?.settings.demo ? ` · ${DEMO_TAG}` : ''}. You are walking the ${type} plan, the same on every floor.`, 9000);
   }
 
   /** The people who were following the walker come out of the portal with them: set down just behind, one after another, and told to follow again. */
@@ -367,6 +388,7 @@ export async function startBuildingWalk(): Promise<void> {
   loading.setTitle(building.name, building.subtitle);
   const loc = findSpace(building, u.space) ?? startSpaceOf(building);
   const walk = new BuildingWalk(building);
+  walk.pendingUnit = u.unit ?? null;
   (window as unknown as { __walkthruBuilding: BuildingWalkApi }).__walkthruBuilding = walk;
   window.addEventListener('popstate', () => { void walk.onPop(); });
   await walk.enter(loc.space.id, { opening: loc.space.portals[0]?.opening ?? null, screen: loading, first: true, history: 'replace' });

@@ -1,8 +1,7 @@
 // The doll house camera's maths, pure: the bounds of a layout, the distance that frames them, the orbit limits, damping, zoom and pan.
 // Coordinates are the plan's: x east, z south, y up. The orbit is described by a target point, `theta` (the bearing of the camera round the
 // target, 0 = the camera stands on the +z side and looks toward -z), `phi` (the angle from straight up: 0 = overhead, 90 = level) and a distance.
-import { computeEdgeFrames } from '../../core/layout-geom';
-import { pointInPolygon } from '../../core/geometry';
+import { mainEntrance } from '../../core/entrance';
 import type { Layout, Vec2 } from '../../types';
 
 const DEG = Math.PI / 180;
@@ -65,19 +64,7 @@ export function fitDistance(b: Bounds, fovVDeg: number, aspect: number, theta: n
 
 /** The outward direction (unit, plan) of the layout's main entrance: the widest door whose far side is outside every room. Null when none. */
 export function entranceOutward(layout: Layout): Vec2 | null {
-  const frames = new Map(computeEdgeFrames(layout).map((f) => [`${f.roomId}:${f.edge}`, f]));
-  let best: { out: Vec2; w: number } | null = null;
-  for (const o of layout.openings) {
-    if (o.type !== 'door') continue;
-    const f = frames.get(`${o.roomId}:${o.edge}`);
-    if (!f || f.kind === 'none') continue;
-    const at = { x: f.a.x + f.dir.x * o.centreM, z: f.a.z + f.dir.z * o.centreM };
-    const beyond = { x: at.x + f.out.x * (f.thickness + 0.45), z: at.z + f.out.z * (f.thickness + 0.45) };
-    if (layout.rooms.some((r) => r.roomType !== 'balcony' && pointInPolygon(beyond, r.polygon))) continue;
-    if (layout.rooms.some((r) => pointInPolygon(beyond, r.polygon))) continue; // a door onto a balcony of this space is not the entrance
-    if (!best || o.widthM > best.w) best = { out: { x: f.out.x, z: f.out.z }, w: o.widthM };
-  }
-  return best ? best.out : null;
+  return mainEntrance(layout)?.out ?? null;
 }
 
 export interface OrbitGoal { tx: number; ty: number; tz: number; theta: number; phi: number; dist: number }

@@ -6,6 +6,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { walkthruMediaApi } from './src/media/server/media-api';
 import { walkthruUnderstandApi } from './src/understand/server/plugin';
 import { walkthruPhotoApi } from './src/photo/server/plugin';
+import { walkthruInventoryApi } from './src/inventory/server/plugin';
 import { scanScenes, writeSceneIndex } from './scripts/make-scene-index';
 
 const SCENES_DIR = path.resolve(import.meta.dirname, 'public/scenes');
@@ -161,9 +162,24 @@ function walkthruVrRoute(): Plugin {
   };
 }
 
+/** Dev only: the admin page for a building's inventory is served at /admin (a rewrite in vercel.json does the same in production). */
+function walkthruAdminRoute(): Plugin {
+  return {
+    name: 'walkthru-admin-route',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const u = new URL(req.url ?? '/', 'http://localhost');
+        if (u.pathname === '/admin') req.url = `/admin.html${u.search}`;
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig({
   // media API first: the scene API answers 404 for /api/scenes/... routes it does not know
-  plugins: [walkthruVrRoute(), walkthruSiteOrigin(), walkthruSceneIndex(), walkthruMediaApi(), walkthruUnderstandApi(), walkthruPhotoApi(), walkthruDevApi()],
+  plugins: [walkthruVrRoute(), walkthruAdminRoute(), walkthruSiteOrigin(), walkthruSceneIndex(), walkthruMediaApi(), walkthruUnderstandApi(), walkthruPhotoApi(), walkthruInventoryApi(), walkthruDevApi()],
   // the plan reader runs in a module Web Worker that loads pdf.js lazily (src/upload/reader.worker.ts); es format allows its code splitting
   worker: { format: 'es', plugins: () => [browserShims()] },
   build: {
@@ -175,6 +191,8 @@ export default defineConfig({
         editor: path.resolve(import.meta.dirname, 'editor.html'),
         // the VR front end for a headset (SPEC 21): its own page and entry, sharing engine and scene code by import only
         vr: path.resolve(import.meta.dirname, 'vr.html'),
+        // the owner's page for a building's inventory (SPEC 22.3), served at /admin
+        admin: path.resolve(import.meta.dirname, 'admin.html'),
       },
     },
   },

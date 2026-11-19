@@ -10,6 +10,9 @@ import { fileURLToPath } from 'node:url';
 import { validateBuilding } from '../../src/building/validate';
 import { validateOutdoor } from '../../src/outdoor/validate';
 import { parseBuilding } from '../../src/building/parse';
+import { lookNorthDeg } from '../../src/core/north';
+import type { NorthRef } from '../../src/core/north';
+import type { UnitPlan } from '../../src/building/units';
 import type { BuildingFile, Level, Portal, Space } from '../../src/building/types';
 import type { PropertyFile } from '../../src/types';
 import type { OutdoorFile } from '../../src/outdoor/types';
@@ -38,11 +41,13 @@ const TYPICAL: { slot: string; side: 'E' | 'W' | 'N'; type: string; mirror?: boo
   { slot: '04', side: 'N', type: '3bhk-a' },
 ];
 /** Which way north lies on the typical floor's plan: up the plan (towards the corridor's end where Flat x04 is entered). The floor arrangement is ours, so the sun follows this plate, not each brochure page's own compass. */
-const PLATE_NORTH_DEG = 0;
+const PLATE_NORTH: NorthRef = { deg: 0, source: 'builder' };
+/** The floors that have units in the sample (SPEC 22.3): floor 2 up, twenty floors of the four flats, 80 units numbered 201 to 2104. Only floors 2 and 3 are walkable (`TYPICAL_FLOORS`); the rest share their flat types' plans. */
+const UNIT_PLAN: UnitPlan = { firstFloor: 2, floors: 20, perFloor: TYPICAL.map((t) => ({ number: Number(t.slot), type: t.type })) };
 const COMPASS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
 const compassWord = (deg: number): string => COMPASS[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
 /** a flat scene's north on OUR plate: the plan's -z direction, turned with the flat by its placement (the scene is shared by every floor, and every floor has the same plate) */
-const lookOf = (rotDeg: number): { version: 1; northDeg: number } => ({ version: 1, northDeg: (PLATE_NORTH_DEG + rotDeg) % 360 });
+const lookOf = (rotDeg: number): { version: 1; northDeg: number } => ({ version: 1, northDeg: (lookNorthDeg(PLATE_NORTH.deg) + rotDeg) % 360 });
 const ARRANGEMENT_NOTE = 'Flat plans follow a published builder brochure. The floor arrangement around the lift lobby is ours.';
 /** The typical floors above the clubhouse level. */
 const TYPICAL_FLOORS = [2, 3];
@@ -148,7 +153,8 @@ function assemble(variant: 'full' | 'empty', designs: Record<string, FlatDesign>
     lifts: ['lift-a', 'lift-b'].map((id, i) => ({ id, name: `Lift ${i === 0 ? 'A' : 'B'}`, car: { ...LIFT_CAR }, serves: levels.map((l) => l.id) })),
     levels,
     startSpace: 'lobby',
-    ...(empty ? { bare: true } : { brand: { ...SAMPLE_BRAND } }),
+    north: { ...PLATE_NORTH },
+    ...(empty ? { bare: true } : { brand: { ...SAMPLE_BRAND }, units: { ...UNIT_PLAN, perFloor: UNIT_PLAN.perFloor.map((u) => ({ ...u })) } }),
   };
 }
 

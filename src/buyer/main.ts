@@ -86,6 +86,9 @@ import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
 import { mountNav } from './nav/mount';
+import { mountDirections } from './directions/mount';
+import { readingFor, resolveNorth } from './directions/model';
+import { lookNorthDeg } from '../core/north';
 import { mountViews } from './views/mount';
 import { parseViewParam } from './views/view-modes';
 import { mountSceneTag, sceneOrigin, sceneTagText } from './scene-tag';
@@ -657,8 +660,11 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   rooms = createRoomsSheet(document.body, layout, () => { /* nothing to resume */ }, unverifiedRooms);
   rooms.setPeopleNote(people.ui.note());
   people.people.onChange(() => rooms.setPeopleNote(people!.ui.note()));
+  // which way north lies (SPEC 22.1): the building's, the property file's, a look.json's, else not known and then there is no compass, no facing and no Vastu
+  const north = resolveNorth({ host: host?.north, property: property.north, lookNorthDeg: look?.lookFile?.northDeg });
+  const facing = readingFor(layout, north);
   // the mini plan, the room bar and the Tour button (src/buyer/nav); the auto-walk drives the walker from `tick`
-  const nav = mountNav({ ctx, layout, store, doors, unverified: unverifiedRooms, water: outdoorFile?.pools.map((p) => p.rect) ?? [], blocked: blocking, posed: () => !!interactions.pose(), getUp: () => interactions.getUp(), resetMotion: () => resetLocomotion(character), storage, parent: hud.root });
+  const nav = mountNav({ ctx, layout, store, doors, unverified: unverifiedRooms, water: outdoorFile?.pools.map((p) => p.rect) ?? [], blocked: blocking, posed: () => !!interactions.pose(), getUp: () => interactions.getUp(), resetMotion: () => resetLocomotion(character), storage, parent: hud.root, north, facing });
   cleanup.push(() => nav.dispose());
   // a screen nobody holds: the chrome fades after a few seconds, and with ?kiosk=1 or ?idle=<s> the tour starts by itself and loops (src/buyer/presence.ts)
   // calm by default, reveal on intent (src/buyer/chrome.ts): the top row, the room strip, the plan and the identity card come in when reached for
@@ -912,7 +918,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     unverified: unverifiedRooms, water: outdoorFile?.pools.map((p) => p.rect) ?? [],
     nav, wardrobe: wardrobes, seats, cardFor: (item) => interactions.card(item),
     standUp: async () => { if (interactions.pose()) await interactions.getUp(); },
-    northDeg: look?.lookFile?.northDeg,
+    northDeg: north ? lookNorthDeg(north.deg) : undefined,
     initial: host && !host.first ? 'walk' : parseViewParam(location.search),
     controls: false, // the HUD's own top bar carries the Walk / Doll house / Plan switch (`hud.bindViews`)
     hudVisible: () => hud.root.style.display !== 'none',
@@ -920,6 +926,21 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   cleanup.push(() => views.dispose());
   ctx.views = views;
   hud.bindViews(views);
+  // the compass, the facing lines and, where the building switches it on, the Vastu checklist (SPEC 22): only with a north
+  if (north && facing) {
+    const dirs = mountDirections({
+      parent: hud.root, viewer, layout, north, reading: facing,
+      furniture: () => store.all(), onFurnitureChange: (cb) => store.onChange(cb),
+      vastuAllowed: host ? host.space.kind === 'home' : (property.spaceKind ?? 'home') === 'home',
+      viewMode: () => ctx.views?.mode() ?? 'walk',
+      sample: host?.sample === true,
+      block: (on) => { extBlock = on; },
+    });
+    cleanup.push(() => dirs.dispose());
+    // a lone home shows the checklist only when its address asks (`?vastu=1`); a building's own setting comes from its inventory (src/inventory)
+    if (host) { void host.vastu?.().then((on) => { if (!disposed) dirs.setVastu(on); }); } else if (params.get('vastu') === '1') dirs.setVastu(true);
+    (window as unknown as { __walkthruDirections?: unknown }).__walkthruDirections = dirs.debug;
+  }
 
   // ---- debug hooks
   function snapshot() {

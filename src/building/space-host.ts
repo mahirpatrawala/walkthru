@@ -31,6 +31,12 @@ export interface SpaceHost {
   levelText?: string | null;
   /** the builder's brand on this building, for the identity card */
   brand?: import('../brand/builder-brand').ShownBrand | null;
+  /** which way north lies in THIS scene (the building's north turned by the space's placement, SPEC 22.1), or null/absent when the building does not know */
+  north?: import('../core/north').NorthRef | null;
+  /** the building is a sample: its orientation is a demonstration value and the facing sheet says so */
+  sample?: boolean;
+  /** whether the building's Vastu checklist is switched on (its inventory setting, SPEC 22.3); never resolves to true when the service is unreachable */
+  vastu?: (() => Promise<boolean>) | null;
   /** the quiet third line of the identity card ("Sample building. Plan follows a published brochure."), or null for none */
   tagText: string | null;
   /** the loading screen already showing, so the walk does not make a second one */
