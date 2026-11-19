@@ -325,7 +325,9 @@ if (uLkWallTile.x > 0.0 && uLkPlain < 0.5) roughnessFactor = mix(roughnessFactor
 // glossy floor, where it breaks a mirror-even reflection into the uneven one of a real floor. Medium and high.
 if (uLkFine > 0.5 && uLkPlain < 0.5 && uLkMode < 1.5) {
   float lkRv = (lkVN(vLkPos.xz * 0.55 + vLkPos.y * 0.3) - 0.5) * 0.7 + (lkVN(vLkPos.xz * 2.3 + 11.0) - 0.5) * 0.3;
-  roughnessFactor = clamp(roughnessFactor * (1.0 + lkRv * (uLkKit > 0.5 ? 0.5 : 0.16)), 0.02, 1.0);
+  // a matt floor (anti-skid, balcony: uLkKitRoughMin 0.6 and up) sits on the edge of the reflection's fade, where a patchy roughness would print as blotches: it gets none
+  float lkRamp = uLkKit > 0.5 ? (uLkKitRoughMin < 0.5 ? 0.32 : 0.0) : 0.12;
+  roughnessFactor = clamp(roughnessFactor * (1.0 + lkRv * lkRamp), 0.02, 1.0);
 }
 `;
 const FRAG_NORMAL = /* glsl */ `

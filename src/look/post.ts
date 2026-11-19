@@ -100,7 +100,11 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
   c = mix(vec3(l), c, sat);
   c *= mix(shadowTint, highlightTint, smoothstep(0.04, 0.6, l));
-  c = max((c - CONTRAST_PIVOT) * contrast + CONTRAST_PIVOT, 0.0);
+  // contrast on the luminance, not on each channel: a per-channel S-curve turned the oak floor's joints and the dark of a screen saturated red
+  float l1 = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  // above the pivot a straight line, below it a power curve through the same point with the same slope: shadows deepen but a dark floor never crushes to black
+  float l2 = l1 > CONTRAST_PIVOT ? (l1 - CONTRAST_PIVOT) * contrast + CONTRAST_PIVOT : CONTRAST_PIVOT * pow(max(l1, 0.0) / CONTRAST_PIVOT, contrast);
+  c *= l1 > 1e-4 ? l2 / l1 : 1.0;
   outputColor = vec4(c, inputColor.a);
 }`,
         { uniforms: new Map<string, THREE.Uniform>([['sat', new THREE.Uniform(1)], ['contrast', new THREE.Uniform(1)], ['shadowTint', new THREE.Uniform(new THREE.Vector3(1, 1, 1))], ['highlightTint', new THREE.Uniform(new THREE.Vector3(1, 1, 1))]]) });

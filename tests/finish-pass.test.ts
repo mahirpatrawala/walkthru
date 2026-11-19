@@ -62,7 +62,8 @@ describe('the tier tone curve', () => {
     expect(installTierToneMap()).toBe(true);
     const chunk = THREE.ShaderChunk.tonemapping_pars_fragment;
     expect(chunk).toContain('CustomToneMapping( vec3 color ) {\n\tcolor = ACESFilmicToneMapping( color );');
-    expect(chunk).toContain(`( color - ${TIER_PIVOT.toFixed(3)} ) * ${TIER_CONTRAST.toFixed(3)} + ${TIER_PIVOT.toFixed(3)}`);
+    expect(chunk).toContain(`( l1 - ${TIER_PIVOT.toFixed(3)} ) * ${TIER_CONTRAST.toFixed(3)} + ${TIER_PIVOT.toFixed(3)}`);
+    expect(chunk).toContain(`pow( l1 / ${TIER_PIVOT.toFixed(3)}, ${TIER_CONTRAST.toFixed(3)} )`); // the toe: a dark surface is deepened, never crushed to black
     expect(chunk).not.toContain('{ return color; }');
   });
 });

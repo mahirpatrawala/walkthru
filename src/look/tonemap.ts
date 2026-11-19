@@ -17,7 +17,7 @@ export function installTierToneMap(): boolean {
   if (state !== 'unknown') return state === 'ok';
   const chunk = THREE.ShaderChunk.tonemapping_pars_fragment;
   if (typeof chunk !== 'string' || !chunk.includes(NEEDLE) || !chunk.includes('ACESFilmicToneMapping')) { state = 'unsupported'; return false; }
-  THREE.ShaderChunk.tonemapping_pars_fragment = chunk.replace(NEEDLE, `vec3 CustomToneMapping( vec3 color ) {\n\tcolor = ACESFilmicToneMapping( color );\n\treturn max( ( color - ${TIER_PIVOT.toFixed(3)} ) * ${TIER_CONTRAST.toFixed(3)} + ${TIER_PIVOT.toFixed(3)}, 0.0 );\n}`);
+  THREE.ShaderChunk.tonemapping_pars_fragment = chunk.replace(NEEDLE, `vec3 CustomToneMapping( vec3 color ) {\n\tcolor = ACESFilmicToneMapping( color );\n\tfloat l1 = dot( color, vec3( 0.2126, 0.7152, 0.0722 ) );\n\tfloat l2 = l1 > ${TIER_PIVOT.toFixed(3)} ? ( l1 - ${TIER_PIVOT.toFixed(3)} ) * ${TIER_CONTRAST.toFixed(3)} + ${TIER_PIVOT.toFixed(3)} : ${TIER_PIVOT.toFixed(3)} * pow( l1 / ${TIER_PIVOT.toFixed(3)}, ${TIER_CONTRAST.toFixed(3)} );\n\treturn l1 > 1e-4 ? color * ( l2 / l1 ) : color;\n}`);
   state = 'ok';
   return true;
 }
