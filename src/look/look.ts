@@ -6,7 +6,7 @@ import type { Finishes, Grid, Layout } from '../types';
 import { AssetLoader } from './assets';
 import { buildAoField } from './floor-ao';
 import { DEFAULT_PRESET, PRESET_HOURS, TRUE_GRADE, clampDayHour, glowLevel, gradeAt, parsePreset, presetOfHour } from './grade';
-import type { Grade, InteriorLightKind, LookPreset } from './grade';
+import type { Grade, InteriorLightKind, LookPreset, Rgb } from './grade';
 import { InteriorLights } from './interior';
 import { createLookMaterials } from './materials';
 import type { LookMaterials } from './materials';
@@ -186,6 +186,9 @@ const OLD_BACKGROUND = '#EEF0F3';
 /** SPEC 16.5: hemisphere "intensity 1.0" in the spec's units. three's lights are scaled by pi, so 1.0 shows a surface at its own colour. */
 const TRUE_COLOUR_HEMI = Math.PI;
 const EXPOSURE_TRUE = 1.0;
+const mulRgb = (a: Rgb, b: Rgb): Rgb => [a[0] * b[0], a[1] * b[1], a[2] * b[2]];
+/** what a tier with no grade pass multiplies its ambient light by: the preset's white balance and half of its highlight tint (the grade pass warms the lights of a bright wall that way) */
+const lightWb = (g: Grade): Rgb => [g.post.whiteBalance[0] * Math.sqrt(g.post.highlightTint[0]), g.post.whiteBalance[1] * Math.sqrt(g.post.highlightTint[1]), g.post.whiteBalance[2] * Math.sqrt(g.post.highlightTint[2])];
 /** the hemisphere intensities in grade.ts are for this tier value (medium and high); low is scaled from it */
 const HEMI_REFERENCE = 1.25;
 /** the screen-space AO of the high tier on top of a bake: the bake has the corners, so this only adds the contact detail of furniture (SPEC 16.14) */
@@ -396,7 +399,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       // tiers with no grade pass (low and medium: no post chain) get the sun's warmth through the sky half of the ambient instead
       if (!post && !g.night) hemi.color.lerp(tmp.setRGB(g.sunColour[0], g.sunColour[1], g.sunColour[2]), cfg.shadow === 'none' ? 0.3 : 0.18);
       // ...and the preset's white balance too (SPEC 16.26): the high chain multiplies the frame by it, so a tier with no chain tints the lights with it, or its whites stay a cool grey
-      if (!post && !g.night) { hemi.color.multiply(wbTint.setRGB(g.post.whiteBalance[0], g.post.whiteBalance[1], g.post.whiteBalance[2])); hemi.groundColor.multiply(wbTint); }
+      if (!post && !g.night) { const lw = lightWb(g); hemi.color.multiply(wbTint.setRGB(lw[0], lw[1], lw[2])); hemi.groundColor.multiply(wbTint); }
       // a tier with no pooled lights fakes the lamps with a warm lift of the ambient
       // the room lights are on at night: every tier gets a warm ambient fill (a lit Indian room is evenly bright, tube lights are
       // diffuse); tiers with pooled point lights need less of it because the pools add the local pools of light
@@ -437,7 +440,12 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     }
     // low tiers have no post chain to carry the vignette, so it is the CSS one on all of them
     if (vignette) vignette.style.opacity = trueColours ? '0' : String(grade.vignette);
-    baked?.update({ grade, hour: litHour, cfg, off: trueColours || scanVisible || lightOverride?.bakedOff === true });
+    // a baked room takes its ambient from the grade's own sky and ground, which the hemisphere light's white balance (above) never reaches: a tier with no grade
+    // pass hands the lightmap the same white balance (SPEC 16.26), the others get it from the frame
+    const bakedGrade: Grade = !post && !trueColours && !grade.night
+      ? { ...grade, hemiSky: mulRgb(grade.hemiSky, lightWb(grade)), hemiGround: mulRgb(grade.hemiGround, lightWb(grade)) }
+      : grade;
+    baked?.update({ grade: bakedGrade, hour: litHour, cfg, off: trueColours || scanVisible || lightOverride?.bakedOff === true });
     syncBaked();
     lightOverride?.apply?.({ hemi, sun: sunLight, scene, renderer, cfg, shadows: shadowsOn() });
     needsShadowRefresh();
