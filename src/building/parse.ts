@@ -1,6 +1,9 @@
 // Reads and checks a building.json. Throws an Error with a readable message that names where the problem is.
 // Shape first (types, ids, ranges), then the links between parts (portals pair up, lifts serve real levels, flat types exist).
 import { SPACE_KINDS } from './types';
+import { parseNorth } from '../core/north';
+import { unitPlanProblems } from './units';
+import type { UnitPlan } from './units';
 import type { BuilderBrand, BuildingFile, DoorLook, FlatType, Level, Lift, LobbyAnchor, Placement, Portal, Space, SpaceKind } from './types';
 
 export const BUILDING_ID_RE = /^[a-z0-9-]{1,40}$/;
@@ -136,6 +139,7 @@ export function checkLinks(b: BuildingFile): string[] {
   if (liftIds.size !== b.lifts.length) out.push('lifts: an id is used twice');
   for (const lift of b.lifts) for (const lv of lift.serves) if (!levelIds.has(lv)) out.push(`lift "${lift.id}" serves level "${lv}", which does not exist`);
   if (b.startSpace && !spaces.has(b.startSpace)) out.push(`startSpace "${b.startSpace}" is not a space of this building`);
+  if (b.units) out.push(...unitPlanProblems(b.units, b.flatTypes));
   for (const { space } of spaces.values()) {
     const where = `space "${space.id}"`;
     if (space.kind === 'home') {
@@ -214,6 +218,22 @@ export function parseBrand(v: unknown): BuilderBrand {
   return out;
 }
 
+/** The optional `units` block: the floors that have units and what one floor holds. The links to `flatTypes` are checked in `checkLinks`. */
+export function parseUnits(v: unknown): UnitPlan {
+  if (!isObj(v)) return fail('units', 'must be {firstFloor, floors, perFloor}');
+  const int = (k: string, min: number, max: number): number => { const n = num(v, k, 'units', min, max); if (!Number.isInteger(n)) fail(`units.${k}`, `must be a whole number (got ${n})`); return n; };
+  const firstFloor = int('firstFloor', 1, 200), floors = int('floors', 1, 200);
+  const perFloor = arr(v, 'perFloor', 'units', 1).map((u, i) => {
+    const p = `units.perFloor[${i}]`;
+    if (!isObj(u)) return fail(p, 'must be {number, type}');
+    const n = num(u, 'number', p, 1, 99);
+    if (!Number.isInteger(n)) fail(`${p}.number`, `must be a whole number (got ${n})`);
+    return { number: n, type: str(u, 'type', p) };
+  });
+  if (perFloor.length > 20) fail('units.perFloor', `has ${perFloor.length} units a floor; at most 20`);
+  return { firstFloor, floors, perFloor };
+}
+
 export function parseBuilding(json: unknown): BuildingFile {
   if (!isObj(json)) return fail('the file', 'must be a JSON object');
   if (json.version !== 1) fail('version', 'must be 1');
@@ -240,6 +260,13 @@ export function parseBuilding(json: unknown): BuildingFile {
   if (json.unlisted === true) b.unlisted = true;
   if (json.bare === true) b.bare = true;
   if (json.brand !== undefined) b.brand = parseBrand(json.brand);
+  if (json.north !== undefined) {
+    try { b.north = parseNorth(json.north); } catch (e) {
+      const m = e instanceof Error ? e.message : String(e), part = /^(\.\w+) (.*)$/.exec(m);
+      fail(`north${part ? part[1] : ''}`, part ? part[2] : m);
+    }
+  }
+  if (json.units !== undefined) b.units = parseUnits(json.units);
   if (b.sample && !b.note) b.note = 'Sample layout for demonstration';
   const problems = checkLinks(b);
   if (problems.length) throw new BuildingFormatError('links', `${problems[0]}${problems.length > 1 ? ` (and ${problems.length - 1} more)` : ''}`);

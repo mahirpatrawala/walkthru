@@ -4,6 +4,7 @@ import type {
   DoorLeaf, EdgeKind, Finishes, FurnitureItem, Layout, Opening, OpeningType, PlanUnderlay, PropertyFile, RoomTag, RoomType, Vec2,
 } from '../types';
 import { polygonArea, polygonSelfIntersects, pointInPolygon } from './geometry';
+import { parseNorth } from './north';
 import { computeEdgeFrames, computeTunnels } from './layout-geom';
 
 // ---------------------------------------------------------------- polygon overlap (exact, via triangles)
@@ -421,6 +422,12 @@ export function validateProperty(json: unknown): PropertyFile {
   };
   if (isStr(json.subtitle)) out.subtitle = json.subtitle;
   if (json.spaceKind !== undefined) out.spaceKind = oneOf(json.spaceKind, ['home', 'lobby', 'corridor', 'gym', 'hall', 'games', 'pool', 'garden', 'other'] as const, 'spaceKind');
+  if (json.north !== undefined) {
+    try { out.north = parseNorth(json.north); } catch (e) {
+      const m = e instanceof Error ? e.message : String(e), part = /^(\.\w+) (.*)$/.exec(m);
+      fail(`north${part ? part[1] : ''}`, part ? part[2] : m);
+    }
+  }
   if (json.splat !== undefined) {
     const s = json.splat;
     if (!isObj(s) || !isStr(s.file) || !isObj(s.transform)) return fail('splat', 'must have file and transform');
