@@ -38,6 +38,8 @@ export interface SharedUniforms {
   /** SPEC 16.19: window light and downlight pools (the nearest few sources, set by look.ts); `winOn` 0 on low and in Plain and baked modes */
   winOn: Uniform<number>; winA: Uniform<THREE.Vector4[]>; winB: Uniform<THREE.Vector4[]>; winCol: Uniform<THREE.Color>;
   lampA: Uniform<THREE.Vector4[]>; lampCol: Uniform<THREE.Color>;
+  /** SPEC 16.26: the soft halo a lit recessed downlight throws on the ceiling round it. `glowK` is the glow level (0 = off: low tier, Plain, True colours), `haloA` the nearest few downlights of ANY room */
+  glowK: Uniform<number>; haloA: Uniform<THREE.Vector4[]>;
   /** 1 on tiers that draw the procedural fine detail (paint grain, tile speckle): medium and high */
   fine: Uniform<number>;
   /** 1 while a bake lights the room (SPEC 16.14): the wall-edge darkening steps back, the bake has the real corners */
@@ -103,6 +105,8 @@ uniform vec4 uLkWinB[6];   // inward normal x, z, half height, 1 when the slot i
 uniform vec3 uLkWinCol;
 uniform vec4 uLkLampA[6]; // downlight xyz, 1 when used
 uniform vec3 uLkLampCol;
+uniform float uLkGlowK;
+uniform vec4 uLkHaloA[6];
 // skylight from the nearest windows: an area source with a soft falloff, wrapped so a surface that faces away still gets a little bounce;
 // only on the room side of the opening (SPEC 16.19). No sun is invented here.
 vec3 lkDaylight(vec3 p, vec3 n, float floorK) {
@@ -317,6 +321,14 @@ if (uLkRoughOn > 0.5 && uLkPlain < 0.5) {
 }
 if (uLkKit > 0.5 && uLkPlain < 0.5) roughnessFactor = mix(max(roughnessFactor, uLkKitRoughMin), 0.92, lkGrout);
 if (uLkWallTile.x > 0.0 && uLkPlain < 0.5) roughnessFactor = mix(roughnessFactor, 0.26, lkTileIn);
+// SPEC 16.26: a big surface is never one roughness. Slow patches (a mopped floor, a wall that took the light on one side) of the order of a metre, a few percent on paint, more on a
+// glossy floor, where it breaks a mirror-even reflection into the uneven one of a real floor. Medium and high.
+if (uLkFine > 0.5 && uLkPlain < 0.5 && uLkMode < 1.5) {
+  float lkRv = (lkVN(vLkPos.xz * 0.55 + vLkPos.y * 0.3) - 0.5) * 0.7 + (lkVN(vLkPos.xz * 2.3 + 11.0) - 0.5) * 0.3;
+  // a matt floor (anti-skid, balcony: uLkKitRoughMin 0.6 and up) sits on the edge of the reflection's fade, where a patchy roughness would print as blotches: it gets none
+  float lkRamp = uLkKit > 0.5 ? (uLkKitRoughMin < 0.5 ? 0.32 : 0.0) : 0.12;
+  roughnessFactor = clamp(roughnessFactor * (1.0 + lkRv * lkRamp), 0.02, 1.0);
+}
 `;
 const FRAG_NORMAL = /* glsl */ `
 if (uLkNormOn > 0.5 && uLkPlain < 0.5) {
@@ -361,10 +373,21 @@ const FRAG_AO = /* glsl */ `
   }
   reflectedLight.indirectDiffuse *= lkAO;
   reflectedLight.indirectSpecular *= lkAO;
+  // SPEC 16.26: a lit recessed downlight throws a soft warm halo on the ceiling round it (a small hot core, a wide faint skirt), so it reads as emitting
+  if (uLkGlowK > 0.001 && uLkPlain < 0.5 && vLkN.y < -0.6) {
+    float lkH = 0.0;
+    for (int i = 0; i < 6; i++) {
+      if (uLkHaloA[i].w < 0.5) continue;
+      vec2 lkD = vLkPos.xz - uLkHaloA[i].xz;
+      float lkR2 = dot(lkD, lkD);
+      lkH += 0.5 * exp(-lkR2 * 38.0) + 0.16 * exp(-lkR2 * 4.5);
+    }
+    totalEmissiveRadiance += vec3(1.0, 0.8, 0.56) * lkH * uLkGlowK * 0.42;
+  }
   if (uLkReflOn > 0.5 && uLkPlain < 0.5 && uLkReflMode > 0.5) {
     vec3 lkV = normalize(vViewPosition);
     float lkCos = clamp(dot(normal, lkV), 0.0, 1.0);
-    float lkF = (0.04 + (0.55 - 0.04) * pow(1.0 - lkCos, 5.0)) * (1.0 - smoothstep(0.35, 0.75, roughnessFactor));
+    float lkF = (0.058 + (0.6 - 0.058) * pow(1.0 - lkCos, 5.0)) * (1.0 - smoothstep(0.35, 0.75, roughnessFactor));
     vec3 lkRefl = vec3(0.0);
     if (uLkReflMode < 1.5) {
       vec3 rv = inverseTransformDirection(reflect(-lkV, normal), viewMatrix);
@@ -450,6 +473,8 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
     winCol: { value: new THREE.Color(0, 0, 0) },
     lampA: { value: Array.from({ length: MAX_LAMP_POOLS }, () => new THREE.Vector4()) },
     lampCol: { value: new THREE.Color(0, 0, 0) },
+    glowK: { value: 0 },
+    haloA: { value: Array.from({ length: MAX_LAMP_POOLS }, () => new THREE.Vector4()) },
     baked: { value: 0 },
     floorAO: { value: white }, floorAORect: { value: new THREE.Vector4(0, 0, 1, 1) },
     ceilAO: { value: white }, ceilAORect: { value: new THREE.Vector4(0, 0, 1, 1) },
@@ -476,7 +501,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
     mat.userData.shared = true;
     const u: Rec['u'] = {
       uLkMode: { value: kind === 'floor' ? 0 : kind === 'frame' ? 2 : 1 },
-      uLkPaint: { value: kind === 'wall' || kind === 'ceiling' ? 1 : 0 }, uLkWood: { value: kind === 'frame' ? 1 : 0 }, uLkFine: shared.fine, uLkWinOn: shared.winOn, uLkWinA: shared.winA, uLkWinB: shared.winB, uLkWinCol: shared.winCol, uLkLampA: shared.lampA, uLkLampCol: shared.lampCol, uLkRMix: { value: 0 }, uLkRMap: { value: 0 }, uLkRScale: { value: 1 }, uLkRSwap: { value: 0 }, uLkPlank: { value: 0 }, uLkKitBevel: { value: 0 }, uLkKitSpeck: { value: 0 }, uLkWallTile: { value: new THREE.Vector3(0, 0, 0) }, uLkWallJoint: { value: new THREE.Color('#999') },
+      uLkPaint: { value: kind === 'wall' || kind === 'ceiling' ? 1 : 0 }, uLkWood: { value: kind === 'frame' ? 1 : 0 }, uLkFine: shared.fine, uLkWinOn: shared.winOn, uLkWinA: shared.winA, uLkWinB: shared.winB, uLkWinCol: shared.winCol, uLkLampA: shared.lampA, uLkLampCol: shared.lampCol, uLkGlowK: shared.glowK, uLkHaloA: shared.haloA, uLkRMix: { value: 0 }, uLkRMap: { value: 0 }, uLkRScale: { value: 1 }, uLkRSwap: { value: 0 }, uLkPlank: { value: 0 }, uLkKitBevel: { value: 0 }, uLkKitSpeck: { value: 0 }, uLkWallTile: { value: new THREE.Vector3(0, 0, 0) }, uLkWallJoint: { value: new THREE.Color('#999') },
       uLkTile: { value: new THREE.Vector2(0.6, 0.6) },
       uLkRepeat: { value: kind === 'frame' ? 0.6 : 1.6 },
       uLkPlain: shared.plain,
@@ -509,7 +534,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${FRAG_NORMAL}`)
         .replace('#include <aomap_fragment>', `#include <aomap_fragment>\n${FRAG_AO}`);
     };
-    mat.customProgramCacheKey = () => 'walkthru-look-v7';
+    mat.customProgramCacheKey = () => 'walkthru-look-v8';
     const rec: Rec = { kind, balcony, mat, u, plain, look: { roughness: mat.roughness, metalness: mat.metalness }, map: null };
     records.push(rec);
     byKey.set(key, rec);
@@ -556,7 +581,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         set(r, 'uLkKitGroutCol', spec.plank ? new THREE.Color(spec.color).multiplyScalar(0.55) : new THREE.Color(spec.color).lerp(new THREE.Color(spec.groutColor), 0.3).multiplyScalar(0.62));
         if (!spec.matt) { set(r, 'uLkKitBevel', spec.antiSkid ? 0.35 : 0.9); set(r, 'uLkKitSpeck', spec.antiSkid ? 1.4 : 1); } else set(r, 'uLkKitSpeck', 1.6);
         set(r, 'uLkKitVar', spec.plank ? 0.05 : spec.antiSkid ? 0.12 : 0.06);
-        set(r, 'uLkKitRoughMin', spec.plank ? 0.42 : spec.antiSkid ? 0.72 : spec.matt ? 0.6 : 0);
+        set(r, 'uLkKitRoughMin', spec.plank ? 0.32 : spec.antiSkid ? 0.72 : spec.matt ? 0.6 : 0);
         // maps that arrived before this room's floor was made
         const donor = records.find((o) => o !== r && o.kind === 'floor' && o.u.uLkNormOn.value);
         if (donor) for (const k of ['uLkNorm', 'uLkNormScale', 'uLkNormOn', 'uLkDetail', 'uLkDetailMean', 'uLkDetailClamp', 'uLkDetailOn', 'uLkRough', 'uLkRoughRange', 'uLkRoughOn']) {
@@ -597,7 +622,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
       if (!paneMat) {
         // an unlit veil: lit glass reflects the environment (and the sun) as a bright smear that hides the view
         // frosted, bright glass (SPEC 16.18): the window glows with daylight and does not pretend to show a real view
-        paneMat = new THREE.MeshBasicMaterial({ color: '#F7FAFD', transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide });
+        paneMat = new THREE.MeshBasicMaterial({ color: '#F7FAFD', transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide });
         paneMat.userData.shared = true;
         paneMat.visible = shared.plain.value < 0.5;
       }
@@ -642,7 +667,7 @@ export function createLookMaterials(opts: { wallHeightM: number }): LookMaterial
         // colour truth beats gloss: "True colours" shows no reflections
         r.u.uLkReflOn.value = r.kind === 'floor' && !r.balcony && !o.trueColours ? 1 : 0;
       }
-      shared.reflStrength.value = c.reflection === 'cube' ? 1.3 : 0.9;
+      shared.reflStrength.value = c.reflection === 'cube' ? 1.5 : 1.45;
       api.setPlain(shared.plain.value > 0.5);
     },
     async loadTextures(_loader, c) {

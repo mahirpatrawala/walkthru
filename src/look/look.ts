@@ -5,8 +5,8 @@ import type { Viewer } from '../engine/viewer';
 import type { Finishes, Grid, Layout } from '../types';
 import { AssetLoader } from './assets';
 import { buildAoField } from './floor-ao';
-import { DEFAULT_PRESET, PRESET_HOURS, TRUE_GRADE, clampDayHour, gradeAt, parsePreset, presetOfHour } from './grade';
-import type { Grade, InteriorLightKind, LookPreset } from './grade';
+import { DEFAULT_PRESET, PRESET_HOURS, TRUE_GRADE, clampDayHour, glowLevel, gradeAt, parsePreset, presetOfHour } from './grade';
+import type { Grade, InteriorLightKind, LookPreset, Rgb } from './grade';
 import { InteriorLights } from './interior';
 import { createLookMaterials } from './materials';
 import type { LookMaterials } from './materials';
@@ -22,6 +22,8 @@ import type { RealismLevel, RealisticFamily } from './realistic';
 import { furnitureKit } from './furniture-materials';
 import { MAX_LAMP_POOLS, MAX_WINDOW_LIGHTS, lampColour, lampSources, nearestTo, skylightColour, windowSources } from './daylight';
 import type { LampSource, WindowSource } from './daylight';
+import { planDownlights } from './baked/lights';
+import { installTierToneMap } from './tonemap';
 import type { TierConfig, ToneMapperName } from './quality';
 import type { BakedHook } from './baked/hook';
 import { Reflections } from './reflect';
@@ -184,6 +186,9 @@ const OLD_BACKGROUND = '#EEF0F3';
 /** SPEC 16.5: hemisphere "intensity 1.0" in the spec's units. three's lights are scaled by pi, so 1.0 shows a surface at its own colour. */
 const TRUE_COLOUR_HEMI = Math.PI;
 const EXPOSURE_TRUE = 1.0;
+const mulRgb = (a: Rgb, b: Rgb): Rgb => [a[0] * b[0], a[1] * b[1], a[2] * b[2]];
+/** what a tier with no grade pass multiplies its ambient light by: the preset's white balance and half of its highlight tint (the grade pass warms the lights of a bright wall that way) */
+const lightWb = (g: Grade): Rgb => [g.post.whiteBalance[0] * Math.sqrt(g.post.highlightTint[0]), g.post.whiteBalance[1] * Math.sqrt(g.post.highlightTint[1]), g.post.whiteBalance[2] * Math.sqrt(g.post.highlightTint[2])];
 /** the hemisphere intensities in grade.ts are for this tier value (medium and high); low is scaled from it */
 const HEMI_REFERENCE = 1.25;
 /** the screen-space AO of the high tier on top of a bake: the bake has the corners, so this only adds the contact detail of furniture (SPEC 16.14) */
@@ -289,8 +294,9 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     if (cfg.shadow === 'static') renderer.shadowMap.needsUpdate = true;
   }
 
-  const threeToneMapping = (): THREE.ToneMapping => (toneMapper === 'aces' ? THREE.ACESFilmicToneMapping : toneMapper === 'neutral' ? THREE.NeutralToneMapping : THREE.AgXToneMapping);
+  const threeToneMapping = (): THREE.ToneMapping => (toneMapper === 'aces' ? (installTierToneMap() ? THREE.CustomToneMapping : THREE.ACESFilmicToneMapping) : toneMapper === 'neutral' ? THREE.NeutralToneMapping : THREE.AgXToneMapping);
   const tmp = new THREE.Color();
+  const wbTint = new THREE.Color();
   const floorLinear = new THREE.Color();
   const WARM_AMBIENT = new THREE.Color('#FFD2A0');
 
@@ -321,8 +327,18 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let windows: WindowSource[] = windowSources(layout);
   let lamps: LampSource[] = lampSources(layout, windows);
   let daylightAt = { x: NaN, z: NaN };
+  let haloAt = { x: NaN, z: NaN };
+  // the halo of every recessed downlight on its ceiling (SPEC 16.26): one more small uniform array, the nearest few of ANY room
+  let allDownlights: LampSource[] = planDownlights(layout).map((f) => ({ roomId: f.roomId, x: f.position[0], y: f.position[1], z: f.position[2] }));
   function updateDaylight(force = false): void {
     const sh = materials.shared;
+    const haloOn = cfg.tier !== 'low' && !scanVisible && !trueColours && !outdoor && allDownlights.length > 0;
+    sh.glowK.value = haloOn ? glowLevel('lamp', grade) : 0;
+    if (haloOn && (force || Math.hypot(camera.position.x - haloAt.x, camera.position.z - haloAt.z) > 0.25)) {
+      haloAt = { x: camera.position.x, z: camera.position.z };
+      const hsel = nearestTo(allDownlights, haloAt.x, haloAt.z, MAX_LAMP_POOLS);
+      for (let i = 0; i < MAX_LAMP_POOLS; i++) { const l = hsel[i]; if (l) sh.haloA.value[i].set(l.x, l.y, l.z, 1); else sh.haloA.value[i].set(0, 0, 0, 0); }
+    }
     const on = cfg.tier !== 'low' && !scanVisible && !trueColours && !outdoor && lightOverride?.noDaylight !== true && windows.length + lamps.length > 0;
     sh.winOn.value = on ? 1 : 0;
     if (!on) { daylightAt = { x: NaN, z: NaN }; return; }
@@ -382,6 +398,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       hemi.intensity = g.hemiIntensity * (cfg.hemiIntensity / HEMI_REFERENCE) * (outdoor ? outdoorHemiBoost(g) : 1);
       // tiers with no grade pass (low and medium: no post chain) get the sun's warmth through the sky half of the ambient instead
       if (!post && !g.night) hemi.color.lerp(tmp.setRGB(g.sunColour[0], g.sunColour[1], g.sunColour[2]), cfg.shadow === 'none' ? 0.3 : 0.18);
+      // ...and the preset's white balance too (SPEC 16.26): the high chain multiplies the frame by it, so a tier with no chain tints the lights with it, or its whites stay a cool grey
+      if (!post && !g.night) { const lw = lightWb(g); hemi.color.multiply(wbTint.setRGB(lw[0], lw[1], lw[2])); hemi.groundColor.multiply(wbTint); }
       // a tier with no pooled lights fakes the lamps with a warm lift of the ambient
       // the room lights are on at night: every tier gets a warm ambient fill (a lit Indian room is evenly bright, tube lights are
       // diffuse); tiers with pooled point lights need less of it because the pools add the local pools of light
@@ -413,11 +431,21 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     syncSky();
     interior.setGrade(grade);
     // look-kit's fixtures (mountKit) switch on with the evening and the night: tube and fan at the tube level, cove at its own
-    const kit = (globalThis as { __walkthruKit?: { setLit?: (kind: string, on: boolean) => void } }).__walkthruKit;
-    if (kit?.setLit) { const on = !trueColours && !scanVisible; kit.setLit('tube', on && grade.interior.tube > 0.2); kit.setLit('fan', on && grade.interior.tube > 0.2); kit.setLit('cove', on && grade.interior.cove > 0.2); }
+    const kit = (globalThis as { __walkthruKit?: { setLit?: (kind: string, on: boolean) => void; setLevel?: (kind: string, level: number) => void } }).__walkthruKit;
+    if (kit?.setLit) {
+      const on = !trueColours && !scanVisible;
+      kit.setLit('tube', on && grade.interior.tube > 0.2); kit.setLit('fan', on && grade.interior.tube > 0.2);
+      // the cove LED is part of the finished room: it glows part way by day (SPEC 16.26), fully lit with the evening and the night
+      if (kit.setLevel) kit.setLevel('cove', on ? Math.max(grade.interior.cove, grade.interior.glow * 0.45) : 0); else kit.setLit('cove', on && grade.interior.cove > 0.2);
+    }
     // low tiers have no post chain to carry the vignette, so it is the CSS one on all of them
     if (vignette) vignette.style.opacity = trueColours ? '0' : String(grade.vignette);
-    baked?.update({ grade, hour: litHour, cfg, off: trueColours || scanVisible || lightOverride?.bakedOff === true });
+    // a baked room takes its ambient from the grade's own sky and ground, which the hemisphere light's white balance (above) never reaches: a tier with no grade
+    // pass hands the lightmap the same white balance (SPEC 16.26), the others get it from the frame
+    const bakedGrade: Grade = !post && !trueColours && !grade.night
+      ? { ...grade, hemiSky: mulRgb(grade.hemiSky, lightWb(grade)), hemiGround: mulRgb(grade.hemiGround, lightWb(grade)) }
+      : grade;
+    baked?.update({ grade: bakedGrade, hour: litHour, cfg, off: trueColours || scanVisible || lightOverride?.bakedOff === true });
     syncBaked();
     lightOverride?.apply?.({ hemi, sun: sunLight, scene, renderer, cfg, shadows: shadowsOn() });
     needsShadowRefresh();
@@ -867,6 +895,8 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
       interior.setLayout(l);
       windows = windowSources(l);
       lamps = lampSources(l, windows);
+      allDownlights = planDownlights(l).map((f) => ({ roomId: f.roomId, x: f.position[0], y: f.position[1], z: f.position[2] }));
+      haloAt = { x: NaN, z: NaN };
       premium.setLayout(l);
       if (g) { grid = g; rebuildAo(g); }
       applyLighting();

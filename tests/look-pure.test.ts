@@ -243,7 +243,7 @@ describe('grade and presets (look-light)', () => {
     expect(eve.interior.cove).toBeLessThan(1);
     expect(nig.night).toBe(true);
     expect(nig.sunIntensity).toBe(0);
-    expect(nig.interior).toEqual({ tube: 1, cove: 1 });
+    expect(nig.interior).toEqual({ tube: 1, cove: 1, glow: 1 });
     expect(aft.night).toBe(false);
   });
   it('the blend is continuous: a small step in the hour is a small step in every number', () => {
@@ -281,7 +281,7 @@ describe('grade and presets (look-light)', () => {
     expect(TRUE_GRADE.exposure).toBe(1);
     expect(TRUE_GRADE.sunIntensity).toBe(0);
     expect(TRUE_GRADE.post.saturation).toBe(1);
-    expect(TRUE_GRADE.interior).toEqual({ tube: 0, cove: 0 });
+    expect(TRUE_GRADE.interior).toEqual({ tube: 0, cove: 0, glow: 0 });
   });
   it('look.json can carry a preset', () => {
     expect(parseLookFile({ version: 1, preset: 'evening' })?.preset).toBe('evening');
@@ -324,7 +324,9 @@ describe('interior lights (look-light)', () => {
     il.setGrade(gradeAt(PRESET_HOURS.afternoon));
     il.scan(true);
     expect((tube.material as THREE.MeshStandardMaterial).emissiveIntensity).toBe(0);
-    expect((strip.material as THREE.MeshStandardMaterial).emissiveIntensity).toBe(0);
+    // a cove (and a recessed lamp) that is only ever SEEN keeps part of its glow by day (SPEC 16.26): 2 x the afternoon's glow level; the tube and the real light stay off
+    expect((strip.material as THREE.MeshStandardMaterial).emissiveIntensity).toBeCloseTo(2 * gradeAt(PRESET_HOURS.afternoon).interior.glow, 6);
+    expect(gradeAt(PRESET_HOURS.afternoon).interior.glow).toBeGreaterThan(0.3);
     expect(lamp.visible).toBe(false);
     il.setGrade(gradeAt(PRESET_HOURS.night));
     expect((tube.material as THREE.MeshStandardMaterial).emissiveIntensity).toBeCloseTo(3, 6);

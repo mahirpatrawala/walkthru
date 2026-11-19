@@ -44,6 +44,13 @@ export interface PostChain {
 
 /** the strength of the screen-space occlusion before any scaling (a bake that has corner shade asks for less) */
 const AO_BASE = 0.95;
+/** the grade's contrast turns about this linear value (SPEC 16.26): about the mean of a lit interior, not 18% grey, so the walls (above it) go brighter and the shadows and corners (below it) go deeper */
+export const CONTRAST_PIVOT = 0.42;
+/** the most luminance the contrast curve ever gives (linear; 0.9 is sRGB 243): the highlight shoulder */
+export const CONTRAST_SHOULDER = 0.9;
+const VIBRANCE = 0.3;
+/** SPEC 16.26: at the 2K level the occlusion is drawn at full resolution with more samples, so it can afford to be stronger: furniture sits on the floor and corners have depth */
+const ULTRA_AO_GAIN = 2.2;
 
 export async function createPostChain(viewer: Viewer, init: PostOptions): Promise<PostChain> {
   const [pp, n8] = await Promise.all([import('postprocessing'), import('n8ao')]);
@@ -90,13 +97,19 @@ export async function createPostChain(viewer: Viewer, init: PostOptions): Promis
   // after tone mapping: saturation, contrast about mid grey, and the split tone (cool in the shadows, warm in the lights)
   class GradeEffect extends pp.Effect {
     constructor() {
-      super('GradeEffect', `uniform float sat;\nuniform float contrast;\nuniform vec3 shadowTint;\nuniform vec3 highlightTint;
+      super('GradeEffect', `const float CONTRAST_PIVOT = ${CONTRAST_PIVOT.toFixed(3)};\nconst float CONTRAST_SHOULDER = ${CONTRAST_SHOULDER.toFixed(3)};\nconst float VIBRANCE = ${VIBRANCE.toFixed(3)};\nuniform float sat;\nuniform float contrast;\nuniform vec3 shadowTint;\nuniform vec3 highlightTint;
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
   vec3 c = inputColor.rgb;
   float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-  c = mix(vec3(l), c, sat);
+  // vibrance: a surface that already has colour (oak, terracotta) takes a further boost, a pale wall does not, so the white balance of the walls is not undone
+  float ch = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+  c = mix(vec3(l), c, sat + VIBRANCE * smoothstep(0.06, 0.22, ch));
   c *= mix(shadowTint, highlightTint, smoothstep(0.04, 0.6, l));
-  c = max((c - 0.18) * contrast + 0.18, 0.0);
+  // contrast on the luminance, not on each channel: a per-channel S-curve turned the oak floor's joints and the dark of a screen saturated red
+  float l1 = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  // above the pivot a curve that leaves the pivot at the contrast's slope and flattens towards CONTRAST_SHOULDER (a sunlit floor keeps its colour and a white cabinet its shape instead of clipping), below it a power curve through the same point with the same slope: shadows deepen but a dark floor never crushes to black
+  float l2 = l1 > CONTRAST_PIVOT ? CONTRAST_PIVOT + (CONTRAST_SHOULDER - CONTRAST_PIVOT) * (1.0 - exp(-(l1 - CONTRAST_PIVOT) * contrast / (CONTRAST_SHOULDER - CONTRAST_PIVOT))) : CONTRAST_PIVOT * pow(max(l1, 0.0) / CONTRAST_PIVOT, contrast);
+  c *= l1 > 1e-4 ? l2 / l1 : 1.0;
   outputColor = vec4(c, inputColor.a);
 }`,
         { uniforms: new Map<string, THREE.Uniform>([['sat', new THREE.Uniform(1)], ['contrast', new THREE.Uniform(1)], ['shadowTint', new THREE.Uniform(new THREE.Vector3(1, 1, 1))], ['highlightTint', new THREE.Uniform(new THREE.Vector3(1, 1, 1))]]) });
@@ -144,6 +157,8 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 
   const off = viewer.onResize((w, h) => composer.setSize(w, h, false));
   let graded = false;
+  let aoK = 1;
+  let ultra = false;
   return {
     samples,
     render: (dt) => composer.render(dt),
@@ -162,8 +177,10 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
       else if (!graded) bloom.intensity = init.bloom ? 0.35 : 0;
     },
     setAO: (on) => { ao.enabled = on && !aoOff; },
-    setAoStrength: (k) => { ao.configuration.intensity = AO_BASE * k; },
+    setAoStrength: (k) => { aoK = k; ao.configuration.intensity = AO_BASE * aoK * (ultra ? ULTRA_AO_GAIN : 1); },
     setUltra: (on) => {
+      ultra = on;
+      ao.configuration.intensity = AO_BASE * aoK * (ultra ? ULTRA_AO_GAIN : 1);
       ao.configuration.halfRes = !on;
       ao.configuration.aoSamples = on ? 20 : init.ao === 'cheap' ? 6 : 10;
       ao.configuration.denoiseSamples = on ? 8 : init.ao === 'cheap' ? 5 : 6;

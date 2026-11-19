@@ -9,7 +9,7 @@ import { buildShell, shellStats } from '../src/engine/shell';
 import { createLookMaterials } from '../src/look/materials';
 import { mountKit } from '../src/look/kit';
 import { COVE_REVEAL_DEPTH_M, COVE_REVEAL_M, addCove, newBuckets } from '../src/look/kit/build';
-import { LIT, UNLIT, createKitMaterials } from '../src/look/kit/materials';
+import { DOWNLIGHT_LIT, LIT, UNLIT, createKitMaterials } from '../src/look/kit/materials';
 import type { CoveSite } from '../src/look/kit/rules';
 import {
   COVE_DROP_M, COVE_WIDTH_M, FAN_MIN_ROOM_M2, KIT_NOTE, bedheadBoards, coveSites, doorBoards, fanSites, floorTileSpec, insetPolygon, kitPlan, masterBedroomId,
@@ -279,7 +279,7 @@ describe('decor only', () => {
     const tags = new Map<string, THREE.Mesh>();
     kit.group.traverse((o) => { const t = o.userData.walkthruLight as string | undefined; if (t) tags.set(t, o as THREE.Mesh); });
     expect([...tags.keys()].sort()).toEqual(['cove', 'fan', 'lamp', 'tube']); // 'lamp': the recessed downlights' glass (SPEC 16.18)
-    for (const [k, m] of tags) expect((m.material as THREE.MeshStandardMaterial).emissiveIntensity, k).toBe(k === 'cove' ? UNLIT.cove : 0);
+    for (const [k, m] of tags) expect((m.material as THREE.MeshStandardMaterial).emissiveIntensity, k).toBe(k === 'cove' ? UNLIT.cove : k === 'lamp' ? DOWNLIGHT_LIT : 0); // the downlight glass holds its FULL-ON value; the look scales it (SPEC 16.26)
     kit.setLit('tube', true);
     expect((tags.get('tube')!.material as THREE.MeshStandardMaterial).emissiveIntensity).toBeGreaterThan(1);
     // floors carry the room's tile grid, partial rooms keep their hatch

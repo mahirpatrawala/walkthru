@@ -20,16 +20,21 @@ export interface KitMaterials {
   /** the glowing parts, off by default: emissiveIntensity 0 is off, `lit[kind]` is the value when on */
   lens: Record<LightKind, THREE.MeshStandardMaterial>;
   setLit(kind: LightKind, on: boolean): void;
+  /** 0..1 between the unlit and the fully lit lens (SPEC 16.26: a cove LED glows part way by day) */
+  setLevel(kind: LightKind, level: number): void;
   isLit(kind: LightKind): boolean;
   dispose(): void;
 }
 
 /** Peak emissive strength of each light kind when lit. */
 export const LIT: Record<LightKind, number> = { tube: 2.4, cove: 2.0, fan: 2.0 };
+/** a recessed downlight's glass at full level (a small bright disc: bloom takes it from here on the tiers that have it) */
+export const DOWNLIGHT_LIT = 3.2;
 /** what a lens gives when off: nothing, but the cove's diffuser (the back of the reveal under the ceiling, a white strip in a recess) keeps a faint
  *  lift so the reveal reads as a pale line by day and never as a dark one */
 export const UNLIT: Record<LightKind, number> = { tube: 0, cove: 0.2, fan: 0 };
 const WARM: Record<LightKind, string> = { tube: '#fff4de', cove: '#ffd9a8', fan: '#ffe7bd' };
+const WHITE = new THREE.Color('#ffffff');
 const OFF: Record<LightKind, string> = { tube: '#c8c6c0', cove: '#e0dcd4', fan: '#d3d0ca' };
 
 /** A 32 px tile of fine mesh: transparent cells, a faint wire along two edges. Null without a DOM (Node). */
@@ -60,7 +65,8 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
   const skirtColour = trim.skirting ?? `#${new THREE.Color(fin.wallColor).multiplyScalar(0.94).getHexString()}`;
   void paint;
   const skirting = std(skirtColour, 0.42);
-  const downlight = new THREE.MeshStandardMaterial({ color: '#E9E5DC', roughness: 0.4, emissive: '#FFE3B5', emissiveIntensity: 0 });
+  // emissiveIntensity is the FULL-ON value: the look scales it by the fixture's level (interior.ts reads it once), so it must not start at 0
+  const downlight = new THREE.MeshStandardMaterial({ color: '#E9E5DC', roughness: 0.4, emissive: '#FFE3B5', emissiveIntensity: DOWNLIGHT_LIT });
   const lens = {} as Record<LightKind, THREE.MeshStandardMaterial>;
   const lit = { tube: false, cove: false, fan: false };
   for (const k of ['tube', 'cove', 'fan'] as LightKind[]) {
@@ -81,7 +87,13 @@ export function createKitMaterials(fin: Finishes, paint: { wall: ((color: string
     downlight,
     mirror: new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.12, metalness: 0.35 }),
     lens,
-    setLit(kind, on) { lit[kind] = on; lens[kind].emissiveIntensity = on ? LIT[kind] : UNLIT[kind]; lens[kind].color.set(on ? '#ffffff' : OFF[kind]); },
+    setLit(kind, on) { m.setLevel(kind, on ? 1 : 0); },
+    setLevel(kind, level) {
+      const k = Math.min(1, Math.max(0, level));
+      lit[kind] = k > 0.2;
+      lens[kind].emissiveIntensity = UNLIT[kind] + (LIT[kind] - UNLIT[kind]) * k;
+      lens[kind].color.set(OFF[kind]).lerp(WHITE, k);
+    },
     isLit: (kind) => lit[kind],
     dispose() {
       for (const mat of [m.grill, m.alu, m.veil, m.railing, m.fixtures, m.fan, ...Object.values(lens)]) { mat.map?.dispose(); mat.dispose(); }

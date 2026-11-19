@@ -56,7 +56,7 @@ export function skyPixels(g: Grade['sky'], sunElevationDeg: number, w = SKY_W, h
     for (let k = 0; k < 3; k++) {
       let c: number;
       if (el >= 0) {
-        c = g.horizon[k] + (g.mid[k] - g.horizon[k]) * smoothstep(0, 0.16, s);
+        c = g.horizon[k] + (g.mid[k] - g.horizon[k]) * smoothstep(0, 0.14, s);
         c += (g.zenith[k] - c) * smoothstep(0.1, 0.85, s);
       } else {
         c = g.horizon[k] + (g.ground[k] - g.horizon[k]) * smoothstep(0, 0.2, s);
@@ -68,7 +68,7 @@ export function skyPixels(g: Grade['sky'], sunElevationDeg: number, w = SKY_W, h
       // angle between this direction and the glow's centre
       const cosd = Math.sin(el) * Math.sin(el0) + Math.cos(el) * Math.cos(el0) * Math.cos(az);
       const d = Math.acos(Math.min(1, Math.max(-1, cosd)));
-      const lobe = 0.55 * Math.exp(-Math.pow(d / 0.9, 2)) + 0.45 * Math.exp(-Math.pow(d / 0.28, 2));
+      const lobe = 0.34 * Math.exp(-Math.pow(d / 0.62, 2)) + 0.66 * Math.exp(-Math.pow(d / 0.2, 2));
       // the glow only lifts the sky above the horizon
       const lift = g.glowIntensity * lobe * smoothstep(-0.05, 0.12, el);
       const o = (j * w + i) * 4;

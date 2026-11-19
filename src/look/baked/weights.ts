@@ -49,6 +49,13 @@ export function sunBlend(hour: number, hours: [number, number, number] = [PRESET
   return [0, 1 - t, t];
 }
 
+/**
+ * SPEC 16.26: by day the recessed downlights are shown lit (their glass glows, `grade.interior.glow`), so their light is in the room too: this share of the
+ * lamps component, a soft scallop up the wall beside each downlight and a little warmth on the floor under it, never enough to change the day's exposure.
+ */
+export const DAY_LAMP_SHARE = 0.22;
+export const lampLevel = (i: { tube: number; glow?: number }): number => Math.max(i.tube, (i.glow ?? 0) * DAY_LAMP_SHARE);
+
 export interface WeightInput {
   grade: Pick<Grade, 'hour' | 'sunColour' | 'sunIntensity' | 'hemiSky' | 'hemiGround' | 'hemiIntensity' | 'interior' | 'night'>;
   /** tier multipliers of look.ts, so a tier that is meant to be brighter stays so */
@@ -79,7 +86,7 @@ export function componentWeights(i: WeightInput): Weights {
   return {
     sky: scale(warmed(mixRgb(g.hemiSky, g.hemiGround, 0.5), SKY_WARMTH), g.hemiIntensity * i.skyScale * i.skyBoost),
     sun0: sunW(0), sun1: sunW(1), sun2: sunW(2),
-    lamps: [LAMP_TINT[0] * LAMP_STRENGTH * g.interior.tube, LAMP_TINT[1] * LAMP_STRENGTH * g.interior.tube, LAMP_TINT[2] * LAMP_STRENGTH * g.interior.tube],
+    lamps: [LAMP_TINT[0] * LAMP_STRENGTH * lampLevel(g.interior), LAMP_TINT[1] * LAMP_STRENGTH * lampLevel(g.interior), LAMP_TINT[2] * LAMP_STRENGTH * lampLevel(g.interior)],
     cove: [COVE_TINT[0] * COVE_STRENGTH * g.interior.cove, COVE_TINT[1] * COVE_STRENGTH * g.interior.cove, COVE_TINT[2] * COVE_STRENGTH * g.interior.cove],
     ao: ZERO,
   };
