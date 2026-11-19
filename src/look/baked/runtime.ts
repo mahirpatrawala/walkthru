@@ -425,7 +425,7 @@ export function mountBaked(o: MountOptions): BakedHandle {
     get active() { return state === 'ready' && !lastOff; },
     get lightmap() { return compositor?.target.texture ?? null; },
     update,
-    contactField: (grid) => buildAoField(grid, { furnitureOnly: true, minAo: 0.42, rangeM: 0.36 }),
+    contactField: (grid) => buildAoField(grid, { furnitureOnly: true, minAo: 0.3, rangeM: 0.3 }),
     rescan: scan,
     stats: () => ({
       state, tierSet, staticMeshes: [...applied.values()].filter((r) => r.kind === 'static').length, dynMeshes: [...applied.values()].filter((r) => r.kind === 'dyn').length,

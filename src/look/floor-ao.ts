@@ -11,7 +11,7 @@ export interface AoField {
   data: Uint8Array;
 }
 
-export const AO_MIN = 0.56;
+export const AO_MIN = 0.48;
 export const AO_RANGE_M = 0.45;
 /** obstacles lower than this (cm) do not occlude: a rug is not a wall */
 export const AO_MIN_OBSTACLE_CM = 20;
