@@ -30,6 +30,7 @@
     "check:photo-bundle": "node scripts/check-photo-bundle.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "1.2.0",
     "@sparkjsdev/spark": "2.4.0",
     "n8ao": "2.0.1",
     "postprocessing": "6.39.5",
