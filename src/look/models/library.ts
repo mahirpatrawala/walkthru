@@ -6,10 +6,12 @@ import type { LookKind, Roles } from '../gen';
 import type { MatSpec } from '../gen';
 import type { ResolvedLook } from '../style';
 import manifest from './manifest.json';
+import homeManifest from './home-manifest.json';
+import { HOME_DECOR, HOME_FURNITURE } from './home';
 import { FIT_TOL, decorScale, fitModel, surfaceMatches } from './fit';
 import type { Dims, FitResult } from './fit';
 
-export type DecorModelKind = 'plant' | 'jug' | 'fruit' | 'clock';
+export type DecorModelKind = 'plant' | 'jug' | 'fruit' | 'clock' | 'hob' | 'hood';
 export type ModelFamily = LookKind | DecorModelKind;
 export type ModelTier = 'low' | 'full';
 
@@ -21,17 +23,20 @@ export interface ModelInfo {
   id: string;
   dims: { w: number; h: number; d: number };
   place: 'floor' | 'wall';
+  /** the folder under public/look/ (the CC0 library is `models`, the flats' CC BY models `home`) */
+  dir?: string;
   /** height of the seat or the top, measured on the model */
   surfaceM?: number;
-  files: Record<ModelTier, ModelFile>;
+  /** a tier with no file keeps the generated piece on that tier (a model too heavy for a phone) */
+  files: Partial<Record<ModelTier, ModelFile>>;
   parts: Record<string, PartFacts>;
   tris: Record<ModelTier, number>;
 }
 
-const MODELS = (manifest as unknown as { models: Record<string, ModelInfo> }).models;
+const MODELS: Record<string, ModelInfo> = { ...(manifest as unknown as { models: Record<string, ModelInfo> }).models, ...(homeManifest as unknown as { models: Record<string, ModelInfo> }).models };
 export function modelInfo(id: string): ModelInfo | null { return MODELS[id] ?? null; }
 export function allModelIds(): string[] { return Object.keys(MODELS); }
-export const modelUrl = (id: string, tier: ModelTier): string | null => { const f = MODELS[id]?.files[tier]; return f ? `/look/models/${f.file}` : null; };
+export const modelUrl = (id: string, tier: ModelTier): string | null => { const f = MODELS[id]?.files[tier]; return f ? `/look/${MODELS[id].dir ?? 'models'}/${f.file}` : null; };
 
 /** how a part of a model takes the finish palette: role names tried in order (the pack's, the sheet's and the viewer's roles). No role = the model's own material. */
 export interface PartUse {
@@ -44,14 +49,27 @@ export interface LibModel {
   label: string;
   family: ModelFamily;
   parts: Record<string, PartUse>;
-  /** replaces the whole generated piece, or only the chairs of a dining set */
-  use: 'whole' | 'chairs' | 'decor';
+  /** replaces the whole generated piece, only the chairs of a dining set, or a bed's base and headboard (the generated bedding stays on it) */
+  use: 'whole' | 'chairs' | 'decor' | 'frame';
+  /** only for these `variant`s of a catalogue family (a WC, not every bathroom fitting) */
+  variants?: string[];
+  /** 'top': hung on a wall, its top at the box's top and the rest of the box below it free (a wall basin); the default stands on the floor */
+  mount?: 'floor' | 'top';
+  /** room the catalogue keeps clear inside the box (a fridge's 5 cm of air behind it): the model fits the rest, at the front */
+  slot?: { back?: number };
+  /** the CC BY credit an item card shows; a CC0 model has none */
+  credit?: string;
+  /** decor: scaled to the planner's footprint ('footprint') or width ('width') rather than its height */
+  decorFit?: 'footprint' | 'width';
+  /** decor: parts stretched upward so the piece reaches the planner's height (a hood's flue to the ceiling) */
+  stretch?: string[];
   /** looks the same turned a quarter (a round or squarish table): the better orientation is tried */
   turnable?: boolean;
 }
 
 /** furniture, in order of preference (the sizes decide which one a piece can take) */
 export const FURNITURE_MODELS: LibModel[] = [
+  ...HOME_FURNITURE,
   { id: 'dining_chair_02', label: 'Padded dining chair', family: 'dining', use: 'chairs', parts: { fabric: { role: ['fabric', 'accent'] }, legs: { role: ['case', 'legs'] } } },
   { id: 'side_table_01', label: 'Oak side table', family: 'side', use: 'whole', turnable: true, parts: { body: { role: ['top', 'case'] } } },
   { id: 'modern_wooden_cabinet', label: 'Slatted TV cabinet', family: 'dresser', use: 'whole', parts: { body: { role: ['case', 'top'] }, slats: { role: ['case', 'top'], bake: 'skip' }, legs: { role: ['handle', 'plinth'] } } },
@@ -67,6 +85,7 @@ export const DECOR_MODELS: LibModel[] = [
   { id: 'ceramic_vase_02', label: 'Ceramic vase', family: 'jug', use: 'decor', parts: { body: {} } },
   { id: 'wooden_bowl_01', label: 'Wooden fruit bowl', family: 'fruit', use: 'decor', parts: { body: {} } },
   { id: 'wall_clock', label: 'Wall clock', family: 'clock', use: 'decor', parts: { body: {} } },
+  ...HOME_DECOR,
 ];
 
 /** the fruit of a bowl, placed in fractions of the bowl's radius so it scales with it: model id, x, z (of the radius), lift above the bowl's floor (m at scale 1), yaw */
@@ -87,16 +106,16 @@ export function libModel(id: string): LibModel | null { return ALL.find((m) => m
 /** a pack's `models` field: per family, 'generator' (never a model) or model ids in preference order. A family it does not mention takes every model of the library. */
 export type ModelPolicy = Partial<Record<ModelFamily, 'generator' | string[]>>;
 
-let enabled = true;
-/** `?models=off` (checks and before/after pictures): the generated pieces only, whatever the pack says */
-export function setModelsEnabled(on: boolean): void { enabled = on; }
-export function modelsEnabled(): boolean { return enabled; }
+let enabled: boolean | 'cc0' = true;
+/** `?models=off` (checks and before/after pictures): the generated pieces only, whatever the pack says; `?models=cc0`: the CC0 library only, not the flats' CC BY models */
+export function setModelsEnabled(on: boolean | 'cc0'): void { enabled = on; }
+export function modelsEnabled(): boolean { return enabled !== false; }
 
 /** the models of `family` a pack allows, in its order. No pack (the Classic look) allows none. */
 export function candidates(family: ModelFamily, policy: ModelPolicy | null): LibModel[] {
   if (!policy || !enabled) return [];
   const want = policy[family];
-  const all = ALL.filter((m) => m.family === family && modelInfo(m.id));
+  const all = ALL.filter((m) => m.family === family && modelInfo(m.id) && (enabled !== 'cc0' || !modelInfo(m.id)?.dir));
   if (want === 'generator') return [];
   if (!want) return all;
   const ordered = want.map((id) => all.find((m) => m.id === id)).filter((m): m is LibModel => !!m);
@@ -112,7 +131,14 @@ export interface FurniturePlan {
   model: LibModel;
   info: ModelInfo;
   fit: FitResult;
+  /** where the model's origin goes in the item's frame (a hung model is lifted, a fridge stands forward of its air gap); 0 when absent */
+  offset?: { y: number; z: number };
+  /** a bed frame: the top of its deck, where the generated mattress starts */
+  deckM?: number;
 }
+
+/** A bed frame's deck must leave a mattress of this thickness (m) under the item's sleeping surface */
+export const MATTRESS_M = { min: 0.15, max: 0.32 };
 
 /**
  * Which model, if any, may stand in for this piece. All of these must hold, otherwise the generator stays:
@@ -130,8 +156,26 @@ export function planFurniture(item: Pick<FurnitureItem, 'box' | 'heightM' | 'sur
     if (model.use === 'decor') continue;
     const info = modelInfo(model.id);
     if (!info) continue;
+    if (model.variants && !model.variants.includes(String(look.params.variant ?? ''))) continue;
     let fit: FitResult;
-    if (model.use === 'chairs') {
+    let extra: Pick<FurniturePlan, 'offset' | 'deckM'> = {};
+    if (model.use === 'frame') {
+      // a bed's base and headboard: the box and the headboard's height, and a deck that leaves a real mattress under the drawn sleeping height
+      fit = fitModel(info.dims, { w: item.box.w, h: item.heightM, d: item.box.d });
+      const deck = (info.surfaceM ?? 0) * fit.scale.y;
+      const mattress = item.surfaceHeightM - deck;
+      if (fit.ok && (info.surfaceM === undefined || mattress < MATTRESS_M.min - 1e-9 || mattress > MATTRESS_M.max + 1e-9)) fit = { ...fit, ok: false };
+      extra = { deckM: deck };
+    } else if (model.mount === 'top') {
+      // hung: width and depth within FIT_TOL, the height scaled as their mean (no visible stretch); its top at the box's top, its rim at the drawn rim
+      const sx = item.box.w / info.dims.w, sz = item.box.d / info.dims.d, sy = Math.sqrt(sx * sz);
+      const top = Math.max(item.heightM, item.surfaceHeightM);
+      const y0 = top - info.dims.h * sy;
+      const worst = Math.max(Math.abs(sx - 1), Math.abs(sz - 1), Math.abs(sy - 1));
+      fit = { ok: worst <= FIT_TOL + 1e-9 && y0 >= 0, scale: { x: sx, y: sy, z: sz }, turned: false, worst };
+      if (fit.ok && !surfaceMatches(info.surfaceM, sy, item.surfaceHeightM - y0)) fit = { ...fit, ok: false };
+      extra = { offset: { y: y0, z: 0 } };
+    } else if (model.use === 'chairs') {
       // the chairs of a table: the chair slot, and both rows must leave the middle of the footprint clear
       const turned = item.box.d > item.box.w * 1.25;
       const depth = turned ? item.box.w : item.box.d;
@@ -139,10 +183,12 @@ export function planFurniture(item: Pick<FurnitureItem, 'box' | 'heightM' | 'sur
       if (fit.ok && info.dims.d * fit.scale.z > depth / 2 - 0.005) fit = { ...fit, ok: false };
       if (fit.ok && !surfaceMatches(info.surfaceM, fit.scale.y, 0.45, 0.03)) fit = { ...fit, ok: false };
     } else {
-      fit = fitModel(info.dims, { w: item.box.w, h: item.heightM, d: item.box.d }, FIT_TOL, !!model.turnable);
+      const back = model.slot?.back ?? 0;
+      fit = fitModel(info.dims, { w: item.box.w, h: item.heightM, d: item.box.d - back }, FIT_TOL, !!model.turnable);
       if (fit.ok && !surfaceMatches(info.surfaceM, fit.scale.y, item.surfaceHeightM)) fit = { ...fit, ok: false };
+      if (back > 0) extra = { offset: { y: 0, z: back / 2 } };
     }
-    if (fit.ok && (!best || fit.worst < best.fit.worst)) best = { model, info, fit };
+    if (fit.ok && (!best || fit.worst < best.fit.worst)) best = { model, info, fit, ...extra };
   }
   return best;
 }
@@ -163,6 +209,8 @@ export function decorChoice(kind: string, piece: { w: number; d: number; height:
   const model = list[piece.seed % list.length];
   const info = modelInfo(model.id);
   if (!info) return null;
+  if (model.decorFit === 'footprint') return { model, info, scale: Math.min(piece.w / info.dims.w, piece.d / info.dims.d) };
+  if (model.decorFit === 'width') return { model, info, scale: piece.w / info.dims.w };
   if (kind === 'fruit') {
     // a bowl that takes the piece's footprint, with fruit in it
     return { model, info, scale: Math.max(0.5, Math.min(1.3, piece.w / info.dims.w)) };

@@ -23,6 +23,22 @@ function mark(g: THREE.Object3D): void {
   });
 }
 
+/** The named parts are stretched upward from their own foot so the piece's top reaches `height` (never shrunk): a hood's flue to the ceiling. */
+export function stretchUp(g: THREE.Group, parts: string[], height: number): void {
+  const box = new THREE.Box3();
+  for (const c of g.children) box.expandByObject(c);
+  if (box.isEmpty() || box.max.y >= height) return;
+  for (const c of g.children) {
+    const m = c as THREE.Mesh;
+    if (!m.isMesh || !parts.includes(String(m.userData.walkthruPart ?? m.name))) continue;
+    m.geometry.computeBoundingBox();
+    const { min, max } = m.geometry.boundingBox as THREE.Box3;
+    const y0 = min.y, k = (height - y0) / Math.max(1e-6, max.y - y0);
+    m.geometry.translate(0, -y0, 0).scale(1, k, 1).translate(0, y0, 0);
+    m.geometry.computeBoundingBox();
+  }
+}
+
 function freeKids(g: THREE.Object3D): void {
   for (const c of [...g.children]) { g.remove(c); disposeInstance(c); }
 }
@@ -41,7 +57,10 @@ export function attachDecorModel(g: THREE.Group, piece: DecorSpec, tier: Tier, p
     if (!tpl || !alive()) return false;
     const out = new THREE.Group();
     const s = { x: scale, y: scale, z: scale };
-    for (const c of [...instantiate(tpl, [{ x: 0, y: 0, z: 0, yawDeg: 0, scale: s }], { partUse: model.parts, noRaycast: true }).children]) out.add(c);
+    // a floor-centred model on a wall piece stands with its back on the wall plane
+    const z = piece.place === 'wall' && choice.info.place !== 'wall' ? (choice.info.dims.d * scale) / 2 : 0;
+    for (const c of [...instantiate(tpl, [{ x: 0, y: 0, z, yawDeg: 0, scale: s }], { partUse: model.parts, noRaycast: true }).children]) out.add(c);
+    if (model.stretch) stretchUp(out, model.stretch, piece.height);
     if (piece.kind === 'fruit') {
       const r = (choice.info.dims.w / 2) * scale * 0.62;
       FRUIT_IN_BOWL.forEach((f) => {
