@@ -440,11 +440,11 @@
    "files": {
     "low": {
      "file": "hood_chimney.low.glb",
-     "bytes": 18804
+     "bytes": 18824
     },
     "full": {
      "file": "hood_chimney.glb",
-     "bytes": 37844
+     "bytes": 37864
     }
    },
    "parts": {
@@ -457,9 +457,9 @@
      "detailCv": 0,
      "material": {
       "baseColor": [
-       0.74,
-       0.75,
-       0.76,
+       0.78,
+       0.79,
+       0.8,
        1
       ]
      }
@@ -473,9 +473,9 @@
      "detailCv": 0,
      "material": {
       "baseColor": [
-       0.74,
-       0.75,
-       0.76,
+       0.78,
+       0.79,
+       0.8,
        1
       ]
      }

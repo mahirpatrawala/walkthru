@@ -403,12 +403,12 @@
       "sha256": "406b644dbee297523d5c476aac7b4f59998f51255f04a0f8bc0ffbe794ee32c6"
     },
     "models/hood_chimney.glb": {
-      "bytes": 37844,
-      "sha256": "7ea6945f01be94fa478d48a761ff0b44d255069dad782ebbe47225c3110dd1d5"
+      "bytes": 37864,
+      "sha256": "e1ee197354111af38342113b1021be794047b6a1fdfcf9efde74e711037b5573"
     },
     "models/hood_chimney.low.glb": {
-      "bytes": 18804,
-      "sha256": "f8b2994710e633347f8fc0fcba557842b32e551835892bfbc28cfaae855c011d"
+      "bytes": 18824,
+      "sha256": "0951d0756b8c16ed537d03e2e7794a4b8ff23cfef04148bc8f54db81ae600096"
     }
   }
 }

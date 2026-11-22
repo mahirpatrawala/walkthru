@@ -37,7 +37,8 @@ const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 const PLAIN = {
   ceramic: { color: [0.94, 0.94, 0.93, 1], metal: 0, rough: 0.12 },
   chrome: { color: [0.82, 0.83, 0.85, 1], metal: 1, rough: 0.12 },
-  steel: { color: [0.74, 0.75, 0.76, 1], metal: 1, rough: 0.32 },
+  // brushed steel: partly metallic, so it reads as steel under a room's soft light (fully metallic, it mirrors a dim room and goes black)
+  steel: { color: [0.78, 0.79, 0.8, 1], metal: 0.55, rough: 0.3 },
   black: { color: [0.03, 0.03, 0.035, 1], metal: 0.2, rough: 0.35 },
   blackGlass: { color: [0.02, 0.02, 0.025, 1], metal: 0, rough: 0.06 },
   iron: { color: [0.06, 0.06, 0.06, 1], metal: 0.6, rough: 0.45 },
