@@ -419,6 +419,390 @@
       },
       "heightM": 0.45,
       "surfaceHeightM": 0.45
+    },
+    {
+      "id": "gym-gym-mirror-23",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 45.42,
+        "cz": 40.8,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 270
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-mirror-24",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 45.42,
+        "cz": 42,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 270
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-mirror-25",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 45.42,
+        "cz": 43.2,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 270
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-mirror-26",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 45.42,
+        "cz": 44.4,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 270
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-mirror-27",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 45.42,
+        "cz": 45.6,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 270
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-mirror-28",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 45.42,
+        "cz": 46.8,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 270
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-mirror-29",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 45.42,
+        "cz": 48,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 270
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-mirror-30",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 34,
+        "cz": 49.08,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 180
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-mirror-31",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 35.2,
+        "cz": 49.08,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 180
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-mirror-32",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 36.4,
+        "cz": 49.08,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 180
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-mirror-33",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 37.6,
+        "cz": 49.08,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 180
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-mirror-34",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-mirror",
+      "label": "Mirror panel, 120 × 200",
+      "box": {
+        "cx": 38.8,
+        "cz": 49.08,
+        "w": 1.2,
+        "d": 0.03,
+        "yawDeg": 180
+      },
+      "heightM": 2.3,
+      "surfaceHeightM": 2.3
+    },
+    {
+      "id": "gym-gym-floor-4x2-35",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-4x2",
+      "label": "Rubber flooring, 4 × 2 m",
+      "box": {
+        "cx": 33.7,
+        "cz": 48,
+        "w": 4,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
+    },
+    {
+      "id": "gym-gym-floor-4x2-36",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-4x2",
+      "label": "Rubber flooring, 4 × 2 m",
+      "box": {
+        "cx": 37.7,
+        "cz": 48,
+        "w": 4,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
+    },
+    {
+      "id": "gym-gym-floor-2x2-37",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-2x2",
+      "label": "Rubber flooring, 2 × 2 m",
+      "box": {
+        "cx": 40.7,
+        "cz": 48,
+        "w": 2,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
+    },
+    {
+      "id": "gym-gym-floor-4x2-38",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-4x2",
+      "label": "Rubber flooring, 4 × 2 m",
+      "box": {
+        "cx": 33.7,
+        "cz": 46,
+        "w": 4,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
+    },
+    {
+      "id": "gym-gym-floor-4x2-39",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-4x2",
+      "label": "Rubber flooring, 4 × 2 m",
+      "box": {
+        "cx": 37.7,
+        "cz": 46,
+        "w": 4,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
+    },
+    {
+      "id": "gym-gym-floor-2x2-40",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-2x2",
+      "label": "Rubber flooring, 2 × 2 m",
+      "box": {
+        "cx": 40.7,
+        "cz": 46,
+        "w": 2,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
+    },
+    {
+      "id": "gym-gym-floor-4x2-41",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-4x2",
+      "label": "Rubber flooring, 4 × 2 m",
+      "box": {
+        "cx": 33.7,
+        "cz": 44,
+        "w": 4,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
+    },
+    {
+      "id": "gym-gym-floor-4x2-42",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-4x2",
+      "label": "Rubber flooring, 4 × 2 m",
+      "box": {
+        "cx": 37.7,
+        "cz": 44,
+        "w": 4,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
+    },
+    {
+      "id": "gym-gym-floor-2x2-43",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-2x2",
+      "label": "Rubber flooring, 2 × 2 m",
+      "box": {
+        "cx": 40.7,
+        "cz": 44,
+        "w": 2,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
+    },
+    {
+      "id": "gym-gym-floor-4x2-44",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-4x2",
+      "label": "Rubber flooring, 4 × 2 m",
+      "box": {
+        "cx": 33.7,
+        "cz": 42,
+        "w": 4,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
+    },
+    {
+      "id": "gym-gym-floor-4x2-45",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-4x2",
+      "label": "Rubber flooring, 4 × 2 m",
+      "box": {
+        "cx": 37.7,
+        "cz": 42,
+        "w": 4,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
+    },
+    {
+      "id": "gym-gym-floor-2x2-46",
+      "source": "virtual",
+      "kind": "counter",
+      "catalogId": "gym-floor-2x2",
+      "label": "Rubber flooring, 2 × 2 m",
+      "box": {
+        "cx": 40.7,
+        "cz": 42,
+        "w": 2,
+        "d": 2,
+        "yawDeg": 0
+      },
+      "heightM": 0.015,
+      "surfaceHeightM": 0.015
     }
   ],
   "spawn": {

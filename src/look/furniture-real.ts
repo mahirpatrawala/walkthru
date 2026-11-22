@@ -16,6 +16,7 @@ import { getStyle, resolveLook } from './style';
 import type { ResolvedLook } from './style';
 import { planFurniture } from './models/library';
 import { attachModel, clearModelUse } from './models/apply';
+import { hookProps } from './gym/props';
 
 export type FurnitureLookName = 'bed' | 'sofa' | 'wardrobe' | 'study' | 'side' | 'counter' | 'dining';
 
@@ -481,6 +482,8 @@ export function buildRealFurniture(group: THREE.Group, item: FurnitureItem, tier
     // the generator consumed item.finish itself (src/look/style.ts finishLayer): the old colour-swap pass stands down
     group.userData.finishApplied = true;
     // a free CC0 model stands in for the generated piece when it fits the drawn size (SPEC 16.15); the generated piece shows until it arrives
+    // the gym's dumbbells and kettlebells are real models (SPEC 16.17.1), swapped in when they arrive
+    hookProps(group, built, item.id, tier, () => GENERATORS[look.kind].build({ kit, q: genQuality(tier) }, sizeOf(item), look.params, look.roles));
     const plan = planFurniture(item, look, getStyle().pack.models ?? null);
     if (plan) void attachModel(group, item, look, plan, tier, kit);
     return;

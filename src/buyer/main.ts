@@ -34,6 +34,7 @@ import { PACKS } from '../look/packs';
 import { doorPanelFinish, finishNote, getStyle, onStyleChange, setSpaceKind, setStyle, trimColours } from '../look/style';
 import { resolveItemLook } from '../look/furniture-real';
 import { modelNote } from '../look/models/apply';
+import { propNote } from '../look/gym/props';
 import { setModelsEnabled } from '../look/models/library';
 import { modelStats, modelsIdle } from '../look/models/load';
 import type { Look } from '../look/look';
@@ -528,7 +529,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     cleanup.push(onStyleChange(() => { labels.dispose(); labels = mountDoorLabels(viewer.scene, layout, property.spaceKind ?? 'home'); }));
   }
   cleanup.push(onStyleChange(styleDoors)); // a real leaf in every door: swings, blocks the walk grid, prompts "Open door" (src/buyer/doors.ts)
-  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, editNote: (item) => { const d = store.drawnItem(item.id); return d && store.isOriginal(item.id) ? editNote(d, item) : null; }, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name) + modelNote(item.id)) });
+  const interactions = createInteractions(ctx, { wardrobe: wardrobes, seats, editNote: (item) => { const d = store.drawnItem(item.id); return d && store.isOriginal(item.id) ? editNote(d, item) : null; }, cardNote: (item) => standardHeightNote(item, designs) ?? (getStyle().pack.classic ? null : finishNote(resolveItemLook(item), getStyle().pack.name) + modelNote(item.id) + propNote(item.id)) });
   modes.register({ id: 'walk', enter() {}, exit() {}, update() {} });
   modes.register(interactions.mode);
   modes.register(createMeasureMode(ctx));

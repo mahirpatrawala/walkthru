@@ -11,7 +11,9 @@ export type MatKey =
   // style generators (src/look/gen): `wood` is the oak grain tinted to any species, the rest are tinted too
   | 'wood' | 'laminate' | 'gloss' | 'paint' | 'weave' | 'quilt' | 'shag' | 'stripe' | 'brass' | 'blackMetal' | 'sheer' | 'drape' | 'lamp'
   // SPEC 16.21 (round 3): a quartz worktop and a woven rug, which only the Realistic materials layer gives a surface (Off draws them flat)
-  | 'quartz' | 'rug' | 'felt';
+  | 'quartz' | 'rug' | 'felt'
+  // SPEC 16.17.1 (22 Nov 2026): gym equipment: black vinyl upholstery (a photographed leather grain), powder-coated steel, rubber
+  | 'vinyl' | 'powder' | 'plastic' | 'rubber' | 'rubberFloor';
 
 interface Def {
   /** colour, also the flat colour on the low tier (the mean of the texture where there is one) */
@@ -30,6 +32,8 @@ interface Def {
   /** a normal map of its own (a quilt, flutes), path under public/look/ */
   nor?: string;
   norScale?: number;
+  /** a colour map of its own, path under public/look/ (the gym's rubber floor): while the map is on, the colour is white so the map shows as photographed */
+  diff?: string;
   /** see-through cloth */
   opacity?: number;
   doubleSide?: boolean;
@@ -75,6 +79,12 @@ export const DEFS: Record<MatKey, Def> = {
   // baize and felt (a pool table's cloth): a fine, dense nap
   felt: { color: '#1F6B46', roughness: 0.98, metalness: 0, tex: 'rough_linen', detail: true, tile: 0.09, norScale: 0.4 },
   lamp: { color: '#FFFFFF', roughness: 0.4, metalness: 0, tile: 1, emissive: '#FFE8C2' },
+  // gym (SPEC 16.17.1): the normal maps are CC0 photographs (Poly Haven leather_white, ambientCG Rubber001), fetched by scripts/fetch-gym-assets.ts
+  vinyl: { color: '#46484E', roughness: 0.4, metalness: 0, tile: 0.22, nor: 'gym/tex/leather_nor.jpg', norScale: 1.5 },
+  powder: { color: '#60656D', roughness: 0.42, metalness: 0.1, tile: 1 },
+  plastic: { color: '#6A6F77', roughness: 0.5, metalness: 0, tile: 1 },
+  rubber: { color: '#4A4C51', roughness: 0.85, metalness: 0, tile: 0.6, nor: 'gym/tex/rubber_nor.jpg', norScale: 0.5 },
+  rubberFloor: { color: '#55575B', roughness: 0.9, metalness: 0, tile: 1.0, diff: 'gym/tex/rubber_floor_diff.jpg', nor: 'gym/tex/rubber_nor.jpg', norScale: 0.6 },
 };
 
 const DETAIL_VERT_PARS = '';
@@ -130,7 +140,7 @@ export function createFurnitureKit(): FurnitureKit {
 
   /** the files one kind of material wants at the current tier, under public/look/ */
   function pathsOf(d: Def): { diff?: string; nor?: string; arm?: string } {
-    if (!d.tex) return d.nor ? { nor: d.nor } : {};
+    if (!d.tex) return { ...(d.diff ? { diff: d.diff } : {}), ...(d.nor ? { nor: d.nor } : {}) };
     const name = d.tex;
     const out: { diff?: string; nor?: string; arm?: string } = {};
     const two = realism === '2k' && REALISTIC_FURNITURE_2K.has(name);
@@ -144,13 +154,15 @@ export function createFurnitureKit(): FurnitureKit {
   function apply(l: Live): void {
     const d = DEFS[l.key];
     const m = l.mat;
-    const full = tier !== 'low' && realism !== 'off' && (d.tex || d.nor) && !m.userData.flatFinish;
+    const full = tier !== 'low' && realism !== 'off' && (d.tex || d.nor || d.diff) && !m.userData.flatFinish;
     const set = (k: 'map' | 'normalMap' | 'roughnessMap', t: THREE.Texture | null): void => {
       if ((m[k] ?? null) !== t) { m[k] = t; m.needsUpdate = true; }
     };
-    if (!full) { set('map', null); set('normalMap', null); set('roughnessMap', null); if (!m.userData.flatFinish) m.metalness = d.metalness * (l.key === 'metal' ? 0.4 : 1); return; }
+    const ownMap = !!d.diff && !l.normalOnly;
+    if (!full) { set('map', null); set('normalMap', null); set('roughnessMap', null); if (ownMap) m.color.set(d.color); if (!m.userData.flatFinish) m.metalness = d.metalness * (l.key === 'metal' ? 0.4 : 1); return; }
     const want = pathsOf(d);
     if (!l.normalOnly) set('map', want.diff ? tex.get(want.diff) ?? null : null);
+    if (ownMap) m.color.set(m.map ? '#FFFFFF' : d.color);
     set('normalMap', want.nor ? tex.get(want.nor) ?? null : null);
     if (want.nor) { const k = l.nScale ?? d.norScale ?? 0.6; m.normalScale.set(k, k); }
     set('roughnessMap', want.arm && !l.normalOnly ? tex.get(want.arm) ?? null : null);
@@ -194,7 +206,7 @@ export function createFurnitureKit(): FurnitureKit {
       const l = { key, mat };
       live.add(l);
       mat.addEventListener('dispose', () => { live.delete(l); });
-      if (tier !== 'low' && realism !== 'off' && (d.tex || d.nor)) {
+      if (tier !== 'low' && realism !== 'off' && (d.tex || d.nor || d.diff)) {
         apply(l);
         // a kind that was not loaded at the tier change (a style generator's) is fetched now and applied when it arrives
         void fetchFor([key]).then(() => apply(l), () => { /* the flat colour stays */ });

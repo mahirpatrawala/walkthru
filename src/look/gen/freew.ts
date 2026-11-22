@@ -4,7 +4,8 @@
 import * as THREE from 'three';
 import { Parts } from './core';
 import type { GenEnv, GenSize, Roles } from './core';
-import { ACCENT_RED, CHROME, FRAME, FRAME_GREY, IRON, PAD_BLACK, SHROUD, WOOD_ASH, cylX, dumbbell, dumbbellLength, dumbbellRadius, grip, pad, plateDisc, slab, tube, tubes } from './gymkit';
+import { ACCENT_RED, CHROME, FRAME, FRAME_GREY, IRON, LABEL, PAD_BLACK, RUBBER, SHROUD, WOOD_ASH, cylX, dumbbell, dumbbellLength, dumbbellRadius, grip, kettlebell, knob, noteProp, pad, plateDisc, rtube, slab, tube, tubes } from './gymkit';
+import { propGeo } from '../gym/props';
 
 export const FREEW_VARIANTS = ['bench-flat', 'bench-incline', 'bench-adjust', 'bench-press', 'rack', 'dumbbells', 'plate-tree', 'kettlebells', 'preacher'] as const;
 export type FreeWVariant = (typeof FREEW_VARIANTS)[number];
@@ -17,6 +18,8 @@ export const DUMBBELL_PAIRS_KG = [2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25]
 export const KETTLEBELLS_KG = [4, 8, 12, 16, 20, 24, 28, 32] as const;
 
 const kbRadius = (kg: number): number => 0.075 + 0.0015 * kg;
+/** a kettlebell's height by its weight (a 16 kg competition bell is about 24 cm tall) */
+const kbHeight = (kg: number): number => 2.4 * kbRadius(kg);
 
 export function buildFreeWeights(env: GenEnv, size: GenSize, p: FreeWParams, _roles: Roles): THREE.Group {
   const { w, d, h: H, s: S } = size;
@@ -138,31 +141,37 @@ export function buildFreeWeights(env: GenEnv, size: GenSize, p: FreeWParams, _ro
       }
     },
     dumbbells: () => {
-      // two tiers of saddles, five pairs a tier, each dumbbell lying front to back with its handle toward the walker; the heavy pairs at the bottom
-      const tierY = [0.3, S];
-      slab(parts, 'dbrack-feet', FRAME, -x1, -x1 + 0.08, 0, 0.06, z0, z1);
-      slab(parts, 'dbrack-feet', FRAME, x1 - 0.08, x1, 0, 0.06, z0, z1);
-      slab(parts, 'dbrack-feet', FRAME, -x1, x1, 0, 0.06, z0, z0 + 0.06);
-      for (const sx of [-1, 1]) {
-                tube(parts, 'dbrack-legs', FRAME, [sx * (x1 - 0.04), 0.06, z0 + 0.03], [sx * (x1 - 0.04), 0.3, z0 + 0.03], 0.03);
-        tube(parts, 'dbrack-legs', FRAME, [sx * (x1 - 0.04), 0.06, z1 - 0.03], [sx * (x1 - 0.04), S, z1 - 0.03], 0.03);
+      // a commercial two-tier saddle rack: charcoal end frames and a middle frame of rectangular tube, each tier two rails with a moulded tray between
+      // them, tilted a little toward the walker; ten pairs of hex dumbbells (the downloaded model when it is here), the heavy ones below
+      const model = propGeo('dumbbell', q.tier);
+      noteProp(parts, 'dumbbell', !!model);
+      const tiers: { y: number; kgs: readonly number[] }[] = [{ y: 0.3, kgs: DUMBBELL_PAIRS_KG.slice(5) }, { y: S, kgs: DUMBBELL_PAIRS_KG.slice(0, 5) }];
+      const tilt = 0.06; // the back rail of a tier stands this much higher than the front
+      for (const fx of [-x1 + 0.035, 0, x1 - 0.035]) {
+        rtube(parts, 'dbrack-frame', FRAME, [fx, 0.03, z0 + 0.03], [fx, 0.03, z1 - 0.03], 0.07, 0.06, 0.012);
+        rtube(parts, 'dbrack-frame', FRAME, [fx, 0.04, z1 - 0.09], [fx, S - 0.04, z1 - 0.1], 0.07, 0.05, 0.012);
+        rtube(parts, 'dbrack-frame', FRAME, [fx, 0.04, z0 + 0.07], [fx, H - 0.06, z0 + 0.07], 0.07, 0.05, 0.012);
+        for (const t of tiers) rtube(parts, 'dbrack-frame', FRAME, [fx, t.y - 0.05, z1 - 0.1], [fx, t.y - 0.05 + tilt, z0 + 0.07], 0.07, 0.05, 0.012);
+        for (const zz of [z0 + 0.03, z1 - 0.03]) parts.box('dbrack-feet', RUBBER, fx - 0.035, fx + 0.035, 0, 0.006, zz - 0.03, zz + 0.03, { c: 0.002 });
       }
-      // the rails the dumbbells sit on: two angled shelf bars a tier, with saddles
-      for (const [ti, y] of tierY.entries()) {
-        for (const z of [z0 + 0.1, z1 - 0.1]) slab(parts, 'dbrack-shelf', FRAME, -x1, x1, y - 0.04, y, z - 0.03, z + 0.03);
-        for (const z of [z0 + 0.1, z1 - 0.1]) slab(parts, 'dbrack-shelf', FRAME, -x1, -x1 + 0.04, y - 0.04, y + 0.03, z - 0.03, z + 0.03);
-        const pairs = ti === 1 ? DUMBBELL_PAIRS_KG.slice(0, 5) : DUMBBELL_PAIRS_KG.slice(5);
-        const spacing = (w - 0.2) / 10;
+      rtube(parts, 'dbrack-top', FRAME, [-x1 + 0.005, H - 0.03, z0 + 0.07], [x1 - 0.005, H - 0.03, z0 + 0.07], 0.07, 0.06, 0.012);
+      const spacing = (w - 0.2) / 10;
+      for (const t of tiers) {
+        for (const [zz, dy] of [[z1 - 0.1, 0], [z0 + 0.1, tilt * 0.92]] as const) rtube(parts, 'dbrack-rails', FRAME, [-x1 + 0.005, t.y - 0.02 + dy, zz], [x1 - 0.005, t.y - 0.02 + dy, zz], 0.05, 0.04, 0.01);
+        // the moulded tray the heads rest in, between the rails
+        const tray = new THREE.BoxGeometry(w - 0.1, 0.012, d - 0.22);
+        tray.rotateX(-Math.atan2(tilt * 0.92, d - 0.2));
+        tray.translate(0, t.y - 0.01 + tilt * 0.46, 0);
+        parts.put('dbrack-trays', SHROUD, tray);
         let i = 0;
-        for (const kg of pairs) for (let k = 0; k < 2; k++) {
+        for (const kg of t.kgs) for (let k = 0; k < 2; k++) {
           const x = -x1 + 0.1 + spacing * (i + 0.5);
-          dumbbell(parts, x, y + dumbbellRadius(kg) + 0.002, 0, kg, 'z');
+          dumbbell(parts, x, t.y + dumbbellRadius(kg) + tilt * 0.46, 0, kg, 'z', 'dumbbells', model);
           i++;
         }
+        // a white weight label under each pair, on the front rail
+        t.kgs.forEach((_, j) => { const x = -x1 + 0.1 + spacing * (j * 2 + 1); slab(parts, 'dbrack-labels', LABEL, x - 0.03, x + 0.03, t.y - 0.035, t.y - 0.012, z1 - 0.075, z1 - 0.073); });
       }
-            slab(parts, 'dbrack-top', FRAME, -x1, x1, H - 0.02, H, z0 + 0.04, z0 + 0.08);
-      for (const sx of [-1, 1]) tube(parts, 'dbrack-legs', FRAME, [sx * (x1 - 0.04), 0.5, z0 + 0.03], [sx * (x1 - 0.04), H - 0.02, z0 + 0.06], 0.026);
-      // weight labels: a small plate under each saddle
       void dumbbellLength;
     },
     'plate-tree': () => {
@@ -182,28 +191,20 @@ export function buildFreeWeights(env: GenEnv, size: GenSize, p: FreeWParams, _ro
       void r0;
     },
     kettlebells: () => {
-      // two tiers, four bells each, 4 to 32 kg; the heavy ones at the bottom
-      slab(parts, 'kb-feet', FRAME, -x1, x1, 0, 0.05, z0, z0 + 0.06);
-      slab(parts, 'kb-feet', FRAME, -x1, x1, 0, 0.05, z1 - 0.06, z1);
-      for (const sx of [-1, 1]) for (const z of [z0 + 0.03, z1 - 0.03]) tube(parts, 'kb-legs', FRAME, [sx * (x1 - 0.03), 0.05, z], [sx * (x1 - 0.03), H, z], 0.026, true);
+      // two tiers, four bells each, 4 to 32 kg (the downloaded bell when it is here), the heavy ones at the bottom
+      const model = propGeo('kettlebell', q.tier);
+      noteProp(parts, 'kettlebell', !!model);
+      for (const zz of [z0 + 0.03, z1 - 0.03]) rtube(parts, 'kb-feet', FRAME, [-x1 + 0.005, 0.025, zz], [x1 - 0.005, 0.025, zz], 0.06, 0.05, 0.012);
+      for (const sx of [-1, 1]) for (const z of [z0 + 0.03, z1 - 0.03]) rtube(parts, 'kb-legs', FRAME, [sx * (x1 - 0.03), 0.05, z], [sx * (x1 - 0.03), H, z], 0.05, 0.05, 0.01);
       const tiers: [number, readonly number[]][] = [[0.34, KETTLEBELLS_KG.slice(4)], [S, KETTLEBELLS_KG.slice(0, 4)]];
       for (const [y, kgs] of tiers) {
-        slab(parts, 'kb-shelf', WOOD_ASH, -x1 + 0.02, x1 - 0.02, y - 0.03, y, z0 + 0.03, z1 - 0.03);
+        parts.box('kb-shelf', WOOD_ASH, -x1 + 0.02, x1 - 0.02, y - 0.03, y, z0 + 0.03, z1 - 0.03, { c: 0.004 });
         kgs.forEach((kg, i) => {
-          const r = kbRadius(kg);
           const x = -x1 + 0.17 + i * ((w - 0.34) / 3);
-          const body = new THREE.SphereGeometry(r, q.tier === 'low' ? 8 : q.tier === 'medium' ? 12 : 16, q.tier === 'low' ? 6 : q.tier === 'medium' ? 8 : 10);
-          body.translate(x, y + r, 0);
-          parts.put('kettlebells', IRON, body);
-          // handle: an arch on top, as a half ring of tube
-          // the handle: a thick arch standing clear of the body (0.35 r above its top), its ends buried in the shoulders
-          const arch = new THREE.TorusGeometry(r * 0.5, 0.017, q.tier === 'low' ? 4 : 6, q.tier === 'low' ? 8 : 16, Math.PI);
-          arch.translate(x, y + r * 1.85, 0);
-          parts.put('kettlebell-handles', IRON, arch);
-          for (const s of [-1, 1]) tube(parts, 'kettlebell-handles', IRON, [x + s * r * 0.5, y + r * 1.85, 0], [x + s * r * 0.5, y + r * 1.6, 0], 0.017);
+          kettlebell(parts, x, y, 0, kbHeight(kg), model, kg >= 24 ? ACCENT_RED : kg >= 16 ? { key: 'plastic', tint: '#D9A82B' } : { key: 'plastic', tint: '#3E7D4F' });
         });
       }
-      slab(parts, 'kb-top', FRAME, -x1, x1, H - 0.02, H, z0 + 0.03, z0 + 0.06);
+      rtube(parts, 'kb-top', FRAME, [-x1 + 0.005, H - 0.025, z0 + 0.03], [x1 - 0.005, H - 0.025, z0 + 0.03], 0.05, 0.05, 0.01);
     },
     preacher: () => {
       // an angled arm pad rising toward the back, a seat on a post, a foot rest at the front

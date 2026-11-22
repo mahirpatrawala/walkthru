@@ -1,0 +1,291 @@
+{
+  "generatedBy": "scripts/fetch-gym-assets.ts",
+  "read": "2026-11-22",
+  "assets": {
+    "leather_white": {
+      "id": "leather_white",
+      "name": "Leather White",
+      "kind": "texture",
+      "authors": [
+        "Rob Tuytel"
+      ],
+      "page": "https://polyhaven.com/a/leather_white",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://polyhaven.com/license",
+      "licenceWords": "Our assets are all licensed as CC0",
+      "use": "normal map of the vinyl upholstery of every gym pad (the grain of real leather, tinted black)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "leather_white_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leather_white/leather_white_nor_gl_1k.jpg",
+          "size": 670610,
+          "md5": "4226eb91e17693722f3368cd41a3b1c9",
+          "sha256": "51bdac4b76da70dc54c288cffea4ecaf837ebb6ed9264664bf5c9a1fc79aa074"
+        }
+      ]
+    },
+    "Rubber001": {
+      "id": "Rubber001",
+      "name": "Rubber 001",
+      "kind": "texture",
+      "authors": [
+        "Lennart Demes (ambientCG)"
+      ],
+      "page": "https://ambientcg.com/view?id=Rubber001",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://docs.ambientcg.com/license/",
+      "licenceWords": "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal License",
+      "use": "the black EPDM-fleck rubber gym floor (colour and normal), and the normal of rubber parts (belts, feet, grips, mats)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "Rubber001_1K-JPG.zip",
+          "url": "https://ambientcg.com/get?file=Rubber001_1K-JPG.zip",
+          "size": 8442514,
+          "md5": "e6b6198b071d3c9b22e00e1c17d7f1a0",
+          "sha256": "9723fabed24f7befcdad24e953f44347a7b91e1d0c37a4fb5e31835e61c0902b"
+        }
+      ]
+    },
+    "sketchfab-fa481412927e43dfbeab9f6da464c15b": {
+      "id": "sketchfab-fa481412927e43dfbeab9f6da464c15b",
+      "name": "Weight Room Set 2",
+      "kind": "model",
+      "authors": [
+        "Tytan (tylerhalterman)"
+      ],
+      "page": "https://sketchfab.com/3d-models/weight-room-set-2-fa481412927e43dfbeab9f6da464c15b",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Sketchfab API v3/models/fa481412927e43dfbeab9f6da464c15b: license \"CC Attribution\", \"Author must be credited. Commercial use is allowed.\"",
+      "use": "one hex dumbbell (rubber head, chrome handle), instanced at every weight of a dumbbell rack",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "fa481412927e43dfbeab9f6da464c15b.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-076/fa481412927e43dfbeab9f6da464c15b.glb",
+          "size": 4440108,
+          "md5": "5a2968bd89cf56856068271af2801df7",
+          "sha256": "1c9770a4cfed964a41aa708e757103fa911203d21c29d5372d52241fa0d4cec7"
+        }
+      ]
+    },
+    "sketchfab-2e09cbcbde964a658d51838e2f9866bb": {
+      "id": "sketchfab-2e09cbcbde964a658d51838e2f9866bb",
+      "name": "kettlebell",
+      "kind": "model",
+      "authors": [
+        "anesbe89"
+      ],
+      "page": "https://sketchfab.com/3d-models/kettlebell-2e09cbcbde964a658d51838e2f9866bb",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Sketchfab API v3/models/2e09cbcbde964a658d51838e2f9866bb: license \"CC Attribution\", \"Author must be credited. Commercial use is allowed.\"",
+      "use": "a competition kettlebell, scaled to each weight of a kettlebell rack",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "2e09cbcbde964a658d51838e2f9866bb.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-077/2e09cbcbde964a658d51838e2f9866bb.glb",
+          "size": 1580360,
+          "md5": "9ce03caa80dcb8276e952c286e0b316b",
+          "sha256": "b550fc8c1f149dc723da00d704865f43588112a40df24e5987142a39f68f8586"
+        }
+      ]
+    },
+    "chess_set": {
+      "id": "chess_set",
+      "name": "Chess Set",
+      "kind": "model",
+      "authors": [
+        "Riley Queen"
+      ],
+      "page": "https://polyhaven.com/a/chess_set",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://polyhaven.com/license",
+      "licenceWords": "Our assets are all licensed as CC0",
+      "use": "the board and the 32 men on the chess table of the games room (SPEC 16.17.2)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "chess_set_1k.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/chess_set/chess_set_1k.gltf",
+          "size": 53740,
+          "md5": "ceac1016348f797f3db112e3e70a96a4",
+          "sha256": "3e21ecd0c2ffb703dfdb3f3ea7a379c1dbd4ec513ba2cb8e6cb1e5f276d7eb91"
+        },
+        {
+          "path": "textures/chess_set_pieces_white_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chess_set/chess_set_pieces_white_nor_gl_1k.jpg",
+          "size": 443642,
+          "md5": "4cacfbb2e652cd1fd68ad599fda9c7b7",
+          "sha256": "51c31dc44d1d0f01c10b759be7903bea9d5b04781b63dc45738dd70a6e31dd6c"
+        },
+        {
+          "path": "textures/chess_set_pieces_black_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chess_set/chess_set_pieces_black_nor_gl_1k.jpg",
+          "size": 421230,
+          "md5": "c0a6bf5918cc47fbc7ef70e7bcd44b1a",
+          "sha256": "b92343bba552e82f271f86def504e806e73c6f5dfc4469a90fa5b4f66013bfcd"
+        },
+        {
+          "path": "textures/chess_set_pieces_black_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chess_set/chess_set_pieces_black_arm_1k.jpg",
+          "size": 833327,
+          "md5": "5bd1040c1f5b9155c4a857084f8fae9b",
+          "sha256": "e0413b36e970c645bd9b6192bfe788b318d9bd9f4f3746cf137552bfee118982"
+        },
+        {
+          "path": "textures/chess_set_board_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chess_set/chess_set_board_diff_1k.jpg",
+          "size": 602985,
+          "md5": "6387bd6ddb53994016f0463e83e2c50a",
+          "sha256": "cca44d214f48ebe2205362a3996265d1fed727e094835bec2c873e91c653eaa5"
+        },
+        {
+          "path": "textures/chess_set_board_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chess_set/chess_set_board_nor_gl_1k.jpg",
+          "size": 227381,
+          "md5": "521b8b19abf4f1aa3cc20105f00eac97",
+          "sha256": "bc5657ec58e0e04a2e8fa6d50ec0f6e3009b1c22b8391ccdde1a4d5d9db30d4d"
+        },
+        {
+          "path": "textures/chess_set_board_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chess_set/chess_set_board_arm_1k.jpg",
+          "size": 756404,
+          "md5": "dbd91f4091f0eccadbde324cae25c159",
+          "sha256": "67387308ce3a6424a1666e742c6556853344c01fbfcda8453b6e2e2f62bc6d30"
+        },
+        {
+          "path": "chess_set.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/chess_set/chess_set.bin",
+          "size": 1732220,
+          "md5": "815ae6d5becbcdd836b29b0d644bba95",
+          "sha256": "c73476fd032a2cb4a9c256f70573eed260708132fdc42fec161c6216711560b3"
+        },
+        {
+          "path": "textures/chess_set_pieces_white_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chess_set/chess_set_pieces_white_arm_1k.jpg",
+          "size": 841156,
+          "md5": "fda5fe9413f4ab708a25eb425b1bdd37",
+          "sha256": "9604c461ee6d5d4f5937891b0468ff7efd354299074b139d04029b03c326e434"
+        },
+        {
+          "path": "textures/chess_set_pieces_black_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chess_set/chess_set_pieces_black_diff_1k.jpg",
+          "size": 480796,
+          "md5": "cc4bbdc39ed8877c74dfad206284a106",
+          "sha256": "74471018f96f197c963cc89e7dae19960b03bc2e4bf448e4b0beb51bfee5b85d"
+        },
+        {
+          "path": "textures/chess_set_pieces_white_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chess_set/chess_set_pieces_white_diff_1k.jpg",
+          "size": 590948,
+          "md5": "d71daf8e6465bf04c63992eaa185e1d1",
+          "sha256": "d9e06002509d73c3f343e1643f0c89ef84e24602f1f6858b5628e8f3e55ae77d"
+        }
+      ]
+    }
+  },
+  "rejected": [
+    {
+      "what": "Treadmill Machine (Sousinho), CC BY",
+      "url": "https://sketchfab.com/3d-models/treadmill-machine-faed3a2a275b4fd68089e1d8bdfb7f89",
+      "why": "a maker's logo is printed on the deck and the textures are worn and blurred"
+    },
+    {
+      "what": "Gym Machine_ Body Solid (Hu), CC BY",
+      "url": "https://sketchfab.com/3d-models/gym-machine--body-solid-4d1d0fb6879f42a9bccf1666a752c276",
+      "why": "a maker's name and logo on the upright and the placard"
+    },
+    {
+      "what": "Modular Gym (Kristen Brown), CC BY",
+      "url": "https://sketchfab.com/3d-models/modular-gym-86e8cc43d76c44e3925e625fdab155f3",
+      "why": "a whole room in feet: its treadmill is 1.3 m wide (the catalogue box is 0.9 m, a 30 % squeeze) with a worn low-resolution texture; its bike is a recumbent with a red marble texture"
+    },
+    {
+      "what": "Gym Lat Pulldown (neilken), CC BY",
+      "url": "https://sketchfab.com/3d-models/gym-lat-pulldown-50fb1df222e6468f9d7ada63c45d673d",
+      "why": "one untextured white mesh with no part split (frame, pads and stack cannot be told apart to colour them), in centimetres at a different footprint"
+    },
+    {
+      "what": "Incline Bench and Flat Bench (Sousinho), CC BY",
+      "url": "https://sketchfab.com/3d-models/incline-bench-bdc274649c234c188d2d4f4c732acb1c",
+      "why": "worn, scratched leather and rusty frame textures: reads as a garage, not a clubhouse"
+    },
+    {
+      "what": "Treadmill ProForm, Tunturi T85, Matrix treadmill, Assault Bike (various), CC BY",
+      "url": "https://sketchfab.com/search?q=treadmill&type=models",
+      "why": "named after and printed with a maker's brand"
+    },
+    {
+      "what": "Every other gym search result on Sketchfab (treadmill, spin bike, lat pulldown, chest press, leg press, dumbbell rack, bench, yoga mat)",
+      "url": "https://api.sketchfab.com/v3/search?type=models&q=gym",
+      "why": "not in the Objaverse archive (a Sketchfab download needs an account token, which this project does not use), stylised low-poly, a whole scene, or not gym equipment"
+    },
+    {
+      "what": "Carrom (mfb64), CC BY",
+      "url": "https://sketchfab.com/3d-models/carrom-57203e19a1514e57929000c9bb4a10df",
+      "why": "its maps are bound through a material extension three.js no longer reads (the board renders white), and each of its 19 coins is 6 600 triangles; the generated board stays"
+    },
+    {
+      "what": "Table Tennis (denis98), Pool Table (Juanpa Velazquez), Foosball Table (owestgate), CC BY",
+      "url": "https://sketchfab.com/3d-models/table-tennis-5849544053924fecb1dee018fa815bf6",
+      "why": "proportions far from a real table (the tennis table stands at a third of its length, not 0.28), a pool table inside a room scene at a height that does not match its footprint, a foosball cabinet 16 % lower than the 90 cm box (over the 12 % fit rule of 16.15)"
+    },
+    {
+      "what": "Lockers (several authors), CC BY",
+      "url": "https://api.sketchfab.com/v3/search?type=models&q=locker",
+      "why": "rusted, dented school lockers: not a clubhouse changing room"
+    },
+    {
+      "what": "Poly Haven models",
+      "url": "https://api.polyhaven.com/assets?t=models",
+      "why": "no gym equipment in the library (re-checked: sports props are balls and a bat)"
+    }
+  ],
+  "outputs": {
+    "tex/leather_nor.jpg": {
+      "bytes": 51813,
+      "sha256": "2a1c6e54057c49c0e50a296bd2c4f7653e2f1a961093ba2efabe880dedf84249"
+    },
+    "tex/rubber_nor.jpg": {
+      "bytes": 35668,
+      "sha256": "9436a838858dec306bafca6809af3c5c21e675342735d3f555d1590b2357eda9"
+    },
+    "tex/rubber_floor_diff.jpg": {
+      "bytes": 340742,
+      "sha256": "571539b9b36409a36952114e69317c97f35141f68763ba683dc007cff78e386c"
+    },
+    "models/dumbbell.glb": {
+      "bytes": 7188,
+      "sha256": "f6132ad7c400dea8742a54d83be980a55885d82e61a623cebd15cd470cb54c61"
+    },
+    "models/dumbbell.low.glb": {
+      "bytes": 5140,
+      "sha256": "25d94afb73eb54ab622f07242af6294a9581b810630bfb84f2e066bf4be7af34"
+    },
+    "models/kettlebell.glb": {
+      "bytes": 19168,
+      "sha256": "3f2c25bc407dbf1cf4c8e38c46507c34bac5db5bc305e0e651b7050ead5a5d34"
+    },
+    "models/kettlebell.low.glb": {
+      "bytes": 12232,
+      "sha256": "fb516ed2b6bf396760d95ce7fddbb5f0f982565833cfa313a8277d620f44f814"
+    },
+    "models/chess.glb": {
+      "bytes": 416564,
+      "sha256": "270e58d09e5c5f5984297e07ab5895f35388ab299ee8bbb507da05bba9204e52"
+    },
+    "models/chess.low.glb": {
+      "bytes": 98900,
+      "sha256": "e00d06d836433a19978c721bb3e024dc61774c88c1425116f688be3be0fb0a27"
+    }
+  }
+}
