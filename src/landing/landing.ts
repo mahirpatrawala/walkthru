@@ -42,8 +42,8 @@ const SHOTS: { file: string; w: number; h: number; title: string; text: string; 
   { file: 'doll', w: 1120, h: 700, title: 'Doll house', text: 'The whole flat from above with the ceiling off, furniture and all.', alt: 'A furnished flat seen from above as a doll house, every room open.' },
   { file: 'plan', w: 1280, h: 800, title: 'Plan view', text: 'The floor plan with room names and sizes, one tap from the walk.', alt: 'The floor plan of a flat with room names and sizes.' },
   { file: 'map', w: 1440, h: 900, title: 'The whole building', text: 'Every floor and every flat on one page. Pick a flat and walk in.', alt: 'The building page: the tower drawn floor by floor beside a grid of every flat with its number and type.' },
-  { file: 'pool', w: 1280, h: 720, title: 'Clubhouse and pool', text: 'The amenities are walked like any room: the pool deck, the gym, the halls.', alt: 'The pool deck of the clubhouse level in the 3D walk.' },
-  { file: 'materials', w: 1280, h: 800, title: 'Realistic materials', text: 'Wood, stone and fabric from photographed material maps.', alt: 'A kitchen in the 3D walk with photographed wood and stone materials.' },
+  { file: 'pool', w: 1280, h: 720, title: 'Clubhouse and pool', text: 'The amenities are walked like any room: the pool deck, the gym, the halls.', alt: 'The pool deck of the clubhouse level in the 3D walk: a row of loungers on timber decking beside the pool, trees and flowering shrubs beyond.' },
+  { file: 'materials', w: 1280, h: 800, title: 'Realistic materials', text: 'Wood, stone and fabric from photographed material maps.', alt: 'The dining area of a flat in the 3D walk: an oak-plank floor, upholstered chairs and a laid table under a coffered ceiling.' },
   { file: 'clean', w: 1600, h: 900, title: 'Made for the sales-room screen', text: 'On a big screen the controls step away, and the home is the picture.', alt: 'A living room filling the screen with the controls hidden.' },
 ];
 
