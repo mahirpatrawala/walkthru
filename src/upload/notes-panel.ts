@@ -37,7 +37,7 @@ export function mountUploadNote(hudRoot: HTMLElement, notes: UploadNotes, homeId
   x.setAttribute('aria-label', 'Close');
   el('p', undefined, madeUp
     ? 'This is a made-up sample plan, read automatically in your browser. Nobody checked it.'
-    : 'Walkthru read your plan automatically, in your browser. Nobody checked it, so treat sizes as the drawing’s, not as measured on site.', card);
+    : 'firstbeam read your plan automatically, in your browser. Nobody checked it, so treat sizes as the drawing’s, not as measured on site.', card);
   el('h3', undefined, 'What we could not read', card);
   if (notes.unread.length === 0) el('p', undefined, 'Nothing the reader flagged.', card);
   else { const ul = el('ul', undefined, undefined, card); for (const u of notes.unread) el('li', undefined, u, ul); }

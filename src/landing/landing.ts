@@ -11,7 +11,8 @@ import { buildHeroBuilding } from './hero-building';
 import { buildHeroModel, heroSceneIds } from './hero-model';
 import { mountHeroArt } from './hero-canvas';
 
-export const LANDING_TITLE = 'walkthru · We make your project impossible to ignore';
+export const TAGLINE = 'Have your building walkthrough ready before you place the first beam';
+export const LANDING_TITLE = `firstbeam · ${TAGLINE}`;
 export const PROJECTS_ID = 'projects';
 export const HOW_ID = 'how-it-works';
 const HERO_THEME = '#17110E';
@@ -73,9 +74,9 @@ export function createLanding(go: (url: string) => void): Landing {
   hero.dataset.testid = 'landing-hero';
 
   const nav = h('nav', 'wl-nav', undefined, hero);
-  nav.setAttribute('aria-label', 'walkthru');
+  nav.setAttribute('aria-label', 'firstbeam');
   const brand = h('span', 'wt-brand', undefined, nav);
-  brand.innerHTML = `${BRAND_MARK}<span>walkthru</span>`; // a fixed string from src/brand/mark.ts
+  brand.innerHTML = `${BRAND_MARK}<span>firstbeam</span>`; // a fixed string from src/brand/mark.ts
   const contact = contactHref();
   const navEnd = h('div', 'wl-nav-end', undefined, nav);
   if (contact) {
@@ -92,10 +93,13 @@ export function createLanding(go: (url: string) => void): Landing {
   const copy = h('div', 'wl-copy wl-copy-top', undefined, grid);
   h('p', 'wl-label', 'White-labelled 3D walkthroughs for real-estate developers', copy);
   const h1 = h('h1', undefined, undefined, copy);
-  h('span', 'wl-line', 'We make your project', h1);
-  h1.appendChild(document.createTextNode(' '));
+  // the tagline, in lines short enough to stand unbroken on a phone; the stroke draws under the last
+  for (const line of ['Have your building', 'walkthrough ready', 'before you place']) {
+    h('span', 'wl-line', line, h1);
+    h1.appendChild(document.createTextNode(' '));
+  }
   const em = h('span', 'wl-line wl-em', undefined, h1);
-  h('span', undefined, 'impossible to ignore', em);
+  h('span', undefined, 'the first beam', em);
   em.insertAdjacentHTML('beforeend', UNDERLINE);
 
   // the building stands between the headline and the paragraph on a phone, and beside both on a wide screen
@@ -204,7 +208,7 @@ export function createLanding(go: (url: string) => void): Landing {
   }
   const foot = h('p', 'wl-foot', undefined, closing);
   const fb = h('span', 'wt-brand', undefined, foot);
-  fb.innerHTML = `${BRAND_MARK}<span>walkthru</span>`; // a fixed string from src/brand/mark.ts
+  fb.innerHTML = `${BRAND_MARK}<span>firstbeam</span>`; // a fixed string from src/brand/mark.ts
   h('span', undefined, 'White-labelled 3D walkthroughs for real-estate developers', foot);
 
   return {

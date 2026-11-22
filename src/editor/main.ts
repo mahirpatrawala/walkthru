@@ -45,7 +45,7 @@ function boot(): void {
 
   // ---------------------------------------------------------------- page frame
   const title = h('span', { class: 'brand wt-brand' });
-  title.innerHTML = `${BRAND_MARK}<span>walkthru <small>editor</small></span>`; // a fixed string from src/brand/mark.ts, no page data in it
+  title.innerHTML = `${BRAND_MARK}<span>firstbeam <small>editor</small></span>`; // a fixed string from src/brand/mark.ts, no page data in it
   const sceneLabel = h('span', { class: 'scene-label' });
   const status = h('span', { class: 'status muted small' });
   const previewBtn = h('button', { class: 'btn', text: '3D preview', title: 'Swap the plan for the live 3D shell' });
@@ -157,7 +157,7 @@ function boot(): void {
   function updateHeader(): void {
     sceneLabel.textContent = host.sceneId;
     status.textContent = dirty ? 'unsaved changes' : '';
-    document.title = `${host.sceneId} · walkthru editor`;
+    document.title = `${host.sceneId} · firstbeam editor`;
   }
 
   function goto(stepId: string): void {

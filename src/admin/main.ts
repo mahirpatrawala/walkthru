@@ -43,7 +43,7 @@ async function main(): Promise<void> {
   const top = h('div', 'ws-top', undefined, root);
   const brand = h('a', 'wt-brand', undefined, top);
   brand.href = '/';
-  brand.innerHTML = `${BRAND_MARK}<span>walkthru</span>`;
+  brand.innerHTML = `${BRAND_MARK}<span>firstbeam</span>`;
   const page = h('div', 'ad-page', undefined, root);
   h('h1', undefined, 'Availability', page);
   h('p', 'ad-lead', 'Mark each flat available or sold, and choose whether buyers see the Vastu checklist. Buyers see two statuses only.', page);

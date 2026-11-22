@@ -232,7 +232,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   let uploaded: Awaited<ReturnType<typeof import('../upload/local-fetch').installLocalScene>> = null;
   if (isLocalHomeId(sceneId)) {
     uploaded = await (await import('../upload/local-fetch')).installLocalScene(sceneId);
-    if (!uploaded) { loading.showError('This plan is not on this device', 'Uploaded plans stay in the browser that read them. Open Walkthru in that browser, or upload the plan again from the start page.'); return failed(); }
+    if (!uploaded) { loading.showError('This plan is not on this device', 'Uploaded plans stay in the browser that read them. Open firstbeam in that browser, or upload the plan again from the start page.'); return failed(); }
   }
   if (host) setCeilingTrust({ known: true }); // a space with no import sidecar must not inherit the last one's ceiling note
   // C11b: the body, its clips and the drawing's designs download while the layout and the look start up
@@ -254,7 +254,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   const property = result.property;
   // what kind of space this is: the scene's own `spaceKind`, or `?spaceKind=gym` (a debug override) so the catalogue can be tried without a building
   { const k = spaceKindOf(property, location.search); if (k !== 'home' || property.spaceKind) property.spaceKind = k; }
-  document.title = `${property.title} · walkthru`;
+  document.title = `${property.title} · firstbeam`;
   loading.setTitle(property.title, property.subtitle);
   loading.setNote(sizesNote(property.layout));
   loading.setProgress(0.12, 'Building the rooms…');
@@ -601,7 +601,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
       href: location.href, at: { x: character.position.x, z: character.position.z, yawDeg: camera.viewYawDeg }, cam: view, view: views?.mode(),
       withLayout: host || !store.isEdited() ? null : (h) => layoutShareUrl(h, store.layout()),
     });
-    const r = await shareWalk(url, `${hud.root.querySelector('.wt-id-place')?.textContent || property.title} · walkthru`, pageShareEnv());
+    const r = await shareWalk(url, `${hud.root.querySelector('.wt-id-place')?.textContent || property.title} · firstbeam`, pageShareEnv());
     hud.toast(r === 'copied' ? 'Link copied' : r === 'shared' ? 'Link shared' : 'Could not copy the link. Copy it from the address bar.');
   }
   const eyeNow = new THREE.Vector3();

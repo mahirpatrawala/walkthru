@@ -60,14 +60,14 @@ export async function renderCheck(root: HTMLElement, id: string, go: Go, store: 
   back.href = '/';
   back.addEventListener('click', (e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey) { e.preventDefault(); go('/'); } });
   const brand = el('span', 'wt-brand', undefined, top);
-  brand.innerHTML = `${BRAND_MARK}<span>walkthru</span>`; // a fixed string from src/brand/mark.ts
+  brand.innerHTML = `${BRAND_MARK}<span>firstbeam</span>`; // a fixed string from src/brand/mark.ts
   if (!rec) {
     const box = el('div', 'ws-empty', undefined, root);
     el('h1', undefined, 'This plan is not on this device', box);
-    el('p', undefined, 'Uploaded plans stay in the browser that read them. Open Walkthru in that browser, or upload the plan again.', box);
+    el('p', undefined, 'Uploaded plans stay in the browser that read them. Open firstbeam in that browser, or upload the plan again.', box);
     return;
   }
-  document.title = 'Check the drawing · walkthru';
+  document.title = 'Check the drawing · firstbeam';
   let current: StoredHome = rec;
   let review: ReviewFile = rec.review ?? emptyReview();
   const renames: Record<string, string> = { ...(rec.renames ?? {}) };

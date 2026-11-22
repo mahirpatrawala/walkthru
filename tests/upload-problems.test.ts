@@ -53,7 +53,7 @@ describe('preflightPages (the PDF is open)', () => {
   it('a PDF whose pages are pictures gets the exact message', () => {
     const p = preflightPages([page({ imageCoverage: 0.9 })]);
     expect(p?.code).toBe('picture-pdf');
-    expect(p?.detail).toBe('This PDF is a picture of a plan. For now Walkthru reads plans saved from drawing software. Photo and image plans are coming.');
+    expect(p?.detail).toBe('This PDF is a picture of a plan. For now firstbeam reads plans saved from drawing software. Photo and image plans are coming.');
     expect(p?.detail).toBe(PICTURE_MESSAGE);
   });
   it('uses the reader’s own picture test: a picture with line work on it is a plan', () => {

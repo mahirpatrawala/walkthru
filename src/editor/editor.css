@@ -1,5 +1,5 @@
 /* Owned by C5. The editor page (SPEC 2.2): top bar, step list, plan or 3D preview, step panel. Plain CSS, no framework.
-   Dressed in the walkthru brand (src/brand/brand.css): the same terracotta, teal and warm paper as the buyer page. */
+   Dressed in the firstbeam brand (src/brand/brand.css): the same terracotta, teal and warm paper as the buyer page. */
 @import '../brand/brand.css';
 :root {
   --bg: var(--wt-paper); --panel: var(--wt-card); --line: var(--wt-line); --ink: var(--wt-ink); --muted: var(--wt-muted);

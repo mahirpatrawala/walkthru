@@ -22,7 +22,7 @@ export function mountLanding(root: HTMLElement, homes: HomeEntry[], opts: { debu
   root.textContent = '';
   const wrap = h('div', 'xl');
   const top = h('header', 'xl-top');
-  top.append(h('span', 'xl-mark', 'walkthru'), h('span', 'xl-tag', 'VR'));
+  top.append(h('span', 'xl-mark', 'firstbeam'), h('span', 'xl-tag', 'VR'));
   const stage = h('section', 'xl-stage');
   const preview = h('div', 'xl-preview');
   const overlay = h('div', 'xl-overlay');
@@ -56,7 +56,7 @@ export function mountLanding(root: HTMLElement, homes: HomeEntry[], opts: { debu
   sharedSec.hidden = !homes.some((e) => e.group === 'shared');
   wrap.append(top, stage, homesSec, sharedSec);
   root.append(wrap);
-  document.title = 'walkthru VR';
+  document.title = 'firstbeam VR';
 
   const base = mainSiteBase();
   const buttons = new Map<string, HTMLButtonElement>();

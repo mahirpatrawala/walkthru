@@ -132,7 +132,7 @@ class BuildingWalk implements BuildingWalkApi {
     const url = withViewParam(buildingUrl({ building: b.id, space: spaceId }, location.search), (this.mounted as MountedSpace | null)?.ctx.views?.mode() ?? 'walk');
     if (o.history === 'push') history.pushState({ wb: spaceId }, '', url);
     else if (o.history === 'replace') history.replaceState({ wb: spaceId }, '', url);
-    document.title = `${loc.space.name} · ${b.name} · walkthru`;
+    document.title = `${loc.space.name} · ${b.name} · firstbeam`;
     return true;
   }
 
