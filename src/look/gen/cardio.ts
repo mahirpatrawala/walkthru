@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { Parts } from './core';
 import type { GenEnv, GenSize, Roles } from './core';
-import { ACCENT_RED, CHROME, CONSOLE, FRAME, FRAME_GREY, PAD_BLACK, RUBBER, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, consoleUnit, cylX, cylY, cylZ, grip, knob, pad, rtube, slab, tube, tubes } from './gymkit';
+import { ACCENT_RED, CHROME, CONSOLE, FRAME, FRAME_GREY, PAD_BLACK, RUBBER, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, consoleUnit, cylX, cylY, cylZ, grip, knob, pad, rtube, slab, tube, tubes, wholeModel } from './gymkit';
 import { softCushion } from './soft';
 
 export const CARDIO_VARIANTS = ['treadmill', 'cross', 'upright', 'spin', 'recumbent', 'rower', 'stair'] as const;
@@ -176,6 +176,8 @@ export function buildCardio(env: GenEnv, size: GenSize, p: CardioParams, _roles:
     },
 
     recumbent: () => {
+      // SPEC 16.17.3: the downloaded recumbent bike when it is here and fits the box
+      if (wholeModel(parts, 'recumbent', { w, h: H, d })) return;
       // a low step-through frame, a bucket seat with a mesh back at the rear, pedals ahead of the walker, the console on a mast at the front
       slab(parts, 'rec-feet', FRAME, -x1, x1, 0.0, 0.05, z0, z0 + 0.08);
       slab(parts, 'rec-feet', FRAME, -x1, x1, 0.0, 0.05, z1 - 0.08, z1);

@@ -9,21 +9,52 @@ import type { Tier } from '../types';
 import { modelsEnabled } from '../models/library';
 import { floatGeometry } from '../models/load';
 import manifest from './manifest.json';
+import clubManifest from '../club/manifest.json';
 
-export type PropKind = 'dumbbell' | 'kettlebell' | 'chess';
-export const PROP_KINDS: PropKind[] = ['dumbbell', 'kettlebell', 'chess'];
+/** the gym's props (public/look/gym, SPEC 16.17.1) */
+export type GymPropKind = 'dumbbell' | 'kettlebell' | 'chess';
+/** whole pieces of the clubhouse (public/look/club, SPEC 16.17.3): a model that stands in for a generated piece, scaled into its box */
+export type ClubPropKind = 'power-rack' | 'recumbent' | 'pool-table' | 'table-tennis' | 'carrom-board' | 'dartboard' | 'pendant' | 'chandelier';
+export type PropKind = GymPropKind | ClubPropKind;
+export const PROP_KINDS: PropKind[] = ['dumbbell', 'kettlebell', 'chess', 'power-rack', 'recumbent', 'pool-table', 'table-tennis', 'carrom-board', 'dartboard', 'pendant', 'chandelier'];
 
-interface PropInfo { source: string; /** keeps its own maps and materials (the chess set) */ textured?: boolean; files: Record<'full' | 'low', { file: string; bytes: number }>; tris: Record<'full' | 'low', number>; parts: string[]; dims: Record<string, number> }
-const INFO = (manifest as unknown as { models: Record<PropKind, PropInfo> }).models;
+type PropTier = 'full' | 'mid' | 'low';
+interface PropInfo {
+  source: string | string[];
+  /** keeps its own maps and materials (the chess set, the clubhouse models) */
+  textured?: boolean;
+  /** `mid` (the medium tier) only on the clubhouse models; the gym's have a full and a phone file */
+  files: Partial<Record<PropTier, { file: string; bytes: number }>> & Record<'full' | 'low', { file: string; bytes: number }>;
+  tris: Partial<Record<PropTier, number>> & Record<'full' | 'low', number>;
+  parts: string[];
+  dims: Record<string, number>;
+  /** height of the bed or seat of a whole-piece model, measured on it */
+  surfaceM?: number;
+  /** the folder under /look/ the files are in */
+  dir: 'gym' | 'club';
+}
+const INFO = {
+  ...Object.fromEntries(Object.entries((manifest as unknown as { models: Record<string, Omit<PropInfo, 'dir'>> }).models).map(([k, v]) => [k, { ...v, dir: 'gym' as const }])),
+  ...Object.fromEntries(Object.entries((clubManifest as unknown as { models: Record<string, Omit<PropInfo, 'dir'>> }).models).map(([k, v]) => [k, { ...v, dir: 'club' as const }])),
+} as Record<PropKind, PropInfo>;
 export function propInfo(kind: PropKind): PropInfo { return INFO[kind]; }
-export const propFile = (t: Tier): 'full' | 'low' => (t === 'low' ? 'low' : 'full');
-export const propUrl = (kind: PropKind, t: Tier): string => `/look/gym/${INFO[kind].files[propFile(t)].file}`;
+/** which file a tier loads: the phone file on low, the medium file where there is one, else the full file */
+export const propFile = (t: Tier, kind?: PropKind): PropTier => (t === 'low' ? 'low' : t === 'medium' && kind && INFO[kind]?.files.mid ? 'mid' : 'full');
+export const propUrl = (kind: PropKind, t: Tier): string => `/look/${INFO[kind].dir}/${INFO[kind].files[propFile(t, kind)]!.file}`;
 
 /** the credit a CC BY 4.0 model needs, said wherever the piece that shows it is described (the item card) */
 export const PROP_CREDITS: Record<PropKind, string> = {
   dumbbell: 'Dumbbells: "Weight Room Set 2" by Tytan (sketchfab.com/tylerhalterman), CC BY 4.0, adapted.',
   kettlebell: 'Kettlebells: "kettlebell" by anesbe89 (sketchfab.com/anesbe89), CC BY 4.0, adapted.',
   chess: 'Chess set: "Chess Set" by Riley Queen (polyhaven.com), CC0.',
+  'power-rack': 'Rack, bar and plates: "Weight Room Set 1" and "Weight Room Set 3" by Tytan (sketchfab.com/tylerhalterman), CC BY 4.0, adapted.',
+  recumbent: 'Bike: "cycle" by killer456 (sketchfab.com/killer456), CC BY 4.0, adapted.',
+  'pool-table': 'Table: "Pooltable" by jdastine (sketchfab.com/jdastine), CC BY 4.0, adapted.',
+  'table-tennis': 'Table: "Table Tennis Table" by Diccbudd (sketchfab.com/Diccbudd), CC BY 4.0, adapted.',
+  'carrom-board': 'Board: "Karambol Carom Board" by Francesco Coldesina (sketchfab.com/topfrank2013), CC BY 4.0, adapted.',
+  dartboard: 'Dartboard: "Dartboard" by Satyaki Mandal (polyhaven.com), CC0.',
+  pendant: 'Pendant lights: "Modern Ceiling Lamp 01" by James Ray Cock (polyhaven.com), CC0.',
+  chandelier: 'Chandeliers: "Chandelier 01" by Kirill Sannikov (polyhaven.com), CC0.',
 };
 
 /** a loaded prop: its named parts in the model's own frame (the dumbbell along x, centred; the kettlebell 1 m high, foot centre at the origin) */
@@ -62,7 +93,7 @@ export function loadProp(kind: PropKind, tier: Tier): Promise<PropGeo | null> {
       propStats.files.push(url);
       const l = new GLTFLoader();
       l.setMeshoptDecoder(MeshoptDecoder);
-      const gltf = await l.parseAsync(buf, '/look/gym/');
+      const gltf = await l.parseAsync(buf, `/look/${INFO[kind].dir}/`);
       gltf.scene.updateMatrixWorld(true);
       const parts: Record<string, THREE.BufferGeometry> = {};
       const meshes: { geometry: THREE.BufferGeometry; material: THREE.MeshStandardMaterial }[] = [];
@@ -85,7 +116,7 @@ export function loadProp(kind: PropKind, tier: Tier): Promise<PropGeo | null> {
       return geo;
     } catch (err) {
       propStats.failed.push(url);
-      console.warn(`[walkthru] gym model ${kind} not loaded, the generated weights stay:`, err instanceof Error ? err.message : err);
+      console.warn(`[walkthru] model ${kind} not loaded, the generated piece stays:`, err instanceof Error ? err.message : err);
       return null;
     } finally {
       if (mine === generation) loading.delete(url);
@@ -153,6 +184,26 @@ export function addTextured(group: THREE.Group, geo: PropGeo, name: string, k: n
   for (const m of geo.meshes ?? []) {
     const g = m.geometry.clone().scale(k, k, k).translate(...at);
     const mesh = new THREE.Mesh(g, m.material.clone());
+    mesh.name = name;
+    mesh.userData.walkthruPart = name;
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    group.add(mesh);
+  }
+}
+
+/**
+ * A whole piece from a model (SPEC 16.17.3): the model's meshes scaled on each axis to fill the item's box (`w` x `h` x `d`, the footprint centred
+ * on the origin, the floor at y = 0, the front toward +z), each with a copy of its own material. The caller has checked the fit (never more than
+ * FIT_TOL on an axis), so a piece is never visibly stretched and the box stays the item's to the millimetre.
+ */
+export function addWhole(group: THREE.Group, geo: PropGeo, name: string, box: { w: number; h: number; d: number }): void {
+  const dims = INFO[geo.kind].dims;
+  const sx = box.w / dims.w, sy = box.h / dims.h, sz = box.d / dims.d;
+  for (const m of geo.meshes ?? []) {
+    const g = m.geometry.clone().scale(sx, sy, sz);
+    if (sx !== sy || sy !== sz) g.computeVertexNormals();
+    const mat = m.material.clone();
+    const mesh = new THREE.Mesh(g, mat);
     mesh.name = name;
     mesh.userData.walkthruPart = name;
     mesh.castShadow = true; mesh.receiveShadow = true;

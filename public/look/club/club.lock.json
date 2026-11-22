@@ -1,0 +1,611 @@
+{
+  "generatedBy": "scripts/fetch-club-assets.ts",
+  "read": "2026-11-22",
+  "assets": {
+    "sketchfab-1d18318c3e81407b8321159fb3424026": {
+      "id": "sketchfab-1d18318c3e81407b8321159fb3424026",
+      "name": "Weight Room Set 1",
+      "kind": "model",
+      "authors": [
+        "Tytan (tylerhalterman)"
+      ],
+      "page": "https://sketchfab.com/3d-models/weight-room-set-1-1d18318c3e81407b8321159fb3424026",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model 1d18318c3e81407b8321159fb3424026): license \"by\", Sketchfab's \"CC Attribution\": \"Author must be credited. Commercial use is allowed.\"",
+      "use": "the half rack of the power rack (its bench is not used): the frame keeps its map, whose hole rows are cut-outs, under a graphite powder-coat tint; the J-cups are re-surfaced black",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "1d18318c3e81407b8321159fb3424026.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-117/1d18318c3e81407b8321159fb3424026.glb",
+          "size": 5684308,
+          "md5": "8933579815e1cb18dbbcc2d1df83b907",
+          "sha256": "96ba2d058e38d75b23bd515f44750db5d5c7fad1d952bf8f399c80085b39d78a"
+        }
+      ]
+    },
+    "sketchfab-8bfa29f8961b40258d5d1dc63d19c9a2": {
+      "id": "sketchfab-8bfa29f8961b40258d5d1dc63d19c9a2",
+      "name": "Weight Room Set 3",
+      "kind": "model",
+      "authors": [
+        "Tytan (tylerhalterman)"
+      ],
+      "page": "https://sketchfab.com/3d-models/weight-room-set-3-8bfa29f8961b40258d5d1dc63d19c9a2",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model 8bfa29f8961b40258d5d1dc63d19c9a2): license \"by\", Sketchfab's \"CC Attribution\": \"Author must be credited. Commercial use is allowed.\"",
+      "use": "the Olympic bar (its own knurled map) and two plates a side on the power rack (the plates re-surfaced plain black iron: the source's printed plate faces do not ship)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "8bfa29f8961b40258d5d1dc63d19c9a2.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-062/8bfa29f8961b40258d5d1dc63d19c9a2.glb",
+          "size": 5178392,
+          "md5": "a845cc9e3a67bf07f118b75c1492d3f5",
+          "sha256": "2fac6425006b8a3410d42a25956147eed75836160a35cef0f1e5cf066cdbe7f1"
+        }
+      ]
+    },
+    "sketchfab-11acede7444c4376b8080de4286b0460": {
+      "id": "sketchfab-11acede7444c4376b8080de4286b0460",
+      "name": "cycle",
+      "kind": "model",
+      "authors": [
+        "killer456"
+      ],
+      "page": "https://sketchfab.com/3d-models/cycle-11acede7444c4376b8080de4286b0460",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model 11acede7444c4376b8080de4286b0460): license \"by\", Sketchfab's \"CC Attribution\": \"Author must be credited. Commercial use is allowed.\"",
+      "use": "the recumbent bike, as modelled with its own maps (the maker's name printed on its flywheel shrouds painted out)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "11acede7444c4376b8080de4286b0460.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-123/11acede7444c4376b8080de4286b0460.glb",
+          "size": 2562348,
+          "md5": "649c8b09882fdf0aefbbd33fb5b479be",
+          "sha256": "e0cc1ccf9174e7b8fd7896bf869cb5cb03761df5a4d251be6308c32b18399c13"
+        }
+      ]
+    },
+    "sketchfab-cc96165eda374800a45f510d98216490": {
+      "id": "sketchfab-cc96165eda374800a45f510d98216490",
+      "name": "Pooltable",
+      "kind": "model",
+      "authors": [
+        "jdastine"
+      ],
+      "page": "https://sketchfab.com/3d-models/pooltable-cc96165eda374800a45f510d98216490",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model cc96165eda374800a45f510d98216490): license \"by\", Sketchfab's \"CC Attribution\": \"Author must be credited. Commercial use is allowed.\"",
+      "use": "the 8 ft pool table: the walnut cabinet, rails, cloth and legs with their own maps (the source's loose balls left out; the generator racks its own)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "cc96165eda374800a45f510d98216490.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-135/cc96165eda374800a45f510d98216490.glb",
+          "size": 3843832,
+          "md5": "4775df08a241cc9eb857fc98501bd625",
+          "sha256": "19882083f9a25810030197c627f86f21c8bd95b0eee9714fb7c1c52a83b8143b"
+        }
+      ]
+    },
+    "sketchfab-457c34c9297d44a1a5d4e5d093c6a712": {
+      "id": "sketchfab-457c34c9297d44a1a5d4e5d093c6a712",
+      "name": "Table Tennis Table",
+      "kind": "model",
+      "authors": [
+        "Diccbudd"
+      ],
+      "page": "https://sketchfab.com/3d-models/table-tennis-table-457c34c9297d44a1a5d4e5d093c6a712",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model 457c34c9297d44a1a5d4e5d093c6a712): license \"by\", Sketchfab's \"CC Attribution\": \"Author must be credited. Commercial use is allowed.\"",
+      "use": "the table-tennis table (its net drawn as a sheer panel, and its posts brought in to the table's edge so the piece stays in its 152.5 cm box)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "457c34c9297d44a1a5d4e5d093c6a712.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-124/457c34c9297d44a1a5d4e5d093c6a712.glb",
+          "size": 2740144,
+          "md5": "96d939fa97df93ce502f667f7435aeb1",
+          "sha256": "bf504480fba99305c11d57fdd5e618d7508ac5799d6200c9f652b37a8f6dd973"
+        }
+      ]
+    },
+    "sketchfab-eaf67aa3bfd145289323d91f366e25f4": {
+      "id": "sketchfab-eaf67aa3bfd145289323d91f366e25f4",
+      "name": "Karambol Carom Board",
+      "kind": "model",
+      "authors": [
+        "Francesco Coldesina (topfrank2013)"
+      ],
+      "page": "https://sketchfab.com/3d-models/karambol-carom-board-eaf67aa3bfd145289323d91f366e25f4",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model eaf67aa3bfd145289323d91f366e25f4): license \"by\", Sketchfab's \"CC Attribution\": \"Author must be credited. Commercial use is allowed.\"",
+      "use": "the carrom board and its coins on the carrom tables (the generated stand and stools stay)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "eaf67aa3bfd145289323d91f366e25f4.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-148/eaf67aa3bfd145289323d91f366e25f4.glb",
+          "size": 3035724,
+          "md5": "0bade2a293abc89762a059bb88ec3f9f",
+          "sha256": "c3c5b63e7d4910fd310a2ce7e01533d540f55e770ff769bf7234105e5a35b06c"
+        }
+      ]
+    },
+    "dartboard": {
+      "id": "dartboard",
+      "name": "Dartboard",
+      "kind": "model",
+      "authors": [
+        "Satyaki Mandal"
+      ],
+      "page": "https://polyhaven.com/a/dartboard",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://polyhaven.com/license",
+      "licenceWords": "Our assets are all licensed as CC0",
+      "use": "a dartboard on a wall of the games room (sample decor, labelled)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "dartboard_1k.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/dartboard/dartboard_1k.gltf",
+          "size": 2732,
+          "md5": "4d03c664d8307e8cb46f6bac3b1df47b",
+          "sha256": "8535a0c0a954bd6db863f975ef9f6ae9dea27d43a2371fb8484cf40bc0e4e7b9"
+        },
+        {
+          "path": "textures/dartboard_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/dartboard/dartboard_arm_1k.jpg",
+          "size": 950947,
+          "md5": "4e5cec6f6ea854314c556821588b910c",
+          "sha256": "e273c427f8017d6e1e0e0a729b867e036839bd58f547c391008214641d524a2a"
+        },
+        {
+          "path": "textures/dartboard_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/dartboard/dartboard_nor_gl_1k.jpg",
+          "size": 1098585,
+          "md5": "4fc550e60950fed964b49de1096bb37f",
+          "sha256": "4996289474316cd42e72682b5039a2f66f7d2baee05209aeae32d23c1b9c5dbe"
+        },
+        {
+          "path": "textures/dartboard_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/dartboard/dartboard_diff_1k.jpg",
+          "size": 797104,
+          "md5": "60981fb0cf22a01475b995281a4dfb00",
+          "sha256": "0aba52ac48fb10ba3a15c67726e52113855b072216f5cb328d5a18614505685e"
+        },
+        {
+          "path": "dartboard.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/dartboard/dartboard.bin",
+          "size": 181888,
+          "md5": "6c69d54532a741fce4d90a55297c19dc",
+          "sha256": "8895fbce41d05825c91981c97fa8633104aba494cb7b58ace25428c3a962215e"
+        }
+      ]
+    },
+    "modern_ceiling_lamp_01": {
+      "id": "modern_ceiling_lamp_01",
+      "name": "Modern Ceiling Lamp 01",
+      "kind": "model",
+      "authors": [
+        "James Ray Cock"
+      ],
+      "page": "https://polyhaven.com/a/modern_ceiling_lamp_01",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://polyhaven.com/license",
+      "licenceWords": "Our assets are all licensed as CC0",
+      "use": "opal globe pendants over the lounge, games room, foyer and lobby (sample decor, labelled)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "modern_ceiling_lamp_01_1k.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/modern_ceiling_lamp_01/modern_ceiling_lamp_01_1k.gltf",
+          "size": 6177,
+          "md5": "b85c212ffcc2cb9c74b9e68f314fec3b",
+          "sha256": "f88b5d0a81fa813457a77474e7e4e812f97ad5fac2109ba03ddb183274be3f8c"
+        },
+        {
+          "path": "textures/modern_ceiling_lamp_01_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modern_ceiling_lamp_01/modern_ceiling_lamp_01_arm_1k.jpg",
+          "size": 124022,
+          "md5": "6667aa4091a273a041715dccd3b83bc8",
+          "sha256": "f4c6a8e7c86b1deaaf0f74099539ff635063b63f594b0fadfc3ec8fac805df4e"
+        },
+        {
+          "path": "textures/modern_ceiling_lamp_01_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modern_ceiling_lamp_01/modern_ceiling_lamp_01_diff_1k.jpg",
+          "size": 79705,
+          "md5": "7197acc141761c4c417023b9fb58db95",
+          "sha256": "c08bfbf7576a86a4a09d386ae9f0a92965fc652bf82f3a8dba1c796b1aa9e535"
+        },
+        {
+          "path": "modern_ceiling_lamp_01.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/modern_ceiling_lamp_01/modern_ceiling_lamp_01.bin",
+          "size": 146828,
+          "md5": "48b86e7e6db78e6d3dfd85b765c3ab68",
+          "sha256": "ae5140a64e12e639554158901a5e92340bb37c706096ff255804e3220fb96367"
+        },
+        {
+          "path": "textures/modern_ceiling_lamp_01_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modern_ceiling_lamp_01/modern_ceiling_lamp_01_nor_gl_1k.jpg",
+          "size": 79333,
+          "md5": "f3ebd90aa565968ce1faf25a03b1f912",
+          "sha256": "dd75bd21a901581325f5c363bd89b45430b8531cb27dead314cd087196a33c27"
+        }
+      ]
+    },
+    "Chandelier_01": {
+      "id": "Chandelier_01",
+      "name": "Chandelier 01",
+      "kind": "model",
+      "authors": [
+        "Kirill Sannikov"
+      ],
+      "page": "https://polyhaven.com/a/Chandelier_01",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://polyhaven.com/license",
+      "licenceWords": "Our assets are all licensed as CC0",
+      "use": "chandeliers down the middle of the banquet halls (sample decor, labelled)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "Chandelier_01_1k.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/Chandelier_01/Chandelier_01_1k.gltf",
+          "size": 4438,
+          "md5": "4750f709fd968452ffefd3315e13818f",
+          "sha256": "19a63453965dde6ace3159e2059c30adee81905e95a6beaf62b7f47d9283e724"
+        },
+        {
+          "path": "textures/Chandelier_01_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/Chandelier_01/Chandelier_01_nor_gl_1k.jpg",
+          "size": 171686,
+          "md5": "47c244d75230b364e8de93ceca7a7a7e",
+          "sha256": "0830646c51d8d7a8af90b716768052aba973f9b2e43ac40fdaf7e5aeacbe0244"
+        },
+        {
+          "path": "Chandelier_01.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/Chandelier_01/Chandelier_01.bin",
+          "size": 892104,
+          "md5": "bb72e9fd9d5c2b25c307130807598dc8",
+          "sha256": "f476cc0c0eed8ccc31c49fc797e00ac6a0c8666c345aa933a9accd5762c06cd1"
+        },
+        {
+          "path": "textures/Chandelier_01_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/Chandelier_01/Chandelier_01_arm_1k.jpg",
+          "size": 151301,
+          "md5": "631b971946bbfbbb420104eb86dc9082",
+          "sha256": "f557f4872ed9a586728df285b5ee7d1e4a48aef81d8040d1e423a7fc02602e4e"
+        },
+        {
+          "path": "textures/Chandelier_01_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/Chandelier_01/Chandelier_01_diff_1k.jpg",
+          "size": 86766,
+          "md5": "361990948d40e7dc4f252ffc66702c6f",
+          "sha256": "b52eaa35e990d61842006ee8c4a24e08c82e36d87e9ff7a751a6400547a0eba2"
+        }
+      ]
+    }
+  },
+  "rejected": [
+    {
+      "what": "Treadmill Machine (sousinho), CC BY",
+      "url": "https://sketchfab.com/3d-models/faed3a2a275b4fd68089e1d8bdfb7f89",
+      "why": "a maker's logo printed on the deck and worn, blurred textures (also rejected in gym.lock.json)"
+    },
+    {
+      "what": "Modular Gym and Modular Gym Props (kristnbrown), CC BY",
+      "url": "https://sketchfab.com/3d-models/3c5125c0f5544059a22d35ee6670502f",
+      "why": "the only commercial-looking treadmill found: 1.29 m wide at its 2.11 m length, a 30 % squeeze into the 0.9 m box; the rest is walls and doors"
+    },
+    {
+      "what": "Treadmill 3D Model (Jj.Mmhh), Stylized Treadmill (drollShark), Treadmill - Household Props Challenge (Pixel-bit), FREE LowPoly Crossfit treadmills (3dworldvibes), CC BY",
+      "url": "https://sketchfab.com/3d-models/1346f077ce5a473ea9715230244907f9",
+      "why": "stylised or low-poly game props: a toy look"
+    },
+    {
+      "what": "Treadmills, a rowing machine and an air bike named after their makers (several authors), CC BY",
+      "url": "https://sketchfab.com/3d-models/327b6f6cb02c41df99a8d6f6b0796a74",
+      "why": "named after, and printed with, a maker's brand"
+    },
+    {
+      "what": "Elliptical trainer (r.m.kowalewski), CC BY",
+      "url": "https://sketchfab.com/3d-models/ebab27ba3cd14c75a36643919d3c2a71",
+      "why": "a good-looking front-drive home elliptical, but at the 1.70 m height of the box it is 1.39 m long: the 1.85 m commercial cross-trainer box would stretch it 33 %"
+    },
+    {
+      "what": "smart rower (Gweenn.Valdehueza), CC BY",
+      "url": "https://sketchfab.com/3d-models/3315143fce474298b8736530ded8b4ef",
+      "why": "a compact magnetic rower 2.12 x 0.52 x 1.07 m: 15 to 17 % stretch into the 2.44 x 0.61 x 1.0 m box, a maker's mark on its fan housing, 164 000 triangles"
+    },
+    {
+      "what": "Stationary Bike (topfrank2013), CC BY",
+      "url": "https://sketchfab.com/3d-models/299d993f9eb94d6684562de7dca3514c",
+      "why": "an untextured white home bike of an old design, 150 000 triangles; no spin or upright commercial bike was found"
+    },
+    {
+      "what": "Exercise Bike (pampalusiek), cycle (several), CC BY",
+      "url": "https://sketchfab.com/3d-models/6e77b305f7b840b4a6949d7d3ad096e4",
+      "why": "cartoon shapes"
+    },
+    {
+      "what": "Gym Trainer (Gerhald), CC BY",
+      "url": "https://sketchfab.com/3d-models/9cb04641558e40dbbee9f61ac55fdcb5",
+      "why": "a clean, untextured home multi-gym 1.74 x 1.95 x 0.87 m: no catalogue row has that shape (the lat pulldown is 1.2 x 2.15 x 1.4 m, the multi-gym 2.9 x 2.1 x 2.1 m)"
+    },
+    {
+      "what": "Gym Multiple (topfrank2013), CC BY",
+      "url": "https://sketchfab.com/3d-models/df5e938192244b82a1e59c7145030ee0",
+      "why": "an untextured white home multi-gym of the same shape: no catalogue row fits it"
+    },
+    {
+      "what": "Gym Equipment No.1 (ATD-London), CC BY",
+      "url": "https://sketchfab.com/3d-models/edd8005a81aa49aa9916270766927fca",
+      "why": "a three-stack multi-gym that would suit the multi-gym row, but at the scale that makes it 2.14 m tall it is 2.41 m deep: a 12.7 % squeeze into the 2.1 m box, over the limit; flat blue and red colours"
+    },
+    {
+      "what": "Squat Rack With Bar (sousinho), Flat Bench and Incline Bench (sousinho), Bench Press + Stand (bantha), CC BY",
+      "url": "https://sketchfab.com/3d-models/8e3109a049274de2941e7a2e014aa10d",
+      "why": "worn, scratched and rusty textures: a garage, not a clubhouse"
+    },
+    {
+      "what": "Simple Squat Rack (carloakuma), PowerRack (daviti_goderdzishvili), CC BY",
+      "url": "https://sketchfab.com/3d-models/ea504391882142a99309fc03522f9721",
+      "why": "a rough game prop; dimension text modelled into the rack"
+    },
+    {
+      "what": "Liv 1 Homegym (unrealstudio), CC BY",
+      "url": "https://sketchfab.com/3d-models/7badaa740d874b23970dfecd46359834",
+      "why": "untextured grey, 150 000 triangles, the plates carry lettering"
+    },
+    {
+      "what": "Training Station (preslav.petkov0606), CC BY",
+      "url": "https://sketchfab.com/3d-models/93658b23bc1d42bab8ccaa9480f066c0",
+      "why": "a pull-up tower, which the catalogue has no row for; 198 000 triangles"
+    },
+    {
+      "what": "Weight Lifting Set (loganrinaldis), Bench Press (MH...), CC BY",
+      "url": "https://sketchfab.com/3d-models/9fa5593a7a4042e4b7bbdc84c0375679",
+      "why": "home benches with a leg developer or a floor mat: not the Olympic bench-press station of the row"
+    },
+    {
+      "what": "Bench Press (rameezuddin14), CC BY",
+      "url": "https://sketchfab.com/3d-models/c95b90fa1f24468783004cc34bdf7878",
+      "why": "untextured white; its uprights stand 1.69 m in the 1.35 m box (20 %)"
+    },
+    {
+      "what": "Weight Room Set 1 bench (Tytan), CC BY",
+      "url": "https://sketchfab.com/3d-models/1d18318c3e81407b8321159fb3424026",
+      "why": "the set's flat bench is 32 cm wide: a 75 % stretch into the 56 cm flat-bench box (the set's rack is used)"
+    },
+    {
+      "what": "Barbell (MH...), Olympic Weightlifting Platform, Weightlifting Bumper Plates (sousinho), Weight Lifting Plates (Dakota.Hinkle), CC BY",
+      "url": "https://sketchfab.com/3d-models/8acd766e66b6478a8843f03ebb085ba2",
+      "why": "plates printed with a maker's name, a country or large lettering; the bar and plates of Weight Room Set 3 are used, re-surfaced"
+    },
+    {
+      "what": "Dumbbell Rack (MH...), Rubber Weights in a Barbell (juliorodrigues), CC BY",
+      "url": "https://sketchfab.com/3d-models/868439c605cf441e83d54a5fcfd64ab6",
+      "why": "a home rack on a floor mat, a pump bar with bright yellow plates: the gym's own rack and dumbbells stay"
+    },
+    {
+      "what": "Geometric Props: Gym Equipment (CCreations15), CC BY",
+      "url": "https://sketchfab.com/3d-models/94aeb9a67a1845e586adfb5ffcc15b37",
+      "why": "every part a 12-triangle box, untextured: geometric, not equipment"
+    },
+    {
+      "what": "TF-DS-GYM, Gym (orangetheshow), Fitness Projekt, Isometric: Gym, Farmhouse Fitness Center (various), CC BY",
+      "url": "https://sketchfab.com/3d-models/f3b26bfbb3174562a28bcf01f3b40f44",
+      "why": "whole scenes or buildings, stylised"
+    },
+    {
+      "what": "Changing Room Bench (oparaskos), CC BY",
+      "url": "https://sketchfab.com/3d-models/5c70b6b9ab8349388926334daf7fd623",
+      "why": "a double-sided bench with a tall slatted screen down its middle on a floor slab: the row is a 45 cm high single bench"
+    },
+    {
+      "what": "Pooltable (jdastine, the larger file), CC BY",
+      "url": "https://sketchfab.com/3d-models/ad4be5b7317a415ba067ede99463d42a",
+      "why": "its rails are 0.66 m high at the 2.54 m length: 23 % short of the 0.86 m box"
+    },
+    {
+      "what": "Pool Table (JesseLyons), CC BY",
+      "url": "https://sketchfab.com/3d-models/fdc3b8cfc7df4fe9b1ecd1ae1198270b",
+      "why": "1.11 m high at the 2.54 m length: 29 % over the 0.86 m box"
+    },
+    {
+      "what": "Billiard table (harrimyl), CC BY",
+      "url": "https://sketchfab.com/3d-models/411bfab979fc435eb129eef157bdf671",
+      "why": "fits the box best (3.5 %) but is flat colour with no grain beside the textured walnut table that was chosen"
+    },
+    {
+      "what": "Snooker Table (Saketh_gupta), Pool Table (EpicRatt), CC BY",
+      "url": "https://sketchfab.com/3d-models/e98f3cd475654539a4d27156b307925e",
+      "why": "showroom design tables (lime and black, white and red) with patterned cloths; 16 % low for the box"
+    },
+    {
+      "what": "Pooltable (jdastine, untextured), CC BY",
+      "url": "https://sketchfab.com/3d-models/d53413fd53a74f838dfccc6a034d5c2b",
+      "why": "untextured white"
+    },
+    {
+      "what": "Foosball Table (owestgate), CC BY",
+      "url": "https://sketchfab.com/3d-models/1303a318d4584639acef729b9fd296fc",
+      "why": "16 % lower than the 90 cm box, over the fit rule (also in gym.lock.json); the generated table stays"
+    },
+    {
+      "what": "Table Football (Martin_Jel), Mesa de Pimbolim (devilmente), CC BY",
+      "url": "https://sketchfab.com/3d-models/4d7456d07eaa4afc9e63441ef286e87b",
+      "why": "flat bright colours: a toy look"
+    },
+    {
+      "what": "Table football (3DDomino), CC BY",
+      "url": "https://sketchfab.com/3d-models/d5425d70d5e940708d5faa965f62818c",
+      "why": "246 000 triangles; it would not even render in the preview"
+    },
+    {
+      "what": "TABLE TENNIS Dark (kimtuekp), CC BY",
+      "url": "https://sketchfab.com/3d-models/6c8a173604bd4a5eaee830d78df92ce3",
+      "why": "a maker's name on the apron; 170 000 triangles"
+    },
+    {
+      "what": "Ping Pong (LucSales), ALCA Ping Pong (ABritishGameDev), Table Tennis (denis98), CC BY",
+      "url": "https://sketchfab.com/3d-models/3c69763602904e7f8c7276b1b8459bd4",
+      "why": "a printed purple top (a toy), an arcade cabinet, a table at a third of its length high"
+    },
+    {
+      "what": "Carrom (mfb64), CC BY",
+      "url": "https://sketchfab.com/3d-models/57203e19a1514e57929000c9bb4a10df",
+      "why": "each of its 19 coins is 6 600 triangles (also in gym.lock.json); the Karambol board is used, its spec-gloss maps converted"
+    },
+    {
+      "what": "Casino Poker Table (npowell), Poker Table (Badboy17Aiden, daniel.w.lebreton), CC BY",
+      "url": "https://sketchfab.com/3d-models/f36fc75d825148618aa6e5cbfb43f28e",
+      "why": "casino felts with printed play areas, or untextured: the generated card table stays"
+    },
+    {
+      "what": "Sofa 01, Sofa 02, Sofa 03, Arm Chair 01, Green Chair 01 (Poly Haven), CC0",
+      "url": "https://polyhaven.com/models/furniture",
+      "why": "period pieces (a tufted chesterfield, carved frames): not a modern clubhouse; and the plan's lounge has café tables, not a seating group, so no sofa is added"
+    },
+    {
+      "what": "Modern Arm Chair 01, Coffee Table Round 01 (Poly Haven), CC0",
+      "url": "https://polyhaven.com/a/modern_arm_chair_01",
+      "why": "good pieces, not used: no scene in scope has an armchair or a coffee table of these sizes on its plan, and pieces are not added to a plan"
+    },
+    {
+      "what": "Gallinera Chair, Bar Chair Round 01, Round Wooden Table 02, Metal Stool 02 (Poly Haven), CC0",
+      "url": "https://polyhaven.com/a/gallinera_chair",
+      "why": "rustic, worn or antique: not a clubhouse café"
+    },
+    {
+      "what": "Hanging Picture Frame 01 and 02 (Poly Haven), CC0",
+      "url": "https://polyhaven.com/a/hanging_picture_frame_01",
+      "why": "the picture in the frame is a black panel"
+    },
+    {
+      "what": "Fancy Picture Frame 01 and 02, Hanging Picture Frame 03 (Poly Haven), CC0",
+      "url": "https://polyhaven.com/a/fancy_picture_frame_01",
+      "why": "gilt period frames and old paintings: the prints are generated instead (abstract colour fields)"
+    },
+    {
+      "what": "Chandelier 02 and 03, Hanging Industrial Lamp, Mounted Fluorescent Lights (Poly Haven), CC0",
+      "url": "https://polyhaven.com/a/Chandelier_03",
+      "why": "candle-style or worn industrial fittings, bare tubes: Chandelier 01 and a globe pendant are used, and the gym's linear lights are drawn"
+    }
+  ],
+  "outputs": {
+    "models/carrom-board.glb": {
+      "bytes": 381376,
+      "sha256": "7e0d72bb3061b8cc85f7884c12faa39d450b4d523c82ca18e43c85cd2ef043da"
+    },
+    "models/carrom-board.low.glb": {
+      "bytes": 61000,
+      "sha256": "d94fa00c008763283abf4ad24797f0d0534ae39d765fd2f2fd7fb061f5cfa075"
+    },
+    "models/carrom-board.mid.glb": {
+      "bytes": 129880,
+      "sha256": "60bec1e91a17743087472c8800acf0b04a643cd3f42ea53c19df67933948439a"
+    },
+    "models/chandelier.glb": {
+      "bytes": 355668,
+      "sha256": "1769b284b9cc1976009beccea1ef4f4d8ddf5995ba339cf6ab31e2df907a2d9f"
+    },
+    "models/chandelier.low.glb": {
+      "bytes": 90632,
+      "sha256": "6a2e11db953fd8bb7f02c180975b95cdb275545699378d1374ff70f9ac395d53"
+    },
+    "models/chandelier.mid.glb": {
+      "bytes": 180868,
+      "sha256": "abdbeb3493cd6857c4c9dec73d9fe598c5e17659d046e2a37e14f4f99b58caf8"
+    },
+    "models/dartboard.glb": {
+      "bytes": 203912,
+      "sha256": "fdb0f9b630061769e3c41a7e151c257654d51fff1ec22125c6885b66f16cc92e"
+    },
+    "models/dartboard.low.glb": {
+      "bytes": 22080,
+      "sha256": "3bb98c8372d326874aaf06001c52ef481725ee07336287f81700fb605a8c61bd"
+    },
+    "models/dartboard.mid.glb": {
+      "bytes": 71756,
+      "sha256": "c31bc2d50de7f5fae7b8318a8f8d6fa91bfef00870141db5a9b339bbb2ce6532"
+    },
+    "models/pendant.glb": {
+      "bytes": 86176,
+      "sha256": "1549ab63a642a4fd0d4dea3ddc262115fe7d10894175d3383e9c774c29ee3c23"
+    },
+    "models/pendant.low.glb": {
+      "bytes": 18252,
+      "sha256": "61a9c7df1138c158e3b64a75d04409f01a243aa9e291fe85981e8b67ac1a4a47"
+    },
+    "models/pendant.mid.glb": {
+      "bytes": 70720,
+      "sha256": "26837225f999298678f62716adda29b8ba365b27de0804334e21a708afb814a8"
+    },
+    "models/pool-table.glb": {
+      "bytes": 588152,
+      "sha256": "e6c783facb110f736f9cfca6c1171ec3390db7269cc15d2cb21ecc7b9978ccf5"
+    },
+    "models/pool-table.low.glb": {
+      "bytes": 53112,
+      "sha256": "46a3bc81ac8a982495afff2c62f991c749560308658b09c0f6a8abe73fd82fe9"
+    },
+    "models/pool-table.mid.glb": {
+      "bytes": 165764,
+      "sha256": "a6e9a9e3dc9ab074e093f247d9661201fd13bdcd6d4ca9ce86a47da7ad895431"
+    },
+    "models/power-rack.glb": {
+      "bytes": 394324,
+      "sha256": "186a36ea23868fce124a61b20a895533b53498b00ae21fc9eaf4528af22088d5"
+    },
+    "models/power-rack.low.glb": {
+      "bytes": 69340,
+      "sha256": "0b1529f6696c102c9a8dd2164d8b0722c834eb4c9cc370dd4aa1af11c7a2a8c6"
+    },
+    "models/power-rack.mid.glb": {
+      "bytes": 183920,
+      "sha256": "144106d27471800763a2ecc784a095030173d050b6342613c229092bf4439abe"
+    },
+    "models/recumbent.glb": {
+      "bytes": 240704,
+      "sha256": "865f01543bbce4b87110d5e8c59e6c1bae590f27e2e1874a6e1d7b657ee6bb0b"
+    },
+    "models/recumbent.low.glb": {
+      "bytes": 47176,
+      "sha256": "b641138fde00d50faf0d0e449d907a867793d6b3c203cf01642551ed0d9d74a2"
+    },
+    "models/recumbent.mid.glb": {
+      "bytes": 132300,
+      "sha256": "c70f08d5a46bc49cd1544dc2be62fc205e1a41d1dd3583fa0ba95339eea6dbfa"
+    },
+    "models/table-tennis.glb": {
+      "bytes": 49888,
+      "sha256": "caece196e1da991670be8295d8fb9aac8dd790fc524b9b501b9d8cc74929bf00"
+    },
+    "models/table-tennis.low.glb": {
+      "bytes": 31292,
+      "sha256": "5fb5bfba3dc5e9b7915e212e5124c0874bf9d4a4b48c133034aa2cb3b20c5db0"
+    },
+    "models/table-tennis.mid.glb": {
+      "bytes": 42416,
+      "sha256": "476951d58d79fb5cba5913290a300928e387f43fa595f4a7fd8a837933088c92"
+    }
+  }
+}

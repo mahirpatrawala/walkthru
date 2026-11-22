@@ -9,17 +9,20 @@ import type { MatSpec, Parts } from './core';
 import { CHROME } from './kit';
 import { softCushion } from './soft';
 
-import type { PropGeo } from '../gym/props';
+import type { PropGeo, PropKind } from '../gym/props';
+import { addWhole, propGeo, propInfo } from '../gym/props';
+import { fitModel } from '../models/fit';
 
 // ---------------------------------------------------------------- materials
 /** powder-coated graphite steel: the frames (a commercial graphite grey: in a windowless gym lit by its downlights a black frame is only a silhouette, SPEC 16.20) */
 export const FRAME: MatSpec = { key: 'powder', tint: '#60656D' };
-/** brushed titanium-silver steel: uprights, arms, handlebars of the cardio machines */
-export const FRAME_GREY: MatSpec = { key: 'metal', tint: '#A7ACB2' };
+/** titanium-silver powder coat: uprights, arms, handlebars of the cardio machines. SPEC 16.17.3: a painted finish (it was bare metal, which
+ * mirrors the windowless gym's dark surroundings and read as black in the rendered room); commercial silver frames are powder-coated */
+export const FRAME_GREY: MatSpec = { key: 'powder', tint: '#A9AEB4' };
 /** moulded charcoal plastic: motor hoods, covers, consoles' backs */
 export const SHROUD: MatSpec = { key: 'plastic', tint: '#6A6F77' };
-/** brushed silver sheet: the side shrouds of a weight stack, trim */
-export const SHROUD_LIGHT: MatSpec = { key: 'metal', tint: '#C3C7CC' };
+/** silver-painted sheet: the side shrouds of a weight stack, trim (SPEC 16.17.3: painted, not bare metal, for the same reason as FRAME_GREY) */
+export const SHROUD_LIGHT: MatSpec = { key: 'powder', tint: '#C5C9CE' };
 /** the console's face around a screen */
 export const CONSOLE: MatSpec = { key: 'plastic', tint: '#41454C' };
 /** black vinyl upholstery (a leather-grain normal on medium and high) */
@@ -446,9 +449,26 @@ export function consoleUnit(p: Parts, cx: number, cy: number, cz: number, w: num
 }
 
 /** marks the group as having wanted a model prop that was not loaded yet (src/look/gym/props.ts swaps it in) or used one */
-export function noteProp(p: Parts, kind: 'dumbbell' | 'kettlebell' | 'chess', used: boolean): void {
+export function noteProp(p: Parts, kind: PropKind, used: boolean): void {
   const k = used ? 'gymPropsUsed' : 'gymPropsWanted';
   const list = (p.group.userData[k] as string[] | undefined) ?? [];
   if (!list.includes(kind)) list.push(kind);
   p.group.userData[k] = list;
+}
+
+/**
+ * SPEC 16.17.3: a whole piece drawn from a downloaded model, when the model fits the item's box within FIT_TOL on every axis (the drawn
+ * box wins; a model that would be stretched further is never used) and is loaded. Returns false when the generator should draw the piece:
+ * the model is not here yet (it is asked for, and swapped in when it arrives, like the gym's weights), it does not fit, or models are off.
+ */
+export function wholeModel(p: Parts, kind: PropKind, box: { w: number; h: number; d: number }): boolean {
+  const info = propInfo(kind);
+  if (!info) return false;
+  const fit = fitModel({ w: info.dims.w, h: info.dims.h, d: info.dims.d }, box);
+  if (!fit.ok) return false;
+  const geo = propGeo(kind, p.env.q.tier);
+  noteProp(p, kind, !!geo);
+  if (!geo) return false;
+  addWhole(p.group, geo, `model-${kind}`, box);
+  return true;
 }

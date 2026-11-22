@@ -1,0 +1,263 @@
+{
+  "generatedBy": "tools/optimise-club-assets.mjs",
+  "models": {
+    "power-rack": {
+      "source": [
+        "sketchfab-1d18318c3e81407b8321159fb3424026",
+        "sketchfab-8bfa29f8961b40258d5d1dc63d19c9a2"
+      ],
+      "textured": true,
+      "dims": {
+        "w": 2.2,
+        "h": 2.1965,
+        "d": 1.436
+      },
+      "files": {
+        "full": {
+          "file": "models/power-rack.glb",
+          "bytes": 394324
+        },
+        "mid": {
+          "file": "models/power-rack.mid.glb",
+          "bytes": 183920
+        },
+        "low": {
+          "file": "models/power-rack.low.glb",
+          "bytes": 69340
+        }
+      },
+      "tris": {
+        "full": 10704,
+        "mid": 6419,
+        "low": 3208
+      },
+      "parts": [],
+      "note": "Weight Room Set 1 half rack (its bench left out) with the bar and two iron plates a side from Weight Room Set 3; frame tinted graphite, plates re-surfaced plain (their printed faces do not ship), one uniform scale (2.2 m bar)."
+    },
+    "recumbent": {
+      "source": [
+        "sketchfab-11acede7444c4376b8080de4286b0460"
+      ],
+      "textured": true,
+      "dims": {
+        "w": 0.6684,
+        "h": 1.3156,
+        "d": 1.65
+      },
+      "files": {
+        "full": {
+          "file": "models/recumbent.glb",
+          "bytes": 240704
+        },
+        "mid": {
+          "file": "models/recumbent.mid.glb",
+          "bytes": 132300
+        },
+        "low": {
+          "file": "models/recumbent.low.glb",
+          "bytes": 47176
+        }
+      },
+      "tris": {
+        "full": 14325,
+        "mid": 8355,
+        "low": 3581
+      },
+      "parts": [],
+      "note": "one uniform scale to the 1.65 m length; the maker's name on the two flywheel shrouds painted out with the shroud's white."
+    },
+    "pool-table": {
+      "source": [
+        "sketchfab-cc96165eda374800a45f510d98216490"
+      ],
+      "textured": true,
+      "surfaceM": 0.8614,
+      "dims": {
+        "w": 2.54,
+        "h": 0.9019,
+        "d": 1.2761
+      },
+      "files": {
+        "full": {
+          "file": "models/pool-table.glb",
+          "bytes": 588152
+        },
+        "mid": {
+          "file": "models/pool-table.mid.glb",
+          "bytes": 165764
+        },
+        "low": {
+          "file": "models/pool-table.low.glb",
+          "bytes": 53112
+        }
+      },
+      "tris": {
+        "full": 3312,
+        "mid": 2329,
+        "low": 1347
+      },
+      "parts": [],
+      "note": "the loose balls and a stray marker left out; the lime cloth toned to a tournament green; one uniform scale to the 2.54 m length."
+    },
+    "dartboard": {
+      "source": [
+        "dartboard"
+      ],
+      "textured": true,
+      "dims": {
+        "w": 0.4507,
+        "h": 0.4507,
+        "d": 0.0398
+      },
+      "files": {
+        "full": {
+          "file": "models/dartboard.glb",
+          "bytes": 203912
+        },
+        "mid": {
+          "file": "models/dartboard.mid.glb",
+          "bytes": 71756
+        },
+        "low": {
+          "file": "models/dartboard.low.glb",
+          "bytes": 22080
+        }
+      },
+      "tris": {
+        "full": 3400,
+        "mid": 2040,
+        "low": 1020
+      },
+      "parts": [],
+      "note": "as modelled, decimated."
+    },
+    "pendant": {
+      "source": [
+        "modern_ceiling_lamp_01"
+      ],
+      "textured": true,
+      "dims": {
+        "w": 0.4316,
+        "h": 0.9512,
+        "d": 0.4316
+      },
+      "files": {
+        "full": {
+          "file": "models/pendant.glb",
+          "bytes": 86176
+        },
+        "mid": {
+          "file": "models/pendant.mid.glb",
+          "bytes": 70720
+        },
+        "low": {
+          "file": "models/pendant.low.glb",
+          "bytes": 18252
+        }
+      },
+      "tris": {
+        "full": 3807,
+        "mid": 1874,
+        "low": 743
+      },
+      "parts": [],
+      "note": "as modelled, decimated."
+    },
+    "chandelier": {
+      "source": [
+        "Chandelier_01"
+      ],
+      "textured": true,
+      "dims": {
+        "w": 0.7453,
+        "h": 0.7982,
+        "d": 0.8155
+      },
+      "files": {
+        "full": {
+          "file": "models/chandelier.glb",
+          "bytes": 355668
+        },
+        "mid": {
+          "file": "models/chandelier.mid.glb",
+          "bytes": 180868
+        },
+        "low": {
+          "file": "models/chandelier.low.glb",
+          "bytes": 90632
+        }
+      },
+      "tris": {
+        "full": 9624,
+        "mid": 5498,
+        "low": 4234
+      },
+      "parts": [],
+      "note": "as modelled, decimated."
+    },
+    "table-tennis": {
+      "source": [
+        "sketchfab-457c34c9297d44a1a5d4e5d093c6a712"
+      ],
+      "textured": true,
+      "dims": {
+        "w": 2.74,
+        "h": 0.938,
+        "d": 1.5201
+      },
+      "files": {
+        "full": {
+          "file": "models/table-tennis.glb",
+          "bytes": 49888
+        },
+        "mid": {
+          "file": "models/table-tennis.mid.glb",
+          "bytes": 42416
+        },
+        "low": {
+          "file": "models/table-tennis.low.glb",
+          "bytes": 31292
+        }
+      },
+      "tris": {
+        "full": 6844,
+        "mid": 5473,
+        "low": 3438
+      },
+      "parts": [],
+      "note": "modelled at twice real size (halved); the 49 600-triangle cord net replaced by one sheer panel; the net and its posts drawn in to the table edge (a real net overhangs 15 cm a side)."
+    },
+    "carrom-board": {
+      "source": [
+        "sketchfab-eaf67aa3bfd145289323d91f366e25f4"
+      ],
+      "textured": true,
+      "dims": {
+        "w": 0.74,
+        "h": 0.0381,
+        "d": 0.7386
+      },
+      "files": {
+        "full": {
+          "file": "models/carrom-board.glb",
+          "bytes": 381376
+        },
+        "mid": {
+          "file": "models/carrom-board.mid.glb",
+          "bytes": 129880
+        },
+        "low": {
+          "file": "models/carrom-board.low.glb",
+          "bytes": 61000
+        }
+      },
+      "tris": {
+        "full": 5411,
+        "mid": 4791,
+        "low": 4687
+      },
+      "parts": [],
+      "note": "spec-gloss maps converted to metal-rough; one uniform scale to a 74 cm board."
+    }
+  }
+}
