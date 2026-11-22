@@ -47,6 +47,8 @@ function fakeTemplate(id: string): Template {
   });
   return { id, tier: 'full', parts };
 }
+/** the CC0 library of public/look/models (the flats' CC BY models of public/look/home are checked by tests/home-models.test.ts) */
+const cc0Ids = (): string[] => allModelIds().filter((id) => !modelInfo(id)!.dir);
 const primeAll = (): void => { for (const id of allModelIds()) { primeModel(id, 'medium', fakeTemplate(id)); primeModel(id, 'low', { ...fakeTemplate(id), tier: 'low' }); } };
 
 const base = (over: Partial<FurnitureItem>): FurnitureItem => ({
@@ -126,7 +128,8 @@ describe('which pieces get a model', () => {
       const it = base({ kind, label, box: { cx: 0, cz: 0, w: 1.6, d: 0.7, yawDeg: 0 }, heightM: 0.85, surfaceHeightM: 0.45 });
       expect(plan(it)).toBeNull();
     }
-    expect(FURNITURE_MODELS.map((f) => f.family).sort()).toEqual(['dining', 'dresser', 'side']);
+    // the CC0 library; the flats' CC BY models (SPEC 16.15.4, tests/home-models.test.ts) add sofas, beds and bathroom fittings
+    expect(FURNITURE_MODELS.filter((f) => !modelInfo(f.id)?.dir).map((f) => f.family).sort()).toEqual(['dining', 'dresser', 'side']);
   });
   it('anything the drawing, the design sheet or the viewer chose about the shape keeps the generator, a recolour does not', () => {
     const styled = base({ finish: { style: 'storage' } });
@@ -443,11 +446,11 @@ describe('the manifest, the files and the lock agree', () => {
   };
   const licenceText = fs.readFileSync(path.join(MODELS_DIR, 'LICENCE.txt'), 'utf8');
   it('every model has both files on disk, the size and SHA-256 of the manifest and of the lock', () => {
-    expect(allModelIds().length).toBeGreaterThanOrEqual(14);
-    for (const id of allModelIds()) {
+    expect(cc0Ids().length).toBeGreaterThanOrEqual(14);
+    for (const id of cc0Ids()) {
       const info = modelInfo(id)!;
       for (const tier of ['low', 'full'] as const) {
-        const f = info.files[tier];
+        const f = info.files[tier]!;
         const buf = fs.readFileSync(path.join(MODELS_DIR, f.file));
         expect(buf.length, `${f.file} bytes`).toBe(f.bytes);
         expect(sha(buf), `${f.file} sha256`).toBe(lock.models[id].outputs[f.file].sha256);
@@ -458,22 +461,22 @@ describe('the manifest, the files and the lock agree', () => {
     }
   });
   it('every file in the folder is accounted for', () => {
-    const known = new Set(allModelIds().flatMap((id) => Object.values(modelInfo(id)!.files).map((f) => f.file)));
+    const known = new Set(cc0Ids().flatMap((id) => Object.values(modelInfo(id)!.files).map((f) => f.file)));
     const old = new Set(['dining_chair_02', 'sofa_02', 'LICENCE.txt', 'models.lock.json']);
     for (const f of fs.readdirSync(MODELS_DIR)) expect(known.has(f) || old.has(f), `${f} is unaccounted for`).toBe(true);
   });
   it('the phone file of every model is within the 150 KB budget, the full file within 500 KB', () => {
-    for (const id of allModelIds()) {
+    for (const id of cc0Ids()) {
       const info = modelInfo(id)!;
-      expect(info.files.low.bytes, `${id} low`).toBeLessThanOrEqual(150 * 1024);
-      expect(info.files.full.bytes, `${id} full`).toBeLessThanOrEqual(500 * 1024);
-      expect(info.files.low.bytes).toBeLessThanOrEqual(info.files.full.bytes);
+      expect(info.files.low!.bytes, `${id} low`).toBeLessThanOrEqual(150 * 1024);
+      expect(info.files.full!.bytes, `${id} full`).toBeLessThanOrEqual(500 * 1024);
+      expect(info.files.low!.bytes).toBeLessThanOrEqual(info.files.full!.bytes);
     }
   });
   it('every source is CC0 from Poly Haven with its page, its author, the date the licence was read and a checked MD5', () => {
     expect(lock.licence).toContain('CC0');
     expect(lock.licenceUrl).toBe('https://polyhaven.com/license');
-    for (const id of allModelIds()) {
+    for (const id of cc0Ids()) {
       const m = lock.models[id];
       expect(m, id).toBeTruthy();
       expect(m.licence).toBe('CC0 1.0');
@@ -502,17 +505,17 @@ describe('the manifest, the files and the lock agree', () => {
     expect(trellis.result.startsWith('NOT USED')).toBe(true);
     expect(trellis.result).toContain('non-commercially');
     expect(routes.sources.find((x) => x.name.startsWith('Hi3DGen'))!.licence).toContain('commercially');
-    for (const id of allModelIds()) expect(lock.models[id].page.startsWith('https://polyhaven.com/a/')).toBe(true);
+    for (const id of cc0Ids()) expect(lock.models[id].page.startsWith('https://polyhaven.com/a/')).toBe(true);
   });
   it('the library and the manifest name the same parts and the same models', () => {
     const lib = new Set([...FURNITURE_MODELS, ...DECOR_MODELS].map((m) => m.id));
     for (const id of lib) expect(modelInfo(id), `${id} is in the library but not shipped`).toBeTruthy();
     for (const id of FRUIT_IDS) expect(modelInfo(id), `${id} fruit is not shipped`).toBeTruthy();
-    for (const id of allModelIds()) expect(lib.has(id) || FRUIT_IDS.includes(id), `${id} is shipped but unused`).toBe(true);
+    for (const id of cc0Ids()) expect(lib.has(id) || FRUIT_IDS.includes(id), `${id} is shipped but unused`).toBe(true);
     for (const m of [...FURNITURE_MODELS, ...DECOR_MODELS]) expect(Object.keys(m.parts).sort(), m.id).toEqual(Object.keys(modelInfo(m.id)!.parts).sort());
   });
   it('sizes are positive metres in a sane range, the origin convention is declared, a seat or top height lies inside the model', () => {
-    for (const id of allModelIds()) {
+    for (const id of cc0Ids()) {
       const i = modelInfo(id)!;
       for (const v of [i.dims.w, i.dims.h, i.dims.d]) { expect(v).toBeGreaterThan(0.02); expect(v).toBeLessThan(3); }
       expect(['floor', 'wall']).toContain(i.place);

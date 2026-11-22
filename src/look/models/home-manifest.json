@@ -1,0 +1,528 @@
+{
+ "version": 1,
+ "generatedBy": "tools/optimise-home-models.mjs",
+ "models": {
+  "sofa_3s_midcentury": {
+   "id": "sofa_3s_midcentury",
+   "source": "sketchfab-1f9f52ae17d642b582d0c5ccf9dd64b3",
+   "dir": "home/models",
+   "files": {
+    "low": {
+     "file": "sofa_3s_midcentury.low.glb",
+     "bytes": 37652
+    },
+    "full": {
+     "file": "sofa_3s_midcentury.glb",
+     "bytes": 300384
+    }
+   },
+   "parts": {
+    "fabric": {
+     "tris": {
+      "low": 2542,
+      "full": 5279
+     },
+     "detailMean": 0.3187,
+     "detailCv": 0.112,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "legs": {
+     "tris": {
+      "low": 57,
+      "full": 119
+     },
+     "detailMean": 0.3187,
+     "detailCv": 0.112,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   "dims": {
+    "w": 2.1,
+    "h": 0.8969,
+    "d": 0.9703
+   },
+   "surfaceM": 0.4238,
+   "tris": {
+    "low": 2599,
+    "full": 5398
+   },
+   "place": "floor"
+  },
+  "sofa_2s_grey": {
+   "id": "sofa_2s_grey",
+   "source": "sketchfab-03550a3529c24611a12aa158747374e0",
+   "dir": "home/models",
+   "files": {
+    "low": {
+     "file": "sofa_2s_grey.low.glb",
+     "bytes": 62936
+    },
+    "full": {
+     "file": "sofa_2s_grey.glb",
+     "bytes": 391964
+    }
+   },
+   "parts": {
+    "fabric": {
+     "tris": {
+      "low": 3030,
+      "full": 8526
+     },
+     "detailMean": 0.2948,
+     "detailCv": 0.467,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "legs": {
+     "tris": {
+      "low": 167,
+      "full": 472
+     },
+     "detailMean": 0.2948,
+     "detailCv": 0.467,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   "dims": {
+    "w": 1.65,
+    "h": 0.7837,
+    "d": 0.8044
+   },
+   "surfaceM": 0.4105,
+   "tris": {
+    "low": 3197,
+    "full": 8998
+   },
+   "place": "floor"
+  },
+  "armchair_tub": {
+   "id": "armchair_tub",
+   "source": "sketchfab-ec62634ebb5a41f491bbb9da04cd9dd1",
+   "dir": "home/models",
+   "files": {
+    "low": {
+     "file": "armchair_tub.low.glb",
+     "bytes": 46608
+    },
+    "full": {
+     "file": "armchair_tub.glb",
+     "bytes": 183108
+    }
+   },
+   "parts": {
+    "legs": {
+     "tris": {
+      "low": 386,
+      "full": 1158
+     },
+     "detailMean": 0.3813,
+     "detailCv": 0.186,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "fabric": {
+     "tris": {
+      "low": 2612,
+      "full": 7840
+     },
+     "detailMean": 0.3813,
+     "detailCv": 0.186,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   "dims": {
+    "w": 0.85,
+    "h": 0.8052,
+    "d": 0.8509
+   },
+   "surfaceM": 0.3968,
+   "tris": {
+    "low": 2998,
+    "full": 8998
+   },
+   "place": "floor"
+  },
+  "wc_floor": {
+   "id": "wc_floor",
+   "source": "sketchfab-adb3b931f3ef4941830eea9705657a3d",
+   "dir": "home/models",
+   "files": {
+    "low": {
+     "file": "wc_floor.low.glb",
+     "bytes": 21400
+    },
+    "full": {
+     "file": "wc_floor.glb",
+     "bytes": 55232
+    }
+   },
+   "parts": {
+    "pan": {
+     "tris": {
+      "low": 2283,
+      "full": 7026
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       0.94,
+       0.94,
+       0.93,
+       1
+      ]
+     }
+    },
+    "seat": {
+     "tris": {
+      "low": 315,
+      "full": 972
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       0.94,
+       0.94,
+       0.93,
+       1
+      ]
+     }
+    }
+   },
+   "dims": {
+    "w": 0.3972,
+    "h": 0.9013,
+    "d": 0.711
+   },
+   "surfaceM": 0.4811,
+   "tris": {
+    "low": 2598,
+    "full": 7998
+   },
+   "place": "floor"
+  },
+  "basin_wall": {
+   "id": "basin_wall",
+   "source": "sketchfab-6f5a66deecf348c1a6ebed0ce38b810d",
+   "dir": "home/models",
+   "files": {
+    "low": {
+     "file": "basin_wall.low.glb",
+     "bytes": 17940
+    },
+    "full": {
+     "file": "basin_wall.glb",
+     "bytes": 38792
+    }
+   },
+   "parts": {
+    "tap": {
+     "tris": {
+      "low": 120,
+      "full": 334
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       0.82,
+       0.83,
+       0.85,
+       1
+      ]
+     }
+    },
+    "bowl": {
+     "tris": {
+      "low": 533,
+      "full": 1481
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       0.94,
+       0.94,
+       0.93,
+       1
+      ]
+     }
+    },
+    "trap": {
+     "tris": {
+      "low": 1144,
+      "full": 3182
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       0.82,
+       0.83,
+       0.85,
+       1
+      ]
+     }
+    }
+   },
+   "dims": {
+    "w": 0.6109,
+    "h": 0.5667,
+    "d": 0.511
+   },
+   "surfaceM": 0.4426,
+   "tris": {
+    "low": 1797,
+    "full": 4997
+   },
+   "place": "floor"
+  },
+  "bed_frame_soho": {
+   "id": "bed_frame_soho",
+   "source": "sketchfab-97e361e8beda4112ac5b1b5bcd388cdf",
+   "dir": "home/models",
+   "files": {
+    "low": {
+     "file": "bed_frame_soho.low.glb",
+     "bytes": 20740
+    },
+    "full": {
+     "file": "bed_frame_soho.glb",
+     "bytes": 58160
+    }
+   },
+   "parts": {
+    "frame": {
+     "tris": {
+      "low": 2600,
+      "full": 8999
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   "dims": {
+    "w": 1.8,
+    "h": 0.9381,
+    "d": 2.2521
+   },
+   "surfaceM": 0.2574,
+   "tris": {
+    "low": 2600,
+    "full": 8999
+   },
+   "place": "floor"
+  },
+  "hob_4_glass": {
+   "id": "hob_4_glass",
+   "source": "sketchfab-0a9441fbe4bd47b990e17dab99267d40",
+   "dir": "home/models",
+   "files": {
+    "full": {
+     "file": "hob_4_glass.glb",
+     "bytes": 194348
+    }
+   },
+   "parts": {
+    "glass": {
+     "tris": {
+      "low": 1445,
+      "full": 1445
+     },
+     "detailMean": 0.5816,
+     "detailCv": 0.013,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "trim": {
+     "tris": {
+      "low": 136,
+      "full": 134
+     },
+     "detailMean": 0.0028,
+     "detailCv": 14.876,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "grates": {
+     "tris": {
+      "low": 8420,
+      "full": 8430
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       0.06,
+       0.06,
+       0.06,
+       1
+      ]
+     }
+    }
+   },
+   "dims": {
+    "w": 0.75,
+    "h": 0.0373,
+    "d": 0.5448
+   },
+   "tris": {
+    "low": 10001,
+    "full": 10009
+   },
+   "place": "floor"
+  },
+  "hood_chimney": {
+   "id": "hood_chimney",
+   "source": "sketchfab-e846cb48e88446808af55976ff76b1da",
+   "dir": "home/models",
+   "files": {
+    "low": {
+     "file": "hood_chimney.low.glb",
+     "bytes": 18824
+    },
+    "full": {
+     "file": "hood_chimney.glb",
+     "bytes": 37864
+    }
+   },
+   "parts": {
+    "canopy": {
+     "tris": {
+      "low": 1296,
+      "full": 3707
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       0.78,
+       0.79,
+       0.8,
+       1
+      ]
+     }
+    },
+    "flue": {
+     "tris": {
+      "low": 64,
+      "full": 187
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       0.78,
+       0.79,
+       0.8,
+       1
+      ]
+     }
+    },
+    "lights": {
+     "tris": {
+      "low": 4,
+      "full": 10
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       0.92,
+       0.92,
+       0.9,
+       1
+      ]
+     }
+    },
+    "lights-2": {
+     "tris": {
+      "low": 33,
+      "full": 94
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   "dims": {
+    "w": 0.762,
+    "h": 0.762,
+    "d": 0.5045
+   },
+   "tris": {
+    "low": 1397,
+    "full": 3998
+   },
+   "place": "floor"
+  }
+ }
+}

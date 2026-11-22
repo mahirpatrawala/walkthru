@@ -3,7 +3,7 @@
 // heights and every number a check reads are the item's and never change: only the meshes inside the group are swapped.
 import * as THREE from 'three';
 import type { FurnitureItem } from '../../types';
-import { genQuality, sizeOf } from '../gen';
+import { GENERATORS, genQuality, sizeOf } from '../gen';
 import type { GenEnv } from '../gen';
 import { buildDining, diningChairLayout } from '../gen/seating';
 import type { DiningParams } from '../gen/seating';
@@ -17,17 +17,24 @@ import type { Placement } from './instance';
 import { loadModel } from './load';
 import type { Template } from './load';
 
+/** the parts of a generated bed that stay on a model's frame: what a person lies on (src/look/gen/bed.ts, ultra-bed.ts) */
+const BEDDING = /^(mattress|duvet|pillow)/;
+
 /** the names the generator gives the dining chairs' parts, so everything that knows them (the colour pass, the bake keys) is unchanged */
 const CHAIR_PART_NAME: Record<string, string> = { fabric: 'chair-seats', legs: 'chair-legs' };
 
 /** which items currently show a model, for the card note ("Shown with a stock model...") */
-const inUse = new Map<string, { model: string; label: string }>();
-export function modelUsedBy(itemId: string): { model: string; label: string } | null { return inUse.get(itemId) ?? null; }
+const inUse = new Map<string, { model: string; label: string; credit?: string }>();
+export function modelUsedBy(itemId: string): { model: string; label: string; credit?: string } | null { return inUse.get(itemId) ?? null; }
 
 /** One honest sentence for an item's card: the model is typical styling, the size is the drawn one. Empty when the piece is the generated one. */
 export function modelNote(itemId: string): string {
   const u = inUse.get(itemId);
-  return u ? ` Shown with a stock 3D model (${u.label}, free CC0 asset), scaled to the drawn size: typical styling, not from your drawing.` : '';
+  if (!u) return '';
+  // a CC BY model names its author (the licence asks for the credit wherever it is shown)
+  return u.credit
+    ? ` Shown with a stock 3D model (${u.label}: ${u.credit}, adapted), scaled to the drawn size: typical styling, not from your drawing.`
+    : ` Shown with a stock 3D model (${u.label}, free CC0 asset), scaled to the drawn size: typical styling, not from your drawing.`;
 }
 
 function disposeKids(g: THREE.Object3D): void {
@@ -64,7 +71,14 @@ function buildFromTemplate(tpl: Template, item: FurnitureItem, look: ResolvedLoo
     out.add(chairs);
     return out;
   }
-  const inst = instantiate(tpl, [{ x: 0, y: 0, z: 0, yawDeg: plan.fit.turned ? 90 : 0, scale: sc }], { partUse: plan.model.parts, roles: look.roles });
+  if (plan.model.use === 'frame') {
+    // a bed: the generated mattress, flat quilt and pillows (SPEC 16.23, exactly as the generator lays them) on the model's deck
+    const bedding = GENERATORS[look.kind].build({ kit, q: genQuality(tier) }, sizeOf(item), { ...look.params, baseTopM: plan.deckM ?? 0 }, look.roles);
+    for (const c of [...bedding.children]) if (BEDDING.test(c.name)) out.add(c);
+    disposeKids(bedding);
+  }
+  const off = plan.offset ?? { y: 0, z: 0 };
+  const inst = instantiate(tpl, [{ x: 0, y: off.y, z: off.z, yawDeg: plan.fit.turned ? 90 : 0, scale: sc }], { partUse: plan.model.parts, roles: look.roles });
   for (const c of [...inst.children]) out.add(c);
   return out;
 }
@@ -84,7 +98,7 @@ export function attachModel(group: THREE.Group, item: FurnitureItem, look: Resol
     disposeKids(group);
     for (const c of [...built.children]) group.add(c);
     group.userData.model = { id: plan.model.id, tier: tpl.tier, scale: plan.fit.scale, turned: plan.fit.turned, worst: plan.fit.worst };
-    inUse.set(item.id, { model: plan.model.id, label: plan.model.label });
+    inUse.set(item.id, { model: plan.model.id, label: plan.model.label, ...(plan.model.credit ? { credit: plan.model.credit } : {}) });
     group.updateMatrixWorld(true);
     (group.userData.afterModelSwap as (() => void) | undefined)?.();
     return true;

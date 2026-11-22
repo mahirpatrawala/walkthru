@@ -35,7 +35,7 @@ export interface StylePack {
   models?: ModelPolicy;
 }
 
-const MODEL_FAMILIES: ModelFamily[] = ['bed', 'sofa', 'bench', 'ottoman', 'wardrobe', 'study', 'side', 'dresser', 'counter', 'dining', 'plant', 'jug', 'fruit', 'clock'];
+const MODEL_FAMILIES: ModelFamily[] = ['bed', 'sofa', 'bench', 'ottoman', 'wardrobe', 'study', 'side', 'dresser', 'counter', 'dining', 'bath', 'appliance', 'plant', 'jug', 'fruit', 'clock', 'hob', 'hood'];
 
 /** Checks a pack read from JSON: every finish id exists, every generator param is valid. Returns the cleaned pack and what it dropped. */
 export function loadPack(raw: unknown): { pack: StylePack | null; dropped: string[] } {

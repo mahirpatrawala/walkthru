@@ -1,0 +1,414 @@
+{
+  "generatedBy": "scripts/fetch-home-models.ts",
+  "read": "2026-11-22",
+  "assets": {
+    "sofa_3s_midcentury": {
+      "id": "sofa_3s_midcentury",
+      "uid": "1f9f52ae17d642b582d0c5ccf9dd64b3",
+      "name": "Mid Century Modern Sofa",
+      "authors": [
+        "Tom Seddon"
+      ],
+      "page": "https://sketchfab.com/3d-models/1f9f52ae17d642b582d0c5ccf9dd64b3",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata/000-089.json.gz, 1f9f52ae17d642b582d0c5ccf9dd64b3: license \"by\" (Creative Commons Attribution 4.0), user \"bloodmeat08\" (Tom Seddon); Sketchfab API v3/models/1f9f52ae17d642b582d0c5ccf9dd64b3: license \"CC Attribution\", \"Author must be credited. Commercial use is allowed.\"",
+      "use": "3-seat sofa (210 x 90 x 85 cm, and drawn sofas within 12 % of it): the whole piece, recoloured by the style",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "1f9f52ae17d642b582d0c5ccf9dd64b3.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-089/1f9f52ae17d642b582d0c5ccf9dd64b3.glb",
+          "size": 3989144,
+          "sha256": "e41e59d9d5b7525c8267012ee66c444385b20a59bb777a003baeef051b6a270b"
+        }
+      ]
+    },
+    "sofa_2s_grey": {
+      "id": "sofa_2s_grey",
+      "uid": "03550a3529c24611a12aa158747374e0",
+      "name": "Sofa",
+      "authors": [
+        "katjagricishina"
+      ],
+      "page": "https://sketchfab.com/3d-models/03550a3529c24611a12aa158747374e0",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata/000-001.json.gz, 03550a3529c24611a12aa158747374e0: license \"by\" (Creative Commons Attribution 4.0), user \"katjagricishina\" (katjagricishina); Sketchfab API v3/models/03550a3529c24611a12aa158747374e0: license \"CC Attribution\", \"Author must be credited. Commercial use is allowed.\"",
+      "use": "2-seat sofa (150 x 85 x 85 cm): the whole piece, recoloured by the style",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "03550a3529c24611a12aa158747374e0.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-001/03550a3529c24611a12aa158747374e0.glb",
+          "size": 3566292,
+          "sha256": "7d2d0acf5bb9fbfd58e6c321dbb7671a1b045cc53c3674a578fcc9b89f12b21f"
+        }
+      ]
+    },
+    "armchair_tub": {
+      "id": "armchair_tub",
+      "uid": "ec62634ebb5a41f491bbb9da04cd9dd1",
+      "name": "Arm chair / Furniture",
+      "authors": [
+        "maxsbond.work"
+      ],
+      "page": "https://sketchfab.com/3d-models/ec62634ebb5a41f491bbb9da04cd9dd1",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata/000-147.json.gz, ec62634ebb5a41f491bbb9da04cd9dd1: license \"by\" (Creative Commons Attribution 4.0), user \"maxsbond.work\" (maxsbond.work); Sketchfab API v3/models/ec62634ebb5a41f491bbb9da04cd9dd1: license \"CC Attribution\", \"Author must be credited. Commercial use is allowed.\"",
+      "use": "armchair (80 x 85 x 85 cm): upholstered tub chair on four legs, recoloured by the style",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "ec62634ebb5a41f491bbb9da04cd9dd1.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-147/ec62634ebb5a41f491bbb9da04cd9dd1.glb",
+          "size": 6180284,
+          "sha256": "1e7c49fa3b204db8e22eb7f45bf90acf591ad0992f833023418cea0445b56b7e"
+        }
+      ]
+    },
+    "wc_floor": {
+      "id": "wc_floor",
+      "uid": "adb3b931f3ef4941830eea9705657a3d",
+      "name": "Toilet",
+      "authors": [
+        "Urpo"
+      ],
+      "page": "https://sketchfab.com/3d-models/adb3b931f3ef4941830eea9705657a3d",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata/000-119.json.gz, adb3b931f3ef4941830eea9705657a3d: license \"by\" (Creative Commons Attribution 4.0), user \"Urpo\" (Urpo); Sketchfab API v3/models/adb3b931f3ef4941830eea9705657a3d: license \"CC Attribution\", \"Author must be credited. Commercial use is allowed.\"",
+      "use": "western commode, floor-mounted: pan, cistern and seat in plain glazed ceramic (the open lid left out)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "adb3b931f3ef4941830eea9705657a3d.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-119/adb3b931f3ef4941830eea9705657a3d.glb",
+          "size": 3013248,
+          "sha256": "3c640c0acf7183398e0515f785324a4227d4b7b40ae3f329727528fca9876365"
+        }
+      ]
+    },
+    "basin_wall": {
+      "id": "basin_wall",
+      "uid": "6f5a66deecf348c1a6ebed0ce38b810d",
+      "name": "Unseen: Bathroom Sink",
+      "authors": [
+        "JmCVoyager"
+      ],
+      "page": "https://sketchfab.com/3d-models/6f5a66deecf348c1a6ebed0ce38b810d",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata/000-139.json.gz, 6f5a66deecf348c1a6ebed0ce38b810d: license \"by\" (Creative Commons Attribution 4.0), user \"JmCVoyager\" (JmCVoyager); Sketchfab API v3/models/6f5a66deecf348c1a6ebed0ce38b810d: license \"CC Attribution\", \"Author must be credited. Commercial use is allowed.\"",
+      "use": "wall-hung wash basin with its tap and trap, rim at the drawn height",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "6f5a66deecf348c1a6ebed0ce38b810d.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-139/6f5a66deecf348c1a6ebed0ce38b810d.glb",
+          "size": 1548080,
+          "sha256": "85af71551fbf1501c0eec50875799df2ba2bb3f094569c1181492ed4ad136206"
+        }
+      ]
+    },
+    "bed_frame_soho": {
+      "id": "bed_frame_soho",
+      "uid": "97e361e8beda4112ac5b1b5bcd388cdf",
+      "name": "Soho bed - 3D Model",
+      "authors": [
+        "BertO"
+      ],
+      "page": "https://sketchfab.com/3d-models/97e361e8beda4112ac5b1b5bcd388cdf",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata/000-043.json.gz, 97e361e8beda4112ac5b1b5bcd388cdf: license \"by\" (Creative Commons Attribution 4.0), user \"bertosalotti\" (BertO); Sketchfab API v3/models/97e361e8beda4112ac5b1b5bcd388cdf: license \"CC Attribution\", \"Author must be credited. Commercial use is allowed.\"",
+      "use": "the upholstered base and headboard of queen and king beds; its own bedding is left out, the generated mattress, quilt and pillows go on it",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "97e361e8beda4112ac5b1b5bcd388cdf.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-043/97e361e8beda4112ac5b1b5bcd388cdf.glb",
+          "size": 2468092,
+          "sha256": "92e0e100bc7332e76dda8012936e37323d0f299668802ddc758bf94a6662449e"
+        }
+      ]
+    },
+    "hob_4_glass": {
+      "id": "hob_4_glass",
+      "uid": "0a9441fbe4bd47b990e17dab99267d40",
+      "name": "Gas Stove No.1",
+      "authors": [
+        "lutz_westerfeld"
+      ],
+      "page": "https://sketchfab.com/3d-models/0a9441fbe4bd47b990e17dab99267d40",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata/000-003.json.gz, 0a9441fbe4bd47b990e17dab99267d40: license \"by\" (Creative Commons Attribution 4.0), user \"lutzwesterfeld\" (lutz_westerfeld); Sketchfab API v3/models/0a9441fbe4bd47b990e17dab99267d40: license \"CC Attribution\", \"Author must be credited. Commercial use is allowed.\"",
+      "use": "four-burner glass-top gas hob on the kitchen counter (lived-in decor)",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "0a9441fbe4bd47b990e17dab99267d40.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-003/0a9441fbe4bd47b990e17dab99267d40.glb",
+          "size": 6140360,
+          "sha256": "66a49fc6306415f9a7064918926ba0ee19375770ec5eeac8aaa52294d3d1adf3"
+        }
+      ]
+    },
+    "hood_chimney": {
+      "id": "hood_chimney",
+      "uid": "e846cb48e88446808af55976ff76b1da",
+      "name": "Range Hood (Kitchen Hood)",
+      "authors": [
+        "govindu94"
+      ],
+      "page": "https://sketchfab.com/3d-models/e846cb48e88446808af55976ff76b1da",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+      "licenceWords": "Objaverse 1.0 metadata/000-002.json.gz, e846cb48e88446808af55976ff76b1da: license \"by\" (Creative Commons Attribution 4.0), user \"govindu94\" (govindu94); Sketchfab API v3/models/e846cb48e88446808af55976ff76b1da: license \"CC Attribution\", \"Author must be credited. Commercial use is allowed.\"",
+      "use": "stainless chimney hood over the hob (lived-in decor), its flue stretched to the ceiling",
+      "licenceRead": "2026-11-22",
+      "fetched": "2026-11-22",
+      "files": [
+        {
+          "path": "e846cb48e88446808af55976ff76b1da.glb",
+          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-002/e846cb48e88446808af55976ff76b1da.glb",
+          "size": 335108,
+          "sha256": "a4c2bffc71674fecd8dfcf3cc6a123a04a9ce5ef921764495edaef0c3cf0ceff"
+        }
+      ]
+    }
+  },
+  "rejected": [
+    {
+      "what": "Modern Sofa (3dimentionalben), CC BY",
+      "url": "https://sketchfab.com/3d-models/ac92f6e97eaa43c4ad6cb8f7c65ac43f",
+      "why": "a low lounge sofa 60 cm high: a 35 % stretch to the 85 cm back of the catalogue sofa (over the 12 % rule)"
+    },
+    {
+      "what": "Sofa Couch (jimbogies), CC BY",
+      "url": "https://sketchfab.com/search?q=sofa+couch+jimbogies&type=models",
+      "why": "a checked throw and cushions modelled onto the seat and back (SPEC 16.23: nothing loose on a seat), and 58 000 triangles"
+    },
+    {
+      "what": "Sofa (GreenG), CC BY",
+      "url": "https://sketchfab.com/3d-models/c7a0c35f4f0b49f8b4fea273f9014001",
+      "why": "a green leather L with a throw and nine cushions piled on it: busy, and the throw lies on the seat"
+    },
+    {
+      "what": "Armchair pack (Elbolillo), CC BY",
+      "url": "https://sketchfab.com/3d-models/675cc978e5d74bcea7ef28d13a63a3da",
+      "why": "flat-colour toy low-poly pieces (the Kenney look SPEC 16.15 already rejected)"
+    },
+    {
+      "what": "Armchair (Yury Misiyuk), CC BY",
+      "url": "https://sketchfab.com/3d-models/4c85231b2a5349efaa7e9d6b0c2f0b8e",
+      "why": "its scene does not load in three.js r186 (renders empty); not worth repairing with a good alternative in hand"
+    },
+    {
+      "what": "A sofa titled with a furniture retailer's product name (Filipe.Soares), CC BY",
+      "url": "https://sketchfab.com/3d-models/db5d6bbf7f34482ca1be89456fcc4070",
+      "why": "named after a retailer's product (brand name): not fetched"
+    },
+    {
+      "what": "Bed 06 (Doaa Sheha), CC BY",
+      "url": "https://sketchfab.com/3d-models/30a491ca2dab4b61adc04bd51d3f45c1",
+      "why": "the bed is one mesh with its two bedside tables and lamps: they cannot be taken off without cutting the headboard"
+    },
+    {
+      "what": "Queen-bed (lugher3d.com), CC BY",
+      "url": "https://sketchfab.com/3d-models/39d113d5868d473caf71e928d1d313a6",
+      "why": "302 000 triangles, a rumpled duvet modelled into the frame, and the source carries a studio's web address as its author name"
+    },
+    {
+      "what": "Bed (rerwandi), CC BY",
+      "url": "https://sketchfab.com/3d-models/352f853f03194e9dac551e2c8afe7d1a",
+      "why": "an orange varnished wood texture that is blurred and stretched; reads as a game prop"
+    },
+    {
+      "what": "Toilet (Xill), CC BY",
+      "url": "https://sketchfab.com/3d-models/24d1b493899d407780140688abae19bc",
+      "why": "its proportions miss the 40 x 72 x 80 cm box by 13 % (taller lid and deeper pan) and it has 57 000 triangles"
+    },
+    {
+      "what": "Sofa (Urpo), CC BY",
+      "url": "https://sketchfab.com/3d-models/80edec2de8c04a4fb335a48b550a2336",
+      "why": "a low-backed sofa: with its back stretched to the 85 cm box its seat lands at 47 cm, 4 cm over the 43 cm seat (SPEC 16.15 allows 3)"
+    },
+    {
+      "what": "Gray L-Shaped Couch (AleixoAlonso), CC BY",
+      "url": "https://sketchfab.com/3d-models/f3a71dc05afb46f8a2fae64eba0acc64",
+      "why": "a fine L sofa, but its seat is 38 cm high: 5 cm under the 43 cm seat a person is posed on"
+    },
+    {
+      "what": "366 Armchair (hectopod), CC BY",
+      "url": "https://sketchfab.com/3d-models/97e53f749df14e8c9de7a22bf99be753",
+      "why": "its seat is 58 % of its height: fitted to the 85 cm box the seat lands at 50 cm (7 cm over)"
+    },
+    {
+      "what": "Modern Couch (Sinematic3D), Couch (Da_Fne), max SOFA.unity (kendra024), CC BY",
+      "url": "https://sketchfab.com/3d-models/9b1e09abe5e34d6397937ebf59901898",
+      "why": "four-seat sofas 2.6 to 2.75 m long (a 24 % squeeze into 2.1 m), or with a chaise"
+    },
+    {
+      "what": "Couch Gameready (elijahorama), Couch (MSatriaR), CC BY",
+      "url": "https://sketchfab.com/3d-models/42da0122f2134a189767d0911b401c1c",
+      "why": "low lounge seats (26 to 30 cm) and backs 65 to 70 cm: 20 % under the 85 cm box"
+    },
+    {
+      "what": "Toilet (HippoStance), CC BY",
+      "url": "https://sketchfab.com/3d-models/132a8ee2af3a40d39d270fbed3d3666c",
+      "why": "a compact pan 59 cm deep: 22 % short of the 72 cm box, with a hose beside it"
+    },
+    {
+      "what": "A toilet titled with a bathroom company's name (5Life), CC BY",
+      "url": "https://sketchfab.com/3d-models/5b18711616054a44b025d9272b745a6a",
+      "why": "named after a bathroom company (brand name): not fetched"
+    },
+    {
+      "what": "Simple Toilet | Inodoro (Josean_3dev), CC BY",
+      "url": "https://sketchfab.com/3d-models/71e1bc91750d41b38f87eb2bd3e67974",
+      "why": "a tall square cistern on a dated pan, and 17 % shallower than the 72 cm box"
+    },
+    {
+      "what": "Simple Sink (Andrew.Mischenko), CC BY",
+      "url": "https://sketchfab.com/3d-models/73bda35b6e7a499a80427fc1b049b192",
+      "why": "its tap stands 17 cm above the rim: with the rim at 85 cm it would reach past the 95 cm box (a 42 % squeeze)"
+    },
+    {
+      "what": "Washbasin (Stakler), Sink with Faucet (blendffnike), CC BY",
+      "url": "https://sketchfab.com/3d-models/e6113364a9ce4495876a15af3e021606",
+      "why": "vanity units with a cupboard below: a different catalogue piece from the wall-hung basin (no vanity piece is in the sample flats)"
+    },
+    {
+      "what": "Refrigerator - Grey Polished Metal (Glowbox 3D), House Props : Fridge (Whitend), CC BY",
+      "url": "https://sketchfab.com/3d-models/2071bda681b642218b6829b82e4fd93b",
+      "why": "both are double-door fridges with 1 100 to 2 100 triangles and smeared maps; the patrakeevasveta fridge is cleaner"
+    },
+    {
+      "what": "Refrigerator (patrakeevasveta), CC BY",
+      "url": "https://sketchfab.com/3d-models/38a739d5361547b7b8b7d87ab73c9fa3",
+      "why": "a clean steel fridge-freezer, but 2.03 m tall in its own metres: a 19 % squeeze into the 1.65 m double-door box"
+    },
+    {
+      "what": "Fridge - Refrigerator - Freezer (re1monsen), CC BY",
+      "url": "https://sketchfab.com/3d-models/f9fd65542a414ef4b8b5227d49e87d87",
+      "why": "a scene (a cooler box on a picnic rug), not a fridge"
+    },
+    {
+      "what": "Every single-door fridge found",
+      "url": "https://api.sketchfab.com/v3/search?type=models&q=fridge",
+      "why": "none clean: retro or Soviet styling, stylised, open-door, or a brand on the door; the sample flats' \"Fridge, single door\" stays generated (a double-door model would misstate the piece)"
+    },
+    {
+      "what": "Gas Stove Kitchen (Yousof Hajizeinali), CC BY",
+      "url": "https://sketchfab.com/3d-models/f82172b787854191a55b3a5dfd5ede0b",
+      "why": "a five-burner hob 1.83 m wide in the source's units with burners spaced for 90 cm: wider than the 60 cm hob the planner puts on the counter"
+    },
+    {
+      "what": "Five cooktops titled with appliance makers' names (several authors), CC BY",
+      "url": "https://api.sketchfab.com/v3/search?type=models&q=cooktop",
+      "why": "named after a maker (brand names): not fetched"
+    },
+    {
+      "what": "Kitchen Hood Model 3D fbx (a hood maker's own account), CC BY",
+      "url": "https://sketchfab.com/3d-models/f2de7240cfe64ebebff8f6d78f7f7879",
+      "why": "published by a hood maker under its brand; also loads as a bare flue"
+    },
+    {
+      "what": "FREE Rectangular Cooker Hood 60 X 40 cm (marcin_malcherek), CC BY",
+      "url": "https://sketchfab.com/3d-models/a3ec10632d83426aaa5dad54422a6aec",
+      "why": "a plain black box: reads worse than the stainless chimney"
+    },
+    {
+      "what": "Kitchen sink (atori657), Kitchen Sink (HippoStance), Mixer (GeneGrad), CC BY",
+      "url": "https://sketchfab.com/3d-models/7f0192b9afed4b569b80f5031b9ea598",
+      "why": "good sinks, but the catalogue sink is a whole unit (cabinet, worktop, bowl, drainboard, tap) whose generated bowl and tap already read as steel; swapping only the bowl is not supported yet"
+    },
+    {
+      "what": "Ceiling fans and split AC units (Sketchfab search), CC BY",
+      "url": "https://api.sketchfab.com/v3/search?type=models&q=ceiling%20fan",
+      "why": "the fans are part of the kit's baked static fixtures with instanced, turning blades (a model would need the bake and the rotor redone); the AC units found carry a maker's logo or are flat boxes. Left generated"
+    },
+    {
+      "what": "TV units (Sketchfab search), CC BY",
+      "url": "https://api.sketchfab.com/v3/search?type=models&q=tv%20unit",
+      "why": "the catalogue TV unit includes the television in its box (1.48 to 1.62 m high); the free stands are the cabinet alone, mostly low-poly or reclaimed wood"
+    },
+    {
+      "what": "Objaverse LVIS lists (sofa 81, toilet 111, refrigerator 55, washbasin 48, bed 53)",
+      "url": "https://huggingface.co/datasets/allenai/objaverse/blob/main/lvis-annotations.json.gz",
+      "why": "browsed through Sketchfab's public search instead (sorted by likes, downloadable, CC BY or CC0, then kept only what the archive holds); the per-object API was rate-limited (HTTP 429) part way"
+    }
+  ],
+  "outputs": {
+    "models/sofa_3s_midcentury.glb": {
+      "bytes": 300384,
+      "sha256": "df0c71aef9916f65e3ed44371eec8890dd23bd2c0e357147c0c46272640c5866"
+    },
+    "models/sofa_3s_midcentury.low.glb": {
+      "bytes": 37652,
+      "sha256": "4192af33074d0c7671dc645ed281e984d931aa0d12b8b5b9cc7b3a821152c7a7"
+    },
+    "models/sofa_2s_grey.glb": {
+      "bytes": 391964,
+      "sha256": "a765d2e5ec329ee626c69311463add1ae0e172f700403a1923368175ab6d5c7b"
+    },
+    "models/sofa_2s_grey.low.glb": {
+      "bytes": 62936,
+      "sha256": "443f42dd876e4a51b4f51185c0c1af9cc01e5d1c136045452f5ffa1e2b92d352"
+    },
+    "models/armchair_tub.glb": {
+      "bytes": 183108,
+      "sha256": "da1e499fede38b52952d2b6d098e8b40214de2872298c816800594bc184565e4"
+    },
+    "models/armchair_tub.low.glb": {
+      "bytes": 46608,
+      "sha256": "380edd1288f82155323ba28431ba6fa746f926270332ef86490110caa70bd160"
+    },
+    "models/wc_floor.glb": {
+      "bytes": 55232,
+      "sha256": "2d9a93c237d976bbe637c3e626c9504abedaef0fd50c4e51c5350912f84d7732"
+    },
+    "models/wc_floor.low.glb": {
+      "bytes": 21400,
+      "sha256": "aa8df841bc30ee00c2afd1adaeaff0835c04c0596f576af9289461209f4579a8"
+    },
+    "models/basin_wall.glb": {
+      "bytes": 38792,
+      "sha256": "16b04643a13733e966b23ce41e5915087d21303a4d004ee0c9ff856ae8938fce"
+    },
+    "models/basin_wall.low.glb": {
+      "bytes": 17940,
+      "sha256": "8140029008005a898a2fdcbf22ddda052d2ebb2b1da057496e47fc0628f5f3f1"
+    },
+    "models/bed_frame_soho.glb": {
+      "bytes": 58160,
+      "sha256": "0bd9b4f22753ccd0b1ef215fc9b74f99bd37c560ef16c33db7ae534d66d9dc53"
+    },
+    "models/bed_frame_soho.low.glb": {
+      "bytes": 20740,
+      "sha256": "0590030f677feb79a30cacb297ed261226f561434bc400dcf141dbbd94603e36"
+    },
+    "models/hob_4_glass.glb": {
+      "bytes": 194348,
+      "sha256": "406b644dbee297523d5c476aac7b4f59998f51255f04a0f8bc0ffbe794ee32c6"
+    },
+    "models/hood_chimney.glb": {
+      "bytes": 37864,
+      "sha256": "e1ee197354111af38342113b1021be794047b6a1fdfcf9efde74e711037b5573"
+    },
+    "models/hood_chimney.low.glb": {
+      "bytes": 18824,
+      "sha256": "0951d0756b8c16ed537d03e2e7794a4b8ff23cfef04148bc8f54db81ae600096"
+    }
+  }
+}

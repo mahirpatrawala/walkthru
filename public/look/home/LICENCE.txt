@@ -1,0 +1,134 @@
+Models of the flats under public/look/home/ (SPEC 16.15.4). Fetched and checked by scripts/fetch-home-models.ts; home.lock.json has every source URL, size and SHA-256.
+The files here are adaptations (tools/optimise-home-models.mjs): turned to face the room, scaled to metres, re-centred, cut to the parts used, simplified, some parts given plain materials, maps re-encoded as WebP, meshopt-compressed. In the app each is further scaled to the drawn size and recoloured.
+
+CREDITS (Creative Commons Attribution 4.0: the author must be credited; the buyer page lists them under "3D model credits", src/buyer/credits-panel.ts):
+  "Mid Century Modern Sofa" by Tom Seddon
+    https://sketchfab.com/3d-models/1f9f52ae17d642b582d0c5ccf9dd64b3
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22)
+    used for: 3-seat sofa (210 x 90 x 85 cm, and drawn sofas within 12 % of it): the whole piece, recoloured by the style
+  "Sofa" by katjagricishina
+    https://sketchfab.com/3d-models/03550a3529c24611a12aa158747374e0
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22)
+    used for: 2-seat sofa (150 x 85 x 85 cm): the whole piece, recoloured by the style
+  "Arm chair / Furniture" by maxsbond.work
+    https://sketchfab.com/3d-models/ec62634ebb5a41f491bbb9da04cd9dd1
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22)
+    used for: armchair (80 x 85 x 85 cm): upholstered tub chair on four legs, recoloured by the style
+  "Toilet" by Urpo
+    https://sketchfab.com/3d-models/adb3b931f3ef4941830eea9705657a3d
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22)
+    used for: western commode, floor-mounted: pan, cistern and seat in plain glazed ceramic (the open lid left out)
+  "Unseen: Bathroom Sink" by JmCVoyager
+    https://sketchfab.com/3d-models/6f5a66deecf348c1a6ebed0ce38b810d
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22)
+    used for: wall-hung wash basin with its tap and trap, rim at the drawn height
+  "Soho bed - 3D Model" by BertO
+    https://sketchfab.com/3d-models/97e361e8beda4112ac5b1b5bcd388cdf
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22)
+    used for: the upholstered base and headboard of queen and king beds; its own bedding is left out, the generated mattress, quilt and pillows go on it
+  "Gas Stove No.1" by lutz_westerfeld
+    https://sketchfab.com/3d-models/0a9441fbe4bd47b990e17dab99267d40
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22)
+    used for: four-burner glass-top gas hob on the kitchen counter (lived-in decor)
+  "Range Hood (Kitchen Hood)" by govindu94
+    https://sketchfab.com/3d-models/e846cb48e88446808af55976ff76b1da
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22)
+    used for: stainless chimney hood over the hob (lived-in decor), its flue stretched to the ceiling
+
+Looked at on 2026-11-22 and NOT used:
+  Modern Sofa (3dimentionalben), CC BY
+    https://sketchfab.com/3d-models/ac92f6e97eaa43c4ad6cb8f7c65ac43f
+    why: a low lounge sofa 60 cm high: a 35 % stretch to the 85 cm back of the catalogue sofa (over the 12 % rule)
+  Sofa Couch (jimbogies), CC BY
+    https://sketchfab.com/search?q=sofa+couch+jimbogies&type=models
+    why: a checked throw and cushions modelled onto the seat and back (SPEC 16.23: nothing loose on a seat), and 58 000 triangles
+  Sofa (GreenG), CC BY
+    https://sketchfab.com/3d-models/c7a0c35f4f0b49f8b4fea273f9014001
+    why: a green leather L with a throw and nine cushions piled on it: busy, and the throw lies on the seat
+  Armchair pack (Elbolillo), CC BY
+    https://sketchfab.com/3d-models/675cc978e5d74bcea7ef28d13a63a3da
+    why: flat-colour toy low-poly pieces (the Kenney look SPEC 16.15 already rejected)
+  Armchair (Yury Misiyuk), CC BY
+    https://sketchfab.com/3d-models/4c85231b2a5349efaa7e9d6b0c2f0b8e
+    why: its scene does not load in three.js r186 (renders empty); not worth repairing with a good alternative in hand
+  A sofa titled with a furniture retailer's product name (Filipe.Soares), CC BY
+    https://sketchfab.com/3d-models/db5d6bbf7f34482ca1be89456fcc4070
+    why: named after a retailer's product (brand name): not fetched
+  Bed 06 (Doaa Sheha), CC BY
+    https://sketchfab.com/3d-models/30a491ca2dab4b61adc04bd51d3f45c1
+    why: the bed is one mesh with its two bedside tables and lamps: they cannot be taken off without cutting the headboard
+  Queen-bed (lugher3d.com), CC BY
+    https://sketchfab.com/3d-models/39d113d5868d473caf71e928d1d313a6
+    why: 302 000 triangles, a rumpled duvet modelled into the frame, and the source carries a studio's web address as its author name
+  Bed (rerwandi), CC BY
+    https://sketchfab.com/3d-models/352f853f03194e9dac551e2c8afe7d1a
+    why: an orange varnished wood texture that is blurred and stretched; reads as a game prop
+  Toilet (Xill), CC BY
+    https://sketchfab.com/3d-models/24d1b493899d407780140688abae19bc
+    why: its proportions miss the 40 x 72 x 80 cm box by 13 % (taller lid and deeper pan) and it has 57 000 triangles
+  Sofa (Urpo), CC BY
+    https://sketchfab.com/3d-models/80edec2de8c04a4fb335a48b550a2336
+    why: a low-backed sofa: with its back stretched to the 85 cm box its seat lands at 47 cm, 4 cm over the 43 cm seat (SPEC 16.15 allows 3)
+  Gray L-Shaped Couch (AleixoAlonso), CC BY
+    https://sketchfab.com/3d-models/f3a71dc05afb46f8a2fae64eba0acc64
+    why: a fine L sofa, but its seat is 38 cm high: 5 cm under the 43 cm seat a person is posed on
+  366 Armchair (hectopod), CC BY
+    https://sketchfab.com/3d-models/97e53f749df14e8c9de7a22bf99be753
+    why: its seat is 58 % of its height: fitted to the 85 cm box the seat lands at 50 cm (7 cm over)
+  Modern Couch (Sinematic3D), Couch (Da_Fne), max SOFA.unity (kendra024), CC BY
+    https://sketchfab.com/3d-models/9b1e09abe5e34d6397937ebf59901898
+    why: four-seat sofas 2.6 to 2.75 m long (a 24 % squeeze into 2.1 m), or with a chaise
+  Couch Gameready (elijahorama), Couch (MSatriaR), CC BY
+    https://sketchfab.com/3d-models/42da0122f2134a189767d0911b401c1c
+    why: low lounge seats (26 to 30 cm) and backs 65 to 70 cm: 20 % under the 85 cm box
+  Toilet (HippoStance), CC BY
+    https://sketchfab.com/3d-models/132a8ee2af3a40d39d270fbed3d3666c
+    why: a compact pan 59 cm deep: 22 % short of the 72 cm box, with a hose beside it
+  A toilet titled with a bathroom company's name (5Life), CC BY
+    https://sketchfab.com/3d-models/5b18711616054a44b025d9272b745a6a
+    why: named after a bathroom company (brand name): not fetched
+  Simple Toilet | Inodoro (Josean_3dev), CC BY
+    https://sketchfab.com/3d-models/71e1bc91750d41b38f87eb2bd3e67974
+    why: a tall square cistern on a dated pan, and 17 % shallower than the 72 cm box
+  Simple Sink (Andrew.Mischenko), CC BY
+    https://sketchfab.com/3d-models/73bda35b6e7a499a80427fc1b049b192
+    why: its tap stands 17 cm above the rim: with the rim at 85 cm it would reach past the 95 cm box (a 42 % squeeze)
+  Washbasin (Stakler), Sink with Faucet (blendffnike), CC BY
+    https://sketchfab.com/3d-models/e6113364a9ce4495876a15af3e021606
+    why: vanity units with a cupboard below: a different catalogue piece from the wall-hung basin (no vanity piece is in the sample flats)
+  Refrigerator - Grey Polished Metal (Glowbox 3D), House Props : Fridge (Whitend), CC BY
+    https://sketchfab.com/3d-models/2071bda681b642218b6829b82e4fd93b
+    why: both are double-door fridges with 1 100 to 2 100 triangles and smeared maps; the patrakeevasveta fridge is cleaner
+  Refrigerator (patrakeevasveta), CC BY
+    https://sketchfab.com/3d-models/38a739d5361547b7b8b7d87ab73c9fa3
+    why: a clean steel fridge-freezer, but 2.03 m tall in its own metres: a 19 % squeeze into the 1.65 m double-door box
+  Fridge - Refrigerator - Freezer (re1monsen), CC BY
+    https://sketchfab.com/3d-models/f9fd65542a414ef4b8b5227d49e87d87
+    why: a scene (a cooler box on a picnic rug), not a fridge
+  Every single-door fridge found
+    https://api.sketchfab.com/v3/search?type=models&q=fridge
+    why: none clean: retro or Soviet styling, stylised, open-door, or a brand on the door; the sample flats' "Fridge, single door" stays generated (a double-door model would misstate the piece)
+  Gas Stove Kitchen (Yousof Hajizeinali), CC BY
+    https://sketchfab.com/3d-models/f82172b787854191a55b3a5dfd5ede0b
+    why: a five-burner hob 1.83 m wide in the source's units with burners spaced for 90 cm: wider than the 60 cm hob the planner puts on the counter
+  Five cooktops titled with appliance makers' names (several authors), CC BY
+    https://api.sketchfab.com/v3/search?type=models&q=cooktop
+    why: named after a maker (brand names): not fetched
+  Kitchen Hood Model 3D fbx (a hood maker's own account), CC BY
+    https://sketchfab.com/3d-models/f2de7240cfe64ebebff8f6d78f7f7879
+    why: published by a hood maker under its brand; also loads as a bare flue
+  FREE Rectangular Cooker Hood 60 X 40 cm (marcin_malcherek), CC BY
+    https://sketchfab.com/3d-models/a3ec10632d83426aaa5dad54422a6aec
+    why: a plain black box: reads worse than the stainless chimney
+  Kitchen sink (atori657), Kitchen Sink (HippoStance), Mixer (GeneGrad), CC BY
+    https://sketchfab.com/3d-models/7f0192b9afed4b569b80f5031b9ea598
+    why: good sinks, but the catalogue sink is a whole unit (cabinet, worktop, bowl, drainboard, tap) whose generated bowl and tap already read as steel; swapping only the bowl is not supported yet
+  Ceiling fans and split AC units (Sketchfab search), CC BY
+    https://api.sketchfab.com/v3/search?type=models&q=ceiling%20fan
+    why: the fans are part of the kit's baked static fixtures with instanced, turning blades (a model would need the bake and the rotor redone); the AC units found carry a maker's logo or are flat boxes. Left generated
+  TV units (Sketchfab search), CC BY
+    https://api.sketchfab.com/v3/search?type=models&q=tv%20unit
+    why: the catalogue TV unit includes the television in its box (1.48 to 1.62 m high); the free stands are the cabinet alone, mostly low-poly or reclaimed wood
+  Objaverse LVIS lists (sofa 81, toilet 111, refrigerator 55, washbasin 48, bed 53)
+    https://huggingface.co/datasets/allenai/objaverse/blob/main/lvis-annotations.json.gz
+    why: browsed through Sketchfab's public search instead (sorted by likes, downloadable, CC BY or CC0, then kept only what the archive holds); the per-object API was rate-limited (HTTP 429) part way

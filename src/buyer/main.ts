@@ -86,6 +86,7 @@ import type { PersonSpec } from './people/manager';
 import { createOverlays } from './overlays';
 import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
+import { mountCreditsLink } from './credits-panel';
 import { mountNav } from './nav/mount';
 import { mountDirections } from './directions/mount';
 import { readingFor, resolveNorth } from './directions/model';
@@ -144,7 +145,7 @@ async function fetchExtras(sceneId: string): Promise<ReturnType<typeof unverifie
 // ---------------------------------------------------------------- page boot
 
 const params = new URLSearchParams(location.search);
-setModelsEnabled(params.get('models') !== 'off'); // ?models=off: the generated furniture and decor only (SPEC 16.15)
+setModelsEnabled(params.get('models') === 'off' ? false : params.get('models') === 'cc0' ? 'cc0' : true); // ?models=off: the generated furniture and decor only (SPEC 16.15); ?models=cc0: without the flats' CC BY models (16.15.4)
 // src/buyer/entry.ts only loads this file when ?scene= names a home (or ?building=&space= a space of a building, which mounts spaces itself
 // through `boot`); with neither, the start page opens instead
 const initialSceneId = (params.get('scene') ?? '').trim();
@@ -451,6 +452,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   if (tagText) { mountSceneTag(hud.root, tagText); hud.onShown(() => hud.notice(tagText)); } // the honesty note lives in the identity card and is shown once as its own pill
   if (uploaded) { const up = uploaded; void import('../upload/notes-panel').then((m) => m.mountUploadNote(hud.root, up.data.notes, sceneId, up.source === 'sample')); }
   if (!host) mountHomeLink(hud.root);
+  cleanup.push(mountCreditsLink(hud.root)); // "3D model credits" in the identity card: the CC BY credit of every downloaded asset (src/look/credits.ts)
   // a pool: the depth pill, the walkway verdict and the depth card (SPEC 19.3)
   outdoor?.attachUi({ host: hud.root, walker: { position: () => character.position, heightCm: () => heightCm }, items: () => store.all(), onItemsChange: (cb) => store.onChange(cb), block: (on) => { extBlock = on; } });
   const partialBadge = mountPartialBadge(hud.root);
