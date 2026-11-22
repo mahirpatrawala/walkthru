@@ -24,16 +24,16 @@
   ],
   "tiers": {
    "high": {
-    "leafKeep": 0.45,
-    "simplify": 0.2
-   },
-   "medium": {
-    "leafKeep": 0.22,
+    "leafKeep": 0.25,
     "simplify": 0.08
    },
-   "low": {
-    "leafKeep": 0.14,
+   "medium": {
+    "leafKeep": 0.1,
     "simplify": 0.035
+   },
+   "low": {
+    "leafKeep": 0.045,
+    "simplify": 0.015
    }
   },
   "tint": {
@@ -128,13 +128,14 @@
   ],
   "tiers": {
    "high": {
-    "simplify": 1
+    "simplify": 0.35
    },
    "medium": {
-    "simplify": 0.6
+    "simplify": 0.18
    },
    "low": {
-    "simplify": 0.3
+    "simplify": 0.1,
+    "error": 0.01
    }
   }
  },
@@ -279,7 +280,7 @@
     "simplify": 0.8
    },
    "low": {
-    "simplify": 0.5
+    "simplify": 1
    }
   }
  },
@@ -313,7 +314,11 @@
    "low": {
     "simplify": 0.4
    }
-  }
+  },
+  "noNormals": [
+   "frame",
+   "wood"
+  ]
  },
  "royal-palm": {
   "src": "objaverse/08ccca74a0594fd999acaf4cfbd597e0.glb",

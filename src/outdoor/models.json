@@ -11,41 +11,41 @@
    "tiers": {
     "high": {
      "file": "models/neem.glb",
-     "bytes": 875432,
-     "tris": 27452,
+     "bytes": 600128,
+     "tris": 14105,
      "parts": {
-      "trunk": 7717,
-      "leaves": 19735
+      "trunk": 2980,
+      "leaves": 11125
      }
     },
     "medium": {
      "file": "models/neem.med.glb",
-     "bytes": 398788,
-     "tris": 12657,
+     "bytes": 242932,
+     "tris": 5560,
      "parts": {
-      "trunk": 2980,
-      "leaves": 9677
+      "trunk": 1250,
+      "leaves": 4310
      }
     },
     "low": {
      "file": "models/neem.low.glb",
-     "bytes": 197808,
-     "tris": 7530,
+     "bytes": 81060,
+     "tris": 2409,
      "parts": {
-      "trunk": 1250,
-      "leaves": 6280
+      "trunk": 488,
+      "leaves": 1921
      }
     }
    },
    "min": [
-    -3.499,
-    0.026,
-    -3.191
+    -3.669,
+    0.143,
+    -3.176
    ],
    "max": [
-    3.232,
-    7.114,
-    3.732
+    3.287,
+    7.137,
+    3.704
    ]
   },
   "areca-palm": {
@@ -109,35 +109,35 @@
    "tiers": {
     "high": {
      "file": "models/lounger.glb",
-     "bytes": 314208,
-     "tris": 13282,
+     "bytes": 228860,
+     "tris": 4647,
      "parts": {
-      "frame": 11946,
-      "cushion": 1336
+      "frame": 4181,
+      "cushion": 466
      }
     },
     "medium": {
      "file": "models/lounger.med.glb",
-     "bytes": 207372,
-     "tris": 7967,
+     "bytes": 81712,
+     "tris": 2365,
      "parts": {
-      "frame": 7167,
-      "cushion": 800
+      "frame": 2117,
+      "cushion": 248
      }
     },
     "low": {
      "file": "models/lounger.low.glb",
-     "bytes": 120664,
-     "tris": 4328,
+     "bytes": 26960,
+     "tris": 1316,
      "parts": {
-      "frame": 3928,
-      "cushion": 400
+      "frame": 1184,
+      "cushion": 132
      }
     }
    },
    "min": [
-    -0.345,
-    0.001,
+    -0.346,
+    0,
     -0.871
    ],
    "max": [
@@ -272,10 +272,10 @@
     },
     "low": {
      "file": "models/patio-table.low.glb",
-     "bytes": 18328,
-     "tris": 1856,
+     "bytes": 27952,
+     "tris": 1888,
      "parts": {
-      "frame": 1776,
+      "frame": 1808,
       "glass": 80
      }
     }
@@ -301,7 +301,7 @@
    "tiers": {
     "high": {
      "file": "models/bench.glb",
-     "bytes": 117528,
+     "bytes": 97008,
      "tris": 3038,
      "parts": {
       "frame": 2544,
@@ -310,7 +310,7 @@
     },
     "medium": {
      "file": "models/bench.med.glb",
-     "bytes": 83680,
+     "bytes": 63244,
      "tris": 2810,
      "parts": {
       "frame": 2316,

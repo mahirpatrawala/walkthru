@@ -99,21 +99,23 @@ describe('the model files, their sources and their credits', () => {
 
 describe('budgets per tier', () => {
   const files = readJson<{ files: Record<string, { bytes: number }> }>(path.join(OUT, 'files.lock.json')).files;
-  it('each tier is lighter than the one above; a tree is at most 32k triangles on high, 15k on medium, 9k on a phone', () => {
+  it('each tier is lighter than the one above; a tree is at most 16k triangles on high, 7k on medium, 3k on a phone; a piece 6k, 3k, 2k', () => {
     for (const [id, f] of Object.entries(MODEL_FACTS)) {
       expect(f.tiers.low.tris, id).toBeLessThanOrEqual(f.tiers.medium.tris);
       expect(f.tiers.medium.tris, id).toBeLessThanOrEqual(f.tiers.high.tris);
       expect(f.tiers.low.bytes, id).toBeLessThanOrEqual(f.tiers.high.bytes);
-      if (f.kind === 'plant') { expect(f.tiers.high.tris, id).toBeLessThanOrEqual(32_000); expect(f.tiers.medium.tris, id).toBeLessThanOrEqual(15_000); expect(f.tiers.low.tris, id).toBeLessThanOrEqual(9_000); }
-      else expect(f.tiers.high.tris, id).toBeLessThanOrEqual(15_000);
+      const [hi, med, lo] = f.kind === 'plant' ? [16_000, 7_000, 3_000] : [6_000, 3_000, 2_000];
+      expect(f.tiers.high.tris, id).toBeLessThanOrEqual(hi);
+      expect(f.tiers.medium.tris, id).toBeLessThanOrEqual(med);
+      expect(f.tiers.low.tris, id).toBeLessThanOrEqual(lo);
     }
   });
-  it('a phone fetches under 0.8 MB of models for the pool wing (neem, coconut palm, lounger, chair), each file under 250 KB', () => {
+  it('a phone fetches under 0.6 MB of models for the pool wing (neem, coconut palm, lounger, chair), each file under 200 KB', () => {
     const low = [OUTDOOR_MODELS.neem.file('low'), OUTDOOR_MODELS['coconut-palm'].file('low'), `outdoor/${MODEL_FACTS.lounger.tiers.low.file}`, `outdoor/${MODEL_FACTS['pool-chair'].tiers.low.file}`];
     const bytes = low.map((f) => files[f.replace(/^outdoor\//, '')].bytes);
-    for (const b of bytes) expect(b).toBeLessThan(250_000);
-    expect(bytes.reduce((a, b) => a + b, 0)).toBeLessThan(800_000);
-    for (const id of Object.keys(MODEL_FACTS)) expect(files[MODEL_FACTS[id].tiers.low.file].bytes, id).toBeLessThan(250_000);
+    for (const b of bytes) expect(b).toBeLessThan(200_000);
+    expect(bytes.reduce((a, b) => a + b, 0)).toBeLessThan(600_000);
+    for (const id of Object.keys(MODEL_FACTS)) expect(files[MODEL_FACTS[id].tiers.low.file].bytes, id).toBeLessThan(200_000);
   });
   it('the species drawn by a model have a model of the right height range', () => {
     for (const sp of Object.values(SPECIES)) {

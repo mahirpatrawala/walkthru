@@ -82,16 +82,16 @@
       "sha256": "5f050c11afa5a0549f56199f2de4b62b01e67936fb639094b3132967a32ed26b"
     },
     "models/bench.glb": {
-      "bytes": 117528,
-      "sha256": "b225aa61f93b2fcafb8e1f2ae795c2afb2bdcb28cd549c5e81f885e64f927dc6"
+      "bytes": 97008,
+      "sha256": "99ca9284df744bc7088603c2ae4b35ced83658c1eaeafe7220f53307049d5851"
     },
     "models/bench.low.glb": {
       "bytes": 17180,
       "sha256": "9c835baa69cdaf4608b835f664b42237d7bfdef0b46b4dec03d35532deeebf0b"
     },
     "models/bench.med.glb": {
-      "bytes": 83680,
-      "sha256": "84a877b156f47bfecd676fb1fc72fb443e12dfbb615f325be6cd535b436ff5bf"
+      "bytes": 63244,
+      "sha256": "b8e91bf56889ce729d5811773720f6f6f79de47c963d8ab8a3806b6c3e171593"
     },
     "models/coconut-palm.glb": {
       "bytes": 459444,
@@ -102,28 +102,28 @@
       "sha256": "96c615c84b96f840250cd302e538feb9b05acf5f80c8d623b049fa290bab926a"
     },
     "models/lounger.glb": {
-      "bytes": 314208,
-      "sha256": "980a8dab43a78d4f0ef8dba2490b2fcac0ba55477257673d1cf6b66c961e35b8"
+      "bytes": 228860,
+      "sha256": "b733b58c9848ebfae1aa43e6ce4e41cc00f27f2dcda7b7fb4cb4d7b7eaed71a5"
     },
     "models/lounger.low.glb": {
-      "bytes": 120664,
-      "sha256": "004dbff7237e1df925676349ada17f7854155a005967bc4a217916bc8d209b1d"
+      "bytes": 26960,
+      "sha256": "e6b3d92f3729aa2bc147edd03eb27c0c1d7d689dbacd580e354873f3b93af730"
     },
     "models/lounger.med.glb": {
-      "bytes": 207372,
-      "sha256": "01e94c754f2ef4c0f86b8185c1e99fe3c83cfc2f0a5ba71da10e5bf78e4d7d28"
+      "bytes": 81712,
+      "sha256": "dc8240a765b8c984da20f13aaffc5e892a3a5c17becedccb1f526dc259146309"
     },
     "models/neem.glb": {
-      "bytes": 875432,
-      "sha256": "c3486b3a97a8d8e9254df014efa339d930be87196f5f28bd1bbe907e7411f2f7"
+      "bytes": 600128,
+      "sha256": "0cb1ebe5f909c898e0e14ba9be706511fc04f7f877d1251b491cea30fb8e4f14"
     },
     "models/neem.low.glb": {
-      "bytes": 197808,
-      "sha256": "f51620e57989f6933c963c3912d0b2f86555b151ca7e8b5a72d264814a23b162"
+      "bytes": 81060,
+      "sha256": "23090996ffbd5ba9a1e16b1cc615983a70d805882f6749a7a3191daf2ec46e03"
     },
     "models/neem.med.glb": {
-      "bytes": 398788,
-      "sha256": "9c73eea347ebbf81bfb0cd0746ee71c06cbae1e87edbbaca8b97ee6dc624a52e"
+      "bytes": 242932,
+      "sha256": "6bfa07c4b5c28a25a7193a2acb83fd3a601dbfda49e3f4ac024a6d28c2949642"
     },
     "models/parasol.glb": {
       "bytes": 125524,
@@ -142,8 +142,8 @@
       "sha256": "aa22d3f45fa14123146a1e46253e267734c9e707b33184b1a64b5d5e2851d0a9"
     },
     "models/patio-table.low.glb": {
-      "bytes": 18328,
-      "sha256": "4c691adf8c3f079227332d2bb3b3f235b8c973fd708f2094e02867117f7d2a70"
+      "bytes": 27952,
+      "sha256": "aa22d3f45fa14123146a1e46253e267734c9e707b33184b1a64b5d5e2851d0a9"
     },
     "models/patio-table.med.glb": {
       "bytes": 27952,

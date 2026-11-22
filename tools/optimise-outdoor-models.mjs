@@ -145,8 +145,10 @@ function simplifyPrim(prim, ratio, error) {
   const pos = prim.getAttribute('POSITION').getArray();
   const src = new Uint32Array(idx.getArray());
   const target = Math.max(3, Math.floor((src.length / 3) * ratio) * 3);
-  let [out] = MeshoptSimplifier.simplify(src, pos instanceof Float32Array ? pos : new Float32Array(pos), 3, target, error, []);
-  if (out.length > target * 1.5) [out] = MeshoptSimplifier.simplifySloppy ? MeshoptSimplifier.simplifySloppy(src, pos instanceof Float32Array ? pos : new Float32Array(pos), 3, null, target, error * 4) : [out];
+  const P = pos instanceof Float32Array ? pos : new Float32Array(pos);
+  let [out] = MeshoptSimplifier.simplify(src, P, 3, target, error, []);
+  // locked by its seams and borders: a sloppier pass (vertex clustering) when that leaves far more than asked, kept only if it is smaller
+  if (out.length > target * 1.5) { const [sl] = MeshoptSimplifier.simplifySloppy(src, P, 3, null, target, error * 4); if (sl.length >= 3 && sl.length < out.length) out = sl; }
   idx.setArray(prim.getAttribute('POSITION').getCount() > 65535 ? new Uint32Array(out) : new Uint16Array(out));
 }
 
@@ -164,7 +166,7 @@ function thin(doc, prim, keep, seed, crownFrom = -Infinity) {
   const low = new Map();
   for (let v = 0; v < nv; v++) { const root = find(v); low.set(root, Math.min(low.get(root) ?? Infinity, pa[v * 3 + 1])); }
   for (let v = 0; v < nv; v++) { const root = find(v); if (!keepOf.has(root)) keepOf.set(root, r() < keep && low.get(root) >= crownFrom); const c = cen.get(root) ?? [0, 0, 0, 0]; c[0] += pa[v * 3]; c[1] += pa[v * 3 + 1]; c[2] += pa[v * 3 + 2]; c[3]++; cen.set(root, c); }
-  const grow = Math.min(1.5, 1 / Math.sqrt(Math.min(1, keep)));
+  const grow = Math.min(2.2, 1 / Math.sqrt(Math.min(1, keep)));
   for (let v = 0; v < nv; v++) { const c = cen.get(find(v)); for (let k = 0; k < 3; k++) pa[v * 3 + k] = c[k] / c[3] + (pa[v * 3 + k] - c[k] / c[3]) * grow; }
   pos.setArray(pa);
   const out = []; for (let t = 0; t < ia.length; t += 3) if (keepOf.get(find(ia[t]))) out.push(ia[t], ia[t + 1], ia[t + 2]);
@@ -221,7 +223,7 @@ async function make(id, pick) {
     for (const mesh of root.listMeshes()) for (const prim of mesh.listPrimitives()) {
       const part = prim.getMaterial()?.getName();
       if ((pick.leaves ?? []).includes(part)) thin(doc, prim, B.leafKeep, 7 + id.length, pick.crownFrom ?? -Infinity);
-      else if (B.simplify < 1) simplifyPrim(prim, B.simplify, pick.kind === 'plant' ? 0.03 : 0.004);
+      else if (B.simplify < 1) simplifyPrim(prim, B.simplify, B.error ?? (pick.kind === 'plant' ? 0.03 : 0.004));
     }
     // materials: PBR as the app wants it (no metal-rough maps), alpha-tested leaves, double-sided cards
     const leafParts = new Set([...(pick.leaves ?? []), ...(pick.alphaParts ?? [])]);
@@ -240,6 +242,8 @@ async function make(id, pick) {
       const nt = mat.getNormalTexture();
       if (nt && !done.has(nt)) { done.add(nt); await encodeTex(nt, Math.min(512, T.tex), { normal: true }); }
     }
+    // no normal map, no tangents to carry
+    for (const mesh of root.listMeshes()) for (const prim of mesh.listPrimitives()) if (!prim.getMaterial()?.getNormalTexture() && prim.getAttribute('TANGENT')) prim.setAttribute('TANGENT', null);
     for (const node of root.listNodes()) { const mesh = node.getMesh(); if (mesh) { const n = mesh.listPrimitives()[0]?.getMaterial()?.getName() ?? 'part'; node.setName(n); mesh.setName(n); } }
     await doc.transform(prune());
     doc.createExtension(EXTTextureWebP).setRequired(true);

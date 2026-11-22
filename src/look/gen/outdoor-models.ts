@@ -106,6 +106,8 @@ export function addPiece(group: THREE.Group, geo: PieceGeo, w: number, h: number
   const cx = (bb.max.x + bb.min.x) / 2, cz = (bb.max.z + bb.min.z) / 2;
   for (const m of geo.meshes) {
     const g = m.geometry.clone().translate(-cx, -bb.min.y, -cz).scale(sx, sy, sz);
+    // a stretched model's stored tangents no longer match its normals (a degenerate frame lit one bench white): the shader derives its own
+    g.deleteAttribute('tangent');
     const mat = m.material.clone();
     if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
     const mesh = new THREE.Mesh(g, mat);
