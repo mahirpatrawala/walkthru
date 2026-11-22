@@ -9,18 +9,34 @@
    "files": {
     "low": {
      "file": "sofa_3s_midcentury.low.glb",
-     "bytes": 36276
+     "bytes": 37652
     },
     "full": {
      "file": "sofa_3s_midcentury.glb",
-     "bytes": 299100
+     "bytes": 300384
     }
    },
    "parts": {
     "fabric": {
      "tris": {
-      "low": 2599,
-      "full": 5399
+      "low": 2542,
+      "full": 5279
+     },
+     "detailMean": 0.3187,
+     "detailCv": 0.112,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "legs": {
+     "tris": {
+      "low": 57,
+      "full": 119
      },
      "detailMean": 0.3187,
      "detailCv": 0.112,
@@ -42,7 +58,7 @@
    "surfaceM": 0.4238,
    "tris": {
     "low": 2599,
-    "full": 5399
+    "full": 5398
    },
    "place": "floor"
   },
@@ -113,18 +129,34 @@
    "files": {
     "low": {
      "file": "armchair_tub.low.glb",
-     "bytes": 46216
+     "bytes": 46608
     },
     "full": {
      "file": "armchair_tub.glb",
-     "bytes": 187848
+     "bytes": 183108
     }
    },
    "parts": {
+    "legs": {
+     "tris": {
+      "low": 386,
+      "full": 1158
+     },
+     "detailMean": 0.3813,
+     "detailCv": 0.186,
+     "material": {
+      "baseColor": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
     "fabric": {
      "tris": {
-      "low": 2999,
-      "full": 9000
+      "low": 2612,
+      "full": 7840
      },
      "detailMean": 0.3813,
      "detailCv": 0.186,
@@ -145,8 +177,8 @@
    },
    "surfaceM": 0.3968,
    "tris": {
-    "low": 2999,
-    "full": 9000
+    "low": 2998,
+    "full": 8998
    },
    "place": "floor"
   },

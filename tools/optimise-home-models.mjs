@@ -54,8 +54,8 @@ const PLAIN = {
 const MODELS = [
   {
     // the source is in centimetre-like units with no stated scale: 2.10 m wide gives a 0.90 m back and a 0.42 m seat, an ordinary 3-seater
-    id: 'sofa_3s_midcentury', uid: '1f9f52ae17d642b582d0c5ccf9dd64b3', back: 0, size: { w: 2.1 },
-    part: (n, m, c) => (c.max[1] < 0.13 ? 'legs' : 'fabric'), budget: { full: 5400, low: 2600 }, probe: { x: 0, z: 0.25, below: 0.75 },
+    id: 'sofa_3s_midcentury', uid: '1f9f52ae17d642b582d0c5ccf9dd64b3', back: 0, size: { w: 2.1 }, legsBelow: 0.12,
+    part: () => 'fabric', budget: { full: 5400, low: 2600 }, probe: { x: 0, z: 0.25, below: 0.75 },
   },
   {
     // unitless source: 1.65 m wide gives a 0.78 m back and a 0.42 m seat
@@ -64,8 +64,8 @@ const MODELS = [
   },
   {
     // unitless source (1 x 1 x 0.95): 0.85 m wide gives a 0.80 m back and a 0.40 m seat
-    id: 'armchair_tub', uid: 'ec62634ebb5a41f491bbb9da04cd9dd1', back: 0, size: { w: 0.85 },
-    part: (n, m, c) => (c.max[1] < 0.2 && c.max[0] - c.min[0] < 0.1 && c.max[2] - c.min[2] < 0.1 ? 'legs' : 'fabric'), budget: { full: 9000, low: 3000 }, tex: { full: 512, low: 256 }, probe: { x: 0, z: 0.25, below: 0.75 },
+    id: 'armchair_tub', uid: 'ec62634ebb5a41f491bbb9da04cd9dd1', back: 0, size: { w: 0.85 }, legsBelow: 0.24,
+    part: () => 'fabric', budget: { full: 9000, low: 3000 }, tex: { full: 512, low: 256 }, probe: { x: 0, z: 0.25, below: 0.75 },
   },
   {
     // unitless source; the lid stands open above the cistern in the source and is left out (a lid up would make the piece 10 cm taller than its box)
@@ -290,6 +290,15 @@ for (const cfg of MODELS) {
         const lo = [], hi = [];
         for (const t of tris) { const ys = [0, 1, 2].map((j) => p.pos[p.idx[t * 3 + j] * 3 + 1]); (Math.min(...ys) >= cfg.splitY - 1e-6 ? hi : lo).push(t); }
         for (const [list, cmin] of [[lo, 0], [hi, cfg.splitY + 0.001]]) if (list.length) { const name = cfg.part(p.node, p.material, { min: [c.min[0], cmin, c.min[2]], max: c.max }); if (name) add(name, p, list); }
+        continue;
+      }
+      if (cfg.legsBelow !== undefined) {
+        // legs joined to the body in the source (one piece): every triangle wholly under the height is a leg, so legs and fabric take their own colours
+        const legs = [], body = [];
+        for (const t of tris) (Math.max(...[0, 1, 2].map((j) => p.pos[p.idx[t * 3 + j] * 3 + 1])) < cfg.legsBelow ? legs : body).push(t);
+        if (legs.length) add('legs', p, legs);
+        const name = cfg.part(p.node, p.material, c);
+        if (name && body.length) add(name, p, body);
         continue;
       }
       const name = cfg.part(p.node, p.material, c);

@@ -351,12 +351,12 @@
   ],
   "outputs": {
     "models/sofa_3s_midcentury.glb": {
-      "bytes": 299100,
-      "sha256": "4a50fb0a9d7900683afd56eafddbe70950be13ea46b26704aa480711e800bb73"
+      "bytes": 300384,
+      "sha256": "df0c71aef9916f65e3ed44371eec8890dd23bd2c0e357147c0c46272640c5866"
     },
     "models/sofa_3s_midcentury.low.glb": {
-      "bytes": 36276,
-      "sha256": "18f07e01dc358bf533816092dde4cce899e41df14efbfa0115a38f03d516713c"
+      "bytes": 37652,
+      "sha256": "4192af33074d0c7671dc645ed281e984d931aa0d12b8b5b9cc7b3a821152c7a7"
     },
     "models/sofa_2s_grey.glb": {
       "bytes": 391964,
@@ -367,12 +367,12 @@
       "sha256": "443f42dd876e4a51b4f51185c0c1af9cc01e5d1c136045452f5ffa1e2b92d352"
     },
     "models/armchair_tub.glb": {
-      "bytes": 187848,
-      "sha256": "82e6109bfbac3559bd9e7ba446ebc953bef312685ba8445e5095527430db51a0"
+      "bytes": 183108,
+      "sha256": "da1e499fede38b52952d2b6d098e8b40214de2872298c816800594bc184565e4"
     },
     "models/armchair_tub.low.glb": {
-      "bytes": 46216,
-      "sha256": "4ffd250acc899b0de5a17a56b964401a3f8f5dce4d51bed04b5e0dbae6c6e620"
+      "bytes": 46608,
+      "sha256": "380edd1288f82155323ba28431ba6fa746f926270332ef86490110caa70bd160"
     },
     "models/wc_floor.glb": {
       "bytes": 55232,

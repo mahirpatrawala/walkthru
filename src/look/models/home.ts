@@ -6,18 +6,18 @@ import type { LibModel } from './library';
 /** furniture of the flats, tried after the CC0 ones (fit.ts picks the closest fit among those a pack allows) */
 export const HOME_FURNITURE: LibModel[] = [
   {
-    // one map for the grey back, the oatmeal seat and the wooden legs (they are joined in the source): it keeps its own colours
+    // the source's own map (grey back, oatmeal seat) is kept as weave and seams under the style's fabric colour; the legs are cut off it by height
     id: 'sofa_3s_midcentury', label: '3-seat sofa', family: 'sofa', use: 'whole', credit: '"Mid Century Modern Sofa" by Tom Seddon, CC BY 4.0',
-    parts: { fabric: {} },
+    parts: { fabric: { role: ['fabric', 'accent'] }, legs: { role: ['legs', 'case', 'handle'] } },
   },
   {
     id: 'sofa_2s_grey', label: '2-seat sofa', family: 'sofa', use: 'whole', credit: '"Sofa" by katjagricishina, CC BY 4.0',
     parts: { fabric: { role: ['fabric', 'accent'] }, legs: { role: ['legs', 'case', 'handle'] } },
   },
   {
-    // grey tweed on copper-toned legs, one map: it keeps its own colours
+    // a tweed tub chair: the weave kept under the style's fabric colour, the legs cut off it by height
     id: 'armchair_tub', label: 'Upholstered armchair', family: 'sofa', use: 'whole', credit: '"Arm chair / Furniture" by maxsbond.work, CC BY 4.0',
-    parts: { fabric: {} },
+    parts: { fabric: { role: ['fabric', 'accent'] }, legs: { role: ['legs', 'case', 'handle'] } },
   },
   {
     // the base and headboard of a bed; the generated mattress, flat quilt and pillows of SPEC 16.23 go on its deck
