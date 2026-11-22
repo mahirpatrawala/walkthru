@@ -208,7 +208,10 @@ export function wingOutdoor(d: Draft, bare: boolean): OutdoorFile {
   const edges = Object.entries(L.strips) as [string, P.PxRect][];
   if (!bare) {
     for (const [id, r] of edges) { areas.push(strip(`bed-${id}`, r)); beds.push(scatter(id, r, 31 + id.length * 7 + id.charCodeAt(0), FLOWERS, 2.2)); }
-    for (const [x, y] of P.WING_PX.trees) trees.push({ species: 'neem', ...at([x, y]), scale: 1.05 });
+    // SPEC 19.12: the three trees the plan draws on the centre lawn, by the water, are coconut palms (two) and a frangipani, as a resort pool has them;
+    // the north bay and the south lawn keep their shade trees (neem). Species are a typical choice, not the brochure's (it names none)
+    const centre: Record<number, PlantSpot['species']> = { 3: 'coconut-palm', 4: 'frangipani', 5: 'coconut-palm' };
+    P.WING_PX.trees.forEach(([x, y], i) => trees.push({ species: centre[i] ?? 'neem', ...at([x, y]), scale: centre[i] === 'frangipani' ? 1.1 : centre[i] ? 0.95 : 1.05 }));
   }
   const boundary = boundariesFor(d, 'pool', { facadeKind: 'facade', others: 'parapet' });
   return { ...EMPTY_OUTDOOR, note: bare ? 'The pool wing, bare: the deck, the pools and the lawns, with nothing placed or planted' : 'Sample pool wing after a published builder brochure, scaled from its one printed dimension', northDeg: P.NORTH_DEG, seed: 7, areas, pools, boundary, trees, beds, rows, roofs: [] };
@@ -231,7 +234,8 @@ export function aquaOutdoor(d: Draft, bare: boolean): OutdoorFile {
     beds.push(scatter('slope', P.AQUA_PX.slopeBed, 41, [{ id: 'croton', weight: 3 }, { id: 'areca-palm', weight: 2 }, { id: 'hibiscus', weight: 2 }], 2.6));
     for (const [x, y] of [[2905, 1385], [2985, 1400], [3060, 1380]] as const) trees.push({ species: 'neem', ...at([x, y]), scale: 1.0 });
     // the two palms the plan draws in the water stand at the pool's corners (a basin here has no island to carry a tree)
-    for (const [x, y] of [[2385, 1470], [2850, 1470]] as const) trees.push({ species: 'royal-palm', ...at([x, y]), scale: 0.95 });
+    // SPEC 19.12: coconut palms (a model, CC-BY), as Indian pool courts plant them
+    for (const [x, y] of [[2385, 1470], [2850, 1470]] as const) trees.push({ species: 'coconut-palm', ...at([x, y]), scale: 0.95 });
     // the clipped shrubs along the south and east edges
     rows.push({ id: 'hedge-south', from: at([2340, P.AQUA_PX.southHedgeY]), to: at([2850, P.AQUA_PX.southHedgeY]), species: 'ficus', style: 'hedge', widthM: 1.7, heightM: 1.5 });
     rows.push({ id: 'hedge-east', from: at([P.AQUA_PX.eastHedgeX + 14, 1480]), to: at([P.AQUA_PX.eastHedgeX + 14, 1770]), species: 'ficus', style: 'hedge', widthM: 1.7, heightM: 1.5 });

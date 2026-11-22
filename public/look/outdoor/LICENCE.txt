@@ -1,0 +1,22 @@
+public/look/outdoor/ : the photographic layer of the open-air spaces (SPEC 19.12, 22 Nov 2026).
+Raw sources, their URLs, authors, licences, the date each licence was read and the SHA-256 of every raw file: sources.lock.json
+(scripts/fetch-outdoor-real.mjs). Every shipped file with its SHA-256: files.lock.json (tools/optimise-outdoor-real.mjs).
+
+CC-BY 4.0 (attribution required) ------------------------------------------------------------------------------------------
+models/coconut-palm.glb, models/coconut-palm.low.glb, leaves/palm-frond.webp
+  "Coconut Palm" by evolveduk (https://sketchfab.com/evolveduk), https://sketchfab.com/3d-models/26e787f2ff2e4c0fb004c3b0210805a3
+  Licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/).
+  Obtained from the Objaverse mirror on Hugging Face (allenai/objaverse, glbs/000-004/26e787f2ff2e4c0fb004c3b0210805a3.glb; the
+  licence "by" is listed for it in metadata/000-004.json.gz). Changes: re-centred on the foot of its trunks, parts renamed, textures
+  resized and re-encoded as WebP, normal maps dropped on the phone file, simplified for the phone file, meshopt-compressed; the frond
+  picture is also used on the procedural palms.
+
+CC0 1.0 (no attribution required; credited anyway) ----------------------------------------------------------------------------
+leaves/<species>.webp, leaves/hedge-ficus.jpg : composed by tools/optimise-outdoor-real.mjs from leaf photographs cut out of the
+  Poly Haven models jacaranda_tree (Rico Cilliers; Rob Tuytel), island_tree_02 (Rob Tuytel; Rico Cilliers) and shrub_01 (Rico Cilliers).
+grass/tufts.webp : Poly Haven grass_bermuda_01 (Rico Cilliers).
+tex/deck_*.jpg : Poly Haven wooden_planks (Charlotte Baglioni, Dario Barresi).
+tex/bark_diff.jpg : Poly Haven bark_platanus (Dimitrios Savva).
+tex/mosaic_*.jpg : ambientCG Tiles132A (https://ambientcg.com/view?id=Tiles132A, CC0 1.0).
+sky/sky_day*.jpg : the upper half of Poly Haven kloofendal_48d_partly_cloudy_puresky (Greg Zaal; Jarod Guest, sky edits), already in public/look/hdri/, tone mapped.
+Poly Haven licence: https://polyhaven.com/license . ambientCG licence: https://docs.ambientcg.com/license/

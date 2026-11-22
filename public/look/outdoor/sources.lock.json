@@ -1,0 +1,172 @@
+{
+  "generatedBy": "scripts/fetch-outdoor-real.mjs",
+  "readOn": "2026-11-22",
+  "raw": "~/walkthru-tools/outdoor-raw/real (not in the repo)",
+  "files": {
+    "jacaranda_tree/jacaranda_tree_leaves_diff_1k.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/jacaranda_tree/jacaranda_tree_leaves_diff_1k.jpg",
+      "page": "https://polyhaven.com/a/jacaranda_tree",
+      "author": "Rico Cilliers; Rob Tuytel (guidance)",
+      "licence": "CC0 1.0",
+      "licencePage": "https://polyhaven.com/license",
+      "bytes": 533896,
+      "md5": "8ae91737f39567629768a255817d80be",
+      "sha256": "6fe80c1f514ef690cccefb90b7e559fbd1aa9c8935fdc02523cc8ab83c22f7c2",
+      "use": "compound-leaf photos for the neem and gulmohar crowns"
+    },
+    "jacaranda_tree/jacaranda_tree_leaves_alpha_1k.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/jacaranda_tree/jacaranda_tree_leaves_alpha_1k.jpg",
+      "page": "https://polyhaven.com/a/jacaranda_tree",
+      "author": "Rico Cilliers; Rob Tuytel (guidance)",
+      "licence": "CC0 1.0",
+      "licencePage": "https://polyhaven.com/license",
+      "bytes": 533665,
+      "md5": "80da0d21e783a3f81a096bf5139fce47",
+      "sha256": "e040c86c4bd9ce703244e33a6b9cf25d2ac65c618be88178b8be3297f5d41960",
+      "use": "compound-leaf photos for the neem and gulmohar crowns"
+    },
+    "island_tree_02/island_tree_02_leaves_diff_1k.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/island_tree_02/island_tree_02_leaves_diff_1k.jpg",
+      "page": "https://polyhaven.com/a/island_tree_02",
+      "author": "Rob Tuytel (scanning, processing); Rico Cilliers (cleanup, processing)",
+      "licence": "CC0 1.0",
+      "licencePage": "https://polyhaven.com/license",
+      "bytes": 191886,
+      "md5": "1356cbb5a5dd1318f9f2a01eddbf03e1",
+      "sha256": "f56d762a1507754752abf164cc12acbc1e87ce87fa609ac44b98a1b0037c89d8",
+      "use": "broad-leaf photos for frangipani, ficus, croton, petals and bracts"
+    },
+    "island_tree_02/island_tree_02_leaves_alpha_1k.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/island_tree_02/island_tree_02_leaves_alpha_1k.jpg",
+      "page": "https://polyhaven.com/a/island_tree_02",
+      "author": "Rob Tuytel (scanning, processing); Rico Cilliers (cleanup, processing)",
+      "licence": "CC0 1.0",
+      "licencePage": "https://polyhaven.com/license",
+      "bytes": 84228,
+      "md5": "da7ea0a883265115f2c0f5fbc6101f8d",
+      "sha256": "554272801b722756a02a32530ea12bae1a2a46fb72c1d294cd2751817ae5ea95",
+      "use": "broad-leaf photos for frangipani, ficus, croton, petals and bracts"
+    },
+    "shrub_01/shrub_01_diff_1k.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_01/shrub_01_diff_1k.jpg",
+      "page": "https://polyhaven.com/a/shrub_01",
+      "author": "Rico Cilliers",
+      "licence": "CC0 1.0",
+      "licencePage": "https://polyhaven.com/license",
+      "bytes": 502162,
+      "md5": "c5ac2665a0e2b4f11fd20b3296d62fe2",
+      "sha256": "fe60e639d694e1807c0a3ae97dd1d5a7e7b3f84e5fc32d0610b868ce48f36331",
+      "use": "serrated-leaf photos for hibiscus and bougainvillea"
+    },
+    "shrub_01/shrub_01_alpha_1k.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_01/shrub_01_alpha_1k.jpg",
+      "page": "https://polyhaven.com/a/shrub_01",
+      "author": "Rico Cilliers",
+      "licence": "CC0 1.0",
+      "licencePage": "https://polyhaven.com/license",
+      "bytes": 144757,
+      "md5": "a14ff795b6f93fa54e3668b56b45a251",
+      "sha256": "c6fffa5d39ee57c19ba894b7845e7631252ba85569ecaf7873a9414def60e9b3",
+      "use": "serrated-leaf photos for hibiscus and bougainvillea"
+    },
+    "grass_bermuda_01/grass_bermuda_01_diff_1k.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_bermuda_01/grass_bermuda_01_diff_1k.jpg",
+      "page": "https://polyhaven.com/a/grass_bermuda_01",
+      "author": "Rico Cilliers",
+      "licence": "CC0 1.0",
+      "licencePage": "https://polyhaven.com/license",
+      "bytes": 175425,
+      "md5": "234be9f52cfcd3380c7f782baaa841c3",
+      "sha256": "ef202eeb8f8fb3312446009acecc87e5679a7d612e4dee859d8a849e00af5fcb",
+      "use": "grass-blade tufts on the lawns"
+    },
+    "grass_bermuda_01/grass_bermuda_01_alpha_1k.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_bermuda_01/grass_bermuda_01_alpha_1k.jpg",
+      "page": "https://polyhaven.com/a/grass_bermuda_01",
+      "author": "Rico Cilliers",
+      "licence": "CC0 1.0",
+      "licencePage": "https://polyhaven.com/license",
+      "bytes": 165395,
+      "md5": "6708f6560bc02997fbf936e2eb43b5d9",
+      "sha256": "aa9c857684fef916feb1a699f8b18e19f78c319b6111f691319de31f6fc6b406",
+      "use": "grass-blade tufts on the lawns"
+    },
+    "wooden_planks/wooden_planks_diff_1k.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wooden_planks/wooden_planks_diff_1k.jpg",
+      "page": "https://polyhaven.com/a/wooden_planks",
+      "author": "Charlotte Baglioni (photography); Dario Barresi (processing)",
+      "licence": "CC0 1.0",
+      "licencePage": "https://polyhaven.com/license",
+      "bytes": 489587,
+      "md5": "045a70f787fcb4b60ee5c9878a9bd674",
+      "sha256": "1273876d6f92fb1a1d29c1bb28f548a9256154187531e84f993b56e347f1d17b",
+      "use": "timber decking with open joints"
+    },
+    "wooden_planks/wooden_planks_nor_gl_1k.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wooden_planks/wooden_planks_nor_gl_1k.jpg",
+      "page": "https://polyhaven.com/a/wooden_planks",
+      "author": "Charlotte Baglioni (photography); Dario Barresi (processing)",
+      "licence": "CC0 1.0",
+      "licencePage": "https://polyhaven.com/license",
+      "bytes": 705118,
+      "md5": "03206d820a026239db91a1ff3d8c589d",
+      "sha256": "6c85ff0a410a2993cc09d25859d7d735bc05e9f15dc51393d2e58aa2ce8a0916",
+      "use": "timber decking with open joints"
+    },
+    "bark_platanus/bark_platanus_diff_1k.jpg": {
+      "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_platanus/bark_platanus_diff_1k.jpg",
+      "page": "https://polyhaven.com/a/bark_platanus",
+      "author": "Dimitrios Savva",
+      "licence": "CC0 1.0",
+      "licencePage": "https://polyhaven.com/license",
+      "bytes": 906704,
+      "md5": "2824272c2b693b7784bc2515d0728a8a",
+      "sha256": "4e302eeb6a66d50880484a08bd2c6e43974eb1636397d94d9c8bc54d508c2c1b",
+      "use": "tree bark"
+    },
+    "Tiles132A/Tiles132A_1K-JPG.zip": {
+      "source": "https://ambientcg.com/get?file=Tiles132A_1K-JPG.zip",
+      "url": "https://ambientcg.com/get?file=Tiles132A_1K-JPG.zip",
+      "page": "https://ambientcg.com/view?id=Tiles132A",
+      "author": "Lennart Demes (ambientCG)",
+      "licence": "CC0 1.0",
+      "licencePage": "https://docs.ambientcg.com/license/",
+      "use": "glass mosaic of the pool basins",
+      "bytes": 5331847,
+      "sha256": "6e70e35a0df83de344c717eb6cdc7dcc3f38bbefab6e89449cefaff5f38228d1"
+    },
+    "Tiles132A/Tiles132A_1K-JPG_Color.jpg": {
+      "source": "https://ambientcg.com/get?file=Tiles132A_1K-JPG.zip (extracted)",
+      "page": "https://ambientcg.com/view?id=Tiles132A",
+      "author": "Lennart Demes (ambientCG)",
+      "licence": "CC0 1.0",
+      "licencePage": "https://docs.ambientcg.com/license/",
+      "bytes": 880997,
+      "sha256": "bb44a8807b82222376fcd1ab221dcfd65d7e712e0f11e76db86d4c0b6e5cd277",
+      "use": "glass mosaic of the pool basins"
+    },
+    "Tiles132A/Tiles132A_1K-JPG_NormalGL.jpg": {
+      "source": "https://ambientcg.com/get?file=Tiles132A_1K-JPG.zip (extracted)",
+      "page": "https://ambientcg.com/view?id=Tiles132A",
+      "author": "Lennart Demes (ambientCG)",
+      "licence": "CC0 1.0",
+      "licencePage": "https://docs.ambientcg.com/license/",
+      "bytes": 954983,
+      "sha256": "26bed9e2a9218e7a90ea55f225c15fa91c32b78b0579d5c02bc99b3566d74100",
+      "use": "glass mosaic of the pool basins"
+    },
+    "coconut-palm/26e787f2ff2e4c0fb004c3b0210805a3.glb": {
+      "source": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-004/26e787f2ff2e4c0fb004c3b0210805a3.glb",
+      "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-004/26e787f2ff2e4c0fb004c3b0210805a3.glb",
+      "page": "https://sketchfab.com/3d-models/26e787f2ff2e4c0fb004c3b0210805a3",
+      "title": "Coconut Palm",
+      "author": "evolveduk (https://sketchfab.com/evolveduk)",
+      "licence": "CC-BY 4.0",
+      "licencePage": "https://creativecommons.org/licenses/by/4.0/",
+      "licenceSource": "Objaverse metadata/000-004.json.gz: \"license\": \"by\" (Sketchfab, published 2022-05-08)",
+      "use": "the coconut palms (two trunks a plant), and the frond picture of the procedural palms",
+      "bytes": 14630204,
+      "sha256": "df749a540d2766dd10cc822b0017eeb03166a46e91c573c13c2d9f8f44a912d3"
+    }
+  }
+}

@@ -9,9 +9,11 @@
 import * as THREE from 'three';
 import type { Grade } from '../look/grade';
 import type { Tier } from '../look/types';
+import { SKY_GLSL, makeSkyUniforms } from './sky-dome';
+import type { SkyUniforms } from './sky-dome';
 
 type U<T> = { value: T };
-export interface WaterUniforms {
+export interface WaterUniforms extends SkyUniforms {
   uTime: U<number>; uWaterY: U<number>;
   uSunDir: U<THREE.Vector3>; uSunCol: U<THREE.Color>; uSunStrength: U<number>;
   uZenith: U<THREE.Color>; uHorizon: U<THREE.Color>; uGround: U<THREE.Color>;
@@ -34,6 +36,8 @@ export function makeWaterUniforms(waterY: number, tint: 'blue' | 'turquoise' | '
     // per metre of water: red goes first
     uAbsorb: { value: new THREE.Vector3(0.62, 0.12, 0.07) }, uScatter: { value: 0.42 }, uWaterCol: { value: new THREE.Color(col).convertSRGBToLinear() },
     uProbeMap: { value: null }, uProbeOn: { value: 0 },
+    // SPEC 19.12: the sky picture of the dome (sky-dome.ts), shared with it by buildPools; off until it exists
+    ...makeSkyUniforms(),
   };
 }
 
@@ -128,6 +132,7 @@ uniform float uTime; uniform vec3 uSunDir; uniform vec3 uSunCol; uniform float u
 uniform vec3 uZenith; uniform vec3 uHorizon; uniform vec3 uGround; uniform vec3 uWaterCol; uniform float uLight; uniform float uGlow;
 varying vec3 vW;
 ${NOISE}
+${SKY_GLSL}
 vec3 owSky(vec3 r){
   float h = r.y;
   vec3 c = h >= 0.0 ? mix(uHorizon, uZenith, pow(clamp(h, 0.0, 1.0), 0.55)) : mix(uHorizon, uGround, clamp(-h * 5.0, 0.0, 1.0));
@@ -166,6 +171,8 @@ void main(){
   vec3 R = reflect(-V, n);
   if (R.y < 0.0) R.y = -R.y * 0.2;
   vec3 refl = owSky(R);
+  // SPEC 19.12: the photographed sky with its clouds, where the dome has it (the plain sky stays at night and in True colours)
+  { vec4 sp = owSkyPicture(R); refl = mix(refl, sp.rgb, sp.a); }
   ${ultra ? `// 2K: the real surroundings (the facade, the planting, the sky with its clouds) mirrored, softly: the probe's picture where it has one, the plain sky at the horizon
   if (uProbeOn > 0.5) {
     vec3 pr = textureCubeUV(uProbeMap, normalize(R), 0.05).rgb;

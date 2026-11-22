@@ -621,22 +621,22 @@
       "scale": 1.05
     },
     {
-      "species": "neem",
+      "species": "coconut-palm",
       "x": 9.97,
       "z": 18.85,
-      "scale": 1.05
+      "scale": 0.95
     },
     {
-      "species": "neem",
+      "species": "frangipani",
       "x": 6.58,
       "z": 20.56,
-      "scale": 1.05
+      "scale": 1.1
     },
     {
-      "species": "neem",
+      "species": "coconut-palm",
       "x": 10.4,
       "z": 22.66,
-      "scale": 1.05
+      "scale": 0.95
     },
     {
       "species": "neem",

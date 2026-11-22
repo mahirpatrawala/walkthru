@@ -10,6 +10,8 @@ import { copingRects, exposureOf, isExposedAt, markerStations, profileDepth, ste
 import type { PoolBasin, Rect, Side } from './types';
 import { cubeUvDefines, makeUnderwater, makeWaterSurface, makeWaterUniforms, syncWaterUniforms } from './water';
 import type { WaterUniforms } from './water';
+import type { SkyUniforms } from './sky-dome';
+import { MOSAIC_PATHS, MOSAIC_REPEAT_M, photoTexture } from './real';
 
 const TILE_M = 0.1;
 const BAND_M = 0.3;
@@ -68,7 +70,10 @@ export interface PoolBuild {
   dispose(): void;
 }
 
-export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, tier: Tier, look: Look | null, ultra = false): PoolBuild {
+/** the mean linear colour of the shipped mosaic photograph (a turquoise glass tile): a pool's tile colour is reached by scaling it */
+const MOSAIC_MEAN: [number, number, number] = [0.048, 0.465, 0.655];
+
+export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, tier: Tier, look: Look | null, ultra = false, sky: SkyUniforms | null = null): PoolBuild {
   const group = new THREE.Group();
   group.name = 'outdoor-pools';
   const free: { dispose(): void }[] = [];
@@ -76,15 +81,31 @@ export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, 
   const waters: THREE.Mesh[] = [];
   const surfaces: THREE.ShaderMaterial[] = [];
   const lights: THREE.Mesh[] = [];
+  let disposed = false;
   for (const b of pools) {
     const wl = waterLevelY(b);
     const u = makeWaterUniforms(wl, b.tile);
+    // the dome's sky picture, the same uniform objects (so the water follows the dome's hour and sun)
+    if (sky) Object.assign(u, sky);
     uniforms.push(u);
     const col = TILE_COL[b.tile];
     const mk = (hex: string, seed: number, rough: number): THREE.MeshStandardMaterial => {
       const tex = tileTexture(hex, '#D9DFE2', seed);
       const m = new THREE.MeshStandardMaterial({ color: tex ? '#ffffff' : hex, map: tex ?? undefined, roughness: rough, metalness: 0 });
       free.push(m); if (tex) free.push(tex);
+      // SPEC 19.12: real glass mosaic (ambientCG Tiles132A, CC0), 2.5 cm tiles, its colour scaled to the pool's; with a grout normal map above low
+      void photoTexture(mats.loader, MOSAIC_PATHS.diff, true, 8).then(async (t) => {
+        if (!t || disposed) return;
+        const k = MOSAIC_REPEAT_M / TILE_M; t.repeat.set(1 / k, 1 / k);
+        const c = new THREE.Color(hex);
+        m.map = t; m.color.setRGB(Math.min(2, c.r / MOSAIC_MEAN[0]), Math.min(2, c.g / MOSAIC_MEAN[1]), Math.min(2, c.b / MOSAIC_MEAN[2]));
+        if (tier !== 'low') {
+          const n = await photoTexture(mats.loader, MOSAIC_PATHS.nor, false, 4);
+          if (n && !disposed) { n.repeat.set(1 / k, 1 / k); m.normalMap = n; m.normalScale.set(0.6, 0.6); }
+        }
+        m.needsUpdate = true;
+        if (tex) tex.dispose();
+      });
       return makeUnderwater(m, u, tier, ultra);
     };
     const wallMat = mk(col.main, 3, 0.35), bandMat = mk(col.band, 5, 0.3), floorMat = mk(col.floor, 7, 0.4);
@@ -287,7 +308,7 @@ export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, 
       syncProbe(lk);
       for (const l of lights) (l.material as THREE.MeshStandardMaterial).emissiveIntensity = lamp * 2.2;
     },
-    dispose() { for (const f of free) f.dispose(); group.removeFromParent(); },
+    dispose() { disposed = true; for (const f of free) f.dispose(); group.removeFromParent(); },
   };
 }
 

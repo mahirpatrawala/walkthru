@@ -7,6 +7,7 @@ import type { Tier } from '../look/types';
 import { AssetLoader } from '../look/assets';
 import type { GroundFinish } from './types';
 import { PREMIUM_GROUND, meanLuminance, premiumPaths } from '../look/premium/texture';
+import { DECK_PATHS, DECK_REPEAT_M } from './real';
 
 export type GroundKind = GroundFinish | 'soil-kerb';
 interface GroundSpec {
@@ -21,6 +22,8 @@ interface GroundSpec {
   normalScale: number;
   /** how much of the texture's light and dark shows (0..1.4) */
   strength: number;
+  /** SPEC 19.12: the photographed set under public/look/outdoor/ that replaces tex/outdoor/<tex>/ (diffuse 1024 px, normal 512); the 2K level keeps it */
+  files?: { diff: string; nor: string };
   /** large-scale variation of tone, 0..0.3 */
   noise: number;
   /** a warm shift towards dry grass in the noise's bright patches, 0..0.6 (lawn) */
@@ -28,8 +31,10 @@ interface GroundSpec {
 }
 
 export const GROUND: Record<GroundKind, GroundSpec> = {
-  lawn: { tex: 'leafy_grass', mean: 0.2389, tile: 1.6, tint: '#588C3A', roughness: 0.95, normalScale: 0.9, strength: 0.85, noise: 0.27, dry: 0.42 },
-  deck: { tex: 'wood_floor_deck', mean: 0.06, tile: 2.0, tint: '#9C7857', roughness: 0.62, normalScale: 0.8, strength: 1.0, noise: 0.1, dry: 0 },
+  // SPEC 19.12: a lawn as a lawn is, a quieter mid green (it read as a game's neon), dry patches and mown stripes kept; blades near the eye are grass.ts
+  lawn: { tex: 'leafy_grass', mean: 0.2389, tile: 1.6, tint: '#5A7A36', roughness: 0.95, normalScale: 0.9, strength: 0.9, noise: 0.22, dry: 0.34 },
+  // SPEC 19.12: hardwood decking with open joints (Poly Haven wooden_planks, 2 m a repeat), oiled mid brown
+  deck: { tex: 'wooden_planks', files: DECK_PATHS, mean: 0.1455, tile: DECK_REPEAT_M, tint: '#86684F', roughness: 0.58, normalScale: 0.9, strength: 0.85, noise: 0.07, dry: 0 },
   paving: { tex: 'red_sandstone_pavement', mean: 0.1068, tile: 1.8, tint: '#C9B49A', roughness: 0.88, normalScale: 0.9, strength: 0.9, noise: 0.1, dry: 0 },
   path: { tex: 'interlocking_concrete_pavers', mean: 0.0912, tile: 1.2, tint: '#B6AFA6', roughness: 0.9, normalScale: 0.9, strength: 0.9, noise: 0.08, dry: 0 },
   gravel: { tex: 'gravel_floor_02', mean: 0.3875, tile: 1.1, tint: '#D4CAB6', roughness: 0.97, normalScale: 1.0, strength: 0.9, noise: 0.1, dry: 0 },
@@ -116,11 +121,11 @@ export class OutdoorMaterials {
   private async attachTextures(m: THREE.MeshStandardMaterial, spec: GroundSpec): Promise<void> {
     try {
       const base = `tex/outdoor/${spec.tex}/${spec.tex}`;
-      const diff = await this.loader.texture(`${base}_diff.jpg`, { srgb: true, anisotropy: this.tier === 'low' ? 2 : 8 });
+      const diff = await this.loader.texture(spec.files?.diff ?? `${base}_diff.jpg`, { srgb: true, anisotropy: this.tier === 'low' ? 2 : 8 });
       if (this.disposed) return;
       m.map = diff;
       if (this.tier !== 'low' && spec.normalScale > 0) {
-        const nor = await this.loader.texture(`${base}_nor_gl.jpg`, { srgb: false, anisotropy: 4 });
+        const nor = await this.loader.texture(spec.files?.nor ?? `${base}_nor_gl.jpg`, { srgb: false, anisotropy: 4 });
         if (this.disposed) return;
         m.normalMap = nor;
         m.normalScale.set(spec.normalScale, spec.normalScale);
@@ -145,7 +150,7 @@ export class OutdoorMaterials {
     if (on === this.ultra) return;
     this.ultra = on;
     for (const g of this.grounds) {
-      if (!PREMIUM_GROUND[g.kind]) continue;
+      if (!PREMIUM_GROUND[g.kind] || GROUND[g.kind].files) continue;
       if (on) void this.premiumFor(g);
       else if (g.saved) {
         const s = g.saved;
@@ -159,7 +164,8 @@ export class OutdoorMaterials {
 
   private async premiumFor(g: { kind: GroundKind; mat: THREE.MeshStandardMaterial; uniforms: Patched['uniforms']; saved: { map: THREE.Texture | null; normalMap: THREE.Texture | null; roughness: number; mean: number; strength: number } | null }): Promise<void> {
     const set = PREMIUM_GROUND[g.kind];
-    if (!set || g.saved) return;
+    // a finish with its own photographed set (SPEC 19.12) keeps it at 2K
+    if (!set || g.saved || GROUND[g.kind].files) return;
     const p = premiumPaths(set);
     try {
       const [diff, nor, rough] = await Promise.all([

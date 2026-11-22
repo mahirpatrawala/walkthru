@@ -69,7 +69,7 @@ export interface PoolBasin {
 }
 
 /** The kinds of plant. See src/outdoor/species.ts. */
-export const SPECIES_IDS = ['royal-palm', 'areca-palm', 'frangipani', 'neem', 'gulmohar', 'ficus', 'bougainvillea', 'hibiscus', 'croton'] as const;
+export const SPECIES_IDS = ['royal-palm', 'areca-palm', 'frangipani', 'neem', 'gulmohar', 'ficus', 'bougainvillea', 'hibiscus', 'croton', 'coconut-palm'] as const;
 export type SpeciesId = (typeof SPECIES_IDS)[number];
 
 export interface PlantSpot { species: SpeciesId; x: number; z: number; /** 1 = the species' usual size */ scale?: number; rotDeg?: number }

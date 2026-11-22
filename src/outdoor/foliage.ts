@@ -10,6 +10,8 @@ import type { HedgeSeg } from './plants';
 import { SPECIES, speciesOf } from './species';
 import type { Species } from './species';
 import type { PlantSpot, SpeciesId } from './types';
+import type { AssetLoader } from '../look/assets';
+import { BARK_PATH, BARK_REPEAT_M, FROND_PATH, HEDGE_PATH, loadOutdoorModel, OUTDOOR_MODELS, photoTexture, sprayPath } from './real';
 
 const hasDom = (): boolean => typeof document !== 'undefined';
 
@@ -121,12 +123,14 @@ function toGeo(b: Buf): THREE.BufferGeometry {
 }
 
 /** a card (a quad of `w` by `h`, bottom-centre at `at`) turned to face `yaw` and tipped `tilt` back, normals pushed out from `centre` */
-function card(b: Buf, at: THREE.Vector3, w: number, h: number, yaw: number, tilt: number, centre: THREE.Vector3, shade: number, upBias = 0.35): void {
+function card(b: Buf, at: THREE.Vector3, w: number, h: number, yaw: number, tilt: number, centre: THREE.Vector3, shade: number, upBias = 0.35, crownR = 0): void {
   const o = b.pos.length / 3;
   const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-tilt, yaw, 0, 'YXZ'));
   const corners: [number, number][] = [[-w / 2, 0], [w / 2, 0], [w / 2, h], [-w / 2, h]];
   const mid = new THREE.Vector3(0, h / 2, 0).applyQuaternion(q).add(at);
   const nrm = mid.clone().sub(centre).normalize().lerp(new THREE.Vector3(0, 1, 0), upBias).normalize();
+  // SPEC 19.12: the inside of a crown is in its own shade (a card near the middle is darker than one on the skin), so a crown has depth
+  if (crownR > 0) { const t = Math.min(1, mid.distanceTo(centre) / crownR); shade *= 0.42 + 0.58 * t * t * (3 - 2 * t); }
   corners.forEach(([x, y], i) => {
     const p = new THREE.Vector3(x, y, 0).applyQuaternion(q).add(at);
     b.pos.push(p.x, p.y, p.z);
@@ -155,7 +159,8 @@ function tubeBetween(b: Buf, a: THREE.Vector3, c: THREE.Vector3, ra: number, rb:
       const ang = (i / sides) * Math.PI * 2;
       const n = side.clone().multiplyScalar(Math.cos(ang)).addScaledVector(fwd, Math.sin(ang));
       const p = centre.clone().addScaledVector(n, r);
-      b.pos.push(p.x, p.y, p.z); b.nor.push(n.x, n.y, n.z); b.uv.push(i / sides, t);
+      // SPEC 19.12: the bark picture is BARK_REPEAT_M a repeat, round the trunk and along it
+      b.pos.push(p.x, p.y, p.z); b.nor.push(n.x, n.y, n.z); b.uv.push((i / sides) * Math.max(1, Math.round((2 * Math.PI * r) / BARK_REPEAT_M)), (t * len) / BARK_REPEAT_M);
       b.col.push(col.r * band, col.g * band, col.b * band);
     }
   }
@@ -169,11 +174,11 @@ function tubeBetween(b: Buf, a: THREE.Vector3, c: THREE.Vector3, ra: number, rb:
 export interface SpeciesGeometry { leaves: THREE.BufferGeometry; trunk: THREE.BufferGeometry | null; heightM: number; kind: 'spray' | 'frond' }
 
 /** One clump of cards around `c`, radius `r`, `n` cards. */
-function clump(b: Buf, c: THREE.Vector3, r: number, n: number, cardW: number, cardH: number, shade: number, rnd: () => number, centre: THREE.Vector3): void {
+function clump(b: Buf, c: THREE.Vector3, r: number, n: number, cardW: number, cardH: number, shade: number, rnd: () => number, centre: THREE.Vector3, crownR = 0): void {
   for (let i = 0; i < n; i++) {
     const a = rnd() * Math.PI * 2, e = (rnd() - 0.35) * 1.6, rr = r * Math.sqrt(rnd());
     const at = new THREE.Vector3(c.x + Math.cos(a) * rr * Math.cos(e), c.y + Math.sin(e) * rr * 0.8, c.z + Math.sin(a) * rr * Math.cos(e));
-    card(b, at, cardW * (0.8 + rnd() * 0.5), cardH * (0.8 + rnd() * 0.5), rnd() * Math.PI * 2, 0.2 + rnd() * 0.9, centre, shade * (0.88 + rnd() * 0.2));
+    card(b, at, cardW * (0.8 + rnd() * 0.5), cardH * (0.8 + rnd() * 0.5), rnd() * Math.PI * 2, 0.2 + rnd() * 0.9, centre, shade * (0.88 + rnd() * 0.2), 0.35, crownR);
   }
 }
 
@@ -249,7 +254,7 @@ export function buildSpecies(id: SpeciesId, tier: Tier): SpeciesGeometry {
     const crownCentre = new THREE.Vector3(top.x, umbrella ? H * 0.72 : (trunkTop + H) / 2, top.z);
     centres.forEach((c, i) => {
       if (i < branches * (umbrella ? 1 : 1)) tubeBetween(trunk, new THREE.Vector3(top.x, trunkTop * 0.9, top.z), c.clone().setY(c.y - 0.5), sp.trunkR * 0.5, sp.trunkR * 0.2, 5, bark, 2);
-      clump(leaves, c, sp.crownR * (umbrella ? 0.5 : 0.45), t.cardsPerClump, sp.crownR * 0.3, sp.crownR * 0.34, 1, rnd, crownCentre);
+      clump(leaves, c, sp.crownR * (umbrella ? 0.5 : 0.45), t.cardsPerClump, sp.crownR * 0.3, sp.crownR * 0.34, 1, rnd, crownCentre, sp.crownR * (umbrella ? 1.15 : 1.0));
     });
   } else {
     // a shrub or a bush: a dome of clumps from the ground
@@ -257,7 +262,8 @@ export function buildSpecies(id: SpeciesId, tier: Tier): SpeciesGeometry {
     const centre = new THREE.Vector3(0, H * 0.5, 0);
     for (let i = 0; i < n * 3; i++) {
       const a = rnd() * Math.PI * 2, rad = sp.crownR * (i === 0 ? 0 : 0.35 + rnd() * 0.45);
-      clump(leaves, new THREE.Vector3(Math.cos(a) * rad, H * (0.35 + rnd() * 0.4), Math.sin(a) * rad), sp.crownR * 0.45, Math.max(3, Math.round(t.cardsPerClump * (sp.form === 'shrub' ? 0.33 : 0.18))), sp.crownR * 0.42, sp.crownR * 0.46, 1, rnd, centre);
+      // SPEC 19.12: a shrub is leafy down to the ground (no bare sticks under a lollipop), shaded in its middle
+      clump(leaves, new THREE.Vector3(Math.cos(a) * rad, H * (0.22 + rnd() * 0.45), Math.sin(a) * rad), sp.crownR * 0.5, Math.max(3, Math.round(t.cardsPerClump * (sp.form === 'shrub' ? 0.33 : 0.18))), sp.crownR * 0.42, sp.crownR * 0.46, 1, rnd, centre, sp.crownR * 1.1);
     }
     if (sp.form === 'shrub') for (let i = 0; i < 3; i++) { const a = rnd() * 6.283; tubeBetween(trunk, new THREE.Vector3(0, 0, 0), new THREE.Vector3(Math.cos(a) * 0.1, H * 0.45, Math.sin(a) * 0.1), sp.trunkR, sp.trunkR * 0.6, 4, bark, 1); }
   }
@@ -306,6 +312,11 @@ export function hedgeBlock(tier: Tier = 'high'): THREE.BufferGeometry {
 
 // ---------------------------------------------------------------- instanced drawing
 
+function disposeMaterial(m: THREE.MeshStandardMaterial): void {
+  for (const t of [m.map, m.normalMap, m.roughnessMap, m.metalnessMap, m.emissiveMap, m.aoMap]) t?.dispose();
+  m.dispose();
+}
+
 export interface FoliageHandle {
   group: THREE.Group;
   /** the wind and the clock: call every frame */
@@ -316,8 +327,20 @@ export interface FoliageHandle {
 }
 
 /** Wind sway in the vertex shader: bends a plant more the higher the vertex is, out of step from plant to plant. Shadows (static) do not move. */
+/** SPEC 19.12: a card is lit by the normal the crown gave it from both sides (three turns a double-sided face's normal round on its back, which left
+ *  half the cards of a crown dark) */
+/** 1 / the bark picture's mean linear luminance (0.07): the picture is detail around the species' own bark colour, which stays the mean */
+const BARK_GAIN = 1 / 0.0699;
+
+const NO_FLIP = (sh: { fragmentShader: string }): void => { sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\n#ifdef DOUBLE_SIDED\n  normal = normalize( vNormal );\n#endif'); };
+function noFlip(mat: THREE.MeshStandardMaterial): void {
+  mat.onBeforeCompile = (sh) => NO_FLIP(sh);
+  mat.customProgramCacheKey = () => 'ow-leaf';
+}
+
 function withWind(mat: THREE.MeshStandardMaterial, uTime: { value: number }, amp: number, height: number): void {
   mat.onBeforeCompile = (sh) => {
+    NO_FLIP(sh);
     sh.uniforms.uTime = uTime;
     sh.uniforms.uAmp = { value: amp };
     sh.uniforms.uH = { value: height };
@@ -335,10 +358,17 @@ function withWind(mat: THREE.MeshStandardMaterial, uTime: { value: number }, amp
   mat.customProgramCacheKey = () => 'ow-wind';
 }
 
-export function mountFoliage(spots: PlantSpot[], hedges: HedgeSeg[], tier: Tier, seed: number): FoliageHandle {
+export interface FoliageOptions {
+  /** SPEC 19.12: the outdoor materials' loader. With it the painted cards give way to photographic ones, trunks take bark, hedges a leaf mat and
+   *  a species with a model is redrawn by its model, each as its file arrives; without it (Node, tests) the plants stay as built */
+  loader?: AssetLoader;
+}
+
+export function mountFoliage(spots: PlantSpot[], hedges: HedgeSeg[], tier: Tier, seed: number, opts: FoliageOptions = {}): FoliageHandle {
   const group = new THREE.Group();
   group.name = 'outdoor-plants';
   const disposables: { dispose(): void }[] = [];
+  let disposed = false;
   const clock = { value: 0 };
   const windOn = VEG_TIER[tier].wind;
   const r = rng(seed * 977 + 5);
@@ -346,6 +376,20 @@ export function mountFoliage(spots: PlantSpot[], hedges: HedgeSeg[], tier: Tier,
   for (const s of spots) { const l = bySpecies.get(s.species) ?? []; l.push(s); bySpecies.set(s.species, l); }
   let instanced = 0;
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), col = new THREE.Color();
+  /** swaps a material's map for a photographic one when it arrives (the painted canvas it replaces is freed) */
+  const swap = (mat: THREE.MeshStandardMaterial, path: string, then?: (t: THREE.Texture) => void): void => {
+    if (!opts.loader) return;
+    void photoTexture(opts.loader, path).then((t) => {
+      if (!t) return;
+      if (disposed) return;
+      const old = mat.map;
+      mat.map = t;
+      if (mat.emissiveMap === old) mat.emissiveMap = t;
+      then?.(t);
+      mat.needsUpdate = true;
+      if (old && old !== t) old.dispose();
+    });
+  };
   for (const [id, list] of bySpecies) {
     const sp = SPECIES[id];
     const geo = buildSpecies(id, tier);
@@ -355,30 +399,59 @@ export function mountFoliage(spots: PlantSpot[], hedges: HedgeSeg[], tier: Tier,
     // so a frond lights itself with its own texture colour, as a leaf lit through would
     if (tex && geo.kind === 'frond') { leafMat.emissiveMap = tex; leafMat.emissive = new THREE.Color('#ffffff'); leafMat.emissiveIntensity = 0.7; }
     if (windOn) withWind(leafMat, clock, geo.kind === 'frond' ? 0.07 : 0.045, Math.max(1, geo.heightM));
-    const mk = (g: THREE.BufferGeometry, m: THREE.Material, name: string): THREE.InstancedMesh => {
+    else noFlip(leafMat);
+    // SPEC 19.12: the photographed card. A photo leaf lights itself a little with its own colour (light through a leaf), not with a flat green
+    const photo = geo.kind === 'frond' ? FROND_PATH : sprayPath(id, tier);
+    if (photo) swap(leafMat, photo, (t) => { leafMat.emissiveMap = t; leafMat.emissive.setRGB(1, 1, 1); leafMat.emissiveIntensity = geo.kind === 'frond' ? 0.35 : 0.12; leafMat.alphaTest = 0.4; leafMat.roughness = 0.7; });
+    // where each plant stands, how big and how turned: drawn once, shared by the procedural meshes and a model that replaces them
+    const place = list.map((s) => {
+      const height = (s.scale ?? 1) * (sp.heightM[0] + (sp.heightM[1] - sp.heightM[0]) * (0.35 + 0.3 * r()));
+      const yaw = ((s.rotDeg ?? r() * 360) * Math.PI) / 180;
+      const tint = 0.9 + r() * 0.2;
+      return { x: s.x, z: s.z, height, yaw, tint: [tint, tint * (0.96 + r() * 0.08), tint * (0.92 + r() * 0.1)] as [number, number, number] };
+    });
+    const mk = (g: THREE.BufferGeometry, m: THREE.Material, name: string, natH = geo.heightM): THREE.InstancedMesh => {
       const im = new THREE.InstancedMesh(g, m, list.length);
       im.name = name; im.userData.outdoor = name; im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false;
-      list.forEach((s, i) => {
-        const k = (s.scale ?? 1) * (sp.heightM[0] + (sp.heightM[1] - sp.heightM[0]) * (0.35 + 0.3 * r())) / geo.heightM;
-        e.set(0, ((s.rotDeg ?? r() * 360) * Math.PI) / 180, 0);
-        q.setFromEuler(e); sc.set(k, k, k); pos.set(s.x, 0, s.z);
+      place.forEach((p, i) => {
+        const k = p.height / natH;
+        e.set(0, p.yaw, 0);
+        q.setFromEuler(e); sc.set(k, k, k); pos.set(p.x, 0, p.z);
         m4.compose(pos, q, sc); im.setMatrixAt(i, m4);
-        const tint = 0.9 + r() * 0.2;
-        im.setColorAt(i, col.setRGB(tint, tint * (0.96 + r() * 0.08), tint * (0.92 + r() * 0.1)));
+        im.setColorAt(i, col.setRGB(...p.tint));
       });
       im.instanceMatrix.needsUpdate = true;
       if (im.instanceColor) im.instanceColor.needsUpdate = true;
       group.add(im); instanced++;
       return im;
     };
-    mk(geo.leaves, leafMat, `plants:${id}:leaves`);
+    const drawn: THREE.InstancedMesh[] = [mk(geo.leaves, leafMat, `plants:${id}:leaves`)];
     disposables.push(geo.leaves, leafMat);
     if (tex) disposables.push(tex);
     if (geo.trunk) {
       const tm = new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.95 });
       if (windOn) withWind(tm, clock, 0.03, Math.max(1, geo.heightM));
-      mk(geo.trunk, tm, `plants:${id}:trunk`);
+      drawn.push(mk(geo.trunk, tm, `plants:${id}:trunk`));
       disposables.push(geo.trunk, tm);
+      // SPEC 19.12: real bark, its light and dark around the species' bark colour (the picture is a mid grey-brown: lifted so the tint holds)
+      if (!sp.model) swap(tm, BARK_PATH, () => { tm.color.setScalar(BARK_GAIN); });
+    }
+    // SPEC 19.12: a species drawn by a model. The procedural plant stands until the model has arrived and been built, then gives way to it
+    if (sp.model && opts.loader) {
+      const model = OUTDOOR_MODELS[sp.model];
+      void loadOutdoorModel(sp.model, tier).then((parts) => {
+        if (!parts) return;
+        if (disposed) { for (const p of parts) { p.geometry.dispose(); disposeMaterial(p.material); } return; }
+        for (const p of parts) {
+          if (windOn && (p.name === 'fronds' || p.name === 'nuts' || p.name === 'crown' || p.name === 'fibre')) withWind(p.material, clock, p.name === 'fronds' ? 0.06 : 0.03, model.heightM);
+          if (p.name === 'fronds') { p.material.side = THREE.DoubleSide; p.material.alphaTest = Math.max(0.4, p.material.alphaTest); }
+          const im = mk(p.geometry, p.material, `plants:${id}:model-${p.name}`, model.heightM);
+          im.castShadow = tier !== 'low';
+          disposables.push(p.geometry, { dispose: () => disposeMaterial(p.material) });
+        }
+        for (const d of drawn) { d.removeFromParent(); d.dispose(); instanced--; }
+        geo.leaves.dispose(); geo.trunk?.dispose();
+      });
     }
   }
   // clipped hedges: one instanced block per species
@@ -388,6 +461,8 @@ export function mountFoliage(spots: PlantSpot[], hedges: HedgeSeg[], tier: Tier,
     const sp = SPECIES[id];
     const tex = hedgeTexture(sp, seed + 31);
     const mat = new THREE.MeshStandardMaterial({ map: tex ?? undefined, color: tex ? '#ffffff' : sp.leaf[2], roughness: 0.9 });
+    // SPEC 19.12: a mat of real leaf photographs (repeat-wrapped)
+    swap(mat, HEDGE_PATH, (t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.needsUpdate = true; });
     const g = hedgeBlock(tier);
     const im = new THREE.InstancedMesh(g, mat, list.length);
     im.name = `hedge:${id}`; im.userData.outdoor = im.name; im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false;
@@ -403,9 +478,17 @@ export function mountFoliage(spots: PlantSpot[], hedges: HedgeSeg[], tier: Tier,
     group.add(im); instanced++;
     disposables.push(g, mat); if (tex) disposables.push(tex);
   }
+  const counts = { plants: spots.length, hedges: hedges.length, instanced };
   return {
-    group, counts: { plants: spots.length, hedges: hedges.length, instanced },
+    group,
+    get counts() { counts.instanced = instanced; return counts; },
     update(dt) { clock.value += dt; },
-    dispose() { for (const d of disposables) d.dispose(); group.removeFromParent(); },
+    dispose() {
+      disposed = true;
+      for (const d of disposables) d.dispose();
+      // the photographic maps that replaced the painted ones
+      group.traverse((o) => { const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined; m?.map?.dispose(); });
+      group.removeFromParent();
+    },
   };
 }

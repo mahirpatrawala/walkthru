@@ -100,8 +100,9 @@ export function buildBoundaries(ctx: BuildCtx): BoundaryBuild {
       const dx = z.x - a.x, dz = z.z - a.z;
       const n = Math.max(1, Math.round(f.length));
       for (let i = 0; i < n; i++) {
-        const t = (i + 0.5) / n;
-        hedges.push({ x: a.x + dx * t, z: a.z + dz * t, yawDeg: (Math.atan2(dx, dz) * 180) / Math.PI, lenM: (f.length / n) * 1.08, widthM: 0.9, heightM: b.heightM ?? DEFAULT_HEDGE_M, species: 'ficus', id: `boundary-${b.room}-${b.edge}` });
+        const over = n > 1 ? 0.2 / n : 0; // blocks overlap 40 % (one mass); the end ones pulled in to end where the edge does
+        const t = (i + 0.5) / n + (i === 0 ? over : i === n - 1 ? -over : 0);
+        hedges.push({ x: a.x + dx * t, z: a.z + dz * t, yawDeg: (Math.atan2(dx, dz) * 180) / Math.PI, lenM: (f.length / n) * 1.4, widthM: 0.9, heightM: b.heightM ?? DEFAULT_HEDGE_M, species: 'ficus', id: `boundary-${b.room}-${b.edge}` });
       }
     }
   }
