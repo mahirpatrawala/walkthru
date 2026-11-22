@@ -1,6 +1,7 @@
 // Owned by C11a. SPEC 16.5 "Quality tiers": what each tier turns on, how the first guess is made, how the frame-rate
 // watchdog steps down. Pure (no three): the browser reads are passed in, so the rules are unit-testable.
 import type { Tier } from './types';
+import { RATIO_FLOOR } from './resolution';
 
 export interface TierConfig {
   tier: Tier;
@@ -74,9 +75,29 @@ export const PHONE_RATIO_CAP = 1.5;
 /** The most anisotropic filtering any tier asks for; the renderer's own maximum is the other limit. */
 export const MAX_ANISOTROPY = 16;
 
-/** The largest pixel ratio a tier may draw at on this device: the tier's cap, held to the phone cap on a touch device. */
-export function tierPixelCap(cfg: Pick<TierConfig, 'pixelRatioCap'>, touch: boolean): number {
-  return touch ? Math.min(cfg.pixelRatioCap, PHONE_RATIO_CAP) : cfg.pixelRatioCap;
+/**
+ * The low tier on a desktop or laptop whose GPU is not a weak one (22 Nov 2026, SPEC 16.18): low drops shadows, the composer and the
+ * environment, which is what the frame-rate watchdog was buying; it was also drawing at 1x, so a retina laptop the watchdog had once stepped
+ * to low (remembered in `walkthru:tier`) looked soft and jagged for good. Low is cheap enough to start at the screen's own ratio there and
+ * let the governor walk down (to 1 on this tier) if frames are slow. A phone, a tablet and a weak GPU keep 1.
+ */
+export const DESKTOP_LOW_RATIO_CAP = 2;
+
+/** A desktop or laptop (mouse, no touch) whose GPU and memory do not read as weak: the first guess for it is high. */
+export function capableDesktop(d: DeviceInfo): boolean {
+  return !d.touch && guessTier(d) === 'high';
+}
+
+/** The largest pixel ratio a tier may draw at on this device: the tier's cap, held to the phone cap on a touch device; low on a capable desktop gets DESKTOP_LOW_RATIO_CAP. */
+export function tierPixelCap(cfg: Pick<TierConfig, 'pixelRatioCap' | 'tier'>, touch: boolean, capable = false): number {
+  if (touch) return Math.min(cfg.pixelRatioCap, PHONE_RATIO_CAP);
+  if (cfg.tier === 'low' && capable) return Math.max(cfg.pixelRatioCap, DESKTOP_LOW_RATIO_CAP);
+  return cfg.pixelRatioCap;
+}
+
+/** The lowest rung of the resolution ladder for a tier: 1.25 (RATIO_FLOOR) on medium and high, 1 on low, which has nothing cheaper left to give up. */
+export function tierRatioFloor(cfg: Pick<TierConfig, 'tier'>): number {
+  return cfg.tier === 'low' ? 1 : RATIO_FLOOR;
 }
 
 /** Anisotropy to ask for: the tier's request, never above the GPU's maximum or MAX_ANISOTROPY, and at least 1. */
@@ -91,7 +112,11 @@ export function clampSamples(requested: number, gpuMax: number): number {
 }
 
 export const TIER_ORDER: Tier[] = ['low', 'medium', 'high'];
-export const TIER_STORAGE_KEY = 'walkthru:tier';
+/**
+ * v2 (22 Nov 2026): step-downs remembered under `walkthru:tier` were judged on windows that counted load hitches (SPEC 16.18), so a fast
+ * laptop could be stepped to low by its first seconds of loading; the old key is not read, every device is judged once more.
+ */
+export const TIER_STORAGE_KEY = 'walkthru:tier.v2';
 
 export const stepDown = (t: Tier): Tier => (t === 'high' ? 'medium' : 'low');
 export const lowerTier = (a: Tier, b: Tier): Tier => (TIER_ORDER.indexOf(a) <= TIER_ORDER.indexOf(b) ? a : b);

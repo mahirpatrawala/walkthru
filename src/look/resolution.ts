@@ -8,18 +8,25 @@
 //   3. comfortably above target for `upHoldSec` in a row: one step up, as a probe (a display that caps at 60 Hz hides how much spare
 //      time there is, so the step up is tried and judged by the next windows rather than predicted);
 //   4. a step up that has to be undone within `regretSec` doubles `upHoldSec` (to a ceiling), so the ratio settles instead of oscillating.
+// A window's frame rate leaves out its slowest tenth of frames (22 Nov 2026): a shader compile, a texture upload or a model decoding
+// during load is a hitch, not what the GPU costs per frame, and it used to walk a fast laptop down the ladder and the tier with it.
 
 /** The ratios the governor moves between, high to low. */
 export const RATIO_STEPS = [2, 1.75, 1.5, 1.25] as const;
 /** the lowest ratio it goes to on a screen that has one: below this the picture is visibly soft on a retina laptop */
 export const RATIO_FLOOR = 1.25;
+/** the share of a window's slowest frames left out of its frame rate (hitches: a compile, an upload, a decode) */
+export const HITCH_SHARE = 0.1;
 
-/** The ladder for a screen: the largest ratio allowed (device ratio and the tier's cap), then every step below it down to the floor. */
-export function ratioLadder(maxRatio: number): number[] {
+/**
+ * The ladder for a screen: the largest ratio allowed (device ratio and the tier's cap), then every step below it down to the floor.
+ * `floor` is RATIO_FLOOR except on the low tier of a desktop (22 Nov 2026), whose ladder ends at 1 so the cheapest tier still has a last step.
+ */
+export function ratioLadder(maxRatio: number, floor: number = RATIO_FLOOR): number[] {
   const top = Math.max(1, Math.round(maxRatio * 100) / 100);
-  if (top <= RATIO_FLOOR) return [top];
+  if (top <= floor) return [top];
   const out = [top];
-  for (const s of RATIO_STEPS) if (s < top - 1e-6) out.push(s);
+  for (const s of [...RATIO_STEPS, 1]) if (s < top - 1e-6 && s >= floor - 1e-6) out.push(s);
   return out;
 }
 
@@ -42,6 +49,8 @@ export interface ResolutionOptions {
   upHoldMaxSec?: number;
   /** frames longer than this are skipped (a hidden tab, an asset upload) */
   ignoreAboveSec?: number;
+  /** the lowest ratio of the ladder (RATIO_FLOOR by default) */
+  floor?: number;
 }
 
 export type ResolutionEvent =
@@ -52,9 +61,11 @@ export class ResolutionGovernor {
   private ladder: number[];
   private idx = 0;
   private target: number;
-  private readonly o: Required<Omit<ResolutionOptions, 'target'>>;
+  private floor: number;
+  private readonly o: Required<Omit<ResolutionOptions, 'target' | 'floor'>>;
   private t = 0;
   private n = 0;
+  private dts: number[] = [];
   private settle: number;
   private goodSec = 0;
   private clock = 0;
@@ -62,7 +73,8 @@ export class ResolutionGovernor {
   private upHold: number;
 
   constructor(maxRatio: number, opts: ResolutionOptions) {
-    this.ladder = ratioLadder(maxRatio);
+    this.floor = opts.floor ?? RATIO_FLOOR;
+    this.ladder = ratioLadder(maxRatio, this.floor);
     this.target = opts.target;
     this.o = {
       windowSec: opts.windowSec ?? 2, settleFrames: opts.settleFrames ?? 6, minFrames: opts.minFrames ?? 20, upMargin: opts.upMargin ?? 1.08,
@@ -81,8 +93,9 @@ export class ResolutionGovernor {
   setTarget(fps: number): void { this.target = fps; this.resetWindow(); this.goodSec = 0; }
 
   /** A new largest ratio (the tier changed, or the screen's own ratio did): the ladder is rebuilt and the walk starts again from its top. */
-  setMax(maxRatio: number): number {
-    const next = ratioLadder(maxRatio);
+  setMax(maxRatio: number, floor: number = this.floor): number {
+    this.floor = floor;
+    const next = ratioLadder(maxRatio, floor);
     const same = next.length === this.ladder.length && next.every((v, i) => v === this.ladder[i]);
     if (!same) { this.ladder = next; this.idx = 0; this.upHold = this.o.upHoldSec; this.lastUpAt = -Infinity; }
     this.resetWindow();
@@ -98,7 +111,7 @@ export class ResolutionGovernor {
   }
 
   /** drop the window in progress (a tier switch, a hidden tab) */
-  resetWindow(): void { this.t = 0; this.n = 0; this.settle = this.o.settleFrames; }
+  resetWindow(): void { this.t = 0; this.n = 0; this.dts.length = 0; this.settle = this.o.settleFrames; }
 
   /** Feed one frame time in seconds. Returns an event when the window just closed and something has to change. */
   frame(dtSec: number): ResolutionEvent | null {
@@ -107,10 +120,11 @@ export class ResolutionGovernor {
     if (this.settle > 0) { this.settle--; return null; }
     this.t += dtSec;
     this.n += 1;
+    this.dts.push(dtSec);
     if (this.t < this.o.windowSec || this.n < this.o.minFrames) return null;
-    const fps = this.n / this.t;
+    const fps = steadyFps(this.dts);
     const span = this.t;
-    this.t = 0; this.n = 0;
+    this.t = 0; this.n = 0; this.dts.length = 0;
     if (fps < this.target) {
       this.goodSec = 0;
       if (this.idx < this.ladder.length - 1) {
@@ -135,4 +149,14 @@ export class ResolutionGovernor {
     } else this.goodSec = 0;
     return null;
   }
+}
+
+/** Frames per second over a window with its slowest HITCH_SHARE of frames left out: a steady cost shows, a few hitches do not. */
+export function steadyFps(dts: readonly number[]): number {
+  if (dts.length === 0) return 0;
+  const sorted = [...dts].sort((a, b) => a - b);
+  const keep = sorted.length - Math.floor(sorted.length * HITCH_SHARE);
+  let t = 0;
+  for (let i = 0; i < keep; i++) t += sorted[i];
+  return t > 0 ? keep / t : 0;
 }

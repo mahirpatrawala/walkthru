@@ -43,7 +43,7 @@ import { createInput } from '../engine/controls';
 import { FollowCamera } from '../engine/camera';
 import { resetLocomotion, stepLocomotion } from '../engine/locomotion';
 import { CHARACTER_RADIUS_M } from '../types';
-import { BODY_DEFAULT_CM, bodyFrom, clampPersonHeight, loadPerson, loadView, savePerson, saveView, tintForPerson } from './person-store';
+import { BODY_DEFAULT_CM, bodyFrom, clampPersonHeight, initialView, loadPerson, savePerson, saveView, tintForPerson } from './person-store';
 import type { ViewMode } from './person-store';
 import type { PersonBody } from '../look/people';
 import type { PropertyFile, Vec2 } from '../types';
@@ -583,10 +583,9 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   let heightCm = person.heightCm;
   character.setHeight(heightCm / 100, tintForPerson(person.body, heightCm));
 
-  // ---- view (SPEC 16.6.8): see yourself (the follow camera, the default) or look through your own eyes (no body in shot)
+  // ---- view (SPEC 16.6.8, 16.18): look through your own eyes (no body in shot, the default) or see yourself (the follow camera)
   // `?cam=first|third` (a shared link) or `?view=first|third` forces a view; otherwise the saved choice, otherwise DEFAULT_VIEW (src/buyer/person-store.ts: the one place to flip the default)
-  const viewParam = params.get('view') === 'first' || params.get('view') === 'third' ? (params.get('view') as ViewMode) : null;
-  let view: ViewMode = parseShare(location.search).cam ?? viewParam ?? loadView(storage);
+  let view: ViewMode = initialView(parseShare(location.search).cam, params.get('view'), storage);
   hud.setView(view);
   hud.bindViews((ctx as unknown as { views?: Parameters<typeof hud.bindViews>[0] }).views);
   /** SPEC 2.7.5: copies (or hands to the share sheet) a link that reopens this place, this view and this spot */

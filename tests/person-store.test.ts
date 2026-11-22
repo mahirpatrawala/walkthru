@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { DEFAULT_PERSON, PERSON_KEY, VIEW_KEY, loadPerson, loadView, normalisePerson, savePerson, saveView } from '../src/buyer/person-store';
+import { DEFAULT_PERSON, DEFAULT_VIEW, PERSON_KEY, VIEW_KEY, initialView, loadPerson, loadView, normalisePerson, savePerson, saveView } from '../src/buyer/person-store';
 import { HEIGHT_KEY } from '../src/buyer/store';
 import { buildNameMap, retargetClips, ueNameFor } from '../src/look/retarget';
 
@@ -94,6 +94,22 @@ describe('view: see yourself or first person (SPEC 16.6.8)', () => {
     const s = mem();
     saveView(s, 'first');
     expect(s.m.has(PERSON_KEY)).toBe(false);
+  });
+});
+
+describe('the view a page opens in (SPEC 16.18, 22 Nov 2026)', () => {
+  it('a new visitor opens in first person', () => {
+    expect(DEFAULT_VIEW).toBe('first');
+    expect(initialView(null, null, mem())).toBe('first');
+    expect(initialView(undefined, 'sideways', null)).toBe('first');
+  });
+  it('a saved choice wins over the default, ?view= over the saved choice, a shared link\'s ?cam= over both', () => {
+    const s = mem({ [VIEW_KEY]: 'third' });
+    expect(initialView(null, null, s)).toBe('third');
+    expect(initialView(null, 'first', s)).toBe('first');
+    expect(initialView(null, 'third', mem())).toBe('third');
+    expect(initialView('first', 'third', s)).toBe('first');
+    expect(initialView('third', null, mem())).toBe('third');
   });
 });
 

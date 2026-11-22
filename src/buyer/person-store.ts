@@ -80,7 +80,7 @@ export function savePerson(storage: StorageLike | null, p: PersonState): void {
 
 // ---------------------------------------------------------------- how the walker is seen
 
-/** SPEC 16.6.8: 'third' = see yourself (the follow camera, the default), 'first' = through your own eyes, no body in shot. */
+/** SPEC 16.6.8: 'first' = through your own eyes, no body in shot (the default since 17 Nov 2026, SPEC 16.18), 'third' = see yourself (the follow camera). */
 export type ViewMode = 'third' | 'first';
 export const VIEW_KEY = 'walkthru:view.v2'; // v2: the default became first person on 17 Nov 2026, so earlier saved defaults are not carried over
 /**
@@ -99,4 +99,14 @@ export function loadView(storage: StorageLike | null): ViewMode {
 }
 export function saveView(storage: StorageLike | null, v: ViewMode): void {
   storageSet(storage, VIEW_KEY, viewFrom(v));
+}
+
+/**
+ * The view a page opens in: a shared link's `?cam=first|third` wins, then `?view=first|third`, then the viewer's saved choice, then
+ * DEFAULT_VIEW (first person). Anything else in the URL is ignored.
+ */
+export function initialView(cam: unknown, viewParam: unknown, storage: StorageLike | null): ViewMode {
+  if (cam === 'first' || cam === 'third') return cam;
+  if (viewParam === 'first' || viewParam === 'third') return viewParam;
+  return loadView(storage);
 }

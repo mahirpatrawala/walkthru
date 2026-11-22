@@ -1,6 +1,6 @@
 // SPEC 16.18: the resolution governor as a pure function of frame times.
 import { describe, expect, it } from 'vitest';
-import { RATIO_FLOOR, ResolutionGovernor, ratioLadder } from '../src/look/resolution';
+import { RATIO_FLOOR, ResolutionGovernor, ratioLadder, steadyFps } from '../src/look/resolution';
 import type { ResolutionEvent } from '../src/look/resolution';
 
 /** Feeds `sec` seconds of frames at `fps`, returns every event raised. */
@@ -27,6 +27,11 @@ describe('ratioLadder', () => {
     expect(ratioLadder(1.25)).toEqual([1.25]);
     expect(ratioLadder(1)).toEqual([1]);
     expect(RATIO_FLOOR).toBe(1.25);
+  });
+  it('a lower floor (the low tier on a desktop) adds 1 as the last rung', () => {
+    expect(ratioLadder(2, 1)).toEqual([2, 1.75, 1.5, 1.25, 1]);
+    expect(ratioLadder(1.5, 1)).toEqual([1.5, 1.25, 1]);
+    expect(ratioLadder(1, 1)).toEqual([1]);
   });
 });
 
@@ -128,5 +133,27 @@ describe('ResolutionGovernor', () => {
     run(g, 52, 1.5);
     g.setTarget(50);
     expect(run(g, 52, 6)).toEqual([]);
+  });
+
+  it('load hitches do not walk the ladder down (22 Nov 2026): the slowest tenth of a window is left out', () => {
+    const g = new ResolutionGovernor(2, { target: 55 });
+    // two seconds at 60 fps with a shader compile, a texture upload and a decode in it: the plain average is 46 fps
+    const out: ResolutionEvent[] = [];
+    for (let s = 0; s < 6; s++) {
+      for (let i = 0; i < 120; i++) { const e = g.frame(i % 40 === 7 ? 0.2 : 1 / 60); if (e) out.push(e); }
+    }
+    expect(out).toEqual([]);
+    expect(g.ratio).toBe(2);
+    expect(steadyFps([...Array(18).fill(1 / 60), 0.3, 0.3])).toBeCloseTo(60, 5);
+  });
+
+  it('a steady slow GPU still steps down, and the low ladder ends at 1', () => {
+    const g = new ResolutionGovernor(2, { target: 30, floor: 1 });
+    const ev = run(g, 20, 40);
+    const ratios = ev.filter((e) => e.type === 'ratio').map((e) => (e as { ratio: number }).ratio);
+    expect(ratios).toEqual([1.75, 1.5, 1.25, 1]);
+    expect(ev.some((e) => e.type === 'exhausted')).toBe(true);
+    expect(g.setMax(2, 1.25)).toBe(2);
+    expect(g.steps).toEqual([2, 1.75, 1.5, 1.25]);
   });
 });

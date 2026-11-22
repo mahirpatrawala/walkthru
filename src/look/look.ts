@@ -12,7 +12,7 @@ import { createLookMaterials } from './materials';
 import type { LookMaterials } from './materials';
 import { createPostChain } from './post';
 import type { PostChain } from './post';
-import { TIERS, clampAnisotropy, lowerTier, loadSavedTier, readDevice, guessTier, saveTier, stepDown, tierFromQuery, postWanted, tierPixelCap, toneMapperFromQuery } from './quality';
+import { TIERS, capableDesktop, clampAnisotropy, lowerTier, loadSavedTier, readDevice, guessTier, saveTier, stepDown, tierFromQuery, postWanted, tierPixelCap, tierRatioFloor, toneMapperFromQuery } from './quality';
 import { ResolutionGovernor } from './resolution';
 import { PremiumLayer } from './premium/layer';
 import type { PremiumStats } from './premium/layer';
@@ -221,7 +221,9 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   let cfg: TierConfig = tierCfg(tier);
   /** SPEC 16.18: the pixel ratio has its own ladder, walked before the tier steps down (auto quality only) */
   const screenRatio = (): number => (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
-  const governor = new ResolutionGovernor(Math.min(screenRatio(), tierPixelCap(cfg, device.touch)), { target: cfg.fpsTarget });
+  const capable = capableDesktop(device);
+  const maxRatio = (): number => Math.min(screenRatio(), tierPixelCap(cfg, device.touch, capable));
+  const governor = new ResolutionGovernor(maxRatio(), { target: cfg.fpsTarget, floor: tierRatioFloor(cfg) });
   const toneMapper: ToneMapperName = toneMapperFromQuery(typeof location !== 'undefined' ? location.search : '');
   const queryPreset = (() => { try { return parsePreset(new URLSearchParams(location.search).get('preset')); } catch { return null; } })();
   let hour = clampDayHour(lookFile?.hour ?? PRESET_HOURS[queryPreset ?? lookFile?.preset ?? DEFAULT_PRESET]);
@@ -494,7 +496,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
   function applyTier(): void {
     const prevType = renderer.shadowMap.type;
     const wasEnabled = renderer.shadowMap.enabled;
-    governor.setMax(Math.min(screenRatio(), tierPixelCap(cfg, device.touch)));
+    governor.setMax(maxRatio(), tierRatioFloor(cfg));
     governor.setTarget(cfg.fpsTarget);
     viewer.setPixelRatioCap(governor.ratio);
     renderer.shadowMap.enabled = shadowsOn();

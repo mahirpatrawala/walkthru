@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { buildTruthProperty, truthGrid } from '../scripts/make-test-room';
 import { buildShell } from '../src/engine/shell';
 import { aoAt, buildAoField } from '../src/look/floor-ao';
-import { FpsWatch, FrameTimer, TIERS, clampAnisotropy, clampSamples, guessTier, postWanted, tierPixelCap, lowerTier, parseTier, stepDown, tierFromQuery, toneMapperFromQuery } from '../src/look/quality';
+import { DESKTOP_LOW_RATIO_CAP, FpsWatch, FrameTimer, TIERS, TIER_STORAGE_KEY, capableDesktop, clampAnisotropy, clampSamples, guessTier, loadSavedTier, postWanted, tierPixelCap, tierRatioFloor, lowerTier, parseTier, stepDown, tierFromQuery, toneMapperFromQuery } from '../src/look/quality';
 import { DEFAULT_PRESET, LOOK_PRESETS, PRESET_HOURS, SUN_SET_HOUR, TRUE_GRADE, gradeAt, presetOfHour } from '../src/look/grade';
 import { InteriorLights } from '../src/look/interior';
 import { chooseBackdrop, backdropPath, skyPixels } from '../src/look/sky';
@@ -165,6 +165,18 @@ describe('quality (SPEC 16.8 check 7)', () => {
     expect(tierPixelCap(TIERS.medium, false)).toBe(2);
     expect(tierPixelCap(TIERS.medium, true)).toBe(1.5);
     expect(tierPixelCap(TIERS.low, true)).toBe(1);
+    // 22 Nov 2026: the low tier on a capable desktop draws at up to 2 (the governor walks it down to 1); a weak GPU and a phone keep 1
+    expect(tierPixelCap(TIERS.low, false)).toBe(1);
+    expect(tierPixelCap(TIERS.low, false, true)).toBe(DESKTOP_LOW_RATIO_CAP);
+    expect(tierPixelCap(TIERS.low, true, true)).toBe(1);
+    expect(tierPixelCap(TIERS.medium, false, true)).toBe(2);
+    expect(tierRatioFloor(TIERS.low)).toBe(1);
+    expect(tierRatioFloor(TIERS.medium)).toBe(1.25);
+    const mac = { renderer: 'ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)', deviceMemory: 8, touch: false };
+    expect(capableDesktop(mac)).toBe(true);
+    expect(capableDesktop({ ...mac, renderer: 'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)' })).toBe(false);
+    expect(capableDesktop({ ...mac, deviceMemory: 4 })).toBe(false);
+    expect(capableDesktop({ ...mac, touch: true })).toBe(false);
     expect(postWanted(TIERS.medium, false)).toBe(true);
     expect(postWanted(TIERS.medium, true)).toBe(false);
     expect(postWanted(TIERS.high, true)).toBe(true);
@@ -366,5 +378,14 @@ describe('interior lights (look-light)', () => {
     expect(xs[1]).toBe(2);
     il.setPoolSize(0);
     expect(scene.children.filter((c) => c.name === 'interior-pool')).toHaveLength(0);
+  });
+});
+
+describe('the remembered tier (SPEC 16.5, 16.18; key v2 since 22 Nov 2026)', () => {
+  it('reads only the v2 key: a step-down remembered under the old key is judged again', () => {
+    expect(TIER_STORAGE_KEY).toBe('walkthru:tier.v2');
+    const store = (m: Record<string, string>) => ({ getItem: (k: string) => m[k] ?? null });
+    expect(loadSavedTier(store({ 'walkthru:tier': 'low' }))).toBeNull();
+    expect(loadSavedTier(store({ 'walkthru:tier.v2': 'medium' }))).toBe('medium');
   });
 });
