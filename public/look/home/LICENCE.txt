@@ -129,6 +129,33 @@ Looked at on 2026-11-22 and NOT used:
   TV units (Sketchfab search), CC BY
     https://api.sketchfab.com/v3/search?type=models&q=tv%20unit
     why: the catalogue TV unit includes the television in its box (1.48 to 1.62 m high); the free stands are the cabinet alone, mostly low-poly or reclaimed wood
+  Sofa (KJPakal), CC BY (23 Nov 2026)
+    https://sketchfab.com/3d-models/9a8b2caf923e408bb67dbca4aaa248fc
+    why: a real three-cushion fabric sofa, but shallow for its length (1.72 x 0.64 m): at the 2.10 m of the 3-seat box its depth needs a 16 % stretch to the 0.90 m box (over the 12 % rule)
+  Three seat sofa (cyberkho), CC BY (23 Nov 2026)
+    https://sketchfab.com/3d-models/7b28aac59e8e44869bee3a2ff6185e72
+    why: three seat cushions on a chrome base, but long and low (2.35 x 0.92 x 0.80 in its own units): at 2.10 m wide its back is 0.72 m high, a 19 % stretch to the 0.85 m box; and 190 000 triangles
+  Three-seat sofas seen in thumbnails only (fafispp, FishBall, Sandeep7487, Lohit, made-it, theclippingpathservice), CC BY or CC0 by the search filter (23 Nov 2026)
+    https://api.sketchfab.com/v3/search?type=models&q=three%20seater%20sofa
+    why: not fetched: a wooden sofa-cum-bed, a flat bright-blue low-poly piece, a dated sofa with slab arms, a tufted Chesterfield, a two-cushion sofa and an L with a chaise; none is the clean three-cushion fabric sofa of the catalogue box
+  Ottoman (songthuong), CC BY (23 Nov 2026)
+    https://sketchfab.com/3d-models/12087c690ee24ac799d4f2ee26dc4f04
+    why: a round tufted pouf 0.51 m across and 0.47 m high in its own millimetres: 14 % or more on two axes from the drawn ottomans (0.58 to 0.71 m wide, 0.40 m high); and 113 000 triangles
+  Puff (Uragan27), CC BY (23 Nov 2026)
+    https://sketchfab.com/3d-models/fd1836d9ebb14e4eb8f2e2572b9074d1
+    why: a square tufted leather pouf 0.47 x 0.47 x 0.33 m in metres: 23 % or more under the drawn ottomans (0.58 to 0.71 m wide)
+  Pouffes seen in thumbnails only (Raffey, SamSolax, zdenkoroman, pixol3d, 3dimentionalben), CC BY or CC0 by the search filter (23 Nov 2026)
+    https://api.sketchfab.com/v3/search?type=models&q=pouf
+    why: not fetched: a pumpkin-shaped round pouf, a plaid box, a round stool taller than wide, a dark leather storage box and an X-legged bench; the drawn ottomans are low (0.40 m) and wider than tall, so the generated one was given real diamond tufting instead
+  Single and double beds (searches: single bed, double bed, twin bed, bed frame, platform bed, modern bed), CC BY or CC0 by the search filter (23 Nov 2026)
+    https://api.sketchfab.com/v3/search?type=models&q=double%20bed
+    why: none clean at 1.01 or 1.32 m wide: flat-colour low-poly beds of 2 000 to 6 000 triangles, a plaid-quilted pine bed, bunk beds, a bed with rumpled bedding modelled in (218 000 triangles), metal day-beds; the one clean upholstered storage bed (bertosalotti, the Soho frame's author) is a queen or king frame by its look, not fetched. The generated beds stay
+  Coffee and centre tables (searches: coffee table, wooden coffee table, center table), CC BY or CC0 by the search filter (23 Nov 2026)
+    https://api.sketchfab.com/v3/search?type=models&q=coffee%20table
+    why: none clean and modern near 1.00 x 0.55 x 0.42 m: carved antique tables, glass-topped tables, an orange-varnished low-poly table, round pedestal tables; the generated centre table stays
+  Toilets with a closed lid (searches: toilet seat lid, modern toilet), CC BY (23 Nov 2026)
+    https://api.sketchfab.com/v3/search?type=models&q=toilet%20seat%20lid
+    why: in the archive: the HippoStance toilet (refused above), two titled with a maker's name (brand, not fetched) and a one-piece pan with a tall narrow tower (starnokia, 74 000 triangles, seen in its thumbnail, not fetched); the shipped toilet's own lid is turned down onto its seat instead
   Objaverse LVIS lists (sofa 81, toilet 111, refrigerator 55, washbasin 48, bed 53)
     https://huggingface.co/datasets/allenai/objaverse/blob/main/lvis-annotations.json.gz
     why: browsed through Sketchfab's public search instead (sorted by likes, downloadable, CC BY or CC0, then kept only what the archive holds); the per-object API was rate-limited (HTTP 429) part way

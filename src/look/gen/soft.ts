@@ -12,6 +12,8 @@ export interface SoftOpts {
   puff?: number;
   /** quality: 2 = a pad with a one-cell bevel (300 triangles), 3 = rounder edges and a crown that shows (about 1000) */
   seg?: number;
+  /** cells across the flat middle of each axis (x, y, z), overriding the quality's: a fine grid on a face that is shaped afterwards (a tufted top) */
+  cells?: [number, number, number];
 }
 
 /** the sample positions along one axis of half-length `h`: a bevel of `kc` cells on each side (spaced so the rounded corner is even in angle), `m` cells across the flat middle */
@@ -32,7 +34,7 @@ export function softCushion(w: number, h: number, d: number, o: SoftOpts = {}): 
   const seg = Math.max(1, Math.round(o.seg ?? 3));
   const kc = seg >= 4 ? 3 : seg >= 3 ? 2 : 1, m = seg >= 5 ? 19 : seg >= 4 ? 9 : seg >= 3 ? 5 : seg >= 2 ? 3 : 2;
   const puff = Math.max(0, o.puff ?? 0);
-  const s = half.map((hh) => axisSamples(hh, Math.min(r, hh - 0.0005), kc, m));
+  const s = half.map((hh, k) => axisSamples(hh, Math.min(r, hh - 0.0005), kc, Math.max(1, Math.round(o.cells?.[k] ?? m))));
   const pos: number[] = [], idx: number[] = [];
   const halfPi = Math.PI / 2;
   for (let a = 0; a < 3; a++) {

@@ -3,7 +3,7 @@
 // desk, dressing table with mirror and stool, kids desk). Each is a function of the item's footprint and heights plus a variant name; the bounding
 // box is the box and the total height is the item's height (SPEC 16.2 rule 1).
 import * as THREE from 'three';
-import { Parts, role, roleOr } from './core';
+import { Parts, role, roleOr, shade } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { prism, rod, roundedRectOutline, taperedLeg } from './geo';
 import { CERAMIC, CHROME, GLASS, MIRROR, bar, disc, frontPanel, post, rsides, zfOf } from './kit';
@@ -24,14 +24,27 @@ export function buildTvUnit(env: GenEnv, size: GenSize, p: TvUnitParams, roles: 
   if (p.base === 'legs') for (const sx of [-1, 1]) for (const sz of [-1, 1]) parts.put('tv-legs', body, rod({ x: sx * (w / 2 - 0.05), y: 0, z: sz * (d / 2 - 0.05) }, { x: sx * (w / 2 - 0.045), y: legH + 0.01, z: sz * (d / 2 - 0.045) }, 0.016, env.q.sides));
   else parts.box('tv-plinth', dark, -w / 2 + 0.03, w / 2 - 0.03, 0, legH, -d / 2 + 0.03, d / 2 - 0.04, { c: 0 });
   parts.box('tv-top', topM, -w / 2, w / 2, S - 0.025, S, -d / 2, d / 2, { c: 0.004, grain: 'x' });
-  parts.box('tv-carcass', body, -w / 2, w / 2, legH, S - 0.025, -d / 2, zfOf(d, p.handle) - 0.014, { c: 0.002 });
   // two drawers either side of an open media niche
   const zf = zfOf(d, p.handle), y0 = legH + 0.01, y1 = S - 0.03;
   const nw = Math.min(0.5, w * 0.3);
   const dw = (w - nw - 2 * 0.02) / 2;
+  const zc = zf - 0.014;
+  // the carcass, open in the middle: the two drawer bays, and round the niche its floor and roof slabs and a back set 18 cm in, so the niche is
+  // a real open shelf with depth and shadow (it was a flat black panel)
+  const ny0 = y0 + 0.01, ny1 = y1 - 0.01, nzBack = Math.max(-d / 2 + 0.02, zc - 0.18);
+  parts.box('tv-carcass', body, -w / 2, -nw / 2, legH, S - 0.025, -d / 2, zc, { c: 0.002 });
+  parts.box('tv-carcass', body, nw / 2, w / 2, legH, S - 0.025, -d / 2, zc, { c: 0.002 });
+  parts.box('tv-carcass', body, -nw / 2, nw / 2, legH, ny0, -d / 2, zc, { c: 0.002 });
+  parts.box('tv-carcass', body, -nw / 2, nw / 2, ny1, S - 0.025, -d / 2, zc, { c: 0.002 });
+  parts.box('tv-carcass', body, -nw / 2, nw / 2, ny0, ny1, -d / 2, nzBack, { c: 0 });
   frontPanel(parts, 'tv-drawers', face, hm, -w / 2 + 0.01, -w / 2 + 0.01 + dw - GAP, y0, y1, zf, p.handle, 0.016);
   frontPanel(parts, 'tv-drawers', face, hm, w / 2 - 0.01 - dw + GAP, w / 2 - 0.01, y0, y1, zf, p.handle, 0.016);
-  parts.box('tv-niche', dark, -nw / 2, nw / 2, y0 + 0.01, y1 - 0.01, d / 2 - 0.2, zf, { c: 0 });
+  // the niche's inside faces a shade darker than the body (a shelf in its own shadow), lining its back, floor, roof and sides
+  const lining = shade(body, 0.8);
+  parts.box('tv-niche', lining, -nw / 2, nw / 2, ny0, ny1, nzBack, nzBack + 0.002, { c: 0 });
+  parts.box('tv-niche', lining, -nw / 2, nw / 2, ny0, ny0 + 0.002, nzBack, zc, { c: 0 });
+  parts.box('tv-niche', lining, -nw / 2, nw / 2, ny1 - 0.002, ny1, nzBack, zc, { c: 0 });
+  for (const sx of [-1, 1]) parts.box('tv-niche', lining, sx > 0 ? nw / 2 - 0.002 : -nw / 2, sx > 0 ? nw / 2 : -nw / 2 + 0.002, ny0, ny1, nzBack, zc, { c: 0 });
   // set-top box and a soundbar in the niche
   parts.box('tv-niche-kit', roleOr(roles, { key: 'blackMetal' }, 'tvBlack'), -nw / 2 + 0.05, nw / 2 - 0.05, y0 + 0.02, y0 + 0.06, d / 2 - 0.16, d / 2 - 0.05, { c: 0.002 });
   // the TV, on the wall above: a thin panel with a bezel and a slim stand-off from the wall

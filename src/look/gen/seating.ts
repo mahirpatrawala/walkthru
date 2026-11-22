@@ -280,9 +280,92 @@ export interface OttomanParams {
 }
 export const OTTOMAN_DEFAULTS: OttomanParams = { legs: 'wood', top: 'tufted' };
 
+/** the buttons of a diamond-tufted top w x d: rows about 15 cm apart, every other row offset by half a step with one button fewer, 11 cm or
+ *  more in from the edge (the rolled edge stays smooth) */
+export function tuftButtons(w: number, d: number): { x: number; z: number }[] {
+  const mx = Math.min(0.12, w * 0.19), mz = Math.min(0.12, d * 0.19);
+  const uw = w - 2 * mx, ud = d - 2 * mz;
+  const nx = Math.max(2, Math.round(uw / 0.17) + 1), nz = Math.max(2, Math.round(ud / 0.15) + 1);
+  const sx = uw / (nx - 1), sz = ud / (nz - 1);
+  const out: { x: number; z: number }[] = [];
+  for (let j = 0; j < nz; j++) {
+    const odd = j % 2 === 1;
+    for (let i = 0; i < (odd ? nx - 1 : nx); i++) out.push({ x: -uw / 2 + (i + (odd ? 0.5 : 0)) * sx, z: -ud / 2 + j * sz });
+  }
+  return out;
+}
+
+const smoothstep = (e0: number, e1: number, x: number): number => { const k = Math.max(0, Math.min(1, (x - e0) / (e1 - e0))); return k * k * (3 - 2 * k); };
+
+/**
+ * Sinks a top cushion (built centred on the origin, `t` thick) into diamond tufting: a dimple at each button and a shallow crease along the
+ * diamond between neighbouring buttons, faded out toward the rolled edge and below the crown. It only ever pushes down, so the cushion stays
+ * inside its box. Returns the height of the surface over each button (where the button sits), in the cushion's frame.
+ */
+function tuftTop(g: THREE.BufferGeometry, t: number, buttons: { x: number; z: number }[], depth: number, sigma: number, crease: number, edge: number, w: number, d: number): number[] {
+  const pos = g.getAttribute('position') as THREE.BufferAttribute;
+  // the diamond's edges: each button to its neighbours in the next row
+  const links: [number, number][] = [];
+  for (let a = 0; a < buttons.length; a++) for (let b = a + 1; b < buttons.length; b++) {
+    const dx = buttons[b].x - buttons[a].x, dz = buttons[b].z - buttons[a].z;
+    if (Math.abs(dz) > 1e-6 && Math.abs(dx) > 1e-6 && Math.hypot(dx, dz) < 0.26) links.push([a, b]);
+  }
+  const s2 = 2 * sigma * sigma, c2 = 2 * crease * crease;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const up = smoothstep(0, t * 0.5, y);
+    if (up <= 0) continue;
+    const fade = smoothstep(edge * 0.5, edge * 1.4, Math.min(w / 2 - Math.abs(x), d / 2 - Math.abs(z)));
+    if (fade <= 0) continue;
+    let dimple = 0;
+    for (const b of buttons) dimple += Math.exp(-((x - b.x) ** 2 + (z - b.z) ** 2) / s2);
+    let fold = 0;
+    for (const [a, b] of links) {
+      const A = buttons[a], B = buttons[b];
+      const ux = B.x - A.x, uz = B.z - A.z;
+      const k = Math.max(0, Math.min(1, ((x - A.x) * ux + (z - A.z) * uz) / (ux * ux + uz * uz)));
+      const ex = A.x + k * ux - x, ez = A.z + k * uz - z;
+      fold = Math.max(fold, Math.exp(-(ex * ex + ez * ez) / c2));
+    }
+    pos.setY(i, y - depth * Math.min(1, dimple + 0.4 * fold) * up * fade);
+  }
+  pos.needsUpdate = true;
+  g.computeVertexNormals();
+  // the surface over each button: the top's vertex nearest to it (the underside's vertices are still in the buffer, below the middle)
+  return buttons.map((b) => {
+    let best = Infinity, y = t / 2 - depth;
+    for (let i = 0; i < pos.count; i++) {
+      if (pos.getY(i) <= 0) continue;
+      const dist = Math.hypot(pos.getX(i) - b.x, pos.getZ(i) - b.z);
+      if (dist < best) { best = dist; y = pos.getY(i); }
+    }
+    return y;
+  });
+}
+
+/**
+ * Drops the triangles of a closed pad's underside, inside its rolled edge (hidden where it sits on its body, which is inset by less than the
+ * edge), so a fine grid costs only on the faces that show. `below`: the height under which a vertex belongs to the underside.
+ */
+function dropUnderside(g: THREE.BufferGeometry, below: number, hw: number, hd: number): void {
+  const pos = g.getAttribute('position') as THREE.BufferAttribute;
+  const idx = g.getIndex();
+  if (!idx) return;
+  const under = (v: number): boolean => pos.getY(v) < below && Math.abs(pos.getX(v)) < hw && Math.abs(pos.getZ(v)) < hd;
+  const keep: number[] = [];
+  for (let t = 0; t < idx.count; t += 3) {
+    const a = idx.getX(t), b = idx.getX(t + 1), c = idx.getX(t + 2);
+    if (under(a) && under(b) && under(c)) continue;
+    keep.push(a, b, c);
+  }
+  g.setIndex(keep);
+}
+
 /**
  * An upholstered footstool: a loose crowned top cushion with piping round its seam, an upholstered body a little inside it, and four short
- * tapered legs. The top cushion is the box's full footprint and its crown reaches the item's height; nothing leaves the box.
+ * tapered legs. The top cushion is the box's full footprint and its crown reaches the item's height; nothing leaves the box. A tufted top
+ * (the default) is sunk into diamond tufting on medium and high: a dimple and a fabric-covered button at each tuft, shallow creases between
+ * them, the rolled edge left smooth, so it reads as a stitched cushion rather than a padded slab.
  */
 export function buildOttoman(env: GenEnv, size: GenSize, p: OttomanParams, roles: Roles): THREE.Group {
   const { w, d } = size;
@@ -301,7 +384,20 @@ export function buildOttoman(env: GenEnv, size: GenSize, p: OttomanParams, roles
   const body = pad(w - 2 * inset, by1 - by0, d - 2 * inset, Math.min(0.035, (by1 - by0) / 2.4), 0.006);
   body.translate(0, (by0 + by1) / 2, 0);
   parts.put('ottoman-body', shade(fab, 0.94), body, { grain: 'x' });
-  const top = pad(w, topT, d, Math.min(0.045, topT / 2.2), 0.016);
+  const tufted = p.top === 'tufted' && q.tier !== 'low';
+  const rTop = Math.min(0.045, topT / 2.2);
+  const buttons = tufted ? tuftButtons(w, d) : [];
+  let top: THREE.BufferGeometry;
+  let buttonY: number[] = [];
+  if (tufted) {
+    // a fine grid over the top (cells of 2.5 cm on medium, 1.8 cm on high, 1.1 cm at 2K) so the dimples and creases are real relief
+    const cell = q.ultra ? 0.011 : q.tier === 'high' ? 0.018 : 0.025;
+    top = softCushion(w, topT, d, { r: rTop, puff: 0.012, seg, cells: [Math.max(4, Math.round((w - 2 * rTop) / cell)), 2, Math.max(4, Math.round((d - 2 * rTop) / cell))] });
+    dropUnderside(top, -topT / 2 + 0.02, w / 2 - rTop, d / 2 - rTop);
+    buttonY = tuftTop(top, topT, buttons, Math.min(0.02, topT * 0.22), Math.max(0.016, cell * 0.75), Math.max(0.006, cell * 0.55), rTop, w, d);
+  } else {
+    top = pad(w, topT, d, rTop, 0.016);
+  }
   top.translate(0, H - topT / 2, 0);
   parts.put('ottoman-top', fab, top, { grain: 'x' });
   if (q.tier !== 'low') {
@@ -313,17 +409,14 @@ export function buildOttoman(env: GenEnv, size: GenSize, p: OttomanParams, roles
     parts.put('ottoman-piping', pipe, rod({ x: x0, y, z: z0 - 0.012 }, { x: x1, y, z: z0 - 0.012 }, rr, sides), { noShadow: true });
     parts.put('ottoman-piping', pipe, rod({ x: x0 - 0.012, y, z: z0 }, { x: x0 - 0.012, y, z: z1 }, rr, sides), { noShadow: true });
     parts.put('ottoman-piping', pipe, rod({ x: x1 + 0.012, y, z: z0 }, { x: x1 + 0.012, y, z: z1 }, rr, sides), { noShadow: true });
-    if (p.top === 'tufted') {
-      // buttons sunk a little into the crown
-      const nx = w > 0.75 ? 3 : 2, nz = d > 0.75 ? 3 : 2;
-      for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) {
-        const bx = (-0.5 + (i + 0.5) / nx) * w * 0.62, bz = (-0.5 + (k + 0.5) / nz) * d * 0.62;
-        const b = new THREE.SphereGeometry(0.011, 8, 5);
-        b.scale(1, 0.45, 1);
-        b.translate(bx, H - 0.011, bz);
-        parts.put('ottoman-buttons', shade(fab, 0.7), b, { noShadow: true });
-      }
-    }
+    // fabric-covered buttons at the bottom of each dimple, a shade darker than the cover (the dimple's own shadow does the rest)
+    buttons.forEach((b, i) => {
+      const r = 0.009;
+      const g = new THREE.SphereGeometry(r, q.ultra ? 10 : q.tier === 'high' ? 8 : 6, 4);
+      g.scale(1, 0.5, 1);
+      g.translate(b.x, H - topT / 2 + buttonY[i] + r * 0.2, b.z);
+      parts.put('ottoman-buttons', shade(fab, 0.8), g, { noShadow: true });
+    });
   }
   if (p.legs !== 'none') {
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) {

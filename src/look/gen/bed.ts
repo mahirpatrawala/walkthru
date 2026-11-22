@@ -91,12 +91,18 @@ export function buildBed(env: GenEnv, size: GenSize, p: BedParams, roles: Roles)
       parts.box('bed-channels', dark, x - 0.0035, x + 0.0035, baseTop + 0.02, H - 0.05, hz1 - 0.006, hz1 + 0.0006, { c: 0 });
     }
   } else if (p.headboard === 'slatted') {
-    parts.box('bed-headboard-back', dark, -w / 2, w / 2, hy0, H, hz0, hz0 + 0.012, { c: 0 });
-    const pitch = 0.05, n = Math.round(w / pitch);
+    // slats held in a frame, as a joiner makes one: two posts at the sides and a capping rail along the top (rounded over), the slats between
+    // them standing a few millimetres back from the frame's face; behind them a dark back panel
+    const post = Math.min(0.05, w * 0.05), cap = 0.04;
+    parts.box('bed-headboard-back', dark, -w / 2 + post, w / 2 - post, hy0, H - cap, hz0, hz0 + 0.012, { c: 0 });
+    for (const sx of [-1, 1]) parts.box('bed-headboard', head, sx < 0 ? -w / 2 : w / 2 - post, sx < 0 ? -w / 2 + post : w / 2, hy0, H, hz0, hz1, { c: 0.006 });
+    parts.box('bed-headboard', head, -w / 2, w / 2, H - cap, H, hz0, hz1, { c: 0.008, grain: 'x' });
+    const inner = w - 2 * post;
+    const pitch = 0.05, n = Math.max(2, Math.round(inner / pitch));
     const sw = pitch * 0.62;
     for (let i = 0; i < n; i++) {
-      const x = -w / 2 + (i + 0.5) * (w / n);
-      parts.box('bed-headboard', head, x - sw / 2, x + sw / 2, hy0, H, hz0 + 0.012, hz1, { c: 0.003 });
+      const x = -inner / 2 + (i + 0.5) * (inner / n);
+      parts.box('bed-headboard', head, x - sw / 2, x + sw / 2, hy0, H - cap, hz0 + 0.012, hz1 - 0.004, { c: 0.003 });
     }
   }
 
