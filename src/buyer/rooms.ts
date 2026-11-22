@@ -49,6 +49,8 @@ export interface RoomsSheet {
   setDecorNote(text: string | null): void;
   /** "2 people added by you": people a buyer added are not part of the home, and the sheet says so. `null` hides it */
   setPeopleNote(text: string | null): void;
+  /** the sample decor of a building's shared space (SPEC 16.17.3: ceiling lights and wall art, not from the plan); `null` hides it */
+  setClubDecorNote?(text: string | null): void;
 }
 
 export function createRoomsSheet(
@@ -81,6 +83,9 @@ export function createRoomsSheet(
   const peopleNote = el('p', 'wt-rooms-foot wt-rooms-people', undefined, card);
   peopleNote.dataset.testid = 'rooms-people-note';
   peopleNote.hidden = true;
+  const clubNote = el('p', 'wt-rooms-foot wt-rooms-decor', undefined, card);
+  clubNote.dataset.testid = 'rooms-club-decor-note';
+  clubNote.hidden = true;
 
   const close = (): void => {
     if (back.hidden) return;
@@ -97,5 +102,6 @@ export function createRoomsSheet(
     isOpen: () => !back.hidden,
     setDecorNote(text) { decorNote.textContent = text ?? ''; decorNote.hidden = !text; },
     setPeopleNote(text) { peopleNote.textContent = text ?? ''; peopleNote.hidden = !text; },
+    setClubDecorNote(text) { clubNote.textContent = text ?? ''; clubNote.hidden = !text; },
   };
 }

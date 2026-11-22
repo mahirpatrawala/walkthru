@@ -95,6 +95,8 @@ import { parseViewParam } from './views/view-modes';
 import { mountSceneTag, sceneOrigin, sceneTagText } from './scene-tag';
 import { isLocalHomeId } from '../upload/tag';
 import { createLivedIn, mountLivedInToggle } from '../look/lived-in';
+import { mountClubDecor } from '../look/club/decor';
+import type { ClubDecorHandle } from '../look/club/decor';
 import type { LivedIn } from '../look/lived-in';
 import { mountPartialBadge, partialRoomInView } from './partial-badge';
 import {
@@ -702,10 +704,20 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   // look-kit: typical Indian-flat fittings (decor only, labelled, 'Plain' removes them). The style's room finishes are applied first (the kit's
   // floors read them), and the kit is taken off and put back whenever the style changes them.
   let kit: KitHandle | null = null;
+  // SPEC 16.17.3: a shared space's sample ceiling lights and wall art (decor, labelled in the rooms sheet; a bare twin and open air get none)
+  let club: ClubDecorHandle | null = null;
+  const mountClub = (): void => {
+    club?.dispose(); club = null;
+    const kind = host?.space.kind ?? property.spaceKind;
+    // `?clubdecor=off` (before/after pictures, like `?models=off`) leaves it out
+    if (!host?.bare && !outdoorFile && kind && kind !== 'home' && params.get('clubdecor') !== 'off') club = mountClubDecor({ parent: viewer.scene, layout, furniture: store.pristine?.() ?? store.all(), kind, tier: startTier });
+    rooms?.setClubDecorNote?.(club?.label ?? null);
+  };
+  cleanup.push(() => { club?.dispose(); club = null; });
   design = mountDesign({
     scene: viewer.scene, layout, shell, look, store, tier: startTier, registry: fittingRegistry,
     beforeRestyle: () => { kit?.dispose(); kit = null; },
-    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store, registry: fittingRegistry, outdoor: !!outdoorFile, ...(host?.bare || outdoorFile ? { plain: true } : host && host.space.kind !== 'home' ? { shared: host.space.kind } : {}) }); }, // a lobby, a corridor or a gym has no flat fittings (window grills, switchboards, fans): its kit is skirting, floor tiles, downlights and a gym's mirror wall (SPEC 16.20)
+    afterRestyle: () => { kit = mountKit({ viewer, layout, shell, look, store, registry: fittingRegistry, outdoor: !!outdoorFile, ...(host?.bare || outdoorFile ? { plain: true } : host && host.space.kind !== 'home' ? { shared: host.space.kind } : {}) }); mountClub(); }, // a lobby, a corridor or a gym has no flat fittings (window grills, switchboards, fans): its kit is skirting, floor tiles, downlights and a gym's mirror wall (SPEC 16.20)
   });
   cleanup.push(() => { design?.dispose(); kit?.dispose(); kit = null; });
   // a new style rebuilds the furniture and the openable wardrobes' shutters (the decor and rooms are rebuilt by mountDesign itself)
