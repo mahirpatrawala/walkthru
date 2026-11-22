@@ -17,7 +17,7 @@ import { parseManifest } from './manifest';
 import { createPatchUniforms, patchDynamic, patchStatic } from './patch';
 import { ProbeVolume, SH_FLOATS } from './probes';
 import { floatArray } from './half';
-import { BOUNCE_SATURATION, FILL_FRACTION, ambientFill, bounceWeights, componentWeights } from './weights';
+import { AO_SHADE, BOUNCE_SATURATION, FILL_FRACTION, ambientFill, bounceWeights, componentWeights } from './weights';
 import type { AtlasTier, BakedManifest, ComponentId } from './types';
 
 export type BakedState = 'idle' | 'loading' | 'ready' | 'failed' | 'absent';
@@ -40,6 +40,8 @@ export interface BakedHandle extends BakedHook {
   stats(): BakedStats;
   /** looks again for meshes that appeared (a piece the buyer added, a rebuilt tier) */
   rescan(): void;
+  /** debug: change the mix while tuning by eye (the same numbers as `?bakesky=&bakefill=&bakeao=&bakesun=`); returns the numbers in force */
+  tune(t: Partial<{ sky: number; fill: number; ao: number; sun: number }>): { sky: number; fill: number; ao: number; sun: number };
   /** debug: the compositor's picture */
   readonly lightmap: THREE.Texture | null;
 }
@@ -65,10 +67,11 @@ export interface MountOptions {
 }
 
 const SCENE_ID_RE = /^[a-z0-9-]{1,40}$/;
-/** the sky component is multiplied by this so that baked rooms (lit by what comes through the windows) read airy like a rendered interior */
-export const SKY_BOOST = 0.5;
+/** the sky component is multiplied by this so that baked rooms (lit by what comes through the windows) read airy like a rendered interior.
+ *  0.5 until SPEC 16.27, which raised it to 1.5 and lowered the even fill (weights.ts FILL_FRACTION): the light near a window is brighter than at the back of the room */
+export const SKY_BOOST = 1.5;
 /** a baked texel that came out black (a face inside another piece) never darkens past 1 - this */
-export const OBJECT_AO_STRENGTH = 0.65;
+export const OBJECT_AO_STRENGTH = 0.75;
 export const PROBE_FILL_SHADE = 0.73;
 /** a probe sits in open air, a wall texel sits in a corner of it: without this a sofa by the window reads brighter than the wall behind it */
 export const PROBE_GAIN = 0.7;
@@ -113,7 +116,7 @@ export function mountBaked(o: MountOptions): BakedHandle {
   let bytesFetched = 0;
   const rejected: string[] = [];
   let clonedMaterials = 0;
-  const tune = { sky: queryNumber('bakesky', SKY_BOOST), fill: queryNumber('bakefill', FILL_FRACTION) };
+  const tune = { sky: queryNumber('bakesky', SKY_BOOST), fill: queryNumber('bakefill', FILL_FRACTION), ao: queryNumber('bakeao', AO_SHADE), sun: queryNumber('bakesun', 1) };
   const applied = new Map<THREE.Mesh, { key: string; kind: 'static' | 'dyn' | 'probe' }>();
   const probed = new Set<THREE.Mesh>();
   const sunHours = (): (number | null)[] => [0, 1, 2].map((i) => manifest?.sun.find((s) => s.id === (['sun0', 'sun1', 'sun2'] as const)[i])?.hour ?? null);
@@ -389,10 +392,10 @@ export function mountBaked(o: MountOptions): BakedHandle {
     }
     if (fixtures) fixtures.visible = !off;
     if (off) return;
-    const w = componentWeights({ grade: up.grade, skyScale: 1, sunScale: 1, sunHours: sunHours(), skyBoost: tune.sky });
+    const w = componentWeights({ grade: up.grade, skyScale: 1, sunScale: tune.sun, sunHours: sunHours(), skyBoost: tune.sky });
     const fill = ambientFill(up.grade, tune.fill);
     const wb = bounceWeights(w);
-    compositor.compose(w, fill, wb);
+    compositor.compose(w, fill, wb, tune.ao);
     // the lightmap's fill is shaded by the static AO (about 0.55 on average in a room); a probe has no such shade, so its fill is scaled to match
     const wkey = [...Object.values(wb).flat(), ...fill].map((v) => v.toFixed(4)).join(',');
     if (volume && wkey !== lastWeightsKey) { lastWeightsKey = wkey; const gw: typeof w = { ...wb }; for (const k of Object.keys(wb) as (keyof typeof w)[]) gw[k] = [wb[k][0] * PROBE_GAIN, wb[k][1] * PROBE_GAIN, wb[k][2] * PROBE_GAIN]; volume.setWeights(gw, [fill[0] * PROBE_FILL_SHADE * PROBE_GAIN, fill[1] * PROBE_FILL_SHADE * PROBE_GAIN, fill[2] * PROBE_FILL_SHADE * PROBE_GAIN], BOUNCE_SATURATION); weightsVersion++; }
@@ -427,6 +430,7 @@ export function mountBaked(o: MountOptions): BakedHandle {
     update,
     contactField: (grid) => buildAoField(grid, { furnitureOnly: true, minAo: 0.3, rangeM: 0.3 }),
     rescan: scan,
+    tune(t) { Object.assign(tune, t); lastWeightsKey = ''; if (lastUpdate) update(lastUpdate); return { ...tune }; },
     stats: () => ({
       state, tierSet, staticMeshes: [...applied.values()].filter((r) => r.kind === 'static').length, dynMeshes: [...applied.values()].filter((r) => r.kind === 'dyn').length,
       probeObjects: probed.size, bytesFetched, rejected: [...rejected], clonedMaterials,

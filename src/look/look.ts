@@ -192,7 +192,7 @@ const lightWb = (g: Grade): Rgb => [g.post.whiteBalance[0] * Math.sqrt(g.post.hi
 /** the hemisphere intensities in grade.ts are for this tier value (medium and high); low is scaled from it */
 const HEMI_REFERENCE = 1.25;
 /** the screen-space AO of the high tier on top of a bake: the bake has the corners, so this only adds the contact detail of furniture (SPEC 16.14) */
-const BAKED_SSAO_STRENGTH = 0.55;
+const BAKED_SSAO_STRENGTH = 0.8;
 /** in the open there are no corners to darken: the screen-space AO only needs to seat a lounger or a bench on the ground */
 const OUTDOOR_SSAO_STRENGTH = 0.4;
 
@@ -426,7 +426,7 @@ export async function createLook(viewer: Viewer, layoutIn: Layout, lookFileIn: L
     renderer.toneMapping = post || trueColours ? THREE.NoToneMapping : threeToneMapping();
     renderer.toneMappingExposure = exposure;
     post?.setToneMapping(!trueColours, toneMapper);
-    if (post && !trueColours) post.setGrade({ exposure, whiteBalance: grade.post.whiteBalance, saturation: grade.post.saturation, contrast: grade.post.contrast, shadowTint: grade.post.shadowTint, highlightTint: grade.post.highlightTint, bloom: cfg.bloom ? grade.post.bloom : 0 });
+    if (post && !trueColours) post.setGrade({ exposure, whiteBalance: grade.post.whiteBalance, saturation: grade.post.saturation, contrast: grade.post.contrast, shadowTint: grade.post.shadowTint, highlightTint: grade.post.highlightTint, bloom: cfg.bloom ? grade.post.bloom : 0, pivot: grade.post.pivot, shoulder: grade.post.shoulder, white: grade.post.white });
     else post?.setExposure(exposure);
     sky.setExposure(exposure);
     sky.setSunAzimuth(sun.planAzimuthDeg);

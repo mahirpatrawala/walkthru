@@ -56,10 +56,12 @@ export function skyPixels(g: Grade['sky'], sunElevationDeg: number, w = SKY_W, h
     for (let k = 0; k < 3; k++) {
       let c: number;
       if (el >= 0) {
-        c = g.horizon[k] + (g.mid[k] - g.horizon[k]) * smoothstep(0, 0.14, s);
-        c += (g.zenith[k] - c) * smoothstep(0.1, 0.85, s);
+        // SPEC 16.27: a window shows the first 5 to 15 degrees above the horizon, so the blue has to arrive there (it took 13 degrees and a window showed haze only)
+        c = g.horizon[k] + (g.mid[k] - g.horizon[k]) * smoothstep(0, 0.09, s);
+        c += (g.zenith[k] - c) * smoothstep(0.06, 0.75, s);
       } else {
-        c = g.horizon[k] + (g.ground[k] - g.horizon[k]) * smoothstep(0, 0.2, s);
+        // below the horizon a distant haze, a little darker than the bright band at the horizon (no ground, no city: 16.2)
+        c = g.horizon[k] + (g.ground[k] - g.horizon[k]) * smoothstep(0, 0.07, s);
       }
       base[k] = c;
     }
