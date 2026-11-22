@@ -76,7 +76,7 @@ export function skylightColour(g: Grade, trueColours: boolean): Rgb {
   return [c[0] * cool[0] * k, c[1] * cool[1] * k, c[2] * cool[2] * k];
 }
 /** a window's light relative to the hemisphere's irradiance, before the falloff (tuned by eye on Flat 204) */
-export const WINDOW_STRENGTH = 1.0;
+export const WINDOW_STRENGTH = 1.4;
 
 /** The warm light of a downlight pool, linear. In a room with no window it is on all day. */
 export function lampColour(g: Grade, trueColours: boolean): Rgb {

@@ -227,8 +227,8 @@ describe('white balance of the baked light (16.14, round 5)', () => {
     expect(wb[0] / wb[2]).toBeLessThan(1.4); // from 5
     expect(wb[0]).toBeGreaterThan(wb[2]); // a hint of the floor stays
   });
-  it('the ambient level carries a baked room by day, softly shaded by the AO', () => {
-    expect(FILL_FRACTION).toBeGreaterThan(1); expect(AO_SHADE).toBeGreaterThan(0.4); expect(AO_SHADE).toBeLessThan(1);
+  it('the ambient level is a part of a baked room\'s light by day, softly shaded by the AO', () => {
+    expect(FILL_FRACTION).toBeGreaterThanOrEqual(0.5); expect(AO_SHADE).toBeGreaterThan(0.4); expect(AO_SHADE).toBeLessThan(1); // SPEC 16.27: 1.45 -> 0.7, the sky gain carries more
     expect(fs.readFileSync(path.join(ROOT, 'src/look/baked/composite.ts'), 'utf8')).toMatch(/uSat/);
   });
 });

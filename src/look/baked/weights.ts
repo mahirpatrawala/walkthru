@@ -105,11 +105,18 @@ export function bounceWeights(w: Weights): Weights {
  * The room's ambient level: this fraction of the hemisphere light reaches every surface, shaded by the static AO (E units, rgb). It is the
  * larger part of a baked room's light by day, so a room far from its window is as bright as the live look makes it and the sky component
  * (`SKY_BOOST` in runtime.ts) adds the gradient towards the window on top. (It was 0.6 with a sky gain of 1.3: rooms with a small window,
- * and every ceiling, came out a fifth to a third darker than the same room lit live.)
+ * and every ceiling, came out a fifth to a third darker than the same room lit live. 1.45 from 16.23 to 16.26; SPEC 16.27 brought it to 0.7 and the sky gain
+ * up to 1.5, so the light that falls off away from the windows is the larger share and the room is not one even wash. With a low fill the AO's share must
+ * stay modest: at 0.9 its denoising blotches printed on plain walls.)
  */
-export const FILL_FRACTION = 1.45;
-/** how much of the static AO shades the ambient level: at 1 a corner 1.1 m from everything went grey, 0.6 keeps it a soft shade */
-export const AO_SHADE = 0.6;
+export const FILL_FRACTION = 0.7;
+/** how much of the static AO shades the ambient level: at 1 a corner 1.1 m from everything went grey, 0.6 keeps it a soft shade (16.23). Since 16.27 the
+ *  fill is the smaller share and the sky component (whose corners are shaded by the bake itself) the larger, so corners darken without more of the AO;
+ *  0.65, and never past 0.8: the AO picture is the noisiest one, and its blotches show on a plain wall */
+export const AO_SHADE = 0.65;
+/** SPEC 16.27: the static AO is never taken below this before it shades the fill. A real corner at 1.1 m never reaches it; a texel the bake shut (the end face
+ *  of a thin column, a face inside another) does, and printed as black blotches once the fill came down. Shut texels now keep 1 - 0.65 x 0.7 = 0.55 of the fill (0.4 before) */
+export const AO_FLOOR = 0.3;
 export function ambientFill(g: Pick<Grade, 'hemiSky' | 'hemiGround' | 'hemiIntensity'>, fraction = FILL_FRACTION): Rgb {
   const k = g.hemiIntensity * fraction;
   const mid: Rgb = [0.5 * (g.hemiSky[0] + g.hemiGround[0]), 0.5 * (g.hemiSky[1] + g.hemiGround[1]), 0.5 * (g.hemiSky[2] + g.hemiGround[2])];

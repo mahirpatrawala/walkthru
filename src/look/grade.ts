@@ -27,32 +27,37 @@ interface Key {
   wb: string; sat: number; contrast: number; shadowTint: string; highlightTint: string; bloom: number; vignette: number;
   /** how far the interior lights are on, 0..1 (tube lights, cove lights) */
   tube: number; cove: number;
+  /** SPEC 16.27: how far the grade's tone curve is the photographic one of the day (pivot 0.3, a shoulder the tone mapper's white reaches) rather than the
+   *  gentler one Evening and Night were tuned with (pivot 0.42, shoulder 0.9, never quite white). 0..1, blended between keys like everything else */
+  photo: number;
   /** SPEC 16.26: how far the fixtures that are only ever SEEN (recessed downlight glass, cove LED, lamp shades) glow, 0..1. By day a lit fixture is part of a finished room, so it is up even when the real lights are off */
   fglow: number;
 }
 
+// SPEC 16.27 (22 Nov 2026): Morning and Afternoon exposure 1.24 -> 1.1 with the grade's pivot 0.42 -> 0.3 and a shoulder that reaches white (post.ts): walls sit on the steep part of the tone curve,
+// so light falling off from a window reads; the window sky's `ground` (below the horizon) is a blue-grey distance haze, not beige.
 const KEYS: Key[] = [
   { hour: 6, sun: '#FFBE86', sunI: 2.4, hemiSky: '#A5B6D2', hemiGround: '#B9A08A', hemiI: 0.95, env: 0.8, exposure: 1.2,
     zenith: '#5A82B6', mid: '#B4B8CA', horizon: '#F8C9A2', ground: '#C4A68E', glow: '#FFB87C', glowI: 1.0,
-    wb: '#FFF4E8', sat: 1.04, contrast: 1.04, shadowTint: '#EAF0FF', highlightTint: '#FFEBD6', bloom: 0.3, vignette: 0.26, tube: 0, cove: 0, fglow: 0.45 },
-  { hour: 8.5, sun: '#FFEFD6', sunI: 4.0, hemiSky: '#EBEAEA', hemiGround: '#DAD8D4', hemiI: 0.98, env: 1, exposure: 1.24,
-    zenith: '#4A86CE', mid: '#86B8E8', horizon: '#BCD3EA', ground: '#D4C8B2', glow: '#FFE6BE', glowI: 0.6,
-    wb: '#FFF7F8', sat: 1.1, contrast: 1.55, shadowTint: '#F6F4F4', highlightTint: '#FFF9F2', bloom: 0.3, vignette: 0.2, tube: 0, cove: 0, fglow: 0.55 },
-  { hour: 15, sun: '#FFEED6', sunI: 5.0, hemiSky: '#F0EDEC', hemiGround: '#DAD8D4', hemiI: 0.95, env: 1, exposure: 1.24,
-    zenith: '#3A7AC6', mid: '#7DB2E6', horizon: '#B4D0EA', ground: '#D6C8AA', glow: '#FFDDA6', glowI: 0.65,
-    wb: '#FFF7F8', sat: 1.1, contrast: 1.55, shadowTint: '#F6F4F4', highlightTint: '#FFF9F2', bloom: 0.3, vignette: 0.18, tube: 0, cove: 0, fglow: 0.6 },
+    wb: '#FFF4E8', sat: 1.04, contrast: 1.04, shadowTint: '#EAF0FF', highlightTint: '#FFEBD6', bloom: 0.3, vignette: 0.26, tube: 0, cove: 0, fglow: 0.45, photo: 0 },
+  { hour: 8.5, sun: '#FFEFD6', sunI: 4.0, hemiSky: '#EBEAEA', hemiGround: '#DAD8D4', hemiI: 0.98, env: 1, exposure: 1.1,
+    zenith: '#4A86CE', mid: '#86B8E8', horizon: '#BCD3EA', ground: '#A9B5BF', glow: '#FFE6BE', glowI: 0.6,
+    wb: '#FFF7F8', sat: 1.1, contrast: 1.55, shadowTint: '#F6F4F4', highlightTint: '#FFF9F2', bloom: 0.3, vignette: 0.2, tube: 0, cove: 0, fglow: 0.55, photo: 1 },
+  { hour: 15, sun: '#FFEED6', sunI: 5.0, hemiSky: '#F0EDEC', hemiGround: '#DAD8D4', hemiI: 0.95, env: 1, exposure: 1.1,
+    zenith: '#3A7AC6', mid: '#7DB2E6', horizon: '#B4D0EA', ground: '#A6B2BA', glow: '#FFDDA6', glowI: 0.65,
+    wb: '#FFF7F8', sat: 1.1, contrast: 1.55, shadowTint: '#F6F4F4', highlightTint: '#FFF9F2', bloom: 0.3, vignette: 0.18, tube: 0, cove: 0, fglow: 0.6, photo: 1 },
   { hour: 17.8, sun: '#FFB674', sunI: 5.4, hemiSky: '#A8B9D8', hemiGround: '#BE9C78', hemiI: 0.95, env: 0.9, exposure: 1.15,
     zenith: '#4A74AC', mid: '#CDA98C', horizon: '#F6BC78', ground: '#B8906A', glow: '#FFAE66', glowI: 1.4,
-    wb: '#FFF2E0', sat: 1.04, contrast: 1.08, shadowTint: '#DCE6FF', highlightTint: '#FFE0B8', bloom: 0.4, vignette: 0.32, tube: 0.25, cove: 0.5, fglow: 0.8 },
+    wb: '#FFF2E0', sat: 1.04, contrast: 1.08, shadowTint: '#DCE6FF', highlightTint: '#FFE0B8', bloom: 0.4, vignette: 0.32, tube: 0.25, cove: 0.5, fglow: 0.8, photo: 0 },
   { hour: 19.1, sun: '#FF8A4A', sunI: 0, hemiSky: '#5E70A0', hemiGround: '#5E4C48', hemiI: 0.7, env: 0.4, exposure: 1.25,
     zenith: '#243862', mid: '#625C84', horizon: '#D88C6C', ground: '#5E4A46', glow: '#FF8A55', glowI: 0.9,
-    wb: '#FFEFE0', sat: 1.04, contrast: 1.08, shadowTint: '#D8E0FF', highlightTint: '#FFD8A8', bloom: 0.45, vignette: 0.4, tube: 0.75, cove: 0.9, fglow: 1 },
+    wb: '#FFEFE0', sat: 1.04, contrast: 1.08, shadowTint: '#D8E0FF', highlightTint: '#FFD8A8', bloom: 0.45, vignette: 0.4, tube: 0.75, cove: 0.9, fglow: 1, photo: 0 },
   { hour: 20.5, sun: '#8FA6D8', sunI: 0, hemiSky: '#4A5C92', hemiGround: '#352E3C', hemiI: 0.3, env: 0.15, exposure: 1.05,
     zenith: '#18233F', mid: '#222E55', horizon: '#34426A', ground: '#242B47', glow: '#34447A', glowI: 0.16,
-    wb: '#FFF3E6', sat: 1.04, contrast: 1.08, shadowTint: '#D0DCFF', highlightTint: '#FFDDB0', bloom: 0.5, vignette: 0.44, tube: 1, cove: 1, fglow: 1 },
+    wb: '#FFF3E6', sat: 1.04, contrast: 1.08, shadowTint: '#D0DCFF', highlightTint: '#FFDDB0', bloom: 0.5, vignette: 0.44, tube: 1, cove: 1, fglow: 1, photo: 0 },
   { hour: HOUR_MAX, sun: '#8FA6D8', sunI: 0, hemiSky: '#4A5C92', hemiGround: '#352E3C', hemiI: 0.3, env: 0.15, exposure: 1.05,
     zenith: '#18233F', mid: '#222E55', horizon: '#34426A', ground: '#242B47', glow: '#34447A', glowI: 0.16,
-    wb: '#FFF3E6', sat: 1.04, contrast: 1.08, shadowTint: '#D0DCFF', highlightTint: '#FFDDB0', bloom: 0.5, vignette: 0.44, tube: 1, cove: 1, fglow: 1 },
+    wb: '#FFF3E6', sat: 1.04, contrast: 1.08, shadowTint: '#D0DCFF', highlightTint: '#FFDDB0', bloom: 0.5, vignette: 0.44, tube: 1, cove: 1, fglow: 1, photo: 0 },
 ];
 
 export function hexToLinear(hex: string): Rgb {
@@ -78,14 +83,17 @@ export interface Grade {
   exposure: number;
   /** the sky the window shows: plain gradient, no buildings */
   sky: { zenith: Rgb; mid: Rgb; horizon: Rgb; ground: Rgb; glow: Rgb; glowIntensity: number };
-  post: { whiteBalance: Rgb; saturation: number; contrast: number; shadowTint: Rgb; highlightTint: Rgb; bloom: number };
+  post: { whiteBalance: Rgb; saturation: number; contrast: number; shadowTint: Rgb; highlightTint: Rgb; bloom: number;
+    /** SPEC 16.27, the grade's tone curve: it turns about `pivot` (linear), flattens towards `shoulder`, and `white` (0..1) says how far the tone mapper's
+     *  white is made to land on the shoulder (1, the day) rather than short of it (0, how Evening and Night were tuned) */
+    pivot: number; shoulder: number; white: number };
   vignette: number;
   interior: { tube: number; cove: number; glow: number };
   /** true once the sun is below the horizon */ night: boolean;
 }
 
 const COLOUR_FIELDS = ['sun', 'hemiSky', 'hemiGround', 'zenith', 'mid', 'horizon', 'ground', 'glow', 'wb', 'shadowTint', 'highlightTint'] as const;
-const NUM_FIELDS = ['sunI', 'hemiI', 'env', 'exposure', 'glowI', 'sat', 'contrast', 'bloom', 'vignette', 'tube', 'cove', 'fglow'] as const;
+const NUM_FIELDS = ['sunI', 'hemiI', 'env', 'exposure', 'glowI', 'sat', 'contrast', 'bloom', 'vignette', 'tube', 'cove', 'fglow', 'photo'] as const;
 type Mixed = { [K in (typeof COLOUR_FIELDS)[number]]: Rgb } & { [K in (typeof NUM_FIELDS)[number]]: number };
 
 const smooth = (t: number): number => t * t * (3 - 2 * t);
@@ -98,6 +106,14 @@ const LIN: Mixed[] = KEYS.map((k) => {
   for (const f of NUM_FIELDS) o[f] = k[f];
   return o as Mixed;
 });
+
+/** SPEC 16.27: the day's photographic tone curve and the gentler one Evening and Night keep (16.26), blended by `photo` */
+export const PHOTO_CURVE = { pivot: 0.3, shoulder: 0.98 };
+export const SOFT_CURVE = { pivot: 0.42, shoulder: 0.9 };
+export function curveOf(photo: number): { pivot: number; shoulder: number; white: number } {
+  const t = Math.min(1, Math.max(0, photo));
+  return { pivot: lerp(SOFT_CURVE.pivot, PHOTO_CURVE.pivot, t), shoulder: lerp(SOFT_CURVE.shoulder, PHOTO_CURVE.shoulder, t), white: t };
+}
 
 export function clampDayHour(h: number): number { return Math.min(HOUR_MAX, Math.max(HOUR_MIN, Number.isFinite(h) ? h : PRESET_HOURS[DEFAULT_PRESET])); }
 
@@ -117,7 +133,7 @@ export function gradeAt(hourIn: number): Grade {
     envScale: n('env'),
     exposure: n('exposure'),
     sky: { zenith: c('zenith'), mid: c('mid'), horizon: c('horizon'), ground: c('ground'), glow: c('glow'), glowIntensity: n('glowI') },
-    post: { whiteBalance: c('wb'), saturation: n('sat'), contrast: n('contrast'), shadowTint: c('shadowTint'), highlightTint: c('highlightTint'), bloom: n('bloom') },
+    post: { whiteBalance: c('wb'), saturation: n('sat'), contrast: n('contrast'), shadowTint: c('shadowTint'), highlightTint: c('highlightTint'), bloom: n('bloom'), ...curveOf(n('photo')) },
     vignette: n('vignette'),
     interior: { tube: n('tube'), cove: n('cove'), glow: n('fglow') },
     night: hour >= SUN_SET_HOUR,
@@ -132,7 +148,7 @@ export const TRUE_GRADE: Grade = {
   envScale: 0,
   exposure: 1,
   sky: { zenith: hexToLinear('#8DB4DC'), mid: hexToLinear('#B6D0EA'), horizon: hexToLinear('#E4ECF4'), ground: hexToLinear('#D8DDE2'), glow: [1, 1, 1], glowIntensity: 0 },
-  post: { whiteBalance: [1, 1, 1], saturation: 1, contrast: 1, shadowTint: [1, 1, 1], highlightTint: [1, 1, 1], bloom: 0 },
+  post: { whiteBalance: [1, 1, 1], saturation: 1, contrast: 1, shadowTint: [1, 1, 1], highlightTint: [1, 1, 1], bloom: 0, ...curveOf(0) },
   vignette: 0,
   interior: { tube: 0, cove: 0, glow: 0 },
   night: false,
