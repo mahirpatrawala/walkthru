@@ -99,6 +99,19 @@ export function activeFixtures(layout: Layout, items: FurnitureItem[], st: Style
   return [...sheet.fixtures, ...extra];
 }
 
+/**
+ * Where the lived-in rug may still lie under a style (SPEC 16.15.2). A style dresses rooms with its own rugs (around the beds, or the sheet's);
+ * a living room it leaves bare keeps the lived-in rug in front of the sofa, so the seating does not float on a bare floor. None at all when the
+ * pack has no rugs, or when a designer's or broker's sheet is in force (that sheet is the whole word). The Classic look keeps every rug.
+ */
+export function livedInRugRooms(layout: Layout, items: FurnitureItem[], st: StyleState = getStyle()): (roomId: string) => boolean {
+  if (st.pack.classic) return () => true;
+  const sheet = sheetInForce(st);
+  if (!st.pack.decor.rug || (sheet && sheet.source !== 'typical')) return () => false;
+  const styled = new Set(activeFixtures(layout, items, st).filter((f) => f.kind === 'rug').map((f) => f.roomId));
+  return (roomId) => !styled.has(roomId);
+}
+
 /** the roles every decor piece reads: the pack's, overridden by the sheet's `decor` roles when it has them (a sheet item named `decor`) */
 function decorRoles(st: StyleState): Roles {
   const roles: Roles = {};

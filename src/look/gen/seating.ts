@@ -21,11 +21,15 @@ export interface SofaParams {
   chaise: 'auto' | 'none' | 'left' | 'right';
   /** loose cushions, one at each arm: 0, 1 or 2 (never more) */
   cushions: number;
+  /** a woollen throw folded over one arm (SPEC 16.15.2), hanging down the arm's inner face above the seat: never on the seat */
+  throw: SofaThrow;
 }
+export const SOFA_THROWS = ['left', 'right', 'none'] as const;
+export type SofaThrow = (typeof SOFA_THROWS)[number];
 /** a sofa carries at most this many loose cushions, pushed to its arms */
 export const SOFA_MAX_CUSHIONS = 2;
 const SOFA_CUSHION_M = 0.38;
-export const SOFA_DEFAULTS: SofaParams = { seats: 0, arms: 'round', legs: 'wood', chaise: 'auto', cushions: 2 };
+export const SOFA_DEFAULTS: SofaParams = { seats: 0, arms: 'round', legs: 'wood', chaise: 'auto', cushions: 2, throw: 'left' };
 
 export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Roles): THREE.Group {
   const { w, d, h: Hh, s: S } = size;
@@ -66,7 +70,8 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
     parts.put('sofa-frame', frameM, roundedBoxBetween(cx0, cx1, legH, frameTop, zb0, d / 2, 0.03, q.seg));
   }
   const armTop = Math.min(S + 0.2, H - 0.02);
-  const armR = p.arms === 'round' ? 0.075 : 0.025;
+  // a box arm still has an upholstered edge: 4 cm round, not a sharp block (SPEC 16.15.2)
+  const armR = p.arms === 'round' ? 0.075 : 0.04;
   const left = chaise === 'left' ? 0 : 1, right = chaise === 'right' ? 0 : 1;
   if (p.arms !== 'none') {
     // 2K: the arm is a body under a soft crowned pad of its own (the top of the pad is the arm's height, as before)
@@ -152,7 +157,78 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
     g.translate(x, S + 0.03 + SOFA_CUSHION_M / 2 - 0.005, zb0 + 0.2 + 0.2);
     parts.put('sofa-cushions', acc, g, { tile: 0.34 });
   }
+  // a throw folded over one arm: it lies on the arm and hangs down the arm's inner face, its hem above the seat cushions, so a person
+  // sits beside it, never on it. One arm only, not on an arm a chaise replaces, and only on a sofa of two seats or more (not an armchair).
+  const throwSide = p.throw === 'left' ? -1 : p.throw === 'right' ? 1 : 0;
+  if (throwSide !== 0 && w >= 1.4 && p.arms !== 'none' && (throwSide < 0 ? left : right)) {
+    const armOuter = throwSide < 0 ? sx0 : sx1, armInner = throwSide < 0 ? sx0 + aw : sx1 - aw;
+    const g = armThrow(q.tier, Math.abs(armInner - armOuter), armTop, S + 0.075, Math.min(0.46, sd - 0.36), armR);
+    if (throwSide > 0) { g.scale(-1, 1, 1); flipWinding(g); }
+    g.translate(armOuter, 0, zb1 - 0.04 - Math.min(0.46, sd - 0.36) / 2);
+    parts.put('sofa-throw', throwTone(role(roles, 'accent', 'cushion', 'fabric'), fab), g, { grain: 'x', tile: 0.3 });
+  }
   return parts.done();
+}
+
+/** the throw's colour: the room's accent (the cushions take the warm one), unless it is the sofa's own fabric (then a deeper shade of it) */
+function throwTone(acc: ReturnType<typeof role>, fab: ReturnType<typeof role>): ReturnType<typeof role> {
+  const base = acc.tint && acc.tint !== fab.tint ? acc : shade(fab, 0.72);
+  return { key: base.key === 'weave' || base.key === 'quilt' ? base.key : 'weave', tint: base.tint };
+}
+
+/** reverses the triangles of an indexed or plain geometry (after a mirror) */
+function flipWinding(g: THREE.BufferGeometry): void {
+  const idx = g.index;
+  if (idx) { for (let i = 0; i < idx.count; i += 3) { const a = idx.getX(i + 1); idx.setX(i + 1, idx.getX(i + 2)); idx.setX(i + 2, a); } idx.needsUpdate = true; }
+  else {
+    for (const attr of Object.values(g.attributes) as THREE.BufferAttribute[]) {
+      const n = attr.itemSize;
+      for (let i = 0; i + 2 < attr.count; i += 3) for (let k = 0; k < n; k++) { const a = attr.array[(i + 1) * n + k]; attr.array[(i + 1) * n + k] = attr.array[(i + 2) * n + k]; attr.array[(i + 2) * n + k] = a; }
+      attr.needsUpdate = true;
+    }
+  }
+  g.computeVertexNormals();
+}
+
+/**
+ * A folded throw over a sofa arm, in the arm's frame: x from the arm's outer face (0) inwards, the arm `armW` wide with its top at `armTop`;
+ * the cloth lies across the top, rolls over the inner edge and hangs down the inner face to `hemY`. `width` along z, centred on z = 0.
+ * Thickness 12 mm, soft ripples on the hanging part; the whole cloth stays between x = 0 and the arm's inner face plus its thickness.
+ */
+function armThrow(tier: 'low' | 'medium' | 'high', armW: number, armTop: number, hemY: number, width: number, armR: number): THREE.BufferGeometry {
+  const t = 0.012, r = Math.max(0.02, Math.min(armR, 0.05)) + t / 2;
+  // the centreline of the cloth: across the top, round the inner edge, down the face
+  const cx = armW - r + t / 2, cy = armTop - r + t / 2; // centre of the roll
+  const pts: [number, number][] = [[0.025, armTop + t / 2]];
+  const nb = tier === 'low' ? 2 : 6;
+  for (let i = 0; i <= nb; i++) { const a = (Math.PI / 2) * (i / nb); pts.push([cx + Math.sin(a) * r, cy + Math.cos(a) * r]); }
+  pts.push([armW + t / 2, hemY]);
+  // the outline: the centreline offset half the thickness each side, outward then back
+  const off = (sgn: number): [number, number][] => pts.map((p, i) => {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+    const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+    return [p[0] + (dy / l) * (t / 2) * sgn, p[1] - (dx / l) * (t / 2) * sgn];
+  });
+  const outer = off(1), inner = off(-1).reverse();
+  const shape = new THREE.Shape();
+  shape.moveTo(outer[0][0], outer[0][1]);
+  for (const q of [...outer.slice(1), ...inner]) shape.lineTo(q[0], q[1]);
+  shape.closePath();
+  const g = new THREE.ExtrudeGeometry(shape, { depth: width, steps: tier === 'low' ? 1 : 10, bevelEnabled: false, curveSegments: 1 });
+  g.translate(0, 0, -width / 2);
+  // soft ripples on the hanging part and a hem that is not ruler straight; never past the arm's inner face plus the cloth
+  const pos = g.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i), z = pos.getZ(i);
+    const below = Math.max(0, Math.min(1, (cy - y) / Math.max(0.05, cy - hemY)));
+    if (below <= 0) continue;
+    const wave = Math.sin((z / width) * Math.PI * 3.2 + 0.7) * 0.5 + 0.5; // 0..1
+    pos.setX(i, pos.getX(i) - wave * 0.006 * below);
+    pos.setY(i, y + Math.sin((z / width) * Math.PI * 2.1) * 0.008 * below);
+  }
+  pos.needsUpdate = true;
+  g.computeVertexNormals();
+  return g;
 }
 
 // ---------------------------------------------------------------- window seat / storage bench
@@ -191,6 +267,71 @@ export function buildBench(env: GenEnv, size: GenSize, p: BenchParams, roles: Ro
     parts.put('bench-pad', pad, prism(roundedRectOutline(x0 + o, x1 - o, z0 + o, z1 - o, rc.map((v) => Math.max(0, v - o)) as [number, number, number, number], seg), S - padT, S, 0.03));
   }
   void H;
+  return parts.done();
+}
+
+// ---------------------------------------------------------------- ottoman / pouf (SPEC 16.15.2)
+
+export interface OttomanParams {
+  /** short legs under the upholstered body, or none (the body stands on the floor) */
+  legs: 'wood' | 'metal' | 'none';
+  /** buttons on the top cushion */
+  top: 'tufted' | 'plain';
+}
+export const OTTOMAN_DEFAULTS: OttomanParams = { legs: 'wood', top: 'tufted' };
+
+/**
+ * An upholstered footstool: a loose crowned top cushion with piping round its seam, an upholstered body a little inside it, and four short
+ * tapered legs. The top cushion is the box's full footprint and its crown reaches the item's height; nothing leaves the box.
+ */
+export function buildOttoman(env: GenEnv, size: GenSize, p: OttomanParams, roles: Roles): THREE.Group {
+  const { w, d } = size;
+  const H = Math.max(size.h, size.s);
+  const q = env.q;
+  const parts = new Parts(env, 'gen:ottoman');
+  const fab = role(roles, 'accent', 'fabric'), legM = role(roles, 'legs', 'case', 'handle');
+  const legH = p.legs === 'none' ? 0 : Math.min(0.08, H * 0.2);
+  const topT = Math.min(0.11, Math.max(0.05, (H - legH) * 0.34));
+  const inset = Math.min(0.014, w * 0.03, d * 0.03);
+  const seg = q.tier === 'low' ? 1 : q.ultra ? 4 : q.tier === 'high' ? 3 : 2;
+  const pad = (pw: number, ph: number, pd: number, r: number, puff: number): THREE.BufferGeometry =>
+    q.tier === 'low' ? roundedBoxBetween(-pw / 2, pw / 2, -ph / 2, ph / 2, -pd / 2, pd / 2, Math.min(r, ph / 2.5), 1) : softCushion(pw, ph, pd, { r, puff, seg });
+  // the body: from the legs to just inside the top cushion (it overlaps, so no gap shows at the seam)
+  const by0 = legH, by1 = H - topT + 0.012;
+  const body = pad(w - 2 * inset, by1 - by0, d - 2 * inset, Math.min(0.035, (by1 - by0) / 2.4), 0.006);
+  body.translate(0, (by0 + by1) / 2, 0);
+  parts.put('ottoman-body', shade(fab, 0.94), body, { grain: 'x' });
+  const top = pad(w, topT, d, Math.min(0.045, topT / 2.2), 0.016);
+  top.translate(0, H - topT / 2, 0);
+  parts.put('ottoman-top', fab, top, { grain: 'x' });
+  if (q.tier !== 'low') {
+    // piping along the seam under the top cushion, one shade darker
+    const y = H - topT + 0.006, e = 0.004, x0 = -w / 2 + e + 0.02, x1 = w / 2 - e - 0.02, z0 = -d / 2 + e + 0.02, z1 = d / 2 - e - 0.02;
+    const pipe = shade(fab, 0.76);
+    const rr = 0.0045, sides = 6;
+    parts.put('ottoman-piping', pipe, rod({ x: x0, y, z: z1 + 0.012 }, { x: x1, y, z: z1 + 0.012 }, rr, sides), { noShadow: true });
+    parts.put('ottoman-piping', pipe, rod({ x: x0, y, z: z0 - 0.012 }, { x: x1, y, z: z0 - 0.012 }, rr, sides), { noShadow: true });
+    parts.put('ottoman-piping', pipe, rod({ x: x0 - 0.012, y, z: z0 }, { x: x0 - 0.012, y, z: z1 }, rr, sides), { noShadow: true });
+    parts.put('ottoman-piping', pipe, rod({ x: x1 + 0.012, y, z: z0 }, { x: x1 + 0.012, y, z: z1 }, rr, sides), { noShadow: true });
+    if (p.top === 'tufted') {
+      // buttons sunk a little into the crown
+      const nx = w > 0.75 ? 3 : 2, nz = d > 0.75 ? 3 : 2;
+      for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) {
+        const bx = (-0.5 + (i + 0.5) / nx) * w * 0.62, bz = (-0.5 + (k + 0.5) / nz) * d * 0.62;
+        const b = new THREE.SphereGeometry(0.011, 8, 5);
+        b.scale(1, 0.45, 1);
+        b.translate(bx, H - 0.011, bz);
+        parts.put('ottoman-buttons', shade(fab, 0.7), b, { noShadow: true });
+      }
+    }
+  }
+  if (p.legs !== 'none') {
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      const x = sx * (w / 2 - 0.07), z = sz * (d / 2 - 0.07);
+      if (p.legs === 'metal') parts.put('ottoman-legs', legM, rod({ x, y: 0, z }, { x, y: legH + 0.01, z }, 0.011, q.sides));
+      else parts.put('ottoman-legs', legM, taperedLeg(x, z, legH + 0.01, 0.022, 0.014, q.sides));
+    }
+  }
   return parts.done();
 }
 

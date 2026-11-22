@@ -14,9 +14,23 @@ const STEEL = '#B9BDC2';
 const BRASS = '#C79A3C';
 const BLACK = '#25272A';
 
+/**
+ * SPEC 16.15.3: the product builders also draw the kitchen's and the bedside's pieces on the medium and high tiers (they read as products, the stacked
+ * cylinders did not), with the round parts at a share of the 2K segment count. 1 at 2K.
+ */
+let segShare = 1;
+export function withSegShare<T>(k: number, fn: () => T): T {
+  const was = segShare;
+  segShare = k;
+  try { return fn(); } finally { segShare = was; }
+}
+const sides = (n: number, min = 8): number => Math.max(min, Math.round(n * segShare));
+/** the kinds drawn by the product builders below on the medium and high tiers too (the rest only at 2K) */
+export const PRODUCT_KINDS = new Set<DecorPiece['kind']>(['cooker', 'dabbas', 'hob', 'lamp', 'nightstand', 'jug']);
+
 /** a lathed solid from a profile of [radius, y] points (bottom to top), `seg` sides; the profile's corners are smoothed by the lathe's own normals, so a rolled rim is round */
 function lathe(profile: [number, number][], seg: number, cx = 0, cz = 0, y0 = 0): THREE.BufferGeometry {
-  const g = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), seg);
+  const g = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), sides(seg, 10));
   g.translate(cx, y0, cz);
   return g;
 }
@@ -36,14 +50,14 @@ function roundedBox(x0: number, x1: number, y0: number, y1: number, z0: number, 
   return g;
 }
 function torus(R: number, r: number, y: number, seg = 48, x = 0, z = 0): THREE.BufferGeometry {
-  const g = new THREE.TorusGeometry(R, r, 14, seg);
+  const g = new THREE.TorusGeometry(R, r, sides(14, 6), sides(seg, 12));
   g.rotateX(Math.PI / 2);
   g.translate(x, y, z);
   return g;
 }
 /** a half-loop handle: part of a torus standing in the xy plane, from angle a0 to a1 */
 function loop(R: number, r: number, a0: number, a1: number, cx: number, cy: number, cz: number, seg = 28): THREE.BufferGeometry {
-  const g = new THREE.TorusGeometry(R, r, 12, seg, a1 - a0);
+  const g = new THREE.TorusGeometry(R, r, sides(12, 6), sides(seg, 10), a1 - a0);
   g.rotateZ(a0);
   g.translate(cx, cy, cz);
   return g;

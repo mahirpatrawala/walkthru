@@ -37,7 +37,7 @@ export function buildSeatX(env: GenEnv, size: GenSize, p: SeatXParams, roles: Ro
   const fab = role(roles, 'fabric', 'accent'), legM = role(roles, 'legs', 'case', 'handle'), acc = role(roles, 'cushion', 'accent', 'fabric'), body = role(roles, 'case');
 
   if (v === 'sofabed') {
-    const g = buildSofa(env, size, { seats: 3, arms: 'box', legs: p.legs, chaise: 'none', cushions: 2 }, roles);
+    const g = buildSofa(env, size, { seats: 3, arms: 'box', legs: p.legs, chaise: 'none', cushions: 2, throw: 'none' }, roles);
     g.name = 'gen:sofabed';
     return g;
   }

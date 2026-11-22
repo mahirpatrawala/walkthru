@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { Parts, role, roleOr } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
-import { rod } from './geo';
+import { prism, rod, roundedRectOutline, taperedLeg } from './geo';
 import { CERAMIC, CHROME, GLASS, MIRROR, bar, disc, frontPanel, post, rsides, zfOf } from './kit';
 import type { HandleStyle } from './kit';
 
@@ -239,9 +239,25 @@ export function buildTableX(env: GenEnv, size: GenSize, p: TableXParams, roles: 
   };
 
   if (v === 'coffee-rect') {
-    parts.box('table-top', topM, -w / 2, w / 2, S - 0.03, S, -d / 2, d / 2, { c: 0.005, grain: 'x' });
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) leg(sx * (w / 2 - 0.045), sz * (d / 2 - 0.045), S - 0.03, 0.022);
-    parts.box('table-shelf', body, -w / 2 + 0.07, w / 2 - 0.07, 0.13, 0.15, -d / 2 + 0.07, d / 2 - 0.07, { c: 0.003, grain: 'x' });
+    // SPEC 16.15.2: a solid-wood centre table. A slab with rounded corners and an eased edge, legs set in 6 cm, an apron frame
+    // under the top and a shelf of the same wood resting on the legs (a laminate shelf read as a plastic tray)
+    const topT = 0.032, rc = Math.min(0.035, w / 6, d / 6), low = q.tier === 'low';
+    const lx = w / 2 - 0.06, lz = d / 2 - 0.06;
+    parts.put('table-top', topM, prism(roundedRectOutline(-w / 2, w / 2, -d / 2, d / 2, [rc, rc, rc, rc], low ? 2 : 6), S - topT, S, low ? 0.002 : 0.007), { grain: 'x' });
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      const x = sx * lx, z = sz * lz;
+      if (p.legs === 'tapered') parts.put('table-legs', legM, taperedLeg(x, z, S - topT, 0.022, 0.015, q.sides));
+      else leg(x, z, S - topT, 0.022);
+    }
+    if (!low) {
+      const ay0 = S - topT - 0.055, ay1 = S - topT, t = 0.009;
+      parts.box('table-apron', topM, -lx, lx, ay0, ay1, -lz - t, -lz + t, { c: 0.002, grain: 'x' });
+      parts.box('table-apron', topM, -lx, lx, ay0, ay1, lz - t, lz + t, { c: 0.002, grain: 'x' });
+      parts.box('table-apron', topM, -lx - t, -lx + t, ay0, ay1, -lz, lz, { c: 0.002, grain: 'z' });
+      parts.box('table-apron', topM, lx - t, lx + t, ay0, ay1, -lz, lz, { c: 0.002, grain: 'z' });
+    }
+    const sr = Math.min(0.012, rc);
+    parts.put('table-shelf', topM, prism(roundedRectOutline(-lx, lx, -lz, lz, [sr, sr, sr, sr], low ? 1 : 3), 0.12, 0.138, low ? 0 : 0.003), { grain: 'x' });
   } else if (v === 'coffee-round') {
     disc(parts, 'table-top', topM, 0, 0, S - 0.03, S, w / 2);
     disc(parts, 'table-shelf', body, 0, 0, 0.12, 0.14, w / 2 * 0.7);

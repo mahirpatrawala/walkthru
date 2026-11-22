@@ -62,6 +62,8 @@ export interface LivedInOpts {
   tier?: Tier;
   /** kinds of decor to leave out (the style pack's own curtains and rugs replace them), read each time the home is planned */
   omit?: () => DecorKind[];
+  /** pieces to leave out one by one (the lived-in rug of a room the style gives a rug of its own: SPEC 16.15.2), read when the home is planned */
+  skip?: () => ((p: DecorPiece) => boolean) | null;
   /** the active style pack's model policy (SPEC 16.15), read each time the decor is built; null = generated pieces only */
   models?: () => ModelPolicy | null;
   /** where every piece reports itself as a tappable, movable fitting */
@@ -102,7 +104,8 @@ export function createLivedIn(opts: LivedInOpts): LivedIn {
     const grid = opts.store.drawnGrid ? opts.store.drawnGrid() : opts.store.gridWithout(all.filter((i) => i.source !== 'real').map((i) => i.id));
     try {
       const omit = new Set(opts.omit?.() ?? []);
-      planned = planLivedIn({ layout: opts.layout, items: real, grid }).filter((p) => !omit.has(p.kind));
+      const skip = opts.skip?.() ?? null;
+      planned = planLivedIn({ layout: opts.layout, items: real, grid }).filter((p) => !omit.has(p.kind) && !(skip && skip(p)));
     } catch (err) {
       console.warn('[walkthru] lived-in decor could not be planned:', err);
       planned = [];

@@ -19,6 +19,8 @@ import { furnitureLook } from '../furniture-real';
 import { pieceRule } from '../../core/pieces';
 import { inDoorSweep, resolveDoors } from '../../core/doors';
 import { tubeSites, TUBE_LEN_M } from '../kit/rules';
+import { DINING_DEFAULTS, diningChairLayout } from '../gen/seating';
+import { lookKindOf } from '../gen';
 
 export type DecorKind =
   | 'cushion' | 'throw' | 'books' | 'lamp' | 'cooker' | 'dabbas' | 'fruit' | 'jug'
@@ -26,7 +28,10 @@ export type DecorKind =
   // round 4: what an Indian apartment kitchen and a made-up bedroom show (typical fittings, labelled as decor)
   | 'nightstand' | 'hob' | 'hood' | 'wallcab' | 'dado'
   // round 6: the kitchen's sink and tap, and an entry foyer's shoe cabinet, mirror and doormat
-  | 'sink' | 'console' | 'mirror' | 'mat';
+  | 'sink' | 'console' | 'mirror' | 'mat'
+  // 22 Nov 2026 (SPEC 16.15.3): a kitchen in use, a laid dining table, a used bathroom
+  | 'board' | 'mixer' | 'utensils' | 'runner' | 'placemat' | 'towel' | 'soap' | 'bathmat'
+  | 'basket' | 'bucket';
 
 export type DecorPlace = 'floor' | 'surface' | 'wall';
 
@@ -85,6 +90,9 @@ const MAX_FLOOR_PLANTS_BEDROOM = 1;
 const MIN_PLACE_CELLS = 120;
 
 // ---------------------------------------------------------------- small geometry
+
+/** an ottoman, a pouf or a footstool: a low seat that stands on a living room's rug like the centre table */
+const isFootstool = (i: FurnitureItem): boolean => i.kind === 'sofa' && /ottoman|pouf|footstool/i.test(i.label ?? '');
 
 const world = (box: Box, lx: number, lz: number): Vec2 => {
   const { a, b } = boxAxes(box);
@@ -361,23 +369,232 @@ class Planner {
     return this.placeFloor('plant', room, cands, 0.36, 0.36, 0.78);
   }
 
+  /**
+   * A flat rug may come close to a doorway but never onto it (SPEC 16.15.2): every point of it keeps 0.30 m (the routes' body clearance) from
+   * the doorway's line and from an open edge, and stays out of the sweep of a hinged leaf (a door would catch its edge). The circle the
+   * standing pieces keep round a door (half its width plus 0.35 m) is far too much for a wide sliding door and pushed every rug off the seating.
+   */
+  private rugClearOfDoors(box: Box): boolean {
+    const pts = samples(box);
+    const keep = DECOR_CLEAR_M;
+    for (const d of this.doors) {
+      const f = d.frame, o = d.opening;
+      const a = { x: f.a.x + f.dir.x * (o.centreM - o.widthM / 2), z: f.a.z + f.dir.z * (o.centreM - o.widthM / 2) };
+      const b = { x: f.a.x + f.dir.x * (o.centreM + o.widthM / 2), z: f.a.z + f.dir.z * (o.centreM + o.widthM / 2) };
+      if (pts.some((p) => distanceToSegment(p, a, b) < keep)) return false;
+    }
+    for (const f of this.frames) if (f.kind === 'none' && pts.some((p) => distanceToSegment(p, f.a, f.b) < keep)) return false;
+    this.swing ??= resolveDoors(this.input.layout);
+    const swing = this.swing;
+    return pts.every((p) => !inDoorSweep(swing, p, 0));
+  }
+  private swing: ReturnType<typeof resolveDoors> | null = null;
+
+  /**
+   * SPEC 16.15.3: what a used bathroom shows. A hand towel on a ring beside the basin (on the basin's own wall, clear of doors, windows
+   * and anything taller than it), a soap dispenser on the basin's back corner, and a bath mat in front of the WC or the shower where the
+   * floor is free. A mat is flat: like a rug it keeps 0.30 m off a doorway's line and out of a hinged leaf's sweep, and it blocks no route.
+   */
+  private bathroom(room: RoomTag): void {
+    if (room.roomType !== 'bathroom') return;
+    const inRoom = this.items.filter((i) => this.itemRoom(i)?.id === room.id);
+    const basin = inRoom.find((i) => /^basin|^vanity/.test(i.catalogId ?? '') || /basin|wash/i.test(i.label ?? ''));
+    if (basin) {
+      const S = basin.surfaceHeightM;
+      // the dispenser: on the rim at the back corner
+      if (basin.box.w >= 0.4 && basin.box.d >= 0.35) {
+        const c = world(basin.box, basin.box.w / 2 - 0.08, -basin.box.d / 2 + 0.068);
+        this.push({ kind: 'soap', roomId: room.id, place: 'surface', hostId: basin.id, x: c.x, y: S, z: c.z, yawDeg: basin.box.yawDeg, w: 0.07, d: 0.07, height: 0.17 }, basin.id);
+      }
+      // the towel ring: on the wall behind the basin, beside it
+      const wb = this.wallBehind(basin);
+      if (wb) {
+        // the towel's hem at 86 cm, its ring at 1.36 m: above a WC's cistern (80 cm) beside the basin, the usual place in a small toilet
+        const ringW = 0.24, y = 1.28;
+        for (const side of [1, -1]) {
+          const u = wb.u + side * (basin.box.w / 2 + 0.1 + ringW / 2);
+          if (u - ringW / 2 < 0.1 || u + ringW / 2 > wb.f.length - 0.1) continue;
+          const blocks = this.wallBlocks(wb.f, y - 0.42, false);
+          if (this.items.some((o) => o !== basin && o.heightM > y - 0.42 && this.itemRoom(o)?.id === room.id && boxCorners(o.box).some((q) => Math.abs((q.x - wb.f.a.x) * wb.f.out.x + (q.z - wb.f.a.z) * wb.f.out.z) < 0.3 && Math.abs((q.x - wb.f.a.x) * wb.f.dir.x + (q.z - wb.f.a.z) * wb.f.dir.z - u) < ringW / 2 + 0.05))) continue;
+          if (blocks.some((b) => u + ringW / 2 > b.u0 && u - ringW / 2 < b.u1)) continue;
+          this.wallPiece('towel', room, wb.f, u, y - 0.42, ringW, 0.08, 0.5);
+          break;
+        }
+      }
+    }
+    // the mat: where a person stands at the basin, else in front of the WC
+    const host = basin ?? inRoom.find((i) => /^wc/.test(i.catalogId ?? ''));
+    if (host) {
+      const mw = 0.6, md = 0.4;
+      for (const ahead of [0.24, 0.34]) {
+        const c = world(host.box, 0, host.box.d / 2 + ahead);
+        const box: Box = { cx: c.x, cz: c.z, w: mw, d: md, yawDeg: host.box.yawDeg };
+        if (!this.onFreeFloor(box, room) || !this.rugClearOfDoors(box)) continue;
+        this.push({ kind: 'bathmat', roomId: room.id, place: 'floor', x: c.x, y: 0.004, z: c.z, yawDeg: host.box.yawDeg, w: mw, d: md, height: 0.01 }, 'bathmat');
+        break;
+      }
+    }
+  }
+
+  /** the long axis of a dining set's table, its top's depth and where its chairs are (the generator's own layout), in the item's frame */
+  private diningTop(it: FurnitureItem): { along: (x: number, z: number) => Vec2; len: number; depth: number; slots: { x: number; side: 1 | -1 }[] } {
+    const chairs = Number((pieceRule(it.catalogId)?.look.params as { chairs?: number } | undefined)?.chairs ?? /(\d+)$/.exec(it.catalogId ?? '')?.[1] ?? DINING_DEFAULTS.chairs);
+    const lay = diningChairLayout({ w: it.box.w, d: it.box.d, h: it.heightM, s: it.surfaceHeightM }, { ...DINING_DEFAULTS, chairs });
+    const along = (x: number, z: number): Vec2 => (lay.turned ? world(it.box, z, x) : world(it.box, x, z));
+    return { along, len: lay.w, depth: Math.max(0.5, lay.d - 0.8), slots: lay.slots };
+  }
+
+  /** a dining table laid for its chairs: a linen runner down the middle under the bowl, and a woven placemat at every chair */
+  private layDiningTable(it: FurnitureItem): void {
+    if (it.kind !== 'dining' || lookKindOf(it) !== 'dining') return;
+    const room = this.itemRoom(it);
+    if (!room) return;
+    const t = this.diningTop(it);
+    if (t.len < 1.0 || t.depth < 0.6) return;
+    // a piece's local x runs along the table's length: local x is (cos yaw, -sin yaw)
+    const turnedYaw = (): number => { const a = t.along(0, 0), b = t.along(1, 0); return Math.atan2(-(b.z - a.z), b.x - a.x) / DEG; };
+    const S = it.surfaceHeightM;
+    const c = t.along(0, 0);
+    this.push({ kind: 'runner', roomId: room.id, place: 'surface', hostId: it.id, x: c.x, y: S, z: c.z, yawDeg: turnedYaw(), w: Math.max(0.6, t.len - 0.36), d: 0.34, height: 0.004 }, it.id);
+    for (const sl of t.slots) {
+      const m = t.along(sl.x, sl.side * (t.depth / 2 - 0.17));
+      this.push({ kind: 'placemat', roomId: room.id, place: 'surface', hostId: it.id, x: m.x, y: S, z: m.z, yawDeg: turnedYaw(), w: 0.42, d: 0.3, height: 0.004 }, it.id);
+    }
+  }
+
+  /** books and a vase on the ends of a low TV unit or dresser in a living room or bedroom, under the screen */
+  private dressTvUnit(it: FurnitureItem): void {
+    const kind = lookKindOf(it);
+    if (kind !== 'tvunit' && kind !== 'dresser') return;
+    const room = this.itemRoom(it);
+    if (!room || (room.roomType !== 'living' && room.roomType !== 'bedroom')) return;
+    const { w, d } = it.box, S = it.surfaceHeightM;
+    if (w < 1.0 || d < 0.3 || S > 0.9 || S < 0.3) return;
+    const put = (k: DecorKind, lx: number, pw: number, pd: number, h: number, yaw: number): void => {
+      const c = world(it.box, lx, 0.02);
+      this.push({ kind: k, roomId: room.id, place: 'surface', hostId: it.id, x: c.x, y: S, z: c.z, yawDeg: it.box.yawDeg + yaw, w: pw, d: pd, height: h }, it.id);
+    };
+    put('books', -w / 2 + 0.24, 0.22, 0.28, 0.12, 8);
+    put('jug', w / 2 - 0.16, 0.13, 0.13, 0.22, 0);
+  }
+
+  /** a kitchen worktop in use: a chopping board with vegetables, a mixer-grinder and a pot of ladles, where nothing else stands on it */
+  private kitchenInUse(it: FurnitureItem): void {
+    const room = this.itemRoom(it);
+    if (!room || room.roomType !== 'kitchen' || it.kind !== 'counter' || pieceRule(it.catalogId) || furnitureLook(it) !== 'counter') return;
+    const { w, d } = it.box, S = it.surfaceHeightM;
+    if (S < 0.8 || w < 0.9 || d < 0.5) return;
+    const { b } = boxAxes(it.box);
+    const taken: [number, number][] = this.pieces.filter((p) => p.hostId === it.id).map((p) => {
+      const lx = (p.x - it.box.cx) * b.x + (p.z - it.box.cz) * b.z, half = Math.max(p.w, p.d) / 2 + (p.kind === 'hob' || p.kind === 'sink' ? 0.06 : 0.02);
+      return [lx - half, lx + half];
+    });
+    const slot = (pref: number, half: number): number | null => {
+      for (let k = 0; k <= 40; k++) for (const sg of k ? [1, -1] : [1]) {
+        const l = pref + sg * k * 0.05;
+        if (l - half < -w / 2 + 0.05 || l + half > w / 2 - 0.05) continue;
+        if (taken.some(([a, c]) => l + half > a - 0.03 && l - half < c + 0.03)) continue;
+        taken.push([l - half, l + half]);
+        return l;
+      }
+      return null;
+    };
+    const put = (k: DecorKind, lx: number, lz: number, pw: number, pd: number, h: number, yaw: number): void => {
+      const c = world(it.box, lx, lz);
+      this.push({ kind: k, roomId: room.id, place: 'surface', hostId: it.id, x: c.x, y: S, z: c.z, yawDeg: it.box.yawDeg + yaw, w: pw, d: pd, height: h }, it.id);
+    };
+    const bl = slot(0, 0.2);
+    if (bl !== null) put('board', bl, Math.min(0.06, d / 2 - 0.15), 0.38, 0.26, 0.07, -4);
+    if (w >= 1.3) { const ml = slot(w / 2 - 0.2, 0.11); if (ml !== null) put('mixer', ml, -d / 2 + 0.16, 0.2, 0.2, 0.36, 15); }
+    if (w >= 1.0) { const ul = slot(-w / 2 + 0.12, 0.07); if (ul !== null) put('utensils', ul, -d / 2 + 0.11, 0.12, 0.12, 0.32, 0); }
+  }
+
+  /** a balcony's planters: up to two more potted plants along the railing, where the floor is free and nobody's route is cut */
+  private balconyPlanters(room: RoomTag): void {
+    if (room.roomType !== 'balcony') return;
+    const rail = this.frames.find((f) => f.roomId === room.id && f.kind === 'railing');
+    if (!rail) return;
+    const n = { x: -rail.out.x, z: -rail.out.z };
+    const yaw = Math.atan2(rail.out.x, rail.out.z) / DEG;
+    let added = 0;
+    for (let u = 0.35; u <= rail.length - 0.35 && added < 2; u += 0.15) {
+      const c = { x: rail.a.x + rail.dir.x * u + n.x * 0.22, z: rail.a.z + rail.dir.z * u + n.z * 0.22 };
+      if (this.pieces.some((p) => p.kind === 'plant' && Math.hypot(p.x - c.x, p.z - c.z) < 0.55)) continue;
+      if (this.placeFloor('plant', room, [{ x: c.x, z: c.z, yawDeg: yaw }], 0.36, 0.36, 0.78, { doorKeepM: 0.3 })) added++;
+    }
+  }
+
+  /** a utility room in use: a laundry basket and a bucket beside the washing machine */
+  private utilityInUse(room: RoomTag): void {
+    if (room.roomType !== 'other' || !/utility|wash|laundry/i.test(room.label ?? room.id)) return;
+    const washer = this.items.find((i) => /^washer/.test(i.catalogId ?? '') && this.itemRoom(i)?.id === room.id);
+    const cands = (w: number): { x: number; z: number; yawDeg: number }[] => {
+      if (!washer) return [];
+      const out: { x: number; z: number; yawDeg: number }[] = [];
+      for (const sx of [1, -1]) { const c = world(washer.box, sx * (washer.box.w / 2 + 0.06 + w / 2), -washer.box.d / 2 + 0.22); out.push({ x: c.x, z: c.z, yawDeg: washer.box.yawDeg }); }
+      return out;
+    };
+    this.placeFloor('basket', room, cands(0.42), 0.42, 0.32, 0.46, { doorKeepM: 0.3 });
+    this.placeFloor('bucket', room, cands(0.3), 0.3, 0.3, 0.3, { doorKeepM: 0.3 });
+  }
+
+  /** a stack of books at one end of a centre table and a vase at the other (a round one: the vase alone, in the middle) */
+  private dressCentreTable(it: FurnitureItem): void {
+    if (!/^coffee/.test(it.catalogId ?? '')) return;
+    const room = this.itemRoom(it);
+    if (!room || room.roomType !== 'living') return;
+    const { w, d } = it.box;
+    const S = it.surfaceHeightM;
+    const put = (kind: DecorKind, lx: number, lz: number, pw: number, pd: number, height: number, yawOffset: number): void => {
+      const c = world(it.box, lx, lz);
+      this.push({ kind, roomId: room.id, place: 'surface', hostId: it.id, x: c.x, y: S, z: c.z, yawDeg: it.box.yawDeg + yawOffset, w: pw, d: pd, height }, it.id);
+    };
+    if (/round/.test(it.catalogId ?? '')) {
+      if (Math.min(w, d) >= 0.45) put('jug', 0, 0, 0.13, 0.13, 0.22, 0);
+      return;
+    }
+    if (w < 0.8 || d < 0.4) return;
+    put('books', -w / 2 + 0.24, 0.02, 0.22, 0.28, 0.12, -6);
+    put('jug', w / 2 - 0.17, -0.04, 0.13, 0.13, 0.22, 0);
+  }
+
+  /** a plant at one end of the room's main sofa, a little forward of the wall behind it: when the room got no plant elsewhere, or a second one in a room of 16 m2 or more */
+  private plantBesideSofa(room: RoomTag): void {
+    const have = this.pieces.filter((p) => p.kind === 'plant' && p.roomId === room.id).length;
+    if (have >= (polyArea(room.polygon) >= 16 ? 2 : 1)) return;
+    const id = this.mainSofaOf(room);
+    const sofa = id ? this.items.find((i) => i.id === id) : undefined;
+    if (!sofa) return;
+    const cands: { x: number; z: number; yawDeg: number }[] = [];
+    for (const sx of [-1, 1]) {
+      const c = world(sofa.box, sx * (sofa.box.w / 2 + 0.24), -sofa.box.d / 2 + 0.24);
+      cands.push({ x: c.x, z: c.z, yawDeg: sofa.box.yawDeg });
+    }
+    this.placeFloor('plant', room, cands, 0.36, 0.36, 0.95);
+  }
+
   private rugFor(room: RoomTag): DecorPiece | null {
-    const sofa = this.items.find((i) => i.kind === 'sofa' && i.box.w >= 1.2 && i.box.d <= 1.3 && this.itemRoom(i)?.id === room.id);
-    // a centre table stands ON the rug, so it is not one of the things the rug keeps clear of
-    const tables = this.items.filter((i) => /^coffee/.test(i.catalogId ?? '')).map((i) => i.box);
-    const others = this.items.filter((i) => i !== sofa && !/^coffee/.test(i.catalogId ?? '')).map((i) => i.box);
+    const sofa = this.items.find((i) => i.kind === 'sofa' && i.box.w >= 1.2 && i.box.d <= 1.3 && !isFootstool(i) && this.itemRoom(i)?.id === room.id);
+    // a centre table, an ottoman or a pouf stands ON the rug (SPEC 16.15.2), so it is not one of the things the rug keeps clear of
+    const onRug = (i: FurnitureItem): boolean => /^coffee/.test(i.catalogId ?? '') || isFootstool(i);
+    const tables = this.items.filter(onRug).map((i) => i.box);
+    const others = this.items.filter((i) => i !== sofa && !onRug(i)).map((i) => i.box);
     const tryBox = (box: Box, allow: Box[]): boolean => {
       if (!this.onFreeFloor(box, room, allow)) return false;
       if (others.some((b) => boxesOverlap(box, b, 0.02))) return false;
-      if (this.nearDoorway(box, 0.35)) return false;
+      if (!this.rugClearOfDoors(box)) return false;
       return true;
     };
     const cands: Box[] = [];
     if (sofa) {
       for (const k of [1, 0.85, 0.7]) {
         const W = Math.min(2.4, Math.max(1.4, sofa.box.w + 0.1)) * k, D = 1.6 * k;
-        const centre = world(sofa.box, 0, sofa.box.d / 2 - 0.25 + D / 2);
-        cands.push({ cx: centre.x, cz: centre.z, w: W, d: D, yawDeg: sofa.box.yawDeg });
+        // centred on the sofa first, then slid along it (up to a quarter of the spare width) to keep clear of a doorway at one end
+        for (const shift of [0, -0.15, 0.15, -0.3, 0.3]) {
+          if (Math.abs(shift) > Math.max(0, (W - 1.0) / 4) + 1e-9) continue;
+          const centre = world(sofa.box, shift, sofa.box.d / 2 - 0.25 + D / 2);
+          cands.push({ cx: centre.x, cz: centre.z, w: W, d: D, yawDeg: sofa.box.yawDeg });
+        }
       }
     }
     // no sofa (or no room in front of it): the roomiest spot, lined up with the room's longest wall
@@ -588,7 +805,7 @@ class Planner {
     let id = this.mainSofa.get(room.id);
     if (id === undefined) {
       let best: FurnitureItem | null = null;
-      for (const o of this.items) if (o.kind === 'sofa' && o.box.w >= 1.2 && o.box.d <= 1.3 && this.itemRoom(o)?.id === room.id && (!best || o.box.w > best.box.w)) best = o;
+      for (const o of this.items) if (o.kind === 'sofa' && !isFootstool(o) && o.box.w >= 1.2 && o.box.d <= 1.3 && this.itemRoom(o)?.id === room.id && (!best || o.box.w > best.box.w)) best = o;
       id = best?.id ?? '';
       this.mainSofa.set(room.id, id);
     }
@@ -878,7 +1095,7 @@ class Planner {
     // a bed carries its own two sleeping pillows and a flat quilt (src/core/bed-layout.ts) and nothing else: a person lies on all of it
     if (it.kind === 'bed') return;
     if (it.kind === 'sofa') {
-      if (w < 1.2 || d > 1.3) return;
+      if (w < 1.2 || d > 1.3 || isFootstool(it)) return; // an ottoman has no back for a cushion to stand against
       const seatTop = S + 0.03;
       const aw = 0.16;
       const e = w / 2 - aw - 0.2;
@@ -977,6 +1194,19 @@ class Planner {
       this.pictures(r);
       this.pooja(r);
     }
+    // SPEC 16.15.2 (22 Nov 2026), planned last so every piece planned before keeps its id (a baked home's decor keeps its light):
+    // books and a vase on a living room's centre table, and a plant beside the sofa when the room has none yet
+    for (const it of this.items) this.dressCentreTable(it);
+    for (const r of [...living].sort(byArea)) this.plantBesideSofa(r);
+    // SPEC 16.15.3 (22 Nov 2026), after everything above for the same reason: a laid dining table, a TV unit with books and a vase,
+    // a kitchen worktop in use, and a used bathroom
+    for (const it of this.items) this.layDiningTable(it);
+    for (const it of this.items) this.dressTvUnit(it);
+    for (const it of this.items) this.kitchenInUse(it);
+    for (const r of this.whole) this.bathroom(r);
+    // and a balcony with planters along its railing, a utility room with its laundry basket and bucket
+    for (const r of this.whole) this.balconyPlanters(r);
+    for (const r of this.whole) this.utilityInUse(r);
     void layout;
     return this.pieces;
   }

@@ -7,8 +7,8 @@ import { pieceRule } from '../../core/pieces';
 import type { GenEnv, GenSize, Roles } from './core';
 import { BED_BASES, BED_DEFAULTS, BED_HEADBOARDS, buildBed } from './bed';
 import type { BedParams } from './bed';
-import { BENCH_DEFAULTS, DINING_DEFAULTS, SOFA_DEFAULTS, buildBench, buildDining, buildSofa } from './seating';
-import type { BenchParams, DiningParams, SofaParams } from './seating';
+import { BENCH_DEFAULTS, DINING_DEFAULTS, OTTOMAN_DEFAULTS, SOFA_DEFAULTS, SOFA_THROWS, buildBench, buildDining, buildOttoman, buildSofa } from './seating';
+import type { BenchParams, DiningParams, OttomanParams, SofaParams } from './seating';
 import { COUNTER_DEFAULTS, DRESSER_DEFAULTS, SIDE_DEFAULTS, STUDY_DEFAULTS, buildCounter, buildDresser, buildSide, buildStudy } from './casegoods';
 import type { CounterParams, DresserParams, SideParams, StudyParams } from './casegoods';
 import { HANDLE_STYLES, SHUTTER_STYLES, WARDROBE_DEFAULTS, buildWardrobe } from './wardrobe';
@@ -40,14 +40,14 @@ import type { PoolParams } from './pool';
 import { GARDEN_DEFAULTS, GARDEN_VARIANTS, buildGarden } from './garden';
 import type { GardenParams } from './garden';
 
-export type LookKind = 'bed' | 'sofa' | 'bench' | 'wardrobe' | 'study' | 'side' | 'dresser' | 'counter' | 'dining'
+export type LookKind = 'bed' | 'sofa' | 'bench' | 'ottoman' | 'wardrobe' | 'study' | 'side' | 'dresser' | 'counter' | 'dining'
   // the families added with the catalogue's second table (src/core/catalog-more.ts): each takes a `variant` param that names the piece
   | 'swing' | 'tvunit' | 'cabinet' | 'tablex' | 'seatx' | 'bedx' | 'appliance' | 'fit' | 'outdoor' | 'bath'
   // the shared spaces of a building (src/core/catalog-gym.ts, catalog-lobby.ts, catalog-hall.ts)
   | 'cardio' | 'strength' | 'freew' | 'studio' | 'lobby' | 'hall'
   // the pool deck and the garden (src/core/catalog-pool.ts, catalog-garden.ts)
   | 'pool' | 'garden';
-export const LOOK_KINDS: LookKind[] = ['bed', 'sofa', 'bench', 'wardrobe', 'study', 'side', 'dresser', 'counter', 'dining', 'swing', 'tvunit', 'cabinet', 'tablex', 'seatx', 'bedx', 'appliance', 'fit', 'outdoor', 'bath', 'cardio', 'strength', 'freew', 'studio', 'lobby', 'hall', 'pool', 'garden'];
+export const LOOK_KINDS: LookKind[] = ['bed', 'sofa', 'bench', 'ottoman', 'wardrobe', 'study', 'side', 'dresser', 'counter', 'dining', 'swing', 'tvunit', 'cabinet', 'tablex', 'seatx', 'bedx', 'appliance', 'fit', 'outdoor', 'bath', 'cardio', 'strength', 'freew', 'studio', 'lobby', 'hall', 'pool', 'garden'];
 
 /** which kind of piece an item is: by `kind`, and for a counter by its label */
 export function lookKindOf(item: Pick<FurnitureItem, 'kind' | 'label'> & { catalogId?: string }): LookKind {
@@ -56,7 +56,8 @@ export function lookKindOf(item: Pick<FurnitureItem, 'kind' | 'label'> & { catal
   if (rule) return rule.look.kind as LookKind;
   switch (item.kind) {
     case 'bed': return 'bed';
-    case 'sofa': return /bench|window seat|settee|ottoman|pouf/i.test(item.label ?? '') ? 'bench' : 'sofa';
+    // an ottoman or a pouf is an upholstered footstool (SPEC 16.15.2), a bench or a window seat a wooden body with a pad
+    case 'sofa': return /ottoman|pouf|footstool/i.test(item.label ?? '') ? 'ottoman' : /bench|window seat|settee/i.test(item.label ?? '') ? 'bench' : 'sofa';
     case 'wardrobe': return 'wardrobe';
     case 'dining': return 'dining';
     default: {
@@ -93,13 +94,18 @@ export const GENERATORS: Record<LookKind, GenSpec> = {
   },
   sofa: {
     defaults: SOFA_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildSofa(e, s, p as unknown as SofaParams, r),
-    enums: enumsOf(['arms', ['round', 'box', 'none']], ['legs', ['wood', 'metal', 'plinth']], ['chaise', ['auto', 'none', 'left', 'right']]),
+    enums: enumsOf(['arms', ['round', 'box', 'none']], ['legs', ['wood', 'metal', 'plinth']], ['chaise', ['auto', 'none', 'left', 'right']], ['throw', SOFA_THROWS]),
     ranges: { seats: [0, 5], cushions: [0, 2] },
   },
   bench: {
     defaults: BENCH_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildBench(e, s, p as unknown as BenchParams, r),
     enums: enumsOf(['shape', ['rect', 'curved-end', 'curved-both']], ['curveSide', ['left', 'right']]),
     ranges: { radiusM: [0, 1] },
+  },
+  ottoman: {
+    defaults: OTTOMAN_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildOttoman(e, s, p as unknown as OttomanParams, r),
+    enums: enumsOf(['legs', ['wood', 'metal', 'none']], ['top', ['tufted', 'plain']]),
+    ranges: {},
   },
   study: {
     defaults: STUDY_DEFAULTS as unknown as Params, build: (e, s, p, r) => buildStudy(e, s, p as unknown as StudyParams, r),
