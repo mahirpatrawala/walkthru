@@ -5,15 +5,15 @@
   "sofa_3s_midcentury": {
    "id": "sofa_3s_midcentury",
    "source": "sketchfab-1f9f52ae17d642b582d0c5ccf9dd64b3",
-   "dir": "home",
+   "dir": "home/models",
    "files": {
     "low": {
      "file": "sofa_3s_midcentury.low.glb",
-     "bytes": 36256
+     "bytes": 36276
     },
     "full": {
      "file": "sofa_3s_midcentury.glb",
-     "bytes": 299080
+     "bytes": 299100
     }
    },
    "parts": {
@@ -49,7 +49,7 @@
   "sofa_2s_grey": {
    "id": "sofa_2s_grey",
    "source": "sketchfab-03550a3529c24611a12aa158747374e0",
-   "dir": "home",
+   "dir": "home/models",
    "files": {
     "low": {
      "file": "sofa_2s_grey.low.glb",
@@ -109,15 +109,15 @@
   "armchair_tub": {
    "id": "armchair_tub",
    "source": "sketchfab-ec62634ebb5a41f491bbb9da04cd9dd1",
-   "dir": "home",
+   "dir": "home/models",
    "files": {
     "low": {
      "file": "armchair_tub.low.glb",
-     "bytes": 46196
+     "bytes": 46216
     },
     "full": {
      "file": "armchair_tub.glb",
-     "bytes": 541224
+     "bytes": 187848
     }
    },
    "parts": {
@@ -153,7 +153,7 @@
   "wc_floor": {
    "id": "wc_floor",
    "source": "sketchfab-adb3b931f3ef4941830eea9705657a3d",
-   "dir": "home",
+   "dir": "home/models",
    "files": {
     "low": {
      "file": "wc_floor.low.glb",
@@ -213,7 +213,7 @@
   "basin_wall": {
    "id": "basin_wall",
    "source": "sketchfab-6f5a66deecf348c1a6ebed0ce38b810d",
-   "dir": "home",
+   "dir": "home/models",
    "files": {
     "low": {
      "file": "basin_wall.low.glb",
@@ -289,7 +289,7 @@
   "bed_frame_soho": {
    "id": "bed_frame_soho",
    "source": "sketchfab-97e361e8beda4112ac5b1b5bcd388cdf",
-   "dir": "home",
+   "dir": "home/models",
    "files": {
     "low": {
      "file": "bed_frame_soho.low.glb",
@@ -333,7 +333,7 @@
   "hob_4_glass": {
    "id": "hob_4_glass",
    "source": "sketchfab-0a9441fbe4bd47b990e17dab99267d40",
-   "dir": "home",
+   "dir": "home/models",
    "files": {
     "full": {
      "file": "hob_4_glass.glb",
@@ -404,7 +404,7 @@
   "hood_chimney": {
    "id": "hood_chimney",
    "source": "sketchfab-e846cb48e88446808af55976ff76b1da",
-   "dir": "home",
+   "dir": "home/models",
    "files": {
     "low": {
      "file": "hood_chimney.low.glb",

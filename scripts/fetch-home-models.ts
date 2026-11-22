@@ -46,7 +46,7 @@ export const ASSETS: Asset[] = [
 /** looked at on READ and not used, with the reason (in the lock and LICENCE.txt so nobody fetches them again by mistake) */
 export const REJECTED: { what: string; url: string; why: string }[] = [
   { what: 'Modern Sofa (3dimentionalben), CC BY', url: 'https://sketchfab.com/3d-models/ac92f6e97eaa43c4ad6cb8f7c65ac43f', why: 'a low lounge sofa 60 cm high: a 35 % stretch to the 85 cm back of the catalogue sofa (over the 12 % rule)' },
-  { what: 'Sofa Couch (jimbogies), CC BY', url: 'https://sketchfab.com/3d-models/1485031bb7904bed9590234137a58539', why: 'a checked throw and cushions modelled onto the seat and back (SPEC 16.23: nothing loose on a seat), and 58 000 triangles' },
+  { what: 'Sofa Couch (jimbogies), CC BY', url: 'https://sketchfab.com/search?q=sofa+couch+jimbogies&type=models', why: 'a checked throw and cushions modelled onto the seat and back (SPEC 16.23: nothing loose on a seat), and 58 000 triangles' },
   { what: 'Sofa (GreenG), CC BY', url: 'https://sketchfab.com/3d-models/c7a0c35f4f0b49f8b4fea273f9014001', why: 'a green leather L with a throw and nine cushions piled on it: busy, and the throw lies on the seat' },
   { what: 'Armchair pack (Elbolillo), CC BY', url: 'https://sketchfab.com/3d-models/675cc978e5d74bcea7ef28d13a63a3da', why: 'flat-colour toy low-poly pieces (the Kenney look SPEC 16.15 already rejected)' },
   { what: 'Armchair (Yury Misiyuk), CC BY', url: 'https://sketchfab.com/3d-models/4c85231b2a5349efaa7e9d6b0c2f0b8e', why: 'its scene does not load in three.js r186 (renders empty); not worth repairing with a good alternative in hand' },

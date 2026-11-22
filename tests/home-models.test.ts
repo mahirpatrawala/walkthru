@@ -32,7 +32,7 @@ const lock = JSON.parse(fs.readFileSync(path.join(HOME, 'home.lock.json'), 'utf8
   rejected: { what: string; url: string; why: string }[];
   outputs: Record<string, { bytes: number; sha256: string }>;
 };
-const HOME_IDS = allModelIds().filter((id) => modelInfo(id)!.dir === 'home');
+const HOME_IDS = allModelIds().filter((id) => modelInfo(id)!.dir === 'home/models');
 
 afterEach(() => { resetStyle(); setModelsEnabled(true); clearModelCache(); });
 
@@ -114,7 +114,9 @@ describe('the shipped files: on disk, hashed in the lock, the size the manifest 
         expect(buf.subarray(0, 4).toString()).toBe('glTF');
         expect(buf.length).toBe(f.bytes);
         expect(lock.outputs[`models/${f.file}`]?.sha256).toBe(sha(buf));
-        expect(modelUrl(id, tier)).toBe(`/look/home/${f.file}`);
+        expect(modelUrl(id, tier)).toBe(`/look/home/models/${f.file}`);
+        // the URL the browser fetches is the file on disk (a wrong folder answers the dev server's index page)
+        expect(fs.existsSync(path.join(ROOT, 'public', modelUrl(id, tier)!))).toBe(true);
         // never past the measured box (the fit decisions use it), and not visibly smaller either
         const b = glbBox(buf), s = b.getSize(new THREE.Vector3());
         expect(b.min.x).toBeGreaterThan(-info.dims.w / 2 - 0.002); expect(b.max.x).toBeLessThan(info.dims.w / 2 + 0.002);
@@ -265,7 +267,7 @@ describe('decor: the hob and the hood', () => {
   });
   it('the phone keeps the generated hob (its file would be too heavy)', () => {
     expect(modelUrl('hob_4_glass', 'low')).toBeNull();
-    expect(modelUrl('hob_4_glass', 'full')).toBe('/look/home/hob_4_glass.glb');
+    expect(modelUrl('hob_4_glass', 'full')).toBe('/look/home/models/hob_4_glass.glb');
   });
   it('the hood flue is stretched up to the planner height, the canopy is not', () => {
     const g = new THREE.Group();

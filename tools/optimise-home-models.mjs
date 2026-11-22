@@ -65,7 +65,7 @@ const MODELS = [
   {
     // unitless source (1 x 1 x 0.95): 0.85 m wide gives a 0.80 m back and a 0.40 m seat
     id: 'armchair_tub', uid: 'ec62634ebb5a41f491bbb9da04cd9dd1', back: 0, size: { w: 0.85 },
-    part: (n, m, c) => (c.max[1] < 0.2 && c.max[0] - c.min[0] < 0.1 && c.max[2] - c.min[2] < 0.1 ? 'legs' : 'fabric'), budget: { full: 9000, low: 3000 }, tex: { full: 1024, low: 256 }, probe: { x: 0, z: 0.25, below: 0.75 },
+    part: (n, m, c) => (c.max[1] < 0.2 && c.max[0] - c.min[0] < 0.1 && c.max[2] - c.min[2] < 0.1 ? 'legs' : 'fabric'), budget: { full: 9000, low: 3000 }, tex: { full: 512, low: 256 }, probe: { x: 0, z: 0.25, below: 0.75 },
   },
   {
     // unitless source; the lid stands open above the cistern in the source and is left out (a lid up would make the piece 10 cm taller than its box)
@@ -204,8 +204,8 @@ async function writeTier(cfg, parts, tier) {
       if (src?.getBaseColorTexture()) mat.setBaseColorTexture(tex(src.getBaseColorTexture()));
       if (tier === 'full' && src?.getNormalTexture()) mat.setNormalTexture(tex(src.getNormalTexture()));
       if (tier === 'full' && src?.getMetallicRoughnessTexture()) mat.setMetallicRoughnessTexture(tex(src.getMetallicRoughnessTexture()));
-      // a source that says "fully metal" with no metal map is a wrong export (a fabric would render as chrome)
-      if (!src?.getMetallicRoughnessTexture()) mat.setMetallicFactor(0);
+      // a textured part is fabric, wood or plastic: no metal (several sources export metallic 1 with a packed map, which renders a sofa as dark lacquer)
+      mat.setMetallicFactor(0);
     }
     const prim = doc.createPrimitive()
       .setAttribute('POSITION', doc.createAccessor().setType('VEC3').setArray(new Float32Array(g.pos)).setBuffer(buffer))
@@ -314,7 +314,7 @@ for (const cfg of MODELS) {
     partFacts[name] = { tris: { low: low.parts[name] ?? 0, full: full.parts[name] ?? 0 }, detailMean: +st.mean.toFixed(4), detailCv: +st.cv.toFixed(3), material: { baseColor: col.map((v) => +v.toFixed(3)) } };
   }
   manifest.models[cfg.id] = {
-    id: cfg.id, source: `sketchfab-${cfg.uid}`, dir: 'home',
+    id: cfg.id, source: `sketchfab-${cfg.uid}`, dir: 'home/models',
     // `noLow`: too heavy for a phone even simplified (a hob's grates are hundreds of separate bars): the phone keeps the generated piece
     files: { ...(cfg.noLow ? {} : { low: { file: low.file.replace('models/', ''), bytes: low.bytes } }), full: { file: full.file.replace('models/', ''), bytes: full.bytes } },
     parts: partFacts,

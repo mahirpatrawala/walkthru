@@ -23,7 +23,7 @@ export interface ModelInfo {
   id: string;
   dims: { w: number; h: number; d: number };
   place: 'floor' | 'wall';
-  /** the folder under public/look/ (the CC0 library is `models`, the flats' CC BY models `home`) */
+  /** the folder under public/look/ (the CC0 library is `models`, the flats' CC BY models `home/models`) */
   dir?: string;
   /** height of the seat or the top, measured on the model */
   surfaceM?: number;

@@ -74,7 +74,8 @@ function buildFromTemplate(tpl: Template, item: FurnitureItem, look: ResolvedLoo
   if (plan.model.use === 'frame') {
     // a bed: the generated mattress, flat quilt and pillows (SPEC 16.23, exactly as the generator lays them) on the model's deck
     const bedding = GENERATORS[look.kind].build({ kit, q: genQuality(tier) }, sizeOf(item), { ...look.params, baseTopM: plan.deckM ?? 0 }, look.roles);
-    for (const c of [...bedding.children]) if (BEDDING.test(c.name)) out.add(c); else disposeKids(c);
+    for (const c of [...bedding.children]) if (BEDDING.test(c.name)) out.add(c);
+    disposeKids(bedding);
   }
   const off = plan.offset ?? { y: 0, z: 0 };
   const inst = instantiate(tpl, [{ x: 0, y: off.y, z: off.z, yawDeg: plan.fit.turned ? 90 : 0, scale: sc }], { partUse: plan.model.parts, roles: look.roles });

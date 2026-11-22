@@ -40,7 +40,7 @@ Looked at on 2026-11-22 and NOT used:
     https://sketchfab.com/3d-models/ac92f6e97eaa43c4ad6cb8f7c65ac43f
     why: a low lounge sofa 60 cm high: a 35 % stretch to the 85 cm back of the catalogue sofa (over the 12 % rule)
   Sofa Couch (jimbogies), CC BY
-    https://sketchfab.com/3d-models/1485031bb7904bed9590234137a58539
+    https://sketchfab.com/search?q=sofa+couch+jimbogies&type=models
     why: a checked throw and cushions modelled onto the seat and back (SPEC 16.23: nothing loose on a seat), and 58 000 triangles
   Sofa (GreenG), CC BY
     https://sketchfab.com/3d-models/c7a0c35f4f0b49f8b4fea273f9014001
