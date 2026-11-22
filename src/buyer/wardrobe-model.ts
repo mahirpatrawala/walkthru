@@ -11,7 +11,7 @@ import type { WardrobeDesign } from '../look/furniture-real';
 import { resolveItemLook } from '../look/furniture-real';
 import { genQuality } from '../look/gen';
 import { Parts as GenParts } from '../look/gen/core';
-import { FRONT_RECESS, addLeaf, wardrobeSpans } from '../look/gen/wardrobe';
+import { addLeaf, frontRecess, wardrobeSpans } from '../look/gen/wardrobe';
 import type { WardrobeParams } from '../look/gen/wardrobe';
 import type { OpenableZone } from '../look/designs';
 import type { OpenSpec, Shutter } from './wardrobe-swing';
@@ -157,7 +157,7 @@ export function buildWardrobeModel(item: FurnitureItem, spec: OpenSpec, wd: Ward
       piv.position.set(s.hingeU, 0, zFront);
       const parts = new GenParts(env);
       addLeaf(parts, {
-        hingeX: 0, dir: s.dir, widthM: s.widthM, y0: sp.y0, y1: sp.yTop, zFront: -FRONT_RECESS, style: wp.shutterStyle, handle: wp.handle,
+        hingeX: 0, dir: s.dir, widthM: s.widthM, y0: sp.y0, y1: sp.yTop, zFront: -frontRecess(wp.handle), style: wp.shutterStyle, handle: wp.handle,
         handleYM: wp.handleYM, handleLenM: wp.handleLenM, fluteBand: wp.fluteBand, handleOnFree: true,
         names: { face: `shutter-slab:${s.id}`, flutes: `shutter-flutes:${s.id}`, handle: `shutter-handle:${s.id}`, back: `shutter-flute-back:${s.id}` },
       }, styled.roles.case ?? { key: 'wood' }, styled.roles.handle ?? { key: 'blackMetal' }, styled.roles.flute ?? styled.roles.case ?? { key: 'wood' });

@@ -28,6 +28,6 @@ export function pinchCorners(g: THREE.BufferGeometry, w: number, h: number, k: n
 /** a cord along the top edge of a seat pad: the front and both sides, 5.5 mm thick, just inside the crown */
 export function padCord(parts: Parts, fab: MatSpec, cx: number, wd: number, yTop: number, z0: number, z1: number): void {
   const cord = shade(fab, 0.78), y = yTop - 0.013, x0 = cx - wd / 2 + 0.012, x1 = cx + wd / 2 - 0.012;
-  parts.put('sofa-piping', cord, rod({ x: x0, y, z: z1 - 0.004 }, { x: x1, y, z: z1 - 0.004 }, 0.0055, 12), { noShadow: true });
-  for (const x of [x0, x1]) parts.put('sofa-piping', cord, rod({ x, y, z: z0 + 0.03 }, { x, y, z: z1 - 0.004 }, 0.0055, 12), { noShadow: true });
+  parts.put('sofa-piping', cord, rod({ x: x0, y, z: z1 - 0.0055 }, { x: x1, y, z: z1 - 0.0055 }, 0.0055, 12), { noShadow: true });
+  for (const x of [x0, x1]) parts.put('sofa-piping', cord, rod({ x, y, z: z0 + 0.03 }, { x, y, z: z1 - 0.0055 }, 0.0055, 12), { noShadow: true });
 }

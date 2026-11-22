@@ -10,8 +10,15 @@ import type { ShutterStyle } from './wardrobe';
 type Handle = 'groove' | 'knob' | 'bar';
 const GAP = 0.003;
 
-/** a drawer or door front at (x0..x1, y0..y1) on the plane z = zf, with its handle */
-function front(p: Parts, name: string, face: MatSpec, hm: MatSpec, x0: number, x1: number, y0: number, y1: number, zf: number, handle: Handle, th = 0.018): void {
+/** how far each handle stands proud of its front, metres */
+const HANDLE_PROUD: Record<Handle, number> = { groove: 0.0025, knob: 0.016, bar: 0.016 };
+
+/**
+ * a drawer or door front at (x0..x1, y0..y1) on the plane z = zf, with its handle. `room` is the depth between zf and the item's drawn
+ * front: a knob or bar that would reach past it pushes the front (and its handle) back, so the piece stays inside its box (bake parity, SPEC 16.14)
+ */
+function front(p: Parts, name: string, face: MatSpec, hm: MatSpec, x0: number, x1: number, y0: number, y1: number, zFace: number, handle: Handle, th = 0.018, room = 0.009): void {
+  const zf = zFace - Math.max(0, HANDLE_PROUD[handle] + 0.0005 - room);
   p.box(name, face, x0, x1, y0, y1, zf - th, zf, { c: 0.002 });
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   if (handle === 'groove') {

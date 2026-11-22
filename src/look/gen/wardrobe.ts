@@ -37,6 +37,13 @@ export const WARDROBE_DEFAULTS: WardrobeParams = {
 
 /** the shutter fronts stand this far behind the box front, so a handle stays inside the box */
 export const FRONT_RECESS = 0.009;
+/**
+ * how far the shutters stand behind the box front for this handle: a bar, long bar or knob stands 15.5-16 mm proud of the face, so those
+ * shutters stand 17 mm back and the handle stays inside the drawn box to 1 mm (bake parity, SPEC 16.14); a groove keeps the plain recess
+ */
+export function frontRecess(handle: HandleStyle): number {
+  return handle === 'groove' ? FRONT_RECESS : 0.017;
+}
 const GAP = 0.003;
 const TH = 0.018;
 const FRAME = 0.04;
@@ -187,7 +194,7 @@ export function buildWardrobe(env: GenEnv, size: GenSize, p: WardrobeParams, rol
   const dark = role(roles, 'plinth', 'handle');
   const sp = wardrobeSpans(H, p);
   const y0 = sp.plinth, loft = sp.loft, yTop = sp.yTop;
-  const zF = d / 2 - FRONT_RECESS;
+  const zF = d / 2 - frontRecess(p.handle);
 
   parts.box('plinth', dark, -w / 2 + 0.03, w / 2 - 0.03, 0, y0 + 0.004, -d / 2 + 0.03, d / 2 - 0.04, { c: 0 });
   // the carcass: its visible end panels and top share the shutter finish
