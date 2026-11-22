@@ -18,7 +18,7 @@ import { finishDef, swatch } from '../src/look/finishes';
 import { applyRoomFinishes, autoFixtures, buildDecorGroup } from '../src/look/design-mount';
 import { buildWardrobeModel, REPLACED_NAMES } from '../src/buyer/wardrobe-model';
 import { shutterPose, specFromDesign } from '../src/buyer/wardrobe-swing';
-import { FRONT_RECESS } from '../src/look/gen/wardrobe';
+import { frontRecess } from '../src/look/gen/wardrobe';
 import { CURTAIN_DEFAULTS, SHEER_PLEAT_DEPTH_M, SHEER_PLEAT_M, buildCurtain, sheerGatherM } from '../src/look/gen/decor';
 import { GEN_QUALITY } from '../src/look/gen/core';
 import type { FurnitureItem, PropertyFile } from '../src/types';
@@ -305,7 +305,7 @@ describe('the openable wardrobe keeps its hinges under a style', () => {
     model.group.updateMatrixWorld(true);
     const bb = new THREE.Box3().setFromObject(model.pivot(s.id)!.getObjectByName(`shutter-slab:${s.id}`)!);
     const front = (c: THREE.Vector3): number => (c.x - wardrobe.box.cx) * a.x + (c.z - wardrobe.box.cz) * a.z;
-    expect(Math.max(front(bb.min), front(bb.max))).toBeCloseTo(wardrobe.box.d / 2 - FRONT_RECESS, 3);
+    expect(Math.max(front(bb.min), front(bb.max))).toBeCloseTo(wardrobe.box.d / 2 - frontRecess('long-bar'), 3); // warm-oak-navy wardrobes carry a long bar
     model.dispose();
   });
   it('a fluted style puts its flutes and handle on the pivot, so they swing with the shutter', () => {
