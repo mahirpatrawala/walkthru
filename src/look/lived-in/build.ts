@@ -486,6 +486,34 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
     parts.add(cyl(r - 0.02, r - 0.02, p.height, 0.0008, s2), '#A3825A', 0.95, 0, { shadow: false });
     parts.add(cyl(r * 0.55, r * 0.55, p.height + 0.0008, 0.0006, s2), '#8F7049', 0.95, 0, { shadow: false });
   },
+  basket(p, parts, _kit, seg) {
+    // a woven laundry basket with clothes heaped in it: a slightly tapered body ringed with weave, two cut-out handles, a rolled rim
+    const w = p.w, d = p.d, h = p.height - 0.06;
+    const body = roundedBoxGeo(-w / 2 + 0.02, w / 2 - 0.02, 0, h, -d / 2 + 0.02, d / 2 - 0.02, 0.01, 0.06);
+    const pos = body.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) { const t = 0.88 + 0.12 * (pos.getY(i) / h); pos.setX(i, pos.getX(i) * t); pos.setZ(i, pos.getZ(i) * t); }
+    body.computeVertexNormals();
+    parts.add(body, '#B8976A', 0.9);
+    for (let y = 0.05; y < h - 0.02; y += 0.05) parts.add(roundedBoxGeo(-w / 2 + 0.018, w / 2 - 0.018, y, y + 0.012, -d / 2 + 0.018, d / 2 - 0.018, 0.004, 0.06), '#A3825A', 0.9, 0, { shadow: false });
+    parts.add(roundedBoxGeo(-w / 2, w / 2, h - 0.02, h, -d / 2, d / 2, 0.008, 0.07), '#9A7A52', 0.85);
+    // clothes: soft lumps in two or three colours above the rim
+    const rnd = mulberry32(p.seed);
+    for (let i = 0; i < 4; i++) {
+      const g = softCushion(0.16 + rnd() * 0.08, 0.07, 0.12 + rnd() * 0.06, { r: 0.03, puff: 0.012, seg: seg.s > 8 ? 2 : 1 });
+      g.rotateY(rnd() * 3); g.translate((rnd() - 0.5) * (w - 0.2), h + 0.015 + rnd() * 0.025, (rnd() - 0.5) * (d - 0.16));
+      parts.add(g, ['#E8E2D8', '#7D8CA0', '#C9A86A', '#F1EEE8'][i], 0.97);
+    }
+  },
+  bucket(p, parts, _kit, seg) {
+    // a plastic bucket with a steel handle and a mug on its rim, the one every Indian bathroom and utility has
+    const r = p.w / 2, h = p.height - 0.02, s2 = Math.max(20, seg.s * 2);
+    const prof: [number, number][] = [[0, 0.002], [r * 0.78, 0.002], [r * 0.8, 0.012], [r - 0.004, h - 0.012], [r + 0.006, h - 0.006], [r + 0.006, h], [r - 0.008, h], [r * 0.8 - 0.008, 0.016], [0, 0.016]];
+    parts.add(new THREE.LatheGeometry(prof.map(([a, b]) => new THREE.Vector2(a, b)), s2), '#3E7FB0', 0.45, 0, { side: THREE.DoubleSide });
+    const handle = new THREE.TorusGeometry(r - 0.01, 0.003, 5, s2, Math.PI);
+    handle.rotateY(Math.PI / 2); handle.rotateX(-0.6); handle.translate(0, h - 0.02, 0);
+    parts.add(handle, '#B9BDC2', 0.35, 0.8);
+    parts.add(cyl(0.045, 0.04, h - 0.03, 0.1, s2, r * 0.45, 0.02), '#E6B64A', 0.45);
+  },
   hob(p, parts, _kit, seg) {
     // a four-burner gas hob under a black glass top: burner rings, caps and a row of control knobs on the front edge
     const w = p.w, d = p.d;

@@ -3080,7 +3080,9 @@ The owner widened 16.15.2 to every room ("this isn't a game, this is for actual 
 - **Dining:** a linen runner down the table under the bowl, and a jute placemat at every chair (the generator's own chair layout), all on the drawn top.
 - **TV units and dressers** in living rooms and bedrooms: books at one end and a vase at the other, under the screen.
 - **Bathrooms:** a soap dispenser on the basin deck, a towel ring with a hand towel on the basin's wall (hem at 86 cm, so it clears a WC cistern), a bath mat where one stands at the basin (flat: the rug's doorway rule).
-- Not done in this round: wardrobes, beds' shape, the balcony and utility rooms, curtains (already the style's sheers), a pendant over the dining table (lighting belongs to the lighting work).
+- **Balcony:** up to two more potted plants along the railing (the Poly Haven pots, 16.15), 22 cm off it, kept 0.3 m from a doorway (a wide sliding door's 0.7 m keep left no room) and only where the walking floor stays in one piece.
+- **Utility room** (a room labelled utility, wash or laundry with a washing machine): a woven laundry basket with clothes and a bucket with a mug beside the machine, under the same floor rules; in a utility room too small for the route rule (the sample 3 BHK's, 1.5 x 1.6 m) they are left out rather than squeezed.
+- Not done in this round: wardrobes and beds' shape (16.23), curtains (already the style's sheers), a pendant over the dining table (lighting belongs to the lighting work).
 - **Baked homes:** the hob, cooker, dabbas, jug, lamp, nightstand and hood meshes changed shape, so their object AO is rejected until re-baked; the re-bake list is the same as 16.15.2's (test-sample-1 to 6 and the four tower flats; son-bedroom and the corridor keep theirs). The new pieces come after every earlier piece in the plan, so the ids of the rest hold.
 
 ### 16.16 The second catalogue table: swings, more furniture, appliances and bathroom fittings (16 Nov 2026)

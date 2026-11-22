@@ -30,7 +30,8 @@ export type DecorKind =
   // round 6: the kitchen's sink and tap, and an entry foyer's shoe cabinet, mirror and doormat
   | 'sink' | 'console' | 'mirror' | 'mat'
   // 22 Nov 2026 (SPEC 16.15.3): a kitchen in use, a laid dining table, a used bathroom
-  | 'board' | 'mixer' | 'utensils' | 'runner' | 'placemat' | 'towel' | 'soap' | 'bathmat';
+  | 'board' | 'mixer' | 'utensils' | 'runner' | 'placemat' | 'towel' | 'soap' | 'bathmat'
+  | 'basket' | 'bucket';
 
 export type DecorPlace = 'floor' | 'surface' | 'wall';
 
@@ -506,6 +507,35 @@ class Planner {
     if (bl !== null) put('board', bl, Math.min(0.06, d / 2 - 0.15), 0.38, 0.26, 0.07, -4);
     if (w >= 1.3) { const ml = slot(w / 2 - 0.2, 0.11); if (ml !== null) put('mixer', ml, -d / 2 + 0.16, 0.2, 0.2, 0.36, 15); }
     if (w >= 1.0) { const ul = slot(-w / 2 + 0.12, 0.07); if (ul !== null) put('utensils', ul, -d / 2 + 0.11, 0.12, 0.12, 0.32, 0); }
+  }
+
+  /** a balcony's planters: up to two more potted plants along the railing, where the floor is free and nobody's route is cut */
+  private balconyPlanters(room: RoomTag): void {
+    if (room.roomType !== 'balcony') return;
+    const rail = this.frames.find((f) => f.roomId === room.id && f.kind === 'railing');
+    if (!rail) return;
+    const n = { x: -rail.out.x, z: -rail.out.z };
+    const yaw = Math.atan2(rail.out.x, rail.out.z) / DEG;
+    let added = 0;
+    for (let u = 0.35; u <= rail.length - 0.35 && added < 2; u += 0.15) {
+      const c = { x: rail.a.x + rail.dir.x * u + n.x * 0.22, z: rail.a.z + rail.dir.z * u + n.z * 0.22 };
+      if (this.pieces.some((p) => p.kind === 'plant' && Math.hypot(p.x - c.x, p.z - c.z) < 0.55)) continue;
+      if (this.placeFloor('plant', room, [{ x: c.x, z: c.z, yawDeg: yaw }], 0.36, 0.36, 0.78, { doorKeepM: 0.3 })) added++;
+    }
+  }
+
+  /** a utility room in use: a laundry basket and a bucket beside the washing machine */
+  private utilityInUse(room: RoomTag): void {
+    if (room.roomType !== 'other' || !/utility|wash|laundry/i.test(room.label ?? room.id)) return;
+    const washer = this.items.find((i) => /^washer/.test(i.catalogId ?? '') && this.itemRoom(i)?.id === room.id);
+    const cands = (w: number): { x: number; z: number; yawDeg: number }[] => {
+      if (!washer) return [];
+      const out: { x: number; z: number; yawDeg: number }[] = [];
+      for (const sx of [1, -1]) { const c = world(washer.box, sx * (washer.box.w / 2 + 0.06 + w / 2), -washer.box.d / 2 + 0.22); out.push({ x: c.x, z: c.z, yawDeg: washer.box.yawDeg }); }
+      return out;
+    };
+    this.placeFloor('basket', room, cands(0.42), 0.42, 0.32, 0.46, { doorKeepM: 0.3 });
+    this.placeFloor('bucket', room, cands(0.3), 0.3, 0.3, 0.3, { doorKeepM: 0.3 });
   }
 
   /** a stack of books at one end of a centre table and a vase at the other (a round one: the vase alone, in the middle) */
@@ -1174,6 +1204,9 @@ class Planner {
     for (const it of this.items) this.dressTvUnit(it);
     for (const it of this.items) this.kitchenInUse(it);
     for (const r of this.whole) this.bathroom(r);
+    // and a balcony with planters along its railing, a utility room with its laundry basket and bucket
+    for (const r of this.whole) this.balconyPlanters(r);
+    for (const r of this.whole) this.utilityInUse(r);
     void layout;
     return this.pieces;
   }

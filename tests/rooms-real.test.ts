@@ -123,3 +123,39 @@ describe('the other rooms read as used', () => {
     }
   });
 });
+
+describe('a balcony and a utility room in use', () => {
+  const lay = {
+    ...livedInLayout,
+    rooms: [
+      { ...rect('lv', 'living', 0, 0, 4, 4) },
+      { id: 'bal', roomType: 'balcony' as const, label: 'Balcony', polygon: [{ x: 0, z: 4.12 }, { x: 3.6, z: 4.12 }, { x: 3.6, z: 5.5 }, { x: 0, z: 5.5 }], edges: ['wall', 'wall', 'railing', 'wall'] as ('wall' | 'railing')[] },
+      { ...rect('ut', 'other', 4.12, 0, 5.8, 1.6), label: 'Utility' },
+    ],
+    openings: [
+      { id: 'entry', roomId: 'lv', edge: 3, type: 'door' as const, centreM: 2.0, widthM: 0.9, sillM: 0, headM: 2.1 },
+      { id: 'to-bal', roomId: 'lv', edge: 2, type: 'door' as const, centreM: 2.0, widthM: 1.8, sillM: 0, headM: 2.1 },
+      { id: 'to-ut', roomId: 'lv', edge: 1, type: 'door' as const, centreM: 1.2, widthM: 0.8, sillM: 0, headM: 2.1 },
+    ],
+  };
+  const its: FurnitureItem[] = [
+    item('chair1', 'sofa', 'Armchair', 0.8, 4.9, 0.8, 0.85, 0, 0.85, 0.43, 'armchair'),
+    item('washer', 'counter', 'Washing machine', 5.0, 0.4, 0.6, 0.7, 0, 0.85, 0.85, 'washer-front'),
+  ];
+  const g = stampFurniture(rasterizeLayout(lay), its);
+  const ps = planLivedIn({ layout: lay, items: its, grid: g });
+
+  it('a balcony gets potted plants along its railing (at most three), on free floor', () => {
+    const plants = ps.filter((p) => p.kind === 'plant' && p.roomId === 'bal');
+    expect(plants.length).toBeGreaterThanOrEqual(1);
+    expect(plants.length).toBeLessThanOrEqual(3);
+    for (const p of plants) expect(p.z).toBeGreaterThan(5.5 - 0.5);
+  });
+
+  it('a utility room gets a laundry basket and a bucket beside the washing machine', () => {
+    const k = ps.filter((p) => p.roomId === 'ut').map((p) => p.kind).sort();
+    expect(k).toContain('basket');
+    expect(k).toContain('bucket');
+    for (const p of ps.filter((x) => x.kind === 'basket' || x.kind === 'bucket')) expect(Math.hypot(p.x - 5.0, p.z - 0.4)).toBeLessThan(1.0);
+  });
+});
