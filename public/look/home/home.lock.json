@@ -375,12 +375,12 @@
       "sha256": "380edd1288f82155323ba28431ba6fa746f926270332ef86490110caa70bd160"
     },
     "models/wc_floor.glb": {
-      "bytes": 55232,
-      "sha256": "2d9a93c237d976bbe637c3e626c9504abedaef0fd50c4e51c5350912f84d7732"
+      "bytes": 56996,
+      "sha256": "932a6979e3f75c2dc2102a5cca4ab9c3ce804aec882a24ccd7f27e6cededc84a"
     },
     "models/wc_floor.low.glb": {
-      "bytes": 21400,
-      "sha256": "aa8df841bc30ee00c2afd1adaeaff0835c04c0596f576af9289461209f4579a8"
+      "bytes": 22612,
+      "sha256": "6aea41808a84f9abd24033f968d519a622bd39a51f005d1ebf6d911d82206c03"
     },
     "models/basin_wall.glb": {
       "bytes": 38792,
@@ -391,12 +391,12 @@
       "sha256": "8140029008005a898a2fdcbf22ddda052d2ebb2b1da057496e47fc0628f5f3f1"
     },
     "models/bed_frame_soho.glb": {
-      "bytes": 58160,
-      "sha256": "0bd9b4f22753ccd0b1ef215fc9b74f99bd37c560ef16c33db7ae534d66d9dc53"
+      "bytes": 81896,
+      "sha256": "d8768362fd549001225ffca31b4ae56ec97276d2647a84dc791676a6e33d0bf0"
     },
     "models/bed_frame_soho.low.glb": {
-      "bytes": 20740,
-      "sha256": "0590030f677feb79a30cacb297ed261226f561434bc400dcf141dbbd94603e36"
+      "bytes": 18156,
+      "sha256": "d3857385e3d8d33262c61fcf706665b132f83a6995514c2f1edf024e8ee477dc"
     },
     "models/hob_4_glass.glb": {
       "bytes": 194348,

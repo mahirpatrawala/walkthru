@@ -20,13 +20,15 @@ export const HOME_FURNITURE: LibModel[] = [
     parts: { fabric: { role: ['fabric', 'accent'] }, legs: { role: ['legs', 'case', 'handle'] } },
   },
   {
-    // the base and headboard of a bed; the generated mattress, flat quilt and pillows of SPEC 16.23 go on its deck
+    // the base and headboard of a bed; the generated mattress, flat quilt and pillows of SPEC 16.23 go on its deck. It is upholstered: it wears the
+    // first fabric among its roles (a pack's oak headboard is for the generator's slatted one) in the kit's linen weave
     id: 'bed_frame_soho', label: 'Upholstered bed', family: 'bed', use: 'frame', credit: '"Soho bed - 3D Model" by BertO, CC BY 4.0',
-    parts: { frame: { role: ['headboard', 'bedFrame', 'accent'] } },
+    parts: { frame: { role: ['headboard', 'bedFrame', 'fabric', 'accent'], fabric: true } },
   },
   {
     id: 'wc_floor', label: 'Close-coupled commode', family: 'bath', use: 'whole', variants: ['wc-floor'], credit: '"Toilet" by Urpo, CC BY 4.0',
-    parts: { pan: {}, seat: {} },
+    // the source's own lid, turned down onto the seat (tools/optimise-home-models.mjs `close`)
+    parts: { pan: {}, seat: {}, lid: {} },
   },
   {
     // hung on the wall: the top of the tap at the box's top, the rim at the drawn rim height

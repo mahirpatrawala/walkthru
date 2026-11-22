@@ -189,18 +189,18 @@
    "files": {
     "low": {
      "file": "wc_floor.low.glb",
-     "bytes": 21400
+     "bytes": 22612
     },
     "full": {
      "file": "wc_floor.glb",
-     "bytes": 55232
+     "bytes": 56996
     }
    },
    "parts": {
     "pan": {
      "tris": {
-      "low": 2283,
-      "full": 7026
+      "low": 2146,
+      "full": 6605
      },
      "detailMean": 0,
      "detailCv": 0,
@@ -215,8 +215,24 @@
     },
     "seat": {
      "tris": {
-      "low": 315,
-      "full": 972
+      "low": 297,
+      "full": 914
+     },
+     "detailMean": 0,
+     "detailCv": 0,
+     "material": {
+      "baseColor": [
+       0.94,
+       0.94,
+       0.93,
+       1
+      ]
+     }
+    },
+    "lid": {
+     "tris": {
+      "low": 155,
+      "full": 479
      },
      "detailMean": 0,
      "detailCv": 0,
@@ -231,11 +247,11 @@
     }
    },
    "dims": {
-    "w": 0.3972,
+    "w": 0.4,
     "h": 0.9013,
     "d": 0.711
    },
-   "surfaceM": 0.4811,
+   "surfaceM": 0.4808,
    "tris": {
     "low": 2598,
     "full": 7998
@@ -325,18 +341,18 @@
    "files": {
     "low": {
      "file": "bed_frame_soho.low.glb",
-     "bytes": 20740
+     "bytes": 18156
     },
     "full": {
      "file": "bed_frame_soho.glb",
-     "bytes": 58160
+     "bytes": 81896
     }
    },
    "parts": {
     "frame": {
      "tris": {
-      "low": 2600,
-      "full": 8999
+      "low": 2599,
+      "full": 9000
      },
      "detailMean": 0,
      "detailCv": 0,
@@ -347,7 +363,8 @@
        1,
        1
       ]
-     }
+     },
+     "uvMetres": 4
     }
    },
    "dims": {
@@ -357,8 +374,8 @@
    },
    "surfaceM": 0.2574,
    "tris": {
-    "low": 2600,
-    "full": 8999
+    "low": 2599,
+    "full": 9000
    },
    "place": "floor"
   },

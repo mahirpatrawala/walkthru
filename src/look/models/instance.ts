@@ -5,13 +5,23 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Roles } from '../gen';
 import { DEFS, patchDetail } from '../furniture-materials';
-import type { MatKey } from '../furniture-materials';
+import type { FurnitureKit, MatKey } from '../furniture-materials';
+import type { MatSpec } from '../gen';
 import { modelInfo, pickRole } from './library';
 import type { PartUse } from './library';
 import type { Template } from './load';
 
 /** finish kinds that are a plain colour (no grain or weave to keep): the model's own diffuse map goes, its normal map stays */
 const FLAT: ReadonlySet<MatKey> = new Set<MatKey>(['laminate', 'gloss', 'paint', 'white', 'shutterWhite', 'dark', 'granite', 'brass', 'blackMetal', 'metal']);
+
+/** finish kinds that are cloth: what an upholstered part (`PartUse.fabric`) may wear */
+const FABRIC: ReadonlySet<MatKey> = new Set<MatKey>(['linen', 'sofa', 'headboard', 'pad', 'cover', 'cotton', 'weave', 'quilt', 'shag', 'drape', 'felt', 'vinyl']);
+
+/** the first of `names` the roles define whose finish is a cloth, or null */
+export function pickFabric(roles: Roles, names: string[] | undefined): MatSpec | null {
+  for (const n of names ?? []) if (roles[n] && FABRIC.has(roles[n].key)) return roles[n];
+  return null;
+}
 
 /**
  * Applies a finish (a kit material kind and a tint) to a model's material, the way `paintMaterial` does for a generated part: a wood or a
@@ -55,6 +65,8 @@ export interface InstanceOpts {
   noRaycast?: boolean;
   /** several placements are merged into one mesh per part (chairs) instead of one mesh each */
   merge?: boolean;
+  /** the furniture kit: an upholstered part (`PartUse.fabric`) wears the kit's own fabric material, maps and all */
+  kit?: FurnitureKit;
 }
 
 const noRaycast: THREE.Object3D['raycast'] = () => { /* decor is never hit by a ray */ };
@@ -75,11 +87,23 @@ export function instantiate(tpl: Template, placements: Placement[], opts: Instan
   group.userData.model = tpl.id;
   const info = modelInfo(tpl.id);
   const make = (name: string, geometry: THREE.BufferGeometry, src: THREE.MeshStandardMaterial, partName: string): THREE.Mesh => {
-    const mat = src.clone();
-    mat.userData = { ...src.userData };
-    const spec = pickRole(opts.roles ?? {}, opts.partUse[partName]?.role);
-    if (spec) applyFinishToModelMaterial(mat, spec, info?.parts[partName]?.detailMean ?? 0, info?.parts[partName]?.detailCv ?? 0);
-    else mat.userData.baseColor = mat.color.getHex();
+    const use = opts.partUse[partName];
+    const cloth = use?.fabric && opts.kit ? pickFabric(opts.roles ?? {}, use.role) : null;
+    let mat: THREE.MeshStandardMaterial;
+    if (cloth && opts.kit) {
+      // upholstered with no maps of its own: the kit's fabric of the role's kind (weave and normal map on medium and high, the plain tint on a
+      // phone), its UVs brought from the optimiser's metres-based units to the kind's tile
+      mat = opts.kit.material(cloth.key, cloth.tint);
+      const uv = geometry.getAttribute('uv') as THREE.BufferAttribute | undefined;
+      const k = (info?.parts[partName]?.uvMetres ?? 0) / opts.kit.tile(cloth.key);
+      if (uv && k > 0) { for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * k, uv.getY(i) * k); uv.needsUpdate = true; }
+    } else {
+      mat = src.clone();
+      mat.userData = { ...src.userData };
+      const spec = pickRole(opts.roles ?? {}, use?.role);
+      if (spec) applyFinishToModelMaterial(mat, spec, info?.parts[partName]?.detailMean ?? 0, info?.parts[partName]?.detailCv ?? 0);
+      else mat.userData.baseColor = mat.color.getHex();
+    }
     mat.name = name;
     const mesh = new THREE.Mesh(geometry, mat);
     mesh.name = name;
