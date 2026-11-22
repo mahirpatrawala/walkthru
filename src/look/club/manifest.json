@@ -15,15 +15,15 @@
       "files": {
         "full": {
           "file": "models/power-rack.glb",
-          "bytes": 394324
+          "bytes": 394372
         },
         "mid": {
           "file": "models/power-rack.mid.glb",
-          "bytes": 183920
+          "bytes": 183968
         },
         "low": {
           "file": "models/power-rack.low.glb",
-          "bytes": 69340
+          "bytes": 69384
         }
       },
       "tris": {

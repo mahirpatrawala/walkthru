@@ -205,7 +205,7 @@ describe('sample decor of the shared spaces', () => {
       expect(planClubDecor(p.layout, p.furniture, 'pool')).toEqual([]);
     }
   });
-  it('hangs high enough to walk under, inside the room, and puts no picture on a gym wall', () => {
+  it('hangs high enough to walk under, and puts no picture on a gym\'s or a lobby\'s wall', () => {
     for (const id of scenes) {
       const p = load(id);
       for (const d of planClubDecor(p.layout, p.furniture, p.spaceKind!)) {
@@ -215,6 +215,7 @@ describe('sample decor of the shared spaces', () => {
           expect(d.y - drop, `${id} ${d.kind} clear height`).toBeGreaterThanOrEqual(2.2);
         }
         if (p.spaceKind === 'gym') expect(d.kind, id).toBe('batten');
+        if (p.spaceKind === 'lobby') expect(d.kind, id).toBe('pendant');
       }
     }
   });

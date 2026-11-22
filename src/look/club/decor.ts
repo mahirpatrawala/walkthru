@@ -139,12 +139,17 @@ export function planClubDecor(layout: Layout, furniture: FurnitureItem[], kind: 
           for (const s of [-0.55, 0.55]) spots.push({ x: f.box.cx + Math.cos(a) * s, z: f.box.cz - Math.sin(a) * s });
         } else spots.push({ x: f.box.cx, z: f.box.cz });
       }
-      // a room with tables is lit over them; a room without (a foyer, a lobby's empty half) gets a sparse grid, 3.6 m apart
-      if (spots.length === 0) for (const p of grid(poly, 3.6, 1.4)) spots.push(p);
+      // a room with tables is lit over them; a room without (a lobby's empty half) gets a sparse grid, 3.6 m apart; a corridor or foyer gets
+      // a row down the middle of each of its runs, 3.2 m apart (the points of a fine grid farthest from the walls, taken greedily)
+      if (spots.length === 0 && kind === 'corridor') {
+        const fine = grid(poly, 0.25, 0.3).map((p) => ({ p, e: edgeDist(p, poly) })).filter((c) => c.e >= 0.9).sort((a, b) => b.e - a.e || a.p.x - b.p.x || a.p.z - b.p.z);
+        for (const c of fine) if (!spots.some((q) => Math.hypot(q.x - c.p.x, q.z - c.p.z) < 3.2)) spots.push(c.p);
+      } else if (spots.length === 0) for (const p of grid(poly, 3.6, 1.4)) spots.push(p);
       for (const p of spots) out.push({ kind: 'pendant', x: p.x, y: ceil, z: p.z, yawDeg: 0, w: 0.43, h: 0.95, seed: seed++ });
     }
-    // ---- the walls (not a gym's: its walls carry mirrors, and a gym is not decorated with pictures)
-    if (kind === 'gym') continue;
+    // ---- the walls (not a gym's: its walls carry mirrors and a gym is not decorated with pictures; not a lobby's: its design already
+    // has a feature wall and the plan's art panel, which a print beside them would clutter)
+    if (kind === 'gym' || kind === 'lobby') continue;
     const runs = room.polygon.flatMap((_, e) => freeRuns(room, e, layout, furniture, 0.35)).sort((p, q) => (q.t1 - q.t0) - (p.t1 - p.t0));
     let dart = kind === 'games';
     let pictures = 0;
@@ -178,6 +183,8 @@ export function planClubDecor(layout: Layout, furniture: FurnitureItem[], kind: 
 
 const mats = {
   alu: () => new THREE.MeshStandardMaterial({ color: '#D9DADC', roughness: 0.45, metalness: 0.6 }),
+  /** a white powder-coated fitting body (bare aluminium mirrors a dim room and reads dark) */
+  housing: () => new THREE.MeshStandardMaterial({ color: '#EDEDEB', roughness: 0.5, metalness: 0 }),
   diffuser: () => new THREE.MeshStandardMaterial({ color: '#FFFFFF', roughness: 0.6, emissive: '#FFF4E2', emissiveIntensity: 1.6 }),
   frame: (dark: boolean) => new THREE.MeshStandardMaterial({ color: dark ? '#26272A' : '#B48A5C', roughness: dark ? 0.5 : 0.62, metalness: 0 }),
   mount: () => new THREE.MeshStandardMaterial({ color: '#F3F0EA', roughness: 0.9 }),
@@ -244,7 +251,7 @@ function drawPiece(p: ClubDecorPiece, tier: Tier): THREE.Object3D {
   if (p.kind === 'batten') {
     // a surface-mounted linear LED fitting: an aluminium body and an opal diffuser underneath (lit: the gym's lights are on)
     const body = new THREE.BoxGeometry(0.075, 0.05, p.w).translate(0, -0.025, 0);
-    o.add(decorMesh(body, mats.alu(), 'batten-body'));
+    o.add(decorMesh(body, mats.housing(), 'batten-body'));
     o.add(decorMesh(new THREE.BoxGeometry(0.06, 0.006, p.w - 0.02).translate(0, -0.053, 0), mats.diffuser(), 'batten-diffuser'));
   } else if (p.kind === 'art') {
     const dark = p.seed % 2 === 0, fw = 0.025, depth = 0.03, mount = Math.min(p.w, p.h) * 0.09;
@@ -279,7 +286,12 @@ function modelInto(o: THREE.Group, p: ClubDecorPiece, geo: PropGeo, kind: PropKi
     if (p.kind === 'dartboard') g.translate(0, -d.h * k / 2, -0.0 + (d.d * k) / 2); else g.translate(0, -d.h, 0);
     const mat = m.material.clone();
     // a fitting's globe or shades (named so in the source) glow softly: these lights are on, like the gym's
-    if (p.kind !== 'dartboard' && /globe|lamps|shade/i.test(mat.name)) { mat.emissive.set('#FFEBD0'); mat.emissiveMap = mat.map; mat.emissiveIntensity = 0.8; mat.metalness = 0; mat.metalnessMap = null; }
+    if (p.kind !== 'dartboard' && /globe|glass|lamps|shade/i.test(mat.name)) { mat.emissive.set('#FFE9CC'); mat.emissiveMap = null; mat.emissiveIntensity = 0.9; mat.metalness = 0; mat.metalnessMap = null; }
+    else if (p.kind === 'chandelier') {
+      // the chandelier's shades share the brass's map: lit, the whole fitting glows a little through its own colours, and its brass is
+      // toned down from a mirror (a mirror of a dim hall reads black)
+      mat.metalness = Math.min(mat.metalness, 0.35); mat.emissive.set('#FFFFFF'); mat.emissiveMap = mat.map; mat.emissiveIntensity = 0.35;
+    }
     o.add(decorMesh(g, mat, `${p.kind}-model`));
   }
 }

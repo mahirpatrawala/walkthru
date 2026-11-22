@@ -157,8 +157,9 @@ if (want('power-rack')) {
   // the bar lies along x at z 0.21..0.26, y -0.2..-0.15; the plates stand in the x-y plane. Keep the bar and the two biggest plates, drop the rest.
   const plates = meshNodes(set3, /Weight/).map((n) => ({ n, b: getBounds(n) })).sort((a, b) => (b.b.max[0] - b.b.min[0]) - (a.b.max[0] - a.b.min[0]));
   for (const p of plates.slice(2)) p.n.dispose();
-  // the printed plate faces do not ship: black iron
+  // the printed plate faces do not ship: black iron. The bar keeps its knurled map, as satin rather than mirror chrome (a mirror of a dim gym is black)
   setMat(set3, /Weight/, plain(set3, 'iron', [0.045, 0.045, 0.05], 0.55, 0.35));
+  for (const m of set3.getRoot().listMaterials()) if (m.getName() === 'Barbell') m.setMetallicFactor(0.45).setRoughnessFactor(0.45);
   const barB = boundsOf(set3, /Barbell/);
   const barC = [(barB.min[0] + barB.max[0]) / 2, (barB.min[1] + barB.max[1]) / 2, (barB.min[2] + barB.max[2]) / 2];
   // each plate turned to face along the bar and slid onto its sleeve: the big one against the collar, the next outside it, both sides

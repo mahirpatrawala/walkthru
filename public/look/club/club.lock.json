@@ -572,16 +572,16 @@
       "sha256": "a6e9a9e3dc9ab074e093f247d9661201fd13bdcd6d4ca9ce86a47da7ad895431"
     },
     "models/power-rack.glb": {
-      "bytes": 394324,
-      "sha256": "186a36ea23868fce124a61b20a895533b53498b00ae21fc9eaf4528af22088d5"
+      "bytes": 394372,
+      "sha256": "7092d3ae8b94453f32a19f1bcd70f0f911a7c05ca5fe460435b83e20205e4470"
     },
     "models/power-rack.low.glb": {
-      "bytes": 69340,
-      "sha256": "0b1529f6696c102c9a8dd2164d8b0722c834eb4c9cc370dd4aa1af11c7a2a8c6"
+      "bytes": 69384,
+      "sha256": "d90dcd5e776c9f1afd2040385f470238361071237cc3c58928c4091f87583813"
     },
     "models/power-rack.mid.glb": {
-      "bytes": 183920,
-      "sha256": "144106d27471800763a2ecc784a095030173d050b6342613c229092bf4439abe"
+      "bytes": 183968,
+      "sha256": "bade598ec95d82f372bc6b3b2bc5844790d58067cf46bad25815275d6f989098"
     },
     "models/recumbent.glb": {
       "bytes": 240704,
