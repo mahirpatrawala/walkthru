@@ -140,6 +140,15 @@ function gymPieces(d: Draft): void {
   G.matsY.forEach((y) => G.matsX.forEach((x) => add('yoga-mat', at([x, y]), 0)));
   add('gym-dumbbell-rack', at(G.dumbbellAt), 0);
   add('gym-locker-bench', at(G.benchAt), 0);
+  // SPEC 16.17.1 (22 Nov 2026, sample furnishing, not on the plan): a mirror wall beside the mats and in front of the bikes, and rubber flooring
+  // under the strength, free-weight and bike areas (2 m modules from the treadmill row to the mats; the strip by the door and the treadmill row keep the room's floor)
+  const r = P.SPACES_PX.gym[0], gx0 = P.mx(r[0]), gx1 = P.mx(r[2]), gz1 = P.mz(r[3]);
+  for (let i = 0; i < 7; i++) add('gym-mirror', { x: gx1 - 0.02, z: gz1 - 8.9 + 0.6 + i * 1.2 }, 270);
+  for (let i = 0; i < 5; i++) add('gym-mirror', { x: gx0 + 4.48 + i * 1.2, z: gz1 - 0.02 }, 180);
+  for (let j = 0; j < 4; j++) {
+    const z = gz1 - 1.1 - j * 2;
+    add('gym-floor-4x2', { x: gx0 + 2.18 + 2, z }, 0); add('gym-floor-4x2', { x: gx0 + 2.18 + 6, z }, 0); add('gym-floor-2x2', { x: gx0 + 2.18 + 9, z }, 0);
+  }
 }
 
 function changingPieces(d: Draft, big: boolean): void {

@@ -5,15 +5,18 @@ import * as THREE from 'three';
 import { Parts, roleOr } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { genCeiling } from './ceiling';
-import { ACCENT_BLUE, ACCENT_RED, CHROME, CONSOLE, FRAME, FRAME_GREY, IRON, PAD_BLACK, RUBBER, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, WOOD_ASH, cylX, cylY, grip, pad, slab, tube } from './gymkit';
+import { ACCENT_BLUE, ACCENT_RED, CHROME, CONSOLE, FRAME, FRAME_GREY, IRON, PAD_BLACK, RUBBER, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, WOOD_ASH, cylX, cylY, cylZ, grip, pad, rtube, slab, tube } from './gymkit';
+const RUBBER_FLOOR: MatSpec = { key: 'rubberFloor' };
 
 export const STUDIO_VARIANTS = ['ball', 'plyo', 'rope', 'bag', 'wallbars', 'trx', 'mirror', 'water', 'towel', 'lockers', 'locker-bench', 'scale', 'fan', 'tiles'] as const;
 export type StudioVariant = (typeof STUDIO_VARIANTS)[number];
 export interface StudioParams { variant: StudioVariant; liftM: number }
 export const STUDIO_DEFAULTS: StudioParams = { variant: 'ball', liftM: 0 };
 
-const MIRROR_GLASS: MatSpec = { key: 'laminate', tint: '#C3D3DC' };
-const LOCKER_DOOR: MatSpec = { key: 'paint', tint: '#3F6785' };
+// a mirror below 2K: bright polished metal picks up the room's light and probe, which reads as a mirror (at 2K it reflects live, src/look/premium/mirrors.ts)
+const MIRROR_GLASS: MatSpec = { key: 'metal', tint: '#E4E9ED' };
+// SPEC 16.17.2: a clubhouse locker is a laminate door (a warm oak) on a light grey carcass, not a school locker in blue paint
+const LOCKER_DOOR: MatSpec = { key: 'wood', tint: '#B98C5E' };
 const LOCKER_BODY: MatSpec = { key: 'laminate', tint: '#D2D5D8' };
 
 export function buildStudio(env: GenEnv, size: GenSize, p: StudioParams, roles: Roles): THREE.Group {
@@ -119,34 +122,35 @@ export function buildStudio(env: GenEnv, size: GenSize, p: StudioParams, roles: 
       void cx;
     },
     lockers: () => {
-      // a bank of steel lockers, two tiers high, each door with louvre vents, a number plate and a handle; a sloped top and a plinth
+      // a bank of clubhouse lockers, two tiers high: oak-laminate doors with shadow gaps, a slim vent slot, a stainless pull and a key lock,
+      // an engraved number plate; a light grey carcass on a dark recessed plinth, a flat top
       const cols = Math.max(1, Math.round(w / 0.3));
-      const cw = w / cols, plinth = 0.1, top = H - 0.05, tier = (top - plinth) / 2;
-      parts.box('locker-body', LOCKER_BODY, -x1, x1, 0, plinth, z0 + 0.02, z1 - 0.02, { c: 0.004 });
-      parts.box('locker-body', LOCKER_BODY, -x1, x1, plinth, H - 0.05, z0, z1 - 0.012, { c: 0.004 });
-      const slope = new THREE.BoxGeometry(w, 0.02, d - 0.012);
-      slope.translate(0, 0, 0);
-      slab(parts, 'locker-top', LOCKER_BODY, -x1, x1, H - 0.05, H, z0, z1 - 0.012);
+      const zf = z1 - 0.01; // the door face: the pulls stand 1 cm proud of it, to the box's front
+      const cw = w / cols, plinth = 0.1, top = H - 0.03, tier = (top - plinth) / 2, gap = 0.003;
+      parts.box('locker-plinth', { key: 'powder', tint: '#3A3D42' }, -x1 + 0.01, x1 - 0.01, 0, plinth, z0 + 0.02, z1 - 0.04, { c: 0.002 });
+      parts.box('locker-body', LOCKER_BODY, -x1, x1, plinth, H, z0, zf - 0.018, { c: 0.003 });
       for (let c = 0; c < cols; c++) for (let t = 0; t < 2; t++) {
-        const xa = -x1 + c * cw + 0.008, xb = -x1 + (c + 1) * cw - 0.008;
-        const ya = plinth + t * tier + 0.01, yb = plinth + (t + 1) * tier - 0.01;
-        slab(parts, 'locker-doors', LOCKER_DOOR, xa, xb, ya, yb, z1 - 0.012, z1);
+        const xa = -x1 + c * cw + gap, xb = -x1 + (c + 1) * cw - gap;
+        const ya = plinth + t * tier + gap, yb = plinth + (t + 1) * tier - gap;
+        parts.box('locker-doors', LOCKER_DOOR, xa, xb, ya, yb, zf - 0.018, zf, { c: 0.002, grain: 'y' });
         const cx = (xa + xb) / 2;
-        if (q.slats) for (let i = 0; i < 4; i++) slab(parts, 'locker-vents', IRON, cx - 0.07, cx + 0.07, yb - 0.07 - i * 0.022, yb - 0.06 - i * 0.022, z1 - 0.0005, z1 + 0.003);
-        slab(parts, 'locker-handles', CHROME, cx + 0.07, cx + 0.095, (ya + yb) / 2 - 0.05, (ya + yb) / 2 + 0.05, z1, z1 + 0.008);
-        slab(parts, 'locker-plates', { key: 'brass', tint: '#C9A24E' }, cx - 0.02, cx + 0.02, ya + 0.12, ya + 0.15, z1, z1 + 0.003);
+        if (q.slats) parts.box('locker-vents', { key: 'powder', tint: '#2A2C30' }, cx - 0.06, cx + 0.06, yb - 0.05, yb - 0.04, zf - 0.001, zf + 0.0005, { c: 0 });
+        parts.box('locker-handles', CHROME, xb - 0.04, xb - 0.025, (ya + yb) / 2 - 0.07, (ya + yb) / 2 + 0.07, zf, z1, { c: 0.003 });
+        cylZ(parts, 'locker-locks', CHROME, zf, zf + 0.006, xb - 0.0325, (ya + yb) / 2 + 0.11, 0.009, 10);
+        parts.box('locker-plates', { key: 'metal', tint: '#D8DBDE' }, cx - 0.025, cx + 0.025, yb - 0.11, yb - 0.08, zf, zf + 0.002, { c: 0 });
       }
     },
     'locker-bench': () => {
-      // a changing-room bench: wooden slats on two steel frames
-      const sz = 0.1;
-      for (let i = 0; i < 3; i++) parts.box('lb-slats', WOOD_ASH, -x1, x1, S - 0.03, S, z0 + i * (d / 3) + 0.004, z0 + (i + 1) * (d / 3) - 0.004, { c: 0.003, grain: 'x' });
-      for (const s of [-1, 1]) {
-        slab(parts, 'lb-frame', FRAME, s * (x1 - 0.12) - 0.02, s * (x1 - 0.12) + 0.02, S - 0.06, S - 0.03, z0, z1);
-        slab(parts, 'lb-frame', FRAME, s * (x1 - 0.12) - 0.03, s * (x1 - 0.12) + 0.03, 0, 0.03, z0, z1);
-        for (const z of [z0 + 0.04, z1 - 0.04]) tube(parts, 'lb-legs', FRAME, [s * (x1 - 0.12), 0.03, z], [s * (x1 - 0.12), S - 0.06, z], 0.014);
+      // a changing-room bench: three hardwood slats with gaps on two charcoal steel frames of rectangular tube
+      const gap = 0.012, sw = (d - 2 * gap) / 3;
+      for (let i = 0; i < 3; i++) parts.box('lb-slats', WOOD_ASH, -x1, x1, S - 0.028, S, z0 + i * (sw + gap), z0 + i * (sw + gap) + sw, { c: 0.004, grain: 'x' });
+      for (const s2 of [-1, 1]) {
+        const fx = s2 * (x1 - 0.14);
+        rtube(parts, 'lb-frame', FRAME, [fx, S - 0.045, z0 + 0.01], [fx, S - 0.045, z1 - 0.01], 0.04, 0.034, 0.008);
+        rtube(parts, 'lb-frame', FRAME, [fx, 0.02, z0 + 0.01], [fx, 0.02, z1 - 0.01], 0.05, 0.04, 0.01);
+        for (const z of [z0 + 0.05, z1 - 0.05]) rtube(parts, 'lb-legs', FRAME, [fx, 0.04, z], [fx, S - 0.06, z], 0.04, 0.04, 0.008);
+        for (const z of [z0 + 0.03, z1 - 0.03]) parts.box('lb-feet', RUBBER, fx - 0.03, fx + 0.03, 0, 0.005, z - 0.02, z + 0.02, { c: 0.001 });
       }
-      void sz;
     },
     scale: () => {
       // a flat digital scale: a glass platform on a frame with a small window display at the front edge
@@ -186,18 +190,12 @@ export function buildStudio(env: GenEnv, size: GenSize, p: StudioParams, roles: 
       void ACCENT_RED; void pad; void PAD_BLACK;
     },
     tiles: () => {
-      // interlocking rubber tiles 50 cm square, a hairline between each
+      // interlocking rubber tiles 50 cm square, 15 mm: one slab of the photographed black-fleck gym rubber, the joints as dark hairlines on top
+      parts.box('rubber-tiles', RUBBER_FLOOR, -x1, x1, 0, H, z0, z1, { c: 0.003 });
       const nx = Math.max(1, Math.round(w / 0.5)), nz = Math.max(1, Math.round(d / 0.5));
-      const tw = w / nx, td = d / nz;
-      for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
-        const shade = (i + j) % 2 === 0 ? { key: 'dark', tint: '#3A3C40' } as MatSpec : { key: 'dark', tint: '#34363A' } as MatSpec;
-        slab(parts, 'rubber-tiles', shade, -x1 + i * tw + 0.002, -x1 + (i + 1) * tw - 0.002, 0, H, z0 + j * td + 0.002, z0 + (j + 1) * td - 0.002);
-      }
-      // the outer edge reaches the item's size exactly
-      slab(parts, 'rubber-tile-edge', { key: 'dark', tint: '#2E3033' }, -x1, -x1 + 0.002, 0, H * 0.9, z0, z1);
-      slab(parts, 'rubber-tile-edge', { key: 'dark', tint: '#2E3033' }, x1 - 0.002, x1, 0, H * 0.9, z0, z1);
-      slab(parts, 'rubber-tile-edge', { key: 'dark', tint: '#2E3033' }, -x1, x1, 0, H * 0.9, z0, z0 + 0.002);
-      slab(parts, 'rubber-tile-edge', { key: 'dark', tint: '#2E3033' }, -x1, x1, 0, H * 0.9, z1 - 0.002, z1);
+      const seam: MatSpec = { key: 'dark', tint: '#141517' };
+      for (let i = 1; i < nx; i++) { const x = -x1 + (i * w) / nx; parts.put('rubber-tile-joints', seam, new THREE.BoxGeometry(0.003, 0.0008, d - 0.01).translate(x, H + 0.0002, 0)); }
+      for (let j = 1; j < nz; j++) { const z = z0 + (j * d) / nz; parts.put('rubber-tile-joints', seam, new THREE.BoxGeometry(w - 0.01, 0.0008, 0.003).translate(0, H + 0.0002, z)); }
     },
   };
   build[v]();

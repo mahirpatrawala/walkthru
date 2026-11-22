@@ -146,10 +146,12 @@ describe('parts are plain exportable geometry with stable names', () => {
 describe('triangle budgets', () => {
   // per look kind and tier: the heaviest piece of that kind
   const BUDGET: Record<string, Record<Tier, number>> = {
-    cardio: { low: 1800, medium: 4200, high: 6200 },
-    strength: { low: 3200, medium: 6500, high: 9500 },
+    // SPEC 16.17.1: the rebuilt treadmill (bent handrails, oval uprights, a sculpted hood, a console with a screen) is the heaviest
+    cardio: { low: 1800, medium: 6500, high: 9000 },
+    // SPEC 16.17.1: the four-station multi-gym (four stacks of real plates, oval tube, upholstered pads) is the heaviest
+    strength: { low: 3200, medium: 13000, high: 19500 },
     freew: { low: 2600, medium: 5200, high: 7500 },
-    studio: { low: 1800, medium: 3600, high: 5200 },
+    studio: { low: 1800, medium: 4200, high: 5200 },
     lobby: { low: 2600, medium: 6200, high: 9000 },
     hall: { low: 1800, medium: 3800, high: 5500 },
     pool: { low: 1800, medium: 3600, high: 5200 },

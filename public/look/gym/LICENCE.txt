@@ -1,0 +1,61 @@
+Gym assets under public/look/gym/ (SPEC 16.17.1). Fetched and checked by scripts/fetch-gym-assets.ts; gym.lock.json has every source URL, size, MD5 and SHA-256.
+The files here are our own conversions (tools/optimise-gym-assets.mjs): a model is cut down to the one object used, decimated, re-centred, split into parts that take the app's own materials, and meshopt-compressed; a map is resized and re-encoded.
+
+CREDITS (CC BY 4.0: the author must be credited; the item card of a rack that shows a model also says the credit, see PROP_CREDITS in src/look/gym/props.ts):
+  Weight Room Set 2 by Tytan (tylerhalterman)
+    https://sketchfab.com/3d-models/weight-room-set-2-fa481412927e43dfbeab9f6da464c15b
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22: "Sketchfab API v3/models/fa481412927e43dfbeab9f6da464c15b: license "CC Attribution", "Author must be credited. Commercial use is allowed."")
+    used for: one hex dumbbell (rubber head, chrome handle), instanced at every weight of a dumbbell rack
+  kettlebell by anesbe89
+    https://sketchfab.com/3d-models/kettlebell-2e09cbcbde964a658d51838e2f9866bb
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22: "Sketchfab API v3/models/2e09cbcbde964a658d51838e2f9866bb: license "CC Attribution", "Author must be credited. Commercial use is allowed."")
+    used for: a competition kettlebell, scaled to each weight of a kettlebell rack
+
+CC0 1.0 (public domain, no credit required, credited anyway):
+  Leather White by Rob Tuytel
+    https://polyhaven.com/a/leather_white
+    licence: CC0 1.0 https://polyhaven.com/license (read 2026-11-22: "Our assets are all licensed as CC0")
+    used for: normal map of the vinyl upholstery of every gym pad (the grain of real leather, tinted black)
+  Rubber 001 by Lennart Demes (ambientCG)
+    https://ambientcg.com/view?id=Rubber001
+    licence: CC0 1.0 https://docs.ambientcg.com/license/ (read 2026-11-22: "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal License")
+    used for: the black EPDM-fleck rubber gym floor (colour and normal), and the normal of rubber parts (belts, feet, grips, mats)
+  Chess Set by Riley Queen
+    https://polyhaven.com/a/chess_set
+    licence: CC0 1.0 https://polyhaven.com/license (read 2026-11-22: "Our assets are all licensed as CC0")
+    used for: the board and the 32 men on the chess table of the games room (SPEC 16.17.2)
+
+Looked at on 2026-11-22 and NOT used:
+  Treadmill Machine (Sousinho), CC BY
+    https://sketchfab.com/3d-models/treadmill-machine-faed3a2a275b4fd68089e1d8bdfb7f89
+    why: a maker's logo is printed on the deck and the textures are worn and blurred
+  Gym Machine_ Body Solid (Hu), CC BY
+    https://sketchfab.com/3d-models/gym-machine--body-solid-4d1d0fb6879f42a9bccf1666a752c276
+    why: a maker's name and logo on the upright and the placard
+  Modular Gym (Kristen Brown), CC BY
+    https://sketchfab.com/3d-models/modular-gym-86e8cc43d76c44e3925e625fdab155f3
+    why: a whole room in feet: its treadmill is 1.3 m wide (the catalogue box is 0.9 m, a 30 % squeeze) with a worn low-resolution texture; its bike is a recumbent with a red marble texture
+  Gym Lat Pulldown (neilken), CC BY
+    https://sketchfab.com/3d-models/gym-lat-pulldown-50fb1df222e6468f9d7ada63c45d673d
+    why: one untextured white mesh with no part split (frame, pads and stack cannot be told apart to colour them), in centimetres at a different footprint
+  Incline Bench and Flat Bench (Sousinho), CC BY
+    https://sketchfab.com/3d-models/incline-bench-bdc274649c234c188d2d4f4c732acb1c
+    why: worn, scratched leather and rusty frame textures: reads as a garage, not a clubhouse
+  Treadmill ProForm, Tunturi T85, Matrix treadmill, Assault Bike (various), CC BY
+    https://sketchfab.com/search?q=treadmill&type=models
+    why: named after and printed with a maker's brand
+  Every other gym search result on Sketchfab (treadmill, spin bike, lat pulldown, chest press, leg press, dumbbell rack, bench, yoga mat)
+    https://api.sketchfab.com/v3/search?type=models&q=gym
+    why: not in the Objaverse archive (a Sketchfab download needs an account token, which this project does not use), stylised low-poly, a whole scene, or not gym equipment
+  Carrom (mfb64), CC BY
+    https://sketchfab.com/3d-models/carrom-57203e19a1514e57929000c9bb4a10df
+    why: its maps are bound through a material extension three.js no longer reads (the board renders white), and each of its 19 coins is 6 600 triangles; the generated board stays
+  Table Tennis (denis98), Pool Table (Juanpa Velazquez), Foosball Table (owestgate), CC BY
+    https://sketchfab.com/3d-models/table-tennis-5849544053924fecb1dee018fa815bf6
+    why: proportions far from a real table (the tennis table stands at a third of its length, not 0.28), a pool table inside a room scene at a height that does not match its footprint, a foosball cabinet 16 % lower than the 90 cm box (over the 12 % fit rule of 16.15)
+  Lockers (several authors), CC BY
+    https://api.sketchfab.com/v3/search?type=models&q=locker
+    why: rusted, dented school lockers: not a clubhouse changing room
+  Poly Haven models
+    https://api.polyhaven.com/assets?t=models
+    why: no gym equipment in the library (re-checked: sports props are balls and a bat)

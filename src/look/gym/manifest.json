@@ -1,0 +1,86 @@
+{
+  "generatedBy": "tools/optimise-gym-assets.mjs",
+  "maps": {
+    "tex/leather_nor.jpg": 51813,
+    "tex/rubber_nor.jpg": 35668,
+    "tex/rubber_floor_diff.jpg": 340742
+  },
+  "models": {
+    "dumbbell": {
+      "source": "sketchfab-fa481412927e43dfbeab9f6da464c15b",
+      "dims": {
+        "len": 0.356,
+        "headR": 0.0608,
+        "handleR": 0.0228
+      },
+      "files": {
+        "full": {
+          "file": "models/dumbbell.glb",
+          "bytes": 7188
+        },
+        "low": {
+          "file": "models/dumbbell.low.glb",
+          "bytes": 5140
+        }
+      },
+      "tris": {
+        "full": 376,
+        "low": 112
+      },
+      "parts": [
+        "head",
+        "handle"
+      ]
+    },
+    "kettlebell": {
+      "source": "sketchfab-2e09cbcbde964a658d51838e2f9866bb",
+      "dims": {
+        "w": 0.7834,
+        "h": 1,
+        "d": 0.672
+      },
+      "files": {
+        "full": {
+          "file": "models/kettlebell.glb",
+          "bytes": 19168
+        },
+        "low": {
+          "file": "models/kettlebell.low.glb",
+          "bytes": 12232
+        }
+      },
+      "tris": {
+        "full": 1660,
+        "low": 500
+      },
+      "parts": [
+        "body",
+        "band"
+      ]
+    },
+    "chess": {
+      "source": "chess_set",
+      "textured": true,
+      "dims": {
+        "w": 0.5507,
+        "h": 0.1102,
+        "d": 0.5482
+      },
+      "files": {
+        "full": {
+          "file": "models/chess.glb",
+          "bytes": 416564
+        },
+        "low": {
+          "file": "models/chess.low.glb",
+          "bytes": 98900
+        }
+      },
+      "tris": {
+        "full": 9228,
+        "low": 3250
+      },
+      "parts": []
+    }
+  }
+}
