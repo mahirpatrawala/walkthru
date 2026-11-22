@@ -186,6 +186,11 @@ const strip = (id: string, r: P.PxRect): GroundArea => ({ id, finish: 'bed', pol
 const scatter = (id: string, r: P.PxRect, seed: number, species: PlantBed['species'], density = 2.4): PlantBed => ({ id: `planting-${id}`, polygon: rectPoly(px(r)), species, density, seed, scale: 1 });
 const FLOWERS: PlantBed['species'] = [{ id: 'hibiscus', weight: 3 }, { id: 'bougainvillea', weight: 3 }, { id: 'croton', weight: 2 }];
 
+/** SPEC 19.13: the clubhouse level stands on the tower's Ground level (make-sample-building.ts, floor to floor 4.2 m), so the open-air spaces are
+ *  4.2 m above the site: the storeys' face goes down that far and the plain ground lies there (the brochure calls the level a podium; the
+ *  sample building has one storey under it, and the map and the walk follow the sample building) */
+export const ABOVE_GROUND_M = 4.2;
+
 export function wingOutdoor(d: Draft, bare: boolean): OutdoorFile {
   const pools = wingPools();
   const [sh, lap, led] = [pools[0].rect, pools[1].rect, pools[2].rect];
@@ -203,7 +208,7 @@ export function wingOutdoor(d: Draft, bare: boolean): OutdoorFile {
   areas.push({ id: 'lawn-bay', finish: 'lawn', polygon: rectPoly({ x0: sh.x1 + cm + gap, z0: P.mz(L.northInnerY), x1: P.mx(L.eastInnerX), z1: lap.z0 - cm - gap }), edgingM: 0.12 });
   areas.push({ id: 'lawn-centre', finish: 'lawn', polygon: [{ x: wx0, z: sh.z1 + cm + gap }, { x: lap.x0 - cm - gap, z: sh.z1 + cm + gap }, { x: lap.x0 - cm - gap, z: centreBot }, { x: P.mx(L.centreWestX), z: centreBot }, { x: P.mx(L.centreWestX), z: P.mz(L.centreLawnNotchY) }, { x: wx0, z: P.mz(L.centreLawnNotchY) }], edgingM: 0.12 });
   areas.push({ id: 'lawn-south', finish: 'lawn', polygon: rectPoly(px(P.LAWN_PX.south)), edgingM: 0.12 });
-  areas.push({ id: 'bridge', finish: 'paving', polygon: rectPoly({ x0: wx1, z0: P.mz(L.bridgeY[0]), x1: P.mx(L.bridgeEndX), z1: P.mz(L.bridgeY[1]) }) });
+  areas.push({ id: 'bridge', finish: 'paving', bridge: true, polygon: rectPoly({ x0: wx1, z0: P.mz(L.bridgeY[0]), x1: P.mx(L.bridgeEndX), z1: P.mz(L.bridgeY[1]) }) });
   const beds: PlantBed[] = [], trees: PlantSpot[] = [], rows: PlantRow[] = [];
   const edges = Object.entries(L.strips) as [string, P.PxRect][];
   if (!bare) {
@@ -214,7 +219,7 @@ export function wingOutdoor(d: Draft, bare: boolean): OutdoorFile {
     P.WING_PX.trees.forEach(([x, y], i) => trees.push({ species: centre[i] ?? 'neem', ...at([x, y]), scale: centre[i] === 'frangipani' ? 1.1 : centre[i] ? 0.95 : 1.05 }));
   }
   const boundary = boundariesFor(d, 'pool', { facadeKind: 'facade', others: 'parapet' });
-  return { ...EMPTY_OUTDOOR, note: bare ? 'The pool wing, bare: the deck, the pools and the lawns, with nothing placed or planted' : 'Sample pool wing after a published builder brochure, scaled from its one printed dimension', northDeg: P.NORTH_DEG, seed: 7, areas, pools, boundary, trees, beds, rows, roofs: [] };
+  return { ...EMPTY_OUTDOOR, note: bare ? 'The pool wing, bare: the deck, the pools and the lawns, with nothing placed or planted' : 'Sample pool wing after a published builder brochure, scaled from its one printed dimension', northDeg: P.NORTH_DEG, seed: 7, aboveGroundM: ABOVE_GROUND_M, areas, pools, boundary, trees, beds, rows, roofs: [] };
 }
 
 function wingPieces(d: Draft): void {
@@ -241,7 +246,7 @@ export function aquaOutdoor(d: Draft, bare: boolean): OutdoorFile {
     rows.push({ id: 'hedge-east', from: at([P.AQUA_PX.eastHedgeX + 14, 1480]), to: at([P.AQUA_PX.eastHedgeX + 14, 1770]), species: 'ficus', style: 'hedge', widthM: 1.7, heightM: 1.5 });
   }
   const boundary = boundariesFor(d, 'aqua', { facadeKind: 'facade', others: 'parapet' });
-  return { ...EMPTY_OUTDOOR, note: bare ? 'Aqua play, bare: the timber court and the shallow pool, with nothing placed or planted' : 'Sample aqua-play court after a published builder brochure, scaled from its one printed dimension', northDeg: P.NORTH_DEG, seed: 9, areas, pools, boundary, trees, beds, rows, roofs: [] };
+  return { ...EMPTY_OUTDOOR, note: bare ? 'Aqua play, bare: the timber court and the shallow pool, with nothing placed or planted' : 'Sample aqua-play court after a published builder brochure, scaled from its one printed dimension', northDeg: P.NORTH_DEG, seed: 9, aboveGroundM: ABOVE_GROUND_M, areas, pools, boundary, trees, beds, rows, roofs: [] };
 }
 
 function aquaPieces(d: Draft): void {
@@ -264,7 +269,7 @@ export function deckOutdoor(d: Draft, bare: boolean): OutdoorFile {
     rows.push({ id: 'hedge-east', from: at([3428, 735]), to: at([3428, 1345]), species: 'ficus', style: 'hedge', widthM: 0.6, heightM: 1.0 });
   }
   const boundary = boundariesFor(d, 'deck', { facadeKind: 'facade', others: 'parapet' });
-  return { ...EMPTY_OUTDOOR, note: bare ? 'The banquet deck, bare: timber decking only' : 'Sample banquet deck after a published builder brochure, scaled from its one printed dimension', northDeg: P.NORTH_DEG, seed: 11, areas, pools: [], boundary, trees: [], beds, rows, roofs: [] };
+  return { ...EMPTY_OUTDOOR, note: bare ? 'The banquet deck, bare: timber decking only' : 'Sample banquet deck after a published builder brochure, scaled from its one printed dimension', northDeg: P.NORTH_DEG, seed: 11, aboveGroundM: ABOVE_GROUND_M, areas, pools: [], boundary, trees: [], beds, rows, roofs: [] };
 }
 
 function deckPieces(d: Draft): void {

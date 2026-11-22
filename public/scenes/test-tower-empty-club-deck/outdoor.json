@@ -59,5 +59,6 @@
   "rows": [],
   "roofs": [],
   "note": "The banquet deck, bare: timber decking only",
-  "northDeg": -15
+  "northDeg": -15,
+  "aboveGroundM": 4.2
 }

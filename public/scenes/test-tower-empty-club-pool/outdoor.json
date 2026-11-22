@@ -282,6 +282,7 @@
     {
       "id": "bridge",
       "finish": "paving",
+      "bridge": true,
       "polygon": [
         {
           "x": 17.13,
@@ -468,5 +469,6 @@
   "rows": [],
   "roofs": [],
   "note": "The pool wing, bare: the deck, the pools and the lawns, with nothing placed or planted",
-  "northDeg": -15
+  "northDeg": -15,
+  "aboveGroundM": 4.2
 }

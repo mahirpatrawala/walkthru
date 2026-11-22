@@ -282,6 +282,7 @@
     {
       "id": "bridge",
       "finish": "paving",
+      "bridge": true,
       "polygon": [
         {
           "x": 17.13,
@@ -890,5 +891,6 @@
   "rows": [],
   "roofs": [],
   "note": "Sample pool wing after a published builder brochure, scaled from its one printed dimension",
-  "northDeg": -15
+  "northDeg": -15,
+  "aboveGroundM": 4.2
 }

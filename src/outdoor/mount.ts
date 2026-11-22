@@ -18,6 +18,7 @@ import type { OutdoorFile } from './types';
 import { mountSkyDome } from './sky-dome';
 import type { SkyDome } from './sky-dome';
 import { mountGrass } from './grass';
+import { buildSurround } from './surround';
 import type { GrassHandle } from './grass';
 
 export interface OutdoorStats { triangles: number; drawCalls: number; meshes: number; plants: number; hedgeSegments: number; instancedMeshes: number; /** SPEC 19.12: grass tufts drawn, and whether the sky picture is up */ grassTufts: number; skyPicture: boolean }
@@ -69,6 +70,9 @@ export async function mountOutdoor(o: MountOptions): Promise<OutdoorMount> {
   const structure = buildStructure({ layout, file, mats, tier });
   group.add(structure.group);
   scene.add(group);
+  // SPEC 19.13: the storeys under the space and a plain hazy ground below and beyond (only when the file says how high the space is)
+  let surround = buildSurround(layout, file, tier);
+  if (surround) group.add(surround.group);
 
   // the plants: one instanced mesh a species, rebuilt when the tier changes (it sets how many cards a crown has and whether the wind blows).
   // SPEC 19.12: with the materials' loader, the cards turn photographic, the trunks take bark and a model species its model, as files arrive
@@ -83,13 +87,23 @@ export async function mountOutdoor(o: MountOptions): Promise<OutdoorMount> {
   let dome: SkyDome | null = null;
   const growDome = (): void => {
     dome?.dispose();
-    dome = mountSkyDome(mats.loader, tier);
+    dome = mountSkyDome(mats.loader, tier, file.aboveGroundM !== undefined ? { groundBelowM: file.aboveGroundM } : {});
     dome.mesh.onBeforeRender = (_r, _s, camera) => { dome!.follow(camera); dome!.mesh.updateMatrixWorld(); };
     group.add(dome.mesh);
     syncDome();
   };
-  const syncDome = (): void => { if (dome && o.look) dome.sync(o.look.grade(), o.look.sun().toSun, o.look.trueColours); };
+  const syncDome = (): void => {
+    if (!o.look) return;
+    const g = o.look.grade();
+    dome?.sync(g, o.look.sun().toSun, o.look.trueColours);
+  };
   growDome();
+  const growSurround = (): void => {
+    surround?.dispose();
+    surround = buildSurround(layout, file, tier);
+    if (surround) group.add(surround.group);
+    syncDome();
+  };
   let grass: GrassHandle | null = null;
   const growGrass = (): void => {
     grass?.dispose();
@@ -121,7 +135,7 @@ export async function mountOutdoor(o: MountOptions): Promise<OutdoorMount> {
   const off = o.look?.onChange(() => {
     const t = o.look!.tier;
     const u = o.look!.ultra;
-    if (t !== tier) { tier = t; mats.setTier(t); growPlants(); growDome(); growGrass(); growPools(); applyShadows(); }
+    if (t !== tier) { tier = t; mats.setTier(t); growSurround(); growPlants(); growDome(); growGrass(); growPools(); applyShadows(); }
     else if (u !== ultra) { ultra = u; mats.setUltra(u); growPools(); applyShadows(); }
     else { pools?.sync(o.look); syncDome(); }
   });
@@ -136,7 +150,7 @@ export async function mountOutdoor(o: MountOptions): Promise<OutdoorMount> {
       ui = mountPoolUi({ ...deps, pools: file.pools, roofs: file.roofs, room: layout.rooms[0].polygon });
       return ui;
     },
-    setTier(t) { tier = t; mats.setTier(t); growPlants(); growDome(); growGrass(); growPools(); applyShadows(); },
+    setTier(t) { tier = t; mats.setTier(t); growSurround(); growPlants(); growDome(); growGrass(); growPools(); applyShadows(); },
     update(dt) { plants?.update(dt); pools?.update(dt); grass?.update(dt); ui?.update(dt); },
     stats() { const c = countTriangles(group); return { triangles: Math.round(c.triangles), drawCalls: c.meshes, meshes: c.meshes, plants: plants?.counts.plants ?? 0, hedgeSegments: plants?.counts.hedges ?? 0, instancedMeshes: c.instanced, grassTufts: grass?.mesh?.visible ? grass.tufts : 0, skyPicture: !!dome?.uniforms.uSkyMap.value }; },
     dispose() {
@@ -148,6 +162,7 @@ export async function mountOutdoor(o: MountOptions): Promise<OutdoorMount> {
       pools?.dispose();
       grass?.dispose();
       dome?.dispose();
+      surround?.dispose();
       scene.remove(group);
       disposeTree(group);
       mats.dispose();
