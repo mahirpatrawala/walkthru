@@ -323,14 +323,22 @@ export function mountHeroArt(host: HTMLElement, hb: HeroBuilding, o: HeroArtOpti
       const show = on > 0.02 && (labelSeen.get(a.id) ?? false) && inFrame;
       const lw = el.offsetWidth, lh = el.offsetHeight;
       const up = p[1] < mid;
-      const x0 = Math.max(m, Math.min(w - m - lw, p[0] - lw / 2 + (p[0] < w / 2 ? -1 : 1) * Math.min(40, lw * 0.25)));
-      let y0 = up ? Math.max(m, top - gap - lh) : Math.min(h - foot - lh, bottom + gap);
-      // two labels over the same stretch of a lane: the later one steps away from the model, or towards it when the frame ends
-      for (let guard = 0; guard < 5; guard++) {
-        const hit = placed.find((q) => x0 < q.right + 8 && x0 + lw > q.left - 8 && y0 < q.bottom + 4 && y0 + lh > q.top - 4);
-        if (!hit) break;
-        const away = up ? hit.top - lh - 5 : hit.bottom + 5;
-        y0 = away >= m && away <= h - foot - lh ? away : (up ? hit.bottom + 5 : hit.top - lh - 5);
+      const xc = Math.max(m, Math.min(w - m - lw, p[0] - lw / 2 + (p[0] < w / 2 ? -1 : 1) * Math.min(40, lw * 0.25)));
+      const yc = up ? Math.max(m, top - gap - lh) : Math.min(h - foot - lh, bottom + gap);
+      // two labels over the same stretch of a lane: try the lane spot, then rows stepping away from the model, then towards it, each
+      // also nudged sideways; the first spot clear of every label already placed wins (a lone step could land on a third label)
+      const clear = (x: number, y: number): boolean => !placed.some((q) => x < q.right + 8 && x + lw > q.left - 8 && y < q.bottom + 4 && y + lh > q.top - 4);
+      const step = lh + 5, ys = [yc];
+      for (let k = 1; k <= 4; k++) ys.push(up ? yc - k * step : yc + k * step);
+      for (let k = 1; k <= 3; k++) ys.push(up ? yc + k * step : yc - k * step);
+      let x0 = xc, y0 = yc, found = false;
+      for (const y of ys) {
+        if (y < m || y > h - foot - lh) continue;
+        for (const dx of [0, lw * 0.5 + 8, -(lw * 0.5 + 8)]) {
+          const x = Math.max(m, Math.min(w - m - lw, xc + dx));
+          if (clear(x, y)) { x0 = x; y0 = y; found = true; break; }
+        }
+        if (found) break;
       }
       if (show) placed.push({ top: y0, bottom: y0 + lh, left: x0, right: x0 + lw });
       el.style.transform = `translate(${x0.toFixed(1)}px, ${y0.toFixed(1)}px)`;
