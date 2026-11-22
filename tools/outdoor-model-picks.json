@@ -1,0 +1,348 @@
+{
+ "_note": "SPEC 19.13: the picks of tools/optimise-outdoor-models.mjs. Each src is a raw file of scripts/fetch-outdoor-real.mjs (pinned SHA-256); sources, authors, licences and every candidate looked at are in public/look/outdoor/sources.lock.json.",
+ "neem": {
+  "src": "objaverse/4b186052228d43d8b3fbb63213677de8.glb",
+  "kind": "plant",
+  "height": 7.0,
+  "strict": true,
+  "parts": [
+   [
+    "Material\\.001",
+    "leaves"
+   ],
+   [
+    "Material\\.002",
+    "trunk"
+   ]
+  ],
+  "drop": "Material\\.004",
+  "leaves": [
+   "leaves"
+  ],
+  "alphaFromLuma": [
+   "leaves"
+  ],
+  "tiers": {
+   "high": {
+    "leafKeep": 0.45,
+    "simplify": 0.2
+   },
+   "medium": {
+    "leafKeep": 0.22,
+    "simplify": 0.08
+   },
+   "low": {
+    "leafKeep": 0.14,
+    "simplify": 0.035
+   }
+  },
+  "tint": {
+   "leaves": [
+    0.66,
+    0.78,
+    0.58,
+    1
+   ]
+  },
+  "crownFrom": 2.3
+ },
+ "areca-palm": {
+  "src": "objaverse/85ac276a8d34487b9521ca5db1f7654f.glb",
+  "kind": "plant",
+  "height": 5.8,
+  "strict": true,
+  "parts": [
+   [
+    "Tree_0Mat",
+    "trunk"
+   ],
+   [
+    "Tree_1Mat",
+    "fronds"
+   ],
+   [
+    "Tree_2Mat",
+    "crown"
+   ]
+  ],
+  "leaves": [],
+  "clump": [
+   [
+    0,
+    0,
+    0.62,
+    0,
+    4
+   ],
+   [
+    0.16,
+    0.08,
+    0.5,
+    130,
+    11
+   ],
+   [
+    -0.12,
+    0.14,
+    0.44,
+    250,
+    14
+   ],
+   [
+    0.02,
+    -0.16,
+    0.38,
+    40,
+    17
+   ]
+  ],
+  "tiers": {
+   "high": {
+    "simplify": 0.4
+   },
+   "medium": {
+    "simplify": 0.2
+   },
+   "low": {
+    "simplify": 0.09
+   }
+  },
+  "alphaParts": [
+   "fronds"
+  ]
+ },
+ "lounger": {
+  "src": "objaverse/706fe87e98c341c79c6978b2cdc5d10d.glb",
+  "kind": "piece",
+  "height": 0.8,
+  "strict": true,
+  "parts": [
+   [
+    "04_-_Default",
+    "frame"
+   ],
+   [
+    "shalta",
+    "cushion"
+   ]
+  ],
+  "tiers": {
+   "high": {
+    "simplify": 1
+   },
+   "medium": {
+    "simplify": 0.6
+   },
+   "low": {
+    "simplify": 0.3
+   }
+  }
+ },
+ "parasol": {
+  "src": "objaverse/d6c9705a4f8e421ea473196ab9910088.glb",
+  "kind": "piece",
+  "height": 2.4,
+  "strict": true,
+  "parts": [
+   [
+    "Patio_Umbrella",
+    "parasol"
+   ]
+  ],
+  "split": [
+   [
+    "base",
+    {
+     "maxY": 0.2
+    }
+   ],
+   [
+    "pole",
+    {
+     "maxR": 0.05
+    }
+   ],
+   [
+    "canopy",
+    {}
+   ]
+  ],
+  "rough": {
+   "canopy": 0.9
+  },
+  "tiers": {
+   "high": {
+    "simplify": 1
+   },
+   "medium": {
+    "simplify": 0.7
+   },
+   "low": {
+    "simplify": 0.4
+   }
+  }
+ },
+ "pool-chair": {
+  "src": "objaverse/3059668094e847e286d2a95716694b87.glb",
+  "kind": "piece",
+  "height": 0.85,
+  "strict": true,
+  "turnY": 90,
+  "keep": {
+   "x": [
+    10,
+    36
+   ],
+   "z": [
+    -13,
+    11
+   ]
+  },
+  "parts": [
+   [
+    "Color_C09",
+    "cushion"
+   ],
+   [
+    "gris",
+    "frame"
+   ]
+  ],
+  "tint": {
+   "cushion": [
+    0.86,
+    0.82,
+    0.74,
+    1
+   ]
+  },
+  "rough": {
+   "frame": 0.45,
+   "cushion": 0.9
+  },
+  "metal": {
+   "frame": 0.3
+  },
+  "tiers": {
+   "high": {
+    "simplify": 1
+   },
+   "medium": {
+    "simplify": 0.8
+   },
+   "low": {
+    "simplify": 0.5
+   }
+  }
+ },
+ "patio-table": {
+  "src": "objaverse/3059668094e847e286d2a95716694b87.glb",
+  "kind": "piece",
+  "height": 0.72,
+  "strict": true,
+  "keep": {
+   "x": [
+    -21,
+    21
+   ],
+   "z": [
+    -21,
+    21
+   ]
+  },
+  "parts": [
+   [
+    "Vidrio",
+    "glass"
+   ],
+   [
+    "gris",
+    "frame"
+   ]
+  ],
+  "blend": [
+   "glass"
+  ],
+  "rough": {
+   "frame": 0.45,
+   "glass": 0.05
+  },
+  "metal": {
+   "frame": 0.3,
+   "glass": 0.1
+  },
+  "tiers": {
+   "high": {
+    "simplify": 1
+   },
+   "medium": {
+    "simplify": 0.8
+   },
+   "low": {
+    "simplify": 0.5
+   }
+  }
+ },
+ "bench": {
+  "src": "objaverse/dcb057ffb7e949a7a1ec5523321d965b.glb",
+  "kind": "piece",
+  "height": 0.82,
+  "strict": true,
+  "parts": [
+   [
+    "wood",
+    "wood"
+   ],
+   [
+    "metal",
+    "frame"
+   ],
+   [
+    "screws",
+    "screws"
+   ]
+  ],
+  "drop": "screws",
+  "tiers": {
+   "high": {
+    "simplify": 1
+   },
+   "medium": {
+    "simplify": 0.7
+   },
+   "low": {
+    "simplify": 0.4
+   }
+  }
+ },
+ "royal-palm": {
+  "src": "objaverse/08ccca74a0594fd999acaf4cfbd597e0.glb",
+  "kind": "plant",
+  "height": 4.48,
+  "strict": true,
+  "parts": [
+   [
+    "Material\\.001",
+    "trunk"
+   ],
+   [
+    "Material\\.002",
+    "fronds"
+   ]
+  ],
+  "alphaParts": [
+   "fronds"
+  ],
+  "tiers": {
+   "high": {
+    "simplify": 0.15
+   },
+   "medium": {
+    "simplify": 0.06
+   },
+   "low": {
+    "simplify": 0.025
+   }
+  }
+ }
+}

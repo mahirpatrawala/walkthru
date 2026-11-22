@@ -1,6 +1,7 @@
 // Garden pieces (SPEC 19.4): park bench, senior bench, pergola with a bench, lamp post and bollard (lit from evening), slide, swing set, see-saw,
 // climbing frame, rubber safety surfacing, jogging track, yoga deck and a water feature. Each is exactly the item's footprint and height.
 import * as THREE from 'three';
+import { addPiece, pieceGeo, pieceModelIds } from './outdoor-models';
 import { Parts } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { CHROME, GLASS, RUBBER, bar, disc, post } from './kit';
@@ -20,7 +21,25 @@ const BLUE: MatSpec = { key: 'paint', tint: '#2F78B5' };
 const GREEN: MatSpec = { key: 'paint', tint: '#3E9A4E' };
 const LAMP: MatSpec = { key: 'lamp', tint: '#FFF1CF' };
 
-export function buildGarden(env: GenEnv, size: GenSize, p: GardenParams, _roles: Roles): THREE.Group {
+export function buildGarden(env: GenEnv, size: GenSize, p: GardenParams, roles: Roles): THREE.Group {
+  // SPEC 19.13: the park bench is a downloaded model once it has arrived (src/look/gen/outdoor-models.ts), the generator's until then
+  if (p.variant === 'bench' && pieceModelIds().includes('bench')) {
+    const model = pieceGeo('bench', env.q.tier);
+    if (model) {
+      const g = new THREE.Group();
+      g.name = 'gen:garden-bench';
+      addPiece(g, model, size.w, size.h, size.d, (part) => part);
+      g.userData.outdoorModelUsed = 'bench';
+      return g;
+    }
+    const drawn = buildGardenDrawn(env, size, p, roles);
+    drawn.userData.outdoorModelWanted = 'bench';
+    return drawn;
+  }
+  return buildGardenDrawn(env, size, p, roles);
+}
+
+function buildGardenDrawn(env: GenEnv, size: GenSize, p: GardenParams, _roles: Roles): THREE.Group {
   const parts = new Parts(env, `gen:garden-${p.variant}`);
   switch (p.variant) {
     case 'bench': bench(parts, size, false); break;

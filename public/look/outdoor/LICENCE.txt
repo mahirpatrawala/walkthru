@@ -1,6 +1,6 @@
 public/look/outdoor/ : the photographic layer of the open-air spaces (SPEC 19.12, 22 Nov 2026).
 Raw sources, their URLs, authors, licences, the date each licence was read and the SHA-256 of every raw file: sources.lock.json
-(scripts/fetch-outdoor-real.mjs). Every shipped file with its SHA-256: files.lock.json (tools/optimise-outdoor-real.mjs).
+(scripts/fetch-outdoor-real.mjs). Every shipped file with its SHA-256: files.lock.json (tools/optimise-outdoor-real.mjs, tools/optimise-outdoor-models.mjs).
 
 CC-BY 4.0 (attribution required) ------------------------------------------------------------------------------------------
 models/coconut-palm.glb, models/coconut-palm.low.glb, leaves/palm-frond.webp
@@ -10,6 +10,25 @@ models/coconut-palm.glb, models/coconut-palm.low.glb, leaves/palm-frond.webp
   licence "by" is listed for it in metadata/000-004.json.gz). Changes: re-centred on the foot of its trunks, parts renamed, textures
   resized and re-encoded as WebP, normal maps dropped on the phone file, simplified for the phone file, meshopt-compressed; the frond
   picture is also used on the procedural palms.
+
+CC-BY 4.0, SPEC 19.13 (22 Nov 2026). All obtained from the Objaverse mirror on Hugging Face (allenai/objaverse, glbs/<shard>/<id>.glb; licence
+"by" in its metadata/<shard>.json.gz and on the Sketchfab page), licensed under Creative Commons Attribution 4.0
+(https://creativecommons.org/licenses/by/4.0/). Changes to every one: re-centred, turned and scaled to metres, parts renamed, parts left out
+as noted, simplified per tier (leaf cards thinned, other parts decimated), textures resized and re-encoded as WebP, normal maps dropped on the
+phone file, meshopt-compressed; a piece is stretched at run time to the catalogue's box (by at most about a third on one axis).
+models/neem*.glb : "Mango Tree" by stealth86 (https://sketchfab.com/stealth86), https://sketchfab.com/3d-models/4b186052228d43d8b3fbb63213677de8
+  (drawn as the neem; fruit left out, leaves darkened, a transparency made from the leaf picture's black background).
+models/areca-palm*.glb : "Acai Palm" by evolveduk (https://sketchfab.com/evolveduk), https://sketchfab.com/3d-models/85ac276a8d34487b9521ca5db1f7654f
+  (four stems of it from one foot make an areca clump).
+models/royal-palm*.glb : "Tropical Palm" by Šimon Ustal (https://sketchfab.com/simonustal), https://sketchfab.com/3d-models/08ccca74a0594fd999acaf4cfbd597e0
+models/lounger*.glb : "Garden Chair" by Medhatelo (https://sketchfab.com/Medhatelo), https://sketchfab.com/3d-models/706fe87e98c341c79c6978b2cdc5d10d
+models/parasol*.glb : "White outdoor Umbrella" by Ngo.Phuoc.Truong (https://sketchfab.com/Ngo.Phuoc.Truong), https://sketchfab.com/3d-models/d6c9705a4f8e421ea473196ab9910088
+  (split into base, pole and canopy).
+models/pool-chair*.glb, models/patio-table*.glb : "Metallic garden table" by anDDDres (https://sketchfab.com/anDDDres),
+  https://sketchfab.com/3d-models/3059668094e847e286d2a95716694b87 (one chair of the set, and the table; the cushion tinted ecru).
+models/bench*.glb : "Park bench" by SusanKing (https://sketchfab.com/krolzuzannapl), https://sketchfab.com/3d-models/dcb057ffb7e949a7a1ec5523321d965b
+  (screw heads left out).
+Every model looked at and why it was or was not used: sources.lock.json, "candidates".
 
 CC0 1.0 (no attribution required; credited anyway) ----------------------------------------------------------------------------
 leaves/<species>.webp, leaves/hedge-ficus.jpg : composed by tools/optimise-outdoor-real.mjs from leaf photographs cut out of the
