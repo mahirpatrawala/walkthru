@@ -1,0 +1,109 @@
+{
+  "generatedBy": "tools/optimise-outdoor-real.mjs",
+  "files": {
+    "grass/tufts.webp": {
+      "bytes": 36562,
+      "sha256": "31ebe21c8c1cdbb2b207982398b286a375b0471525a2d76156d2af830777bebb"
+    },
+    "leaves/bougainvillea.low.webp": {
+      "bytes": 21450,
+      "sha256": "89a753a5317379e6c023716c609dac1960ac9e1dcdcdd2459362eef42bf669f0"
+    },
+    "leaves/bougainvillea.webp": {
+      "bytes": 53890,
+      "sha256": "8b4cf9c144a24356523b8417f82998b674755b10f66a646cf230b09178e8dc06"
+    },
+    "leaves/croton.low.webp": {
+      "bytes": 23524,
+      "sha256": "cc59d8ca2537e078d59be113eac0a43fce89961083a84a29856f9421ccd537ff"
+    },
+    "leaves/croton.webp": {
+      "bytes": 55450,
+      "sha256": "dccd2907042b1be947300368e0da8eb90a84357f139fece29fc0265feb671e45"
+    },
+    "leaves/ficus.low.webp": {
+      "bytes": 20082,
+      "sha256": "aeec9aa4e063e4d18fec51b086994d45d36a8fa09b1a0a0684eb29392e312748"
+    },
+    "leaves/ficus.webp": {
+      "bytes": 47120,
+      "sha256": "ee1080245ad7de25921407e6c0a5fc5f0e7a90cc4909010c03e390976ef1b909"
+    },
+    "leaves/frangipani.low.webp": {
+      "bytes": 18574,
+      "sha256": "5833b27518ba80a4f635736dd50311d8c56651abcaa7e240495d13cbd79ea66f"
+    },
+    "leaves/frangipani.webp": {
+      "bytes": 41666,
+      "sha256": "fa691bc679f98d0a031240815a80788fedff86e0356f706dfd3956f20e0bf7c1"
+    },
+    "leaves/gulmohar.low.webp": {
+      "bytes": 47162,
+      "sha256": "479c53c0d7a63afb7b700002148430cecfea107548d9ad8dcc60f76d61695e33"
+    },
+    "leaves/gulmohar.webp": {
+      "bytes": 157492,
+      "sha256": "ffc0a4f05140e125f00a4f5071357c7f91677dfef630cb1855bd22c597c0091a"
+    },
+    "leaves/hedge-ficus.jpg": {
+      "bytes": 49303,
+      "sha256": "1881ff3653ec5a77b4b27ba5047e32efe6e10125f383ff9c3787cbb76e742d2f"
+    },
+    "leaves/hibiscus.low.webp": {
+      "bytes": 19950,
+      "sha256": "2de1bc2af5ed87e8cd3bf09675c394b6de3c5acfdb711665f17d42ce1cfeb1ff"
+    },
+    "leaves/hibiscus.webp": {
+      "bytes": 49098,
+      "sha256": "8dad118141771b40bafcaf14abba66cbb15db9e0c44a4d1df8799c52d7528026"
+    },
+    "leaves/neem.low.webp": {
+      "bytes": 43364,
+      "sha256": "b1c0dd5acbd1c068a411737ed83dc65e9fc0e34797872cb8729a55d6457f45fd"
+    },
+    "leaves/neem.webp": {
+      "bytes": 144848,
+      "sha256": "76baa4ce6c1e1745b296f2b679bd6f77bf31a9b3e1fbc41e8f7c177eddcdac88"
+    },
+    "leaves/palm-frond.webp": {
+      "bytes": 46796,
+      "sha256": "dafb2499ced9e8db269bbdbe53b72f551cda80618b754b111e44f023a3a972b9"
+    },
+    "models/coconut-palm.glb": {
+      "bytes": 459444,
+      "sha256": "41cdf3628ca22a1df2ca8c282fa5b63b1da517085b3c6bbe89e46bdd554a1d47"
+    },
+    "models/coconut-palm.low.glb": {
+      "bytes": 160332,
+      "sha256": "96c615c84b96f840250cd302e538feb9b05acf5f80c8d623b049fa290bab926a"
+    },
+    "sky/sky_day.jpg": {
+      "bytes": 79926,
+      "sha256": "ffe814e2589874adb9c1cb8bc7e83fb740fafb10e0b94cb180fef88b8de09c04"
+    },
+    "sky/sky_day.low.jpg": {
+      "bytes": 28376,
+      "sha256": "1c5289bb6ee12649efda75ab42b07fb9419e68ba2340fb5fe04844363407f990"
+    },
+    "tex/bark_diff.jpg": {
+      "bytes": 49425,
+      "sha256": "f30b61ac4602cf049b765232ce1728c439dee74162c647b3fbf82e5d939fa601"
+    },
+    "tex/deck_diff.jpg": {
+      "bytes": 84187,
+      "sha256": "fabaa05a46ee72d6edf41401888edef08201f481a7bd3b9898b794aedbbf31f3"
+    },
+    "tex/deck_nor.jpg": {
+      "bytes": 32926,
+      "sha256": "2ba7b60dad079c3d4cc9f0dfbe4438809237b0b8b7d6ee972747cd263b24287a"
+    },
+    "tex/mosaic_diff.jpg": {
+      "bytes": 32845,
+      "sha256": "d04fce8a47c953a125fd452f113290939e0274638fce46549b8f1e875d821f1f"
+    },
+    "tex/mosaic_nor.jpg": {
+      "bytes": 40160,
+      "sha256": "0e2e1f68db45c3239cca14c3a20dd2476f5de8a0f3142b72781766dc22b4bc40"
+    }
+  }
+}

@@ -71,8 +71,10 @@ export function hedgeSegments(row: PlantRow): HedgeSeg[] {
   const sp = speciesOf(row.species);
   const out: HedgeSeg[] = [];
   for (let i = 0; i < n; i++) {
-    const t = (i + 0.5) / n;
-    out.push({ x: row.from.x + dx * t, z: row.from.z + dz * t, yawDeg, lenM: (len / n) * 1.08, widthM: row.widthM ?? 0.7, heightM: row.heightM ?? Math.min(1.6, sp.heightM[1]), species: row.species, id: row.id });
+    // blocks overlap (40 %) so a clipped hedge reads as one mass, not a row of topiary; the end blocks are pulled in so the hedge still ends where the row does
+    const over = n > 1 ? (0.4 * len) / n / 2 / len : 0;
+    const t = (i + 0.5) / n + (i === 0 ? over : i === n - 1 ? -over : 0);
+    out.push({ x: row.from.x + dx * t, z: row.from.z + dz * t, yawDeg, lenM: (len / n) * 1.4, widthM: row.widthM ?? 0.7, heightM: row.heightM ?? Math.min(1.6, sp.heightM[1]), species: row.species, id: row.id });
   }
   return out;
 }

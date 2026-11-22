@@ -46,40 +46,63 @@ export function buildPool(env: GenEnv, size: GenSize, p: PoolParams, _roles: Rol
   return fitToBox(parts.done(), size, p.variant === 'changing-sign' ? p.liftM : 0, p.variant === 'umbrella' ? /^umbrella-/ : null);
 }
 
-/** A resin sun lounger: a frame on four legs, slatted base, a back that rises at 40 degrees, a navy cushion over both. Head at -z, feet at +z. */
+/** SPEC 19.12: an outdoor cushion of a resort lounger, ecru solution-dyed canvas */
+export const ECRU: MatSpec = { key: 'cotton', tint: '#E6DFD0' };
+/** SPEC 19.12: weathered, oiled teak of resort pool furniture (a shade darker and less orange than the table's) */
+export const OILED_TEAK: MatSpec = { key: 'wood', tint: '#8E6440' };
+
+/**
+ * A resort sun lounger (SPEC 19.12, was a white resin frame with a navy pad): an oiled teak frame on four square legs with two small wheels at
+ * the head, a slatted bed, a back that rises at the hinge to the full height, and a thick ecru cushion over both with a rolled head pillow.
+ * Head at -z, feet at +z. Every part is inside the footprint and the height; the seat top is at `s`.
+ */
 function lounger(P: Parts, { w, d, h, s }: GenSize): void {
   const x0 = -w / 2, x1 = w / 2;
-  const hinge = -d / 2 + d * 0.38; // where the back meets the seat
+  const hinge = -d / 2 + d * 0.36; // where the back meets the seat
+  const pad = 0.075; // the cushion's thickness
+  const bed = s - pad; // the slats' top
+  const rail = 0.045, c = P.env.q.ultra ? 0.006 : 0.004;
+  // the frame: two side rails from the head to the foot, an end rail at the foot, cross rails under the slats
+  for (const x of [x0 + rail / 2, x1 - rail / 2]) P.box('frame', OILED_TEAK, x - rail / 2, x + rail / 2, bed - 0.075, bed - 0.012, -d / 2 + 0.06, d / 2, { c });
+  P.box('frame', OILED_TEAK, x0, x1, bed - 0.075, bed - 0.012, d / 2 - rail, d / 2, { c });
+  for (const z of [hinge + 0.05, (hinge + d / 2) / 2, d / 2 - 0.12]) P.box('frame', OILED_TEAK, x0 + rail, x1 - rail, bed - 0.06, bed - 0.035, z - 0.025, z + 0.025, { c: 0.003 });
+  // slats across the bed, a finger's gap apart
+  for (let z = hinge + 0.02; z < d / 2 - rail - 0.04; z += 0.085) P.box('slats', OILED_TEAK, x0 + rail + 0.005, x1 - rail - 0.005, bed - 0.03, bed, z, z + 0.07, { c: 0.003 });
+  // legs: square teak, a little in from the rails; the head end rolls on two wheels
+  const lw = 0.05;
+  for (const [x, z] of [[x0 + 0.03, d / 2 - 0.08], [x1 - 0.03, d / 2 - 0.08], [x0 + 0.03, hinge + 0.04], [x1 - 0.03, hinge + 0.04]] as const) P.box('legs', OILED_TEAK, x - lw / 2, x + lw / 2, 0, bed - 0.07, z - lw / 2, z + lw / 2, { c: 0.004 });
   for (const x of [x0 + 0.03, x1 - 0.03]) {
-    P.box('frame', RESIN, x - 0.02, x + 0.02, s - 0.1, s - 0.04, hinge, d / 2 - 0.02, { c: 0.004 });
-    P.box('frame', RESIN, x - 0.02, x + 0.02, 0.0, s - 0.1, hinge + 0.04, hinge + 0.1, { c: 0.004 });
-    P.box('frame', RESIN, x - 0.02, x + 0.02, 0.0, s - 0.1, d / 2 - 0.1, d / 2 - 0.04, { c: 0.004 });
+    const wheel = new THREE.CylinderGeometry(0.075, 0.075, 0.035, P.env.q.sides >= 12 ? 20 : 12).rotateZ(Math.PI / 2);
+    wheel.translate(x, 0.075, -d / 2 + 0.13);
+    P.put('wheels', RUBBER, wheel);
+    P.box('legs', OILED_TEAK, x - lw / 2, x + lw / 2, 0.075, bed - 0.07, -d / 2 + 0.1, -d / 2 + 0.16, { c: 0.004 });
   }
-  for (let z = hinge + 0.03; z < d / 2 - 0.05; z += 0.07) P.box('slats', RESIN, x0 + 0.03, x1 - 0.03, s - 0.07, s - 0.04, z, z + 0.05, { c: 0.002 });
-  // the back: a frame and slats from the hinge up and back to the head, which is at height h
-  const back = hinge - (-d / 2); // how far the back runs along the floor
-  const rise = h - s;
+  // the back: rails and slats from the hinge up and back to the head
+  const back = hinge - (-d / 2 + 0.02);
+  const rise = h - s - 0.03; // the back's slats stop under the cushion that tops it
   const len = Math.hypot(back, rise);
   const ang = Math.atan2(rise, back);
-  const at = (t: number): { y: number; z: number } => ({ y: s + t * Math.sin(ang), z: hinge - t * Math.cos(ang) });
-  for (const x of [x0 + 0.03, x1 - 0.03]) {
-    const m = at(len / 2);
-    const g = P.env.q.ultra ? roundedBoxBetween(-0.02, 0.02, -0.02, 0.02, -len / 2, len / 2, 0.008, 3).rotateX(ang) : new THREE.BoxGeometry(0.04, 0.04, len).rotateX(ang);
-    g.translate(x, m.y - 0.04, m.z);
-    P.put('frame', RESIN, g);
+  const at = (t: number, lift = 0): { y: number; z: number } => ({ y: bed + t * Math.sin(ang) + lift * Math.cos(ang), z: hinge - t * Math.cos(ang) + lift * Math.sin(ang) });
+  for (const x of [x0 + rail / 2, x1 - rail / 2]) {
+    const m = at(len / 2, -0.03);
+    const g = P.env.q.ultra ? roundedBoxBetween(-rail / 2, rail / 2, -0.03, 0.03, -len / 2, len / 2, 0.008, 3).rotateX(ang) : new THREE.BoxGeometry(rail, 0.06, len).rotateX(ang);
+    g.translate(x, m.y, m.z);
+    P.put('frame', OILED_TEAK, g);
   }
-  for (let t = 0.04; t < len - 0.03; t += 0.07) {
-    const m = at(t);
-    P.put('slats', RESIN, P.env.q.ultra ? roundedBoxBetween(-(w - 0.06) / 2, (w - 0.06) / 2, -0.015, 0.015, -0.025, 0.025, 0.007, 2).rotateX(ang).translate(0, m.y - 0.045, m.z) : new THREE.BoxGeometry(w - 0.06, 0.03, 0.05).rotateX(ang).translate(0, m.y - 0.045, m.z));
+  for (let t = 0.05; t < len - 0.04; t += 0.085) {
+    const m = at(t, -0.012);
+    P.put('slats', OILED_TEAK, P.env.q.ultra ? roundedBoxBetween(-(w - 2 * rail - 0.01) / 2, (w - 2 * rail - 0.01) / 2, -0.012, 0.012, -0.035, 0.035, 0.005, 2).rotateX(ang).translate(0, m.y, m.z) : new THREE.BoxGeometry(w - 2 * rail - 0.01, 0.024, 0.07).rotateX(ang).translate(0, m.y, m.z));
   }
-  // legs
-  for (const [x, z] of [[x0 + 0.05, hinge + 0.07], [x1 - 0.05, hinge + 0.07], [x0 + 0.05, d / 2 - 0.07], [x1 - 0.05, d / 2 - 0.07]] as const) post(P, 'legs', RESIN, x, z, 0, s - 0.1, 0.018);
-  // the cushion lies on the seat and follows the back
-  P.put('cushion', NAVY, soft(P.env, x0 + 0.04, x1 - 0.04, s - 0.04, s + 0.03, hinge, d / 2 - 0.05, 0.012));
-  const mid = at(len / 2);
-  P.put('cushion', NAVY, P.env.q.ultra
-    ? softCushion(w - 0.1, 0.05, len - 0.04, { r: 0.02, puff: 0.012, seg: softSeg(P.env.q) }).rotateX(ang).translate(0, mid.y - 0.01, mid.z)
-    : new THREE.BoxGeometry(w - 0.1, 0.05, len - 0.04).rotateX(ang).translate(0, mid.y - 0.01, mid.z));
+  // the cushion: a thick pad on the bed and one up the back, with a rolled pillow at the head
+  P.put('cushion', ECRU, soft(P.env, x0 + 0.03, x1 - 0.03, bed, s, hinge - 0.005, d / 2 - 0.035, 0.016));
+  const mid = at(len / 2, pad / 2);
+  P.put('cushion', ECRU, P.env.q.puff > 0
+    ? softCushion(w - 0.06, pad, len - 0.03, { r: 0.028, puff: 0.016, seg: softSeg(P.env.q) }).rotateX(ang).translate(0, mid.y, mid.z)
+    : roundedBoxBetween(-(w - 0.06) / 2, (w - 0.06) / 2, -pad / 2, pad / 2, -(len - 0.03) / 2, (len - 0.03) / 2, 0.025, 1).rotateX(ang).translate(0, mid.y, mid.z));
+  const top = at(len - 0.11, pad + 0.03);
+  const pillow = new THREE.CylinderGeometry(0.065, 0.065, w - 0.16, P.env.q.sides >= 12 ? 16 : 10).rotateZ(Math.PI / 2);
+  pillow.translate(0, Math.min(h - 0.066, top.y), top.z);
+  P.put('cushion', ECRU, pillow);
 }
 
 /** A square-base parasol: weighted base, steel pole, an eight-gore canopy reaching `canopyM` across (beyond the base: it is drawn, not counted as floor). */
@@ -109,16 +132,21 @@ function umbrella(P: Parts, { w, d, h }: GenSize, canopyM: number): void {
   const cap = new THREE.SphereGeometry(0.035, 8, 6); cap.translate(0, topY + 0.01, 0); P.put('umbrella-cap', CHROME, cap);
 }
 
+/** SPEC 19.12: a teak pool-side armchair (was white resin): square legs, a slatted back, flat arms, an ecru seat cushion. Back at -z. */
 function chair(P: Parts, { w, d, h, s }: GenSize): void {
   const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2;
-  const L = 0.035;
-  for (const [x, z] of [[x0 + L, z0 + L], [x1 - L, z0 + L], [x0 + L, z1 - L], [x1 - L, z1 - L]] as const) post(P, 'legs', RESIN, x, z, 0, s - 0.04, 0.026);
-  P.box('seat', RESIN, x0, x1, s - 0.05, s, z0 + 0.0, z1, { c: 0.006 });
-  // back slats leaning a little
-  P.box('back', RESIN, x0 + 0.02, x1 - 0.02, s, h, z0, z0 + 0.04, { c: 0.004 });
-  for (const x of [x0 + 0.015, x1 - 0.015]) P.box('arms', RESIN, x - 0.015, x + 0.015, s + 0.15, s + 0.19, z0 + 0.05, z1 - 0.12, { c: 0.004 });
-  for (const x of [x0 + 0.015, x1 - 0.015]) post(P, 'arms', RESIN, x, z1 - 0.13, s - 0.05, s + 0.17, 0.014);
-  P.put('cushion', CANVAS, soft(P.env, x0 + 0.04, x1 - 0.04, s, s + 0.045, z0 + 0.06, z1 - 0.04, 0.012));
+  const L = 0.045, c = 0.004;
+  for (const [x, z] of [[x0 + L / 2, z0 + L / 2], [x1 - L / 2, z0 + L / 2], [x0 + L / 2, z1 - L / 2], [x1 - L / 2, z1 - L / 2]] as const) P.box('legs', OILED_TEAK, x - L / 2, x + L / 2, 0, s - 0.06, z - L / 2, z + L / 2, { c });
+  // the seat frame and its slats
+  P.box('frame', OILED_TEAK, x0, x1, s - 0.1, s - 0.06, z0, z0 + 0.04, { c }); P.box('frame', OILED_TEAK, x0, x1, s - 0.1, s - 0.06, z1 - 0.04, z1, { c });
+  for (const x of [x0, x1 - 0.04]) P.box('frame', OILED_TEAK, x, x + 0.04, s - 0.1, s - 0.06, z0, z1, { c });
+  for (let z = z0 + 0.06; z < z1 - 0.06; z += 0.07) P.box('slats', OILED_TEAK, x0 + 0.04, x1 - 0.04, s - 0.085, s - 0.06, z, z + 0.055, { c: 0.002 });
+  // the back: two stiles leaning a little and five horizontal slats
+  for (const x of [x0 + L / 2, x1 - L / 2]) P.box('frame', OILED_TEAK, x - L / 2, x + L / 2, s - 0.06, h, z0, z0 + 0.045, { c });
+  for (let y = s + 0.08; y < h - 0.02; y += 0.075) P.box('slats', OILED_TEAK, x0 + L, x1 - L, y, y + 0.055, z0 + 0.008, z0 + 0.03, { c: 0.002 });
+  // flat arms on short posts
+  for (const x of [x0, x1 - 0.05]) { P.box('arms', OILED_TEAK, x, x + 0.05, s + 0.17, s + 0.2, z0 + 0.03, z1 - 0.02, { c }); P.box('arms', OILED_TEAK, x + 0.01, x + 0.04, s - 0.06, s + 0.17, z1 - 0.06, z1 - 0.03, { c }); }
+  P.put('cushion', ECRU, soft(P.env, x0 + 0.05, x1 - 0.05, s - 0.06, s, z0 + 0.05, z1 - 0.02, 0.012));
 }
 
 function table(P: Parts, { w, d, h, s }: GenSize): void {
@@ -267,25 +295,66 @@ export const PLAY_YELLOW: MatSpec = { key: 'paint', tint: '#E3B02A' };
 export const PLAY_BLUE: MatSpec = { key: 'paint', tint: '#2F6FB0' };
 export const PLAY_GREY: MatSpec = { key: 'dark', tint: '#3A3D42' };
 
-/** A water-play tower: four posts, a deck at 1.2 m with a roof of blue panels, a spiral-less straight slide down one end into the water, a spray nozzle on the roof. Slide end at +x. */
-function aquaTower(P: Parts, { w, d, h }: GenSize): void {
-  const deck = 1.2, tw = Math.min(1.6, d), x0 = -w / 2, tx1 = x0 + tw;
-  const z0 = -d / 2, z1 = d / 2;
-  for (const x of [x0 + 0.06, tx1 - 0.06]) for (const z of [z0 + 0.06, z1 - 0.06]) post(P, 'posts', PLAY_GREY, x, z, 0, h - 0.12, 0.05);
-  P.box('deck', PLAY_GREY, x0, tx1, deck - 0.06, deck, z0, z1, { c: 0.01 });
-  P.box('rails', PLAY_RED, x0, tx1, deck, deck + 0.55, z0, z0 + 0.04, { c: 0.004 });
-  P.box('rails', PLAY_RED, x0, tx1, deck, deck + 0.55, z1 - 0.04, z1, { c: 0.004 });
-  P.box('roof', PLAY_BLUE, x0 - 0.0, tx1, h - 0.12, h, z0, z1, { c: 0.02 });
-  // the slide: a sloped chute from the deck's +x edge down to the water, 0.5 m wide
-  const run = w - tw, drop = deck - 0.2, len = Math.hypot(run, drop), ang = Math.atan2(drop, run);
-  const chute = new THREE.BoxGeometry(len, 0.05, 0.5).rotateZ(-ang);
-  chute.translate(tx1 + run / 2, deck - drop / 2 - 0.02, 0);
-  P.put('slide', PLAY_YELLOW, chute);
-  for (const s of [-1, 1]) { const side = new THREE.BoxGeometry(len, 0.14, 0.04).rotateZ(-ang); side.translate(tx1 + run / 2, deck - drop / 2 + 0.04, s * 0.27); P.put('slide-sides', PLAY_YELLOW, side); }
-  post(P, 'nozzle', CHROME, (x0 + tx1) / 2, 0, h - 0.12, h - 0.02, 0.025);
+/** SPEC 19.12: running water (white with air in it), drawn where the play feature sends it, inside the feature's own footprint and height */
+export const SPRAY: MatSpec = { key: 'sheer', tint: '#E3F1F5' };
+
+/** a stream of water: a thin tube along a parabola from `a`, leaving at `v` (m/s, x up z), for `t` seconds */
+function stream(P: Parts, name: string, a: [number, number, number], v: [number, number, number], t: number, r: number): void {
+  const pts: THREE.Vector3[] = [];
+  for (let i = 0; i <= 10; i++) { const s = (i / 10) * t; pts.push(new THREE.Vector3(a[0] + v[0] * s, a[1] + v[1] * s - 4.9 * s * s, a[2] + v[2] * s)); }
+  const fine = P.env.q.sides >= 12;
+  const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), fine ? 12 : 7, r, fine ? 5 : 3, false);
+  P.put(name, SPRAY, g, { noShadow: true, double: true });
 }
 
-/** A sun-shaped spray feature: a low round pad, a post, a red disc and yellow rays round it. */
+/**
+ * A water-play tower (SPEC 19.12: was boxes on four poles): four round powder-coated posts, an anti-slip deck at 1.2 m with tubular guard rails and
+ * balusters on three sides, a ladder up the -x end, a four-sided hip roof, and a yellow trough slide (a half pipe) from the deck's +x edge down to the
+ * water. Slide end at +x.
+ */
+function aquaTower(P: Parts, { w, d, h }: GenSize): void {
+  const deck = 1.2, tw = Math.min(1.6, d), x0 = -w / 2, tx1 = x0 + tw;
+  const z0 = -d / 2, z1 = d / 2, pr = 0.055;
+  const px = [x0 + pr, tx1 - pr], pz = [z0 + pr, z1 - pr];
+  for (const x of px) for (const z of pz) post(P, 'posts', PLAY_BLUE, x, z, 0, h - 0.4, pr);
+  P.box('deck', PLAY_GREY, x0 + 0.02, tx1 - 0.02, deck - 0.06, deck, z0 + 0.02, z1 - 0.02, { c: 0.01 });
+  // guard rails: a top and a mid tube on the long sides and the ladder end (open where the slide leaves), balusters between
+  const rail = (a: [number, number, number], b: [number, number, number]): void => bar(P, 'rails', PLAY_RED, a, b, 0.024);
+  for (const z of pz) for (const y of [deck + 0.45, deck + 0.9]) rail([px[0], y, z], [px[1], y, z]);
+  for (const y of [deck + 0.45, deck + 0.9]) rail([px[0], y, pz[0]], [px[0], y, pz[0] + (pz[1] - pz[0]) * 0.3]);
+  for (const z of pz) for (let x = px[0] + 0.12; x < px[1] - 0.05; x += 0.12) bar(P, 'balusters', PLAY_RED, [x, deck, z], [x, deck + 0.9, z], 0.012);
+  // the ladder: two stringers and five rungs on the -x end, beside the opening
+  const lz0 = pz[0] + (pz[1] - pz[0]) * 0.38, lz1 = pz[1] - 0.05;
+  for (const z of [lz0, lz1]) bar(P, 'ladder', PLAY_BLUE, [x0 + 0.03, 0, z], [x0 + 0.03, deck + 0.85, z], 0.025);
+  for (let y = 0.25; y < deck; y += 0.24) bar(P, 'ladder', PLAY_YELLOW, [x0 + 0.03, y, lz0], [x0 + 0.03, y, lz1], 0.022);
+  // a hip roof over the deck, a finial on top
+  const roofH = 0.4, cx = (x0 + tx1) / 2;
+  const roof = new THREE.ConeGeometry(Math.hypot(tw, d) / 2, roofH, 4, 1, true).rotateY(Math.PI / 4);
+  roof.scale(1, 1, d / tw);
+  roof.translate(cx, h - roofH / 2 - 0.06, 0);
+  P.put('roof', PLAY_YELLOW, roof, { double: true });
+  disc(P, 'finial', PLAY_RED, cx, 0, h - 0.07, h, 0.05);
+  // the slide: a half pipe along the slope, flattening into a run-out at the water
+  const run = w - tw, drop = deck - 0.18, rr = 0.26;
+  const pts: THREE.Vector3[] = [];
+  for (let i = 0; i <= 12; i++) { const t = i / 12; const e = t < 0.85 ? t / 0.85 : 1; pts.push(new THREE.Vector3(tx1 + run * t - 0.02, deck - drop * (e * e * (3 - 2 * e)) + 0.02, 0)); }
+  const path = new THREE.CatmullRomCurve3(pts);
+  const segs = P.env.q.sides >= 12 ? 24 : 14;
+  const pos: number[] = [], idx: number[] = [], ring = 9;
+  for (let i = 0; i <= segs; i++) {
+    const p = path.getPointAt(i / segs), tng = path.getTangentAt(i / segs);
+    const side = new THREE.Vector3(0, 0, 1), up = new THREE.Vector3().crossVectors(side, tng).normalize();
+    for (let k = 0; k <= ring; k++) { const a = Math.PI * (k / ring); const q = p.clone().addScaledVector(side, Math.cos(a) * rr).addScaledVector(up, -Math.sin(a) * rr * 0.55 + rr * 0.55); pos.push(q.x, q.y, q.z); }
+  }
+  for (let i = 0; i < segs; i++) for (let k = 0; k < ring; k++) { const a = i * (ring + 1) + k, b = a + ring + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+  const trough = new THREE.BufferGeometry();
+  trough.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); trough.setIndex(idx); trough.computeVertexNormals();
+  P.put('slide', PLAY_YELLOW, trough.toNonIndexed(), { double: true });
+  // the posts that carry the slide's foot
+  post(P, 'slide-legs', PLAY_BLUE, tx1 + run * 0.62, 0, 0, deck - drop * 0.9, 0.035);
+}
+
+/** A sun-shaped spray feature: a low round pad, a post, a red disc with yellow rays, and water arcing from the ray tips down to the pad's rim. */
 function aquaSun(P: Parts, { w, h }: GenSize): void {
   const r = w / 2;
   disc(P, 'pad', PLAY_GREY, 0, 0, 0, 0.06, r * 0.5);
@@ -293,26 +362,34 @@ function aquaSun(P: Parts, { w, h }: GenSize): void {
   disc(P, 'sun', PLAY_RED, 0, 0, h - 0.5, h - 0.2, r * 0.55);
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2;
-    const ray = new THREE.BoxGeometry(r * 0.4, 0.04, 0.1).translate(r * 0.55 + r * 0.2 - 0.0, 0, 0).rotateY(-a);
+    const ray = new THREE.CylinderGeometry(0.035, 0.05, r * 0.38, 8).rotateZ(Math.PI / 2).translate(r * 0.72, 0, 0).rotateY(-a);
     ray.translate(0, h - 0.36, 0);
     P.put('rays', PLAY_YELLOW, ray);
+    // a stream from the tip, out and down to the edge of the feature's footprint
+    const tip: [number, number, number] = [Math.cos(a) * r * 0.9, h - 0.36, -Math.sin(a) * r * 0.9];
+    const tt = Math.sqrt((2 * (h - 0.36)) / 9.8);
+    stream(P, 'spray', tip, [Math.cos(a) * (r * 0.08) / tt, 0, -Math.sin(a) * (r * 0.08) / tt], tt * 0.98, 0.012);
   }
   disc(P, 'nozzle', CHROME, 0, 0, h - 0.2, h, 0.06);
 }
 
-/** A water mushroom: a post and a wide yellow dome that rains round its rim. */
+/** A water mushroom: a post, a wide yellow dome, and the curtain of water that falls from its rim to the pad. */
 function aquaMushroom(P: Parts, { w, h }: GenSize): void {
   const r = w / 2;
   disc(P, 'pad', PLAY_GREY, 0, 0, 0, 0.05, 0.22);
   post(P, 'stem', PLAY_BLUE, 0, 0, 0.05, h - 0.25, 0.07);
-  const dome = new THREE.SphereGeometry(r, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.3 / r, 1);
+  const dome = new THREE.SphereGeometry(r, P.env.q.sides >= 12 ? 32 : 16, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.3 / r, 1);
   dome.translate(0, h - 0.32, 0);
   P.put('dome', PLAY_YELLOW, dome, { double: true });
   disc(P, 'rim', PLAY_YELLOW, 0, 0, h - 0.34, h - 0.32, r);
   disc(P, 'cap', CHROME, 0, 0, h - 0.02, h, 0.05);
+  // the curtain, a little inside the rim, thinning (narrowing) as it falls
+  const curtain = new THREE.CylinderGeometry(r * 0.97, r * 0.94, h - 0.36, P.env.q.sides >= 12 ? 36 : 20, 1, true);
+  curtain.translate(0, (h - 0.36) / 2, 0);
+  P.put('spray', SPRAY, curtain, { noShadow: true, double: true });
 }
 
-/** A row of ground spray jets in a stainless bar, nine nozzles along it. */
+/** A row of ground spray jets in a stainless bar, nine nozzles along it. (Their water rises far above the 12 cm the row is: not drawn, the piece is the hardware.) */
 function aquaJets(P: Parts, { w, d, h }: GenSize): void {
   P.box('bar', CHROME, -w / 2, w / 2, 0, h * 0.5, -d / 2, d / 2, { c: 0.004 });
   const n = 9;
