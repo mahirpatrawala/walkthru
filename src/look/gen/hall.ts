@@ -6,7 +6,7 @@ import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { CHROME, SOIL, soft } from './kit';
 import { softCushion } from './soft';
 import { addTextured, propGeo, propInfo } from '../gym/props';
-import { ACCENT_BLUE, ACCENT_RED, CONSOLE, FRAME, FRAME_GREY, IRON, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, WOOD_ASH, cylX, cylY, cylZ, noteProp, pad, rtube, slab, tube } from './gymkit';
+import { ACCENT_BLUE, ACCENT_RED, CONSOLE, FRAME, FRAME_GREY, IRON, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, WOOD_ASH, cylX, cylY, cylZ, noteProp, pad, rtube, slab, tube, wholeModel } from './gymkit';
 
 export const HALL_VARIANTS = ['chair', 'table-rect', 'table-round', 'stage', 'podium', 'screen', 'speaker', 'carrom', 'tt', 'pool', 'foosball', 'chess-set', 'card-set', 'carrom-set', 'banquet-set', 'cafe-set'] as const;
 export type HallVariant = (typeof HALL_VARIANTS)[number];
@@ -27,6 +27,44 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
   const seg = q.tier === 'low' ? 12 : q.tier === 'medium' ? 20 : 28;
   const wseg = q.tier === 'low' ? 12 : 16;
   const wood = role(roles, 'case', 'accent');
+  // fifteen balls racked at the foot spot, the cue ball at the head (on the generated table or on the model's cloth)
+  const racked = (bt: number): void => {
+    const br = 0.0285, bs = q.tier === 'high' ? 12 : 8;
+    // a ball stands taller than a rail: on a model whose rails are lower than that above its cloth the balls would leave the box, so none are racked
+    if (q.tier !== 'low' && bt + 2 * br <= H + 0.001) {
+      const COL = ['#E2C230', '#2F5FA8', '#C03B30', '#4B2E83', '#E27A2D', '#2B7A3F', '#7A2A22', '#1A1A1A'];
+      let n = 0;
+      for (let r = 0; r < 5; r++) for (let c = 0; c <= r; c++) {
+        const bx = x1 * 0.45 + r * br * 1.76, bz = (c - r / 2) * br * 2.02;
+        parts.put('pool-balls', { key: 'gloss', tint: COL[n % 8] }, new THREE.SphereGeometry(br, bs, bs * 0.75).translate(bx, bt + br + 0.0006, bz));
+        n++;
+      }
+      parts.put('pool-balls', { key: 'gloss', tint: '#F4F2EC' }, new THREE.SphereGeometry(br, bs, bs * 0.75).translate(-x1 * 0.45, bt + br + 0.0006, 0));
+    }
+  };
+  /**
+   * The board of a carrom table, `t` from the middle to the frame's edge, its top at `bt`; returns where the stand's legs end. SPEC 16.17.3: the
+   * downloaded board (frame, printed surface, coins) scaled to the frame when it is here; else the generated frame, surface, pockets and coins.
+   */
+  const carromBoard = (t: number, bt: number, innerRing = false): number => {
+    const model = propGeo('carrom-board', q.tier);
+    noteProp(parts, 'carrom-board', !!model);
+    if (model) {
+      const info = propInfo('carrom-board');
+      const k = (2 * t) / Math.max(info.dims.w, info.dims.d);
+      addTextured(parts.group, model, 'carrom-board-model', k, [0, bt - info.dims.h * k, 0]);
+      return bt - info.dims.h * k;
+    }
+    parts.box('carrom-frame', WOOD_ASH, -t, t, bt - 0.05, bt, -t, t, { c: 0.006 });
+    slab(parts, 'carrom-surface', { key: 'laminate', tint: '#D9B97A' }, -0.37, 0.37, bt, bt + 0.0005, -0.37, 0.37);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) cylY(parts, 'carrom-pockets', IRON, sx * 0.345, sz * 0.345, bt - 0.0005, bt + 0.0015, 0.032, 12);
+    parts.put('carrom-circle', { key: 'laminate', tint: '#8A5A33' }, new THREE.RingGeometry(0.1, 0.103, 28).rotateX(-Math.PI / 2).translate(0, bt + 0.0016, 0));
+    if (innerRing) parts.put('carrom-circle', { key: 'laminate', tint: '#8A5A33' }, new THREE.RingGeometry(0.014, 0.017, 16).rotateX(-Math.PI / 2).translate(0, bt + 0.0016, 0));
+    // coins: white, black and the red queen, in the centre ring
+    for (let i = 0; i < 6; i++) { const a = (i * Math.PI) / 3; cylY(parts, 'carrom-coins', i % 2 ? IRON : { key: 'laminate', tint: '#F1E8D0' }, Math.cos(a) * 0.04, Math.sin(a) * 0.04, bt + 0.0005, bt + 0.007, 0.016, 10); }
+    cylY(parts, 'carrom-coins', { key: 'paint', tint: '#B3322B' }, 0, 0, bt + 0.0005, bt + 0.007, 0.016, 10);
+    return bt - 0.05;
+  };
   const build: Record<string, () => void> = {
     chair: () => {
       // a stacking chair: a steel frame (four legs, the back posts), a padded seat and a padded back
@@ -109,22 +147,15 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
     carrom: () => {
       // a carrom board in its wooden frame on a table: the playing surface 74 cm, four pockets, the circles and the baselines; a stand with four legs
       const bt = S;
-      parts.box('carrom-frame', WOOD_ASH, -x1, x1, bt - 0.05, bt, z0, z1, { c: 0.006 });
-      slab(parts, 'carrom-surface', { key: 'laminate', tint: '#D9B97A' }, -0.37, 0.37, bt, bt + 0.0005, -0.37, 0.37);
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        cylY(parts, 'carrom-pockets', IRON, sx * 0.345, sz * 0.345, bt - 0.0005, bt + 0.0015, 0.032, 12);
-        slab(parts, 'carrom-legs', WOOD_ASH, sx * (x1 - 0.05) - 0.03, sx * (x1 - 0.05) + 0.03, 0, bt - 0.05, sz * (z1 - 0.05) - 0.03, sz * (z1 - 0.05) + 0.03);
-      }
-      parts.put('carrom-circle', { key: 'laminate', tint: '#8A5A33' }, new THREE.RingGeometry(0.1, 0.103, 28).rotateX(-Math.PI / 2).translate(0, bt + 0.0016, 0));
-      parts.put('carrom-circle', { key: 'laminate', tint: '#8A5A33' }, new THREE.RingGeometry(0.014, 0.017, 16).rotateX(-Math.PI / 2).translate(0, bt + 0.0016, 0));
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) void [sx, sz];
-      // coins: nine white, nine black and the red queen, in the centre ring
-      for (let i = 0; i < 6; i++) { const a = (i * Math.PI) / 3; cylY(parts, 'carrom-coins', i % 2 ? IRON : { key: 'laminate', tint: '#F1E8D0' }, Math.cos(a) * 0.04, Math.sin(a) * 0.04, bt + 0.0005, bt + 0.007, 0.016, 10); }
-      cylY(parts, 'carrom-coins', { key: 'paint', tint: '#B3322B' }, 0, 0, bt + 0.0005, bt + 0.007, 0.016, 10);
+      // SPEC 16.17.3: the downloaded board (its frame, printed playing surface and coins) when it is here, on the generated stand
+      const top = carromBoard(x1, bt, true);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) slab(parts, 'carrom-legs', WOOD_ASH, sx * (x1 - 0.05) - 0.03, sx * (x1 - 0.05) + 0.03, 0, top, sz * (z1 - 0.05) - 0.03, sz * (z1 - 0.05) + 0.03);
       slab(parts, 'carrom-rails', FRAME_GREY, -x1 + 0.02, x1 - 0.02, S - 0.09, S - 0.06, z0 + 0.04, z0 + 0.06);
       slab(parts, 'carrom-rails', FRAME_GREY, -x1 + 0.02, x1 - 0.02, S - 0.09, S - 0.06, z1 - 0.06, z1 - 0.04);
     },
     tt: () => {
+      // SPEC 16.17.3: the downloaded table (blue top with its lines, black A-frame legs, net) when it is here and fits the box
+      if (wholeModel(parts, 'table-tennis', { w, h: H, d })) return;
       // a table-tennis table: a 76 cm high blue top 274 × 152.5 with white lines, a net on two posts, and two folding leg frames
       parts.box('tt-top', { key: 'paint', tint: '#1C477F' }, -x1, x1, S - 0.025, S, z0, z1, { c: 0.004 });
       slab(parts, 'tt-edge', { key: 'laminate', tint: '#F4F4F0' }, -x1, x1, S - 0.0, S + 0.0005, z0, z0 + 0.02);
@@ -149,6 +180,8 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
       slab(parts, 'tt-net-tape', { key: 'laminate', tint: '#F4F4F0' }, -0.005, 0.005, H - 0.012, H, z0, z1);
     },
     pool: () => {
+      // SPEC 16.17.3: the downloaded table (walnut cabinet, rails, cloth, legs) when it is here and fits the box; the balls are racked on its cloth
+      if (wholeModel(parts, 'pool-table', { w, h: H, d })) { const info = propInfo('pool-table'); racked((info.surfaceM ?? S) * (H / info.dims.h)); return; }
       // an 8 ft pool table (SPEC 16.17.2): a walnut cabinet with a moulded apron, wood top rails with inlaid sights, green cushions and cloth, six
       // leather pocket cups, four turned legs on levelling feet; fifteen balls racked at the foot spot, the cue ball at the head
       const bt = S, rail = 0.12;
@@ -181,17 +214,7 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
         lg.translate(sx * (x1 - 0.2), 0, sz * (z1 - 0.2));
         parts.put('pool-legs', POOL_WOOD, lg);
       }
-      if (q.tier !== 'low') {
-        const br = 0.0285, bs = q.tier === 'high' ? 12 : 8;
-        const COL = ['#E2C230', '#2F5FA8', '#C03B30', '#4B2E83', '#E27A2D', '#2B7A3F', '#7A2A22', '#1A1A1A'];
-        let n = 0;
-        for (let r = 0; r < 5; r++) for (let c = 0; c <= r; c++) {
-          const bx = x1 * 0.45 + r * br * 1.76, bz = (c - r / 2) * br * 2.02;
-          parts.put('pool-balls', { key: 'gloss', tint: COL[n % 8] }, new THREE.SphereGeometry(br, bs, bs * 0.75).translate(bx, bt + br + 0.0006, bz));
-          n++;
-        }
-        parts.put('pool-balls', { key: 'gloss', tint: '#F4F2EC' }, new THREE.SphereGeometry(br, bs, bs * 0.75).translate(-x1 * 0.45, bt + br + 0.0006, 0));
-      }
+      racked(bt);
       void SOIL; void SHROUD; void SCREEN_GLASS;
     },
     foosball: () => {
@@ -254,15 +277,8 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
     'carrom-set': () => {
       // a carrom board in its wooden frame (85 cm, the playing surface 74 cm, four pockets, the circles) on a four-leg stand, and a round stool at each side
       const t = 0.425, bt = S, c0 = x1 - 0.17;
-      parts.box('carrom-frame', WOOD_ASH, -t, t, bt - 0.05, bt, -t, t, { c: 0.006 });
-      slab(parts, 'carrom-surface', { key: 'laminate', tint: '#D9B97A' }, -0.37, 0.37, bt, bt + 0.0005, -0.37, 0.37);
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        cylY(parts, 'carrom-pockets', IRON, sx * 0.345, sz * 0.345, bt - 0.0005, bt + 0.0015, 0.032, 12);
-        slab(parts, 'carrom-legs', WOOD_ASH, sx * (t - 0.05) - 0.03, sx * (t - 0.05) + 0.03, 0, bt - 0.05, sz * (t - 0.05) - 0.03, sz * (t - 0.05) + 0.03);
-      }
-      parts.put('carrom-circle', { key: 'laminate', tint: '#8A5A33' }, new THREE.RingGeometry(0.1, 0.103, 28).rotateX(-Math.PI / 2).translate(0, bt + 0.0016, 0));
-      for (let i = 0; i < 6; i++) { const a = (i * Math.PI) / 3; cylY(parts, 'carrom-coins', i % 2 ? IRON : { key: 'laminate', tint: '#F1E8D0' }, Math.cos(a) * 0.04, Math.sin(a) * 0.04, bt + 0.0005, bt + 0.007, 0.016, 10); }
-      cylY(parts, 'carrom-coins', { key: 'paint', tint: '#B3322B' }, 0, 0, bt + 0.0005, bt + 0.007, 0.016, 10);
+      const top = carromBoard(t, bt);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) slab(parts, 'carrom-legs', WOOD_ASH, sx * (t - 0.05) - 0.03, sx * (t - 0.05) + 0.03, 0, top, sz * (t - 0.05) - 0.03, sz * (t - 0.05) + 0.03);
       for (let i = 0; i < 4; i++) {
         const a = (i * Math.PI) / 2, sx = c0 * Math.sin(a), sz = c0 * Math.cos(a);
         cylY(parts, 'stool-seat', roleOr(roles, { key: 'weave', tint: '#2F4A66' }, 'hallChair'), sx, sz, 0.41, 0.46, 0.17, seg);

@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { Parts } from './core';
 import type { GenEnv, GenSize, Roles } from './core';
-import { ACCENT_RED, CHROME, FRAME, FRAME_GREY, IRON, LABEL, PAD_BLACK, RUBBER, SHROUD, WOOD_ASH, cylX, dumbbell, dumbbellLength, dumbbellRadius, grip, kettlebell, knob, noteProp, pad, plateDisc, rtube, slab, tube, tubes } from './gymkit';
+import { ACCENT_RED, CHROME, FRAME, FRAME_GREY, IRON, LABEL, PAD_BLACK, RUBBER, SHROUD, WOOD_ASH, cylX, dumbbell, dumbbellLength, dumbbellRadius, grip, kettlebell, knob, noteProp, pad, plateDisc, rtube, slab, tube, tubes, wholeModel } from './gymkit';
 import { propGeo } from '../gym/props';
 
 export const FREEW_VARIANTS = ['bench-flat', 'bench-incline', 'bench-adjust', 'bench-press', 'rack', 'dumbbells', 'plate-tree', 'kettlebells', 'preacher'] as const;
@@ -112,6 +112,8 @@ export function buildFreeWeights(env: GenEnv, size: GenSize, p: FreeWParams, _ro
       grip(parts, [0.25, by, bz], [0.45, by, bz], 0.016);
     },
     rack: () => {
+      // SPEC 16.17.3: the downloaded half rack with its bar and plates when it is here and fits the box
+      if (wholeModel(parts, 'power-rack', { w, h: H, d })) return;
       // power rack: four uprights, a top frame with a pull-up bar, J hooks, a 2.2 m bar, two plates a side, safety bars, plate horns on the uprights
       const ux = 0.62, uzF = z1 - 0.225, uzB = z0 + 0.045, uz = uzF;
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {

@@ -1,0 +1,167 @@
+Clubhouse assets under public/look/club/ (SPEC 16.17.3). Fetched and checked by scripts/fetch-club-assets.ts; club.lock.json has every source URL, size, MD5 and SHA-256.
+The files here are our own conversions (tools/optimise-club-assets.mjs): a model is cut down to the parts used, decimated, re-centred, re-surfaced with the app's own materials where the source carried print or wear, and meshopt-compressed.
+
+CREDITS (CC BY 4.0: the author must be credited; the item card of a piece that shows a model also says the credit, see PROP_CREDITS in src/look/gym/props.ts):
+  Weight Room Set 1 by Tytan (tylerhalterman)
+    https://sketchfab.com/3d-models/weight-room-set-1-1d18318c3e81407b8321159fb3424026
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22: "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model 1d18318c3e81407b8321159fb3424026): license "by", Sketchfab's "CC Attribution": "Author must be credited. Commercial use is allowed."")
+    used for: the half rack of the power rack (its bench is not used): the frame keeps its map, whose hole rows are cut-outs, under a graphite powder-coat tint; the J-cups are re-surfaced black
+  Weight Room Set 3 by Tytan (tylerhalterman)
+    https://sketchfab.com/3d-models/weight-room-set-3-8bfa29f8961b40258d5d1dc63d19c9a2
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22: "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model 8bfa29f8961b40258d5d1dc63d19c9a2): license "by", Sketchfab's "CC Attribution": "Author must be credited. Commercial use is allowed."")
+    used for: the Olympic bar (its own knurled map) and two plates a side on the power rack (the plates re-surfaced plain black iron: the source's printed plate faces do not ship)
+  cycle by killer456
+    https://sketchfab.com/3d-models/cycle-11acede7444c4376b8080de4286b0460
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22: "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model 11acede7444c4376b8080de4286b0460): license "by", Sketchfab's "CC Attribution": "Author must be credited. Commercial use is allowed."")
+    used for: the recumbent bike, as modelled with its own maps (the maker's name printed on its flywheel shrouds painted out)
+  Pooltable by jdastine
+    https://sketchfab.com/3d-models/pooltable-cc96165eda374800a45f510d98216490
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22: "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model cc96165eda374800a45f510d98216490): license "by", Sketchfab's "CC Attribution": "Author must be credited. Commercial use is allowed."")
+    used for: the 8 ft pool table: the walnut cabinet, rails, cloth and legs with their own maps (the source's loose balls left out; the generator racks its own)
+  Table Tennis Table by Diccbudd
+    https://sketchfab.com/3d-models/table-tennis-table-457c34c9297d44a1a5d4e5d093c6a712
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22: "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model 457c34c9297d44a1a5d4e5d093c6a712): license "by", Sketchfab's "CC Attribution": "Author must be credited. Commercial use is allowed."")
+    used for: the table-tennis table (its net drawn as a sheer panel, and its posts brought in to the table's edge so the piece stays in its 152.5 cm box)
+  Karambol Carom Board by Francesco Coldesina (topfrank2013)
+    https://sketchfab.com/3d-models/karambol-carom-board-eaf67aa3bfd145289323d91f366e25f4
+    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22: "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model eaf67aa3bfd145289323d91f366e25f4): license "by", Sketchfab's "CC Attribution": "Author must be credited. Commercial use is allowed."")
+    used for: the carrom board and its coins on the carrom tables (the generated stand and stools stay)
+
+CC0 1.0 (public domain, no credit required, credited anyway):
+  Dartboard by Satyaki Mandal
+    https://polyhaven.com/a/dartboard
+    licence: CC0 1.0 https://polyhaven.com/license (read 2026-11-22: "Our assets are all licensed as CC0")
+    used for: a dartboard on a wall of the games room (sample decor, labelled)
+  Modern Ceiling Lamp 01 by James Ray Cock
+    https://polyhaven.com/a/modern_ceiling_lamp_01
+    licence: CC0 1.0 https://polyhaven.com/license (read 2026-11-22: "Our assets are all licensed as CC0")
+    used for: opal globe pendants over the lounge, games room, foyer and lobby (sample decor, labelled)
+  Chandelier 01 by Kirill Sannikov
+    https://polyhaven.com/a/Chandelier_01
+    licence: CC0 1.0 https://polyhaven.com/license (read 2026-11-22: "Our assets are all licensed as CC0")
+    used for: chandeliers down the middle of the banquet halls (sample decor, labelled)
+
+Looked at on 2026-11-22 and NOT used:
+  Treadmill Machine (sousinho), CC BY
+    https://sketchfab.com/3d-models/faed3a2a275b4fd68089e1d8bdfb7f89
+    why: a maker's logo printed on the deck and worn, blurred textures (also rejected in gym.lock.json)
+  Modular Gym and Modular Gym Props (kristnbrown), CC BY
+    https://sketchfab.com/3d-models/3c5125c0f5544059a22d35ee6670502f
+    why: the only commercial-looking treadmill found: 1.29 m wide at its 2.11 m length, a 30 % squeeze into the 0.9 m box; the rest is walls and doors
+  Treadmill 3D Model (Jj.Mmhh), Stylized Treadmill (drollShark), Treadmill - Household Props Challenge (Pixel-bit), FREE LowPoly Crossfit treadmills (3dworldvibes), CC BY
+    https://sketchfab.com/3d-models/1346f077ce5a473ea9715230244907f9
+    why: stylised or low-poly game props: a toy look
+  Treadmills, a rowing machine and an air bike named after their makers (several authors), CC BY
+    https://sketchfab.com/3d-models/327b6f6cb02c41df99a8d6f6b0796a74
+    why: named after, and printed with, a maker's brand
+  Elliptical trainer (r.m.kowalewski), CC BY
+    https://sketchfab.com/3d-models/ebab27ba3cd14c75a36643919d3c2a71
+    why: a good-looking front-drive home elliptical, but at the 1.70 m height of the box it is 1.39 m long: the 1.85 m commercial cross-trainer box would stretch it 33 %
+  smart rower (Gweenn.Valdehueza), CC BY
+    https://sketchfab.com/3d-models/3315143fce474298b8736530ded8b4ef
+    why: a compact magnetic rower 2.12 x 0.52 x 1.07 m: 15 to 17 % stretch into the 2.44 x 0.61 x 1.0 m box, a maker's mark on its fan housing, 164 000 triangles
+  Stationary Bike (topfrank2013), CC BY
+    https://sketchfab.com/3d-models/299d993f9eb94d6684562de7dca3514c
+    why: an untextured white home bike of an old design, 150 000 triangles; no spin or upright commercial bike was found
+  Exercise Bike (pampalusiek), cycle (several), CC BY
+    https://sketchfab.com/3d-models/6e77b305f7b840b4a6949d7d3ad096e4
+    why: cartoon shapes
+  Gym Trainer (Gerhald), CC BY
+    https://sketchfab.com/3d-models/9cb04641558e40dbbee9f61ac55fdcb5
+    why: a clean, untextured home multi-gym 1.74 x 1.95 x 0.87 m: no catalogue row has that shape (the lat pulldown is 1.2 x 2.15 x 1.4 m, the multi-gym 2.9 x 2.1 x 2.1 m)
+  Gym Multiple (topfrank2013), CC BY
+    https://sketchfab.com/3d-models/df5e938192244b82a1e59c7145030ee0
+    why: an untextured white home multi-gym of the same shape: no catalogue row fits it
+  Gym Equipment No.1 (ATD-London), CC BY
+    https://sketchfab.com/3d-models/edd8005a81aa49aa9916270766927fca
+    why: a three-stack multi-gym that would suit the multi-gym row, but at the scale that makes it 2.14 m tall it is 2.41 m deep: a 12.7 % squeeze into the 2.1 m box, over the limit; flat blue and red colours
+  Squat Rack With Bar (sousinho), Flat Bench and Incline Bench (sousinho), Bench Press + Stand (bantha), CC BY
+    https://sketchfab.com/3d-models/8e3109a049274de2941e7a2e014aa10d
+    why: worn, scratched and rusty textures: a garage, not a clubhouse
+  Simple Squat Rack (carloakuma), PowerRack (daviti_goderdzishvili), CC BY
+    https://sketchfab.com/3d-models/ea504391882142a99309fc03522f9721
+    why: a rough game prop; dimension text modelled into the rack
+  Liv 1 Homegym (unrealstudio), CC BY
+    https://sketchfab.com/3d-models/7badaa740d874b23970dfecd46359834
+    why: untextured grey, 150 000 triangles, the plates carry lettering
+  Training Station (preslav.petkov0606), CC BY
+    https://sketchfab.com/3d-models/93658b23bc1d42bab8ccaa9480f066c0
+    why: a pull-up tower, which the catalogue has no row for; 198 000 triangles
+  Weight Lifting Set (loganrinaldis), Bench Press (MH...), CC BY
+    https://sketchfab.com/3d-models/9fa5593a7a4042e4b7bbdc84c0375679
+    why: home benches with a leg developer or a floor mat: not the Olympic bench-press station of the row
+  Bench Press (rameezuddin14), CC BY
+    https://sketchfab.com/3d-models/c95b90fa1f24468783004cc34bdf7878
+    why: untextured white; its uprights stand 1.69 m in the 1.35 m box (20 %)
+  Weight Room Set 1 bench (Tytan), CC BY
+    https://sketchfab.com/3d-models/1d18318c3e81407b8321159fb3424026
+    why: the set's flat bench is 32 cm wide: a 75 % stretch into the 56 cm flat-bench box (the set's rack is used)
+  Barbell (MH...), Olympic Weightlifting Platform, Weightlifting Bumper Plates (sousinho), Weight Lifting Plates (Dakota.Hinkle), CC BY
+    https://sketchfab.com/3d-models/8acd766e66b6478a8843f03ebb085ba2
+    why: plates printed with a maker's name, a country or large lettering; the bar and plates of Weight Room Set 3 are used, re-surfaced
+  Dumbbell Rack (MH...), Rubber Weights in a Barbell (juliorodrigues), CC BY
+    https://sketchfab.com/3d-models/868439c605cf441e83d54a5fcfd64ab6
+    why: a home rack on a floor mat, a pump bar with bright yellow plates: the gym's own rack and dumbbells stay
+  Geometric Props: Gym Equipment (CCreations15), CC BY
+    https://sketchfab.com/3d-models/94aeb9a67a1845e586adfb5ffcc15b37
+    why: every part a 12-triangle box, untextured: geometric, not equipment
+  TF-DS-GYM, Gym (orangetheshow), Fitness Projekt, Isometric: Gym, Farmhouse Fitness Center (various), CC BY
+    https://sketchfab.com/3d-models/f3b26bfbb3174562a28bcf01f3b40f44
+    why: whole scenes or buildings, stylised
+  Changing Room Bench (oparaskos), CC BY
+    https://sketchfab.com/3d-models/5c70b6b9ab8349388926334daf7fd623
+    why: a double-sided bench with a tall slatted screen down its middle on a floor slab: the row is a 45 cm high single bench
+  Pooltable (jdastine, the larger file), CC BY
+    https://sketchfab.com/3d-models/ad4be5b7317a415ba067ede99463d42a
+    why: its rails are 0.66 m high at the 2.54 m length: 23 % short of the 0.86 m box
+  Pool Table (JesseLyons), CC BY
+    https://sketchfab.com/3d-models/fdc3b8cfc7df4fe9b1ecd1ae1198270b
+    why: 1.11 m high at the 2.54 m length: 29 % over the 0.86 m box
+  Billiard table (harrimyl), CC BY
+    https://sketchfab.com/3d-models/411bfab979fc435eb129eef157bdf671
+    why: fits the box best (3.5 %) but is flat colour with no grain beside the textured walnut table that was chosen
+  Snooker Table (Saketh_gupta), Pool Table (EpicRatt), CC BY
+    https://sketchfab.com/3d-models/e98f3cd475654539a4d27156b307925e
+    why: showroom design tables (lime and black, white and red) with patterned cloths; 16 % low for the box
+  Pooltable (jdastine, untextured), CC BY
+    https://sketchfab.com/3d-models/d53413fd53a74f838dfccc6a034d5c2b
+    why: untextured white
+  Foosball Table (owestgate), CC BY
+    https://sketchfab.com/3d-models/1303a318d4584639acef729b9fd296fc
+    why: 16 % lower than the 90 cm box, over the fit rule (also in gym.lock.json); the generated table stays
+  Table Football (Martin_Jel), Mesa de Pimbolim (devilmente), CC BY
+    https://sketchfab.com/3d-models/4d7456d07eaa4afc9e63441ef286e87b
+    why: flat bright colours: a toy look
+  Table football (3DDomino), CC BY
+    https://sketchfab.com/3d-models/d5425d70d5e940708d5faa965f62818c
+    why: 246 000 triangles; it would not even render in the preview
+  TABLE TENNIS Dark (kimtuekp), CC BY
+    https://sketchfab.com/3d-models/6c8a173604bd4a5eaee830d78df92ce3
+    why: a maker's name on the apron; 170 000 triangles
+  Ping Pong (LucSales), ALCA Ping Pong (ABritishGameDev), Table Tennis (denis98), CC BY
+    https://sketchfab.com/3d-models/3c69763602904e7f8c7276b1b8459bd4
+    why: a printed purple top (a toy), an arcade cabinet, a table at a third of its length high
+  Carrom (mfb64), CC BY
+    https://sketchfab.com/3d-models/57203e19a1514e57929000c9bb4a10df
+    why: each of its 19 coins is 6 600 triangles (also in gym.lock.json); the Karambol board is used, its spec-gloss maps converted
+  Casino Poker Table (npowell), Poker Table (Badboy17Aiden, daniel.w.lebreton), CC BY
+    https://sketchfab.com/3d-models/f36fc75d825148618aa6e5cbfb43f28e
+    why: casino felts with printed play areas, or untextured: the generated card table stays
+  Sofa 01, Sofa 02, Sofa 03, Arm Chair 01, Green Chair 01 (Poly Haven), CC0
+    https://polyhaven.com/models/furniture
+    why: period pieces (a tufted chesterfield, carved frames): not a modern clubhouse; and the plan's lounge has café tables, not a seating group, so no sofa is added
+  Modern Arm Chair 01, Coffee Table Round 01 (Poly Haven), CC0
+    https://polyhaven.com/a/modern_arm_chair_01
+    why: good pieces, not used: no scene in scope has an armchair or a coffee table of these sizes on its plan, and pieces are not added to a plan
+  Gallinera Chair, Bar Chair Round 01, Round Wooden Table 02, Metal Stool 02 (Poly Haven), CC0
+    https://polyhaven.com/a/gallinera_chair
+    why: rustic, worn or antique: not a clubhouse café
+  Hanging Picture Frame 01 and 02 (Poly Haven), CC0
+    https://polyhaven.com/a/hanging_picture_frame_01
+    why: the picture in the frame is a black panel
+  Fancy Picture Frame 01 and 02, Hanging Picture Frame 03 (Poly Haven), CC0
+    https://polyhaven.com/a/fancy_picture_frame_01
+    why: gilt period frames and old paintings: the prints are generated instead (abstract colour fields)
+  Chandelier 02 and 03, Hanging Industrial Lamp, Mounted Fluorescent Lights (Poly Haven), CC0
+    https://polyhaven.com/a/Chandelier_03
+    why: candle-style or worn industrial fittings, bare tubes: Chandelier 01 and a globe pendant are used, and the gym's linear lights are drawn
