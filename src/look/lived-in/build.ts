@@ -14,7 +14,7 @@ import { attachDecorModel } from '../models/decor';
 import { ultraDetail } from '../gen/ultra';
 import { softCushion } from '../gen/soft';
 import type { PbrClass } from '../premium/pbr';
-import { ULTRA_BUILD, ULTRA_POT, ULTRA_REPLACES } from './ultra';
+import { PRODUCT_KINDS, ULTRA_BUILD, ULTRA_POT, ULTRA_REPLACES, withSegShare } from './ultra';
 import type { ModelPolicy } from '../models/library';
 
 const DEG = Math.PI / 180;
@@ -120,6 +120,37 @@ function ball(r: number, seg: number, x: number, y: number, z: number, sx = 1, s
   g.scale(sx, sy, sz);
   g.translate(x, y, z);
   return g;
+}
+/** a box with rounded corners in plan (`rc`) and eased edges (`edge`), bottom at y0 */
+function roundedBoxGeo(x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, edge: number, rc = edge): THREE.BufferGeometry {
+  const w = x1 - x0, d = z1 - z0, h = y1 - y0, r = Math.max(0.0005, Math.min(rc, w / 2 - 0.0005, d / 2 - 0.0005));
+  const sh = new THREE.Shape();
+  sh.moveTo(-w / 2 + r, -d / 2); sh.lineTo(w / 2 - r, -d / 2); sh.quadraticCurveTo(w / 2, -d / 2, w / 2, -d / 2 + r);
+  sh.lineTo(w / 2, d / 2 - r); sh.quadraticCurveTo(w / 2, d / 2, w / 2 - r, d / 2); sh.lineTo(-w / 2 + r, d / 2);
+  sh.quadraticCurveTo(-w / 2, d / 2, -w / 2, d / 2 - r); sh.lineTo(-w / 2, -d / 2 + r); sh.quadraticCurveTo(-w / 2, -d / 2, -w / 2 + r, -d / 2);
+  const e = Math.max(0, Math.min(edge, h / 2.2, r * 0.9));
+  const g = new THREE.ExtrudeGeometry(sh, { depth: Math.max(0.0002, h - 2 * e), bevelEnabled: e > 0, bevelThickness: e, bevelSize: e, bevelSegments: 2, curveSegments: 4 });
+  // the shape lies in x-y and extrudes along +z: stand it on y and shrink the bevel back inside the footprint
+  g.translate(0, 0, e);
+  g.rotateX(-Math.PI / 2);
+  g.computeBoundingBox();
+  const bb = g.boundingBox!;
+  g.scale(w / (bb.max.x - bb.min.x), h / (bb.max.y - bb.min.y), d / (bb.max.z - bb.min.z));
+  g.computeBoundingBox();
+  const b2 = g.boundingBox!;
+  g.translate((x0 + x1) / 2 - (b2.min.x + b2.max.x) / 2, y0 - b2.min.y, (z0 + z1) / 2 - (b2.min.z + b2.max.z) / 2);
+  g.computeVertexNormals();
+  return g;
+}
+/** reverses the triangles of a geometry (after a mirror), all attributes */
+function flipFaces(g: THREE.BufferGeometry): void {
+  const idx = g.index;
+  if (idx) { for (let i = 0; i < idx.count; i += 3) { const a = idx.getX(i + 1); idx.setX(i + 1, idx.getX(i + 2)); idx.setX(i + 2, a); } }
+  else for (const attr of Object.values(g.attributes) as THREE.BufferAttribute[]) {
+    const n = attr.itemSize;
+    for (let i = 0; i + 2 < attr.count; i += 3) for (let k = 0; k < n; k++) { const t = attr.array[(i + 1) * n + k]; attr.array[(i + 1) * n + k] = attr.array[(i + 2) * n + k]; attr.array[(i + 2) * n + k] = t; }
+  }
+  g.computeVertexNormals();
 }
 function rotY(g: THREE.BufferGeometry, deg: number, cx = 0, cz = 0): THREE.BufferGeometry {
   g.translate(-cx, 0, -cz);
@@ -375,6 +406,86 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
     parts.add(box(-w / 2, w / 2, 0, 0.012, -d / 2, d / 2), '#3E3329', 0.98);
     parts.add(box(-w / 2 + 0.035, w / 2 - 0.035, 0.012, 0.0135, -d / 2 + 0.035, d / 2 - 0.035), '#8C7656', 0.98, 0, { shadow: false });
   },
+  soap(p, parts, _kit, seg) {
+    // a pump dispenser: a frosted bottle, a chrome collar and pump head
+    const k = p.height / 0.17;
+    parts.add(cyl(0.03 * k, 0.032 * k, 0, 0.12 * k, seg.s), '#E8E4DA', 0.35);
+    parts.add(cyl(0.014 * k, 0.018 * k, 0.12 * k, 0.018 * k, seg.s), '#D5D8DB', 0.2, 0.9);
+    parts.add(cyl(0.006 * k, 0.006 * k, 0.138 * k, 0.025 * k, 6), '#D5D8DB', 0.2, 0.9);
+    parts.add(box(-0.012 * k, 0.03 * k, 0.158 * k, 0.17 * k, -0.008 * k, 0.008 * k), '#D5D8DB', 0.2, 0.9);
+  },
+  towel(p, parts, _kit, seg) {
+    // a chrome towel ring on a round wall plate with a folded hand towel hanging through it; origin on the wall at the towel's hem, +Z into the room
+    const H = p.height, rr = Math.min(0.07, p.w * 0.3);
+    const plate = new THREE.CylinderGeometry(0.025, 0.025, 0.012, seg.s);
+    plate.rotateX(Math.PI / 2); plate.translate(0, H - 0.025, 0.006);
+    parts.add(plate, '#D5D8DB', 0.2, 0.9);
+    parts.add(box(-0.006, 0.006, H - 0.031, H - 0.019, 0.012, 0.05), '#D5D8DB', 0.2, 0.9);
+    const ring = new THREE.TorusGeometry(rr, 0.006, 6, seg.s * 2);
+    ring.translate(0, H - 0.025 - rr, 0.05);
+    parts.add(ring, '#D5D8DB', 0.2, 0.9);
+    // the towel: two soft layers from the bottom of the ring to the hem, a little wider than the ring
+    const tw = p.w - 0.02, top = H - 0.025 - 2 * rr + 0.012;
+    for (const [z, drop] of [[0.043, 0], [0.057, 0.03]] as const) {
+      const h = top - drop;
+      const g = softCushion(tw, h, 0.012, { r: 0.005, puff: 0.003, seg: seg.s > 8 ? 2 : 1 });
+      g.translate(0, drop + h / 2, z);
+      parts.add(g, drop ? '#E6DED0' : '#F1ECE2', 0.98);
+    }
+    // a woven band near the hem of the front layer
+    parts.add(box(-tw / 2, tw / 2, 0.08, 0.095, 0.064, 0.0645), '#C9BBA4', 0.98);
+  },
+  bathmat(p, parts) {
+    // a cotton bath mat: an off-white pile with a slightly darker border, flat on the floor
+    parts.add(box(-p.w / 2, p.w / 2, 0, p.height, -p.d / 2, p.d / 2), '#E7E1D6', 1);
+    parts.add(box(-p.w / 2 + 0.04, p.w / 2 - 0.04, p.height, p.height + 0.002, -p.d / 2 + 0.04, p.d / 2 - 0.04), '#EFEBE3', 1);
+  },
+  board(p, parts, _kit, seg) {
+    // a teak chopping board with a knife, two tomatoes and an onion (SPEC 16.15.3)
+    const w = p.w, d = p.d;
+    parts.add(roundedBoxGeo(-w / 2, w / 2, 0, 0.018, -d / 2, d / 2, 0.006), '#9A6A3F', 0.55);
+    parts.add(box(-w / 2 + 0.05, w / 2 - 0.12, 0.018, 0.0205, -0.012, 0.012), '#C9CDD1', 0.25, 0.85);
+    parts.add(roundedBoxGeo(w / 2 - 0.12, w / 2 - 0.03, 0.018, 0.032, -0.012, 0.012, 0.005), '#2A2724', 0.5);
+    for (const [x, z, r, col] of [[-0.11, -0.06, 0.032, '#C9402E'], [-0.04, -0.075, 0.03, '#D24A33'], [0.06, -0.07, 0.034, '#B97A9A']] as const) {
+      parts.add(ball(r, seg.s, x, 0.018 + r * 0.85, z, 1, 0.85, 1), col, 0.4);
+    }
+  },
+  mixer(p, parts, _kit, seg) {
+    // a mixer-grinder: a white body with a dial, a steel jar with a black lid
+    const s2 = Math.max(16, seg.s * 2);
+    parts.add(roundedBoxGeo(-0.09, 0.09, 0, 0.15, -0.1, 0.1, 0.03), '#F1EEE8', 0.35);
+    parts.add(cyl(0.02, 0.022, 0.06, 0.012, s2, 0, 0.1).rotateX(Math.PI / 2).translate(0, 0.07, 0.04), '#2A2724', 0.5);
+    parts.add(cyl(0.065, 0.055, 0.15, 0.16, s2), '#C9CDD1', 0.3, 0.85);
+    parts.add(cyl(0.068, 0.068, 0.31, 0.03, s2), '#2A2724', 0.5);
+    parts.add(box(0.06, 0.1, 0.2, 0.22, -0.012, 0.012), '#2A2724', 0.5);
+  },
+  utensils(p, parts, _kit, seg) {
+    // a steel holder with ladles, a spatula and a whisk standing in it
+    const s2 = Math.max(16, seg.s * 2);
+    parts.add(cyl(0.05, 0.045, 0, 0.16, s2), '#C9CDD1', 0.3, 0.85);
+    const rnd = mulberry32(p.seed);
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2 + rnd(), tilt = 0.12 + rnd() * 0.1;
+      const g = cyl(0.005, 0.005, 0, 0.3, 6);
+      g.rotateZ(Math.cos(a) * tilt); g.rotateX(Math.sin(a) * tilt);
+      g.translate(Math.cos(a) * 0.015, 0.02, Math.sin(a) * 0.015);
+      parts.add(g, i % 2 ? '#2A2724' : '#C9CDD1', 0.4, i % 2 ? 0 : 0.85);
+    }
+  },
+  runner(p, parts) {
+    // a linen table runner down the middle of the table, hemmed, in the room's soft accent
+    const col = tone(p, 2) === tones()[6] ? '#D9CCB4' : tone(p, 2);
+    parts.add(box(-p.w / 2, p.w / 2, 0, p.height, -p.d / 2, p.d / 2), col, 0.97);
+    // a woven band 4 cm in from each end
+    for (const sx of [-1, 1]) { const a = sx * (p.w / 2 - 0.04), b = sx * (p.w / 2 - 0.055); parts.add(box(Math.min(a, b), Math.max(a, b), p.height, p.height + 0.0012, -p.d / 2, p.d / 2), '#EFE8DC', 0.97, 0, { shadow: false }); }
+  },
+  placemat(p, parts, _kit, seg) {
+    // a round woven rattan placemat: a darker rim and rings of weave
+    const r = Math.min(p.w, p.d * 1.25) / 2, s2 = Math.max(24, seg.s * 3);
+    parts.add(cyl(r, r, 0, p.height, s2), '#8A6A45', 0.95);
+    parts.add(cyl(r - 0.02, r - 0.02, p.height, 0.0008, s2), '#A3825A', 0.95, 0, { shadow: false });
+    parts.add(cyl(r * 0.55, r * 0.55, p.height + 0.0008, 0.0006, s2), '#8F7049', 0.95, 0, { shadow: false });
+  },
   hob(p, parts, _kit, seg) {
     // a four-burner gas hob under a black glass top: burner rings, caps and a row of control knobs on the front edge
     const w = p.w, d = p.d;
@@ -386,12 +497,26 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
     for (let i = 0; i < 4; i++) parts.add(cyl(0.012, 0.012, 0.026, 0.01, 8, -0.2 + i * 0.133, d / 2 - 0.02), '#B9BDC2', 0.4, 0.6);
   },
   hood(p, parts) {
-    // a chimney hood: a sloped steel canopy 12 cm deep and a flue to the ceiling
+    // SPEC 16.15.3: a chimney hood as fitted in Indian kitchens. A brushed-steel canopy with a rounded front lip, a black glass visor sloping back
+    // to the wall, a slim touch strip, two baffle filters underneath and a flue with rounded edges up to the ceiling
     const w = p.w, d = p.d, H = p.height;
-    parts.add(box(-w / 2, w / 2, 0, 0.1, 0.02, d), '#C4C8CC', 0.35, 0.5);
-    parts.add(box(-w / 2 + 0.03, w / 2 - 0.03, 0.1, 0.16, 0.06, d - 0.06), '#B1B6BB', 0.4, 0.5);
-    parts.add(box(-0.13, 0.13, 0.16, H, 0.02, 0.26), '#C4C8CC', 0.35, 0.5);
-    parts.add(box(-w / 2 + 0.05, w / 2 - 0.05, -0.002, 0.004, d * 0.2, d * 0.8), '#2A2C2E', 0.6);
+    const prof = new THREE.Shape();
+    const lip = 0.07, top = 0.36, back = 0.2;
+    prof.moveTo(0, 0); prof.lineTo(d - 0.012, 0); prof.quadraticCurveTo(d, 0, d, 0.012); prof.lineTo(d, lip); prof.lineTo(back, top); prof.lineTo(0, top); prof.closePath();
+    const body = new THREE.ExtrudeGeometry(prof, { depth: w, bevelEnabled: false, curveSegments: 3 });
+    // the profile is drawn in (z, y): turn it so its depth runs along x, centred
+    body.rotateY(Math.PI / 2); body.translate(-w / 2, 0, 0);
+    body.scale(1, 1, -1);
+    flipFaces(body);
+    parts.add(body, '#C9CDD1', 0.32, 0.85, { cls: 'steel' });
+    // the visor: a thin black glass slab over the slope, a hair inside the canopy's sides
+    const slope = Math.hypot(d - back, top - lip), ang = Math.atan2(top - lip, d - back);
+    const visor = new THREE.BoxGeometry(w - 0.02, 0.006, slope - 0.02);
+    visor.rotateX(ang); visor.translate(0, (lip + top) / 2 + 0.004, (d + back) / 2 + 0.003);
+    parts.add(visor, '#1A1C1F', 0.08, 0.1, { cls: 'screen' });
+    parts.add(box(w / 2 - 0.2, w / 2 - 0.04, lip - 0.03, lip - 0.012, d - 0.001, d + 0.002), '#1A1C1F', 0.15, 0.1, { shadow: false });
+    for (const sx of [-1, 1]) parts.add(box(sx > 0 ? 0.02 : -w / 2 + 0.06, sx > 0 ? w / 2 - 0.06 : -0.02, -0.002, 0.001, 0.06, d - 0.06), '#8E9398', 0.5, 0.7, { shadow: false });
+    parts.add(roundedBoxGeo(-0.13, 0.13, top, H, 0.0, 0.22, 0.01, 0.015), '#C9CDD1', 0.32, 0.85, { cls: 'steel' });
   },
   wallcab(p, parts) {
     // a wall unit: white carcass, two flush doors with a hairline gap and slim steel pulls
@@ -647,6 +772,8 @@ export function buildDecorGroup(pieces: DecorPiece[], tier: 'low' | 'medium' | '
   for (const p of pieces) {
     const parts = new Parts(kit);
     if (ultra && ULTRA_REPLACES.has(p.kind)) ULTRA_BUILD[p.kind]!(p, parts);
+    // SPEC 16.15.3: the kitchen's and the bedside's pieces are drawn as products on medium and high too, with fewer round segments
+    else if (tier !== 'low' && PRODUCT_KINDS.has(p.kind) && ULTRA_BUILD[p.kind]) withSegShare(tier === 'high' ? 0.6 : 0.4, () => ULTRA_BUILD[p.kind]!(p, parts));
     else BUILD[p.kind](p, parts, kit, seg);
     const g = parts.finish();
     g.name = `decor:${p.id}`;
