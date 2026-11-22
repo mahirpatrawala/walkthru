@@ -24,6 +24,8 @@ export interface GroundArea {
   stripes?: boolean;
   /** a kerb along the edge: the height above the ground in metres, 0.05 to 0.3 (a bed's raised edge, a path's edging) */
   edgingM?: number;
+  /** a span over open ground (a bridge between two wings): drawn with a slab edge and a soffit under it, not with the storeys below (SPEC 19.13) */
+  bridge?: boolean;
 }
 
 /** What stands on an edge of the space. `facade` is the wall of the building the space attaches to: the shell draws it (with the door in it) and it rises as a building. */
@@ -89,6 +91,9 @@ export interface OutdoorFile {
   northDeg?: number;
   /** seeds the small variations (a leaf's colour, a tree's lean) so the same file always looks the same */
   seed: number;
+  /** SPEC 19.13: how far the space's ground is above the site's ground, metres (the storeys under it, from the building's levels). With it the
+   *  storeys' face is drawn down from every open edge and a plain, hazy ground lies below and beyond: not the real site, nothing is on it */
+  aboveGroundM?: number;
   areas: GroundArea[];
   pools: PoolBasin[];
   boundary: Boundary[];
@@ -138,6 +143,7 @@ export function parseOutdoor(json: unknown): OutdoorFile {
   const out: OutdoorFile = { ...EMPTY_OUTDOOR, seed: num(json.seed) ? Math.floor(json.seed) : 1, areas: [], pools: [], boundary: [], trees: [], beds: [], rows: [], roofs: [] };
   if (typeof json.note === 'string') out.note = json.note.slice(0, 200);
   if (json.northDeg !== undefined) out.northDeg = inRange(json.northDeg, -360, 360, 'northDeg');
+  if (json.aboveGroundM !== undefined) out.aboveGroundM = inRange(json.aboveGroundM, 0, 300, 'aboveGroundM');
   const list = (key: string): unknown[] => { const v = json[key]; if (v === undefined) return []; if (!Array.isArray(v)) fail(key, 'must be a list'); return v as unknown[]; };
   const seen = new Set<string>();
   const unique = (id: unknown, path: string): string => {
@@ -154,6 +160,7 @@ export function parseOutdoor(json: unknown): OutdoorFile {
     if (a.colour !== undefined) { if (typeof a.colour !== 'string' || !HEX.test(a.colour)) fail(`${p}.colour`, 'must be #rrggbb'); area.colour = a.colour; }
     if (a.stripes !== undefined) area.stripes = a.stripes === true;
     if (a.edgingM !== undefined) area.edgingM = inRange(a.edgingM, 0.05, 0.3, `${p}.edgingM`);
+    if (a.bridge === true) area.bridge = true;
     out.areas.push(area);
   });
   list('pools').forEach((b, i) => {

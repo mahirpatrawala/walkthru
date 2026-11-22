@@ -2,6 +2,7 @@
 // made from it in foliage.ts (procedural, no model files, so no licence to carry). Sizes are typical mature heights for a society garden,
 // not a botanical survey.
 import type { SpeciesId } from './types';
+import type { OutdoorModelId } from './real';
 
 export type PlantForm = 'palm' | 'crown' | 'umbrella' | 'shrub' | 'bush' | 'clumping-palm';
 export interface Species {
@@ -23,14 +24,14 @@ export interface Species {
   /** a shrub is also used as a clipped hedge */
   hedge?: boolean;
   /** SPEC 19.12: drawn by a model (src/outdoor/real.ts) once it arrives; until then (and in Node) by the procedural form */
-  model?: 'coconut-palm';
+  model?: OutdoorModelId;
 }
 
 export const SPECIES: Record<SpeciesId, Species> = {
-  'royal-palm': { id: 'royal-palm', name: 'Royal palm', form: 'palm', heightM: [7.5, 10], crownR: 2.3, leaf: ['#3F7A33', '#5F9A45', '#2B5A27'], flower: null, flowerAmount: 0, trunk: '#B9B4A8', trunkR: 0.26 },
-  'areca-palm': { id: 'areca-palm', name: 'Areca palm', form: 'clumping-palm', heightM: [2.6, 4.2], crownR: 1.3, leaf: ['#5F9F38', '#86B94B', '#3F7A2C'], flower: null, flowerAmount: 0, trunk: '#9C9A58', trunkR: 0.04 },
+  'royal-palm': { id: 'royal-palm', name: 'Royal palm', form: 'palm', heightM: [7.5, 10], crownR: 2.3, leaf: ['#3F7A33', '#5F9A45', '#2B5A27'], flower: null, flowerAmount: 0, trunk: '#B9B4A8', trunkR: 0.26, model: 'royal-palm' },
+  'areca-palm': { id: 'areca-palm', name: 'Areca palm', form: 'clumping-palm', heightM: [2.6, 4.2], crownR: 1.3, leaf: ['#5F9F38', '#86B94B', '#3F7A2C'], flower: null, flowerAmount: 0, trunk: '#9C9A58', trunkR: 0.04, model: 'areca-palm' },
   frangipani: { id: 'frangipani', name: 'Frangipani (champa)', form: 'crown', heightM: [3.2, 4.8], crownR: 1.7, leaf: ['#4E8A3E', '#6FA04E', '#386A32'], flower: '#FBF3E0', flowerAmount: 0.3, trunk: '#8E8A80', trunkR: 0.13 },
-  neem: { id: 'neem', name: 'Neem', form: 'umbrella', heightM: [6, 8.5], crownR: 3.4, leaf: ['#4A7F35', '#6A9A45', '#34602A'], flower: null, flowerAmount: 0, trunk: '#6B5A48', trunkR: 0.17 },
+  neem: { id: 'neem', name: 'Neem', form: 'umbrella', heightM: [6, 8.5], crownR: 3.4, leaf: ['#4A7F35', '#6A9A45', '#34602A'], flower: null, flowerAmount: 0, trunk: '#6B5A48', trunkR: 0.17, model: 'neem' },
   gulmohar: { id: 'gulmohar', name: 'Gulmohar', form: 'umbrella', heightM: [6, 8], crownR: 3.8, leaf: ['#5C9A3E', '#7DB652', '#3F7A30'], flower: '#E2491F', flowerAmount: 0.4, trunk: '#6F6153', trunkR: 0.15 },
   ficus: { id: 'ficus', name: 'Ficus', form: 'crown', heightM: [1.5, 6], crownR: 2.2, leaf: ['#2F6A2E', '#4A8838', '#1F4F23'], flower: null, flowerAmount: 0, trunk: '#6A5F52', trunkR: 0.2, hedge: true },
   bougainvillea: { id: 'bougainvillea', name: 'Bougainvillea', form: 'shrub', heightM: [1.3, 2.2], crownR: 1.0, leaf: ['#4F8A3A', '#6BA047', '#3B6D2E'], flower: '#D63384', flowerAmount: 0.6, trunk: '#6C5B49', trunkR: 0.03 },

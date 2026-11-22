@@ -1,0 +1,389 @@
+{
+ "generatedBy": "tools/optimise-outdoor-models.mjs",
+ "models": {
+  "neem": {
+   "kind": "plant",
+   "height": 7,
+   "parts": [
+    "leaves",
+    "trunk"
+   ],
+   "tiers": {
+    "high": {
+     "file": "models/neem.glb",
+     "bytes": 600128,
+     "tris": 14105,
+     "parts": {
+      "trunk": 2980,
+      "leaves": 11125
+     }
+    },
+    "medium": {
+     "file": "models/neem.med.glb",
+     "bytes": 242932,
+     "tris": 5560,
+     "parts": {
+      "trunk": 1250,
+      "leaves": 4310
+     }
+    },
+    "low": {
+     "file": "models/neem.low.glb",
+     "bytes": 81060,
+     "tris": 2409,
+     "parts": {
+      "trunk": 488,
+      "leaves": 1921
+     }
+    }
+   },
+   "min": [
+    -3.669,
+    0.143,
+    -3.176
+   ],
+   "max": [
+    3.287,
+    7.137,
+    3.704
+   ]
+  },
+  "areca-palm": {
+   "kind": "plant",
+   "height": 5.8,
+   "parts": [
+    "crown",
+    "fronds",
+    "trunk"
+   ],
+   "tiers": {
+    "high": {
+     "file": "models/areca-palm.glb",
+     "bytes": 408028,
+     "tris": 13361,
+     "parts": {
+      "trunk": 1094,
+      "fronds": 8888,
+      "crown": 3379
+     }
+    },
+    "medium": {
+     "file": "models/areca-palm.med.glb",
+     "bytes": 316428,
+     "tris": 6743,
+     "parts": {
+      "trunk": 547,
+      "fronds": 4508,
+      "crown": 1688
+     }
+    },
+    "low": {
+     "file": "models/areca-palm.low.glb",
+     "bytes": 109156,
+     "tris": 2847,
+     "parts": {
+      "trunk": 239,
+      "fronds": 1714,
+      "crown": 894
+     }
+    }
+   },
+   "min": [
+    -1.062,
+    -0.01,
+    -0.839
+   ],
+   "max": [
+    1.161,
+    3.544,
+    1.078
+   ]
+  },
+  "lounger": {
+   "kind": "piece",
+   "height": 0.8,
+   "parts": [
+    "cushion",
+    "frame"
+   ],
+   "tiers": {
+    "high": {
+     "file": "models/lounger.glb",
+     "bytes": 228860,
+     "tris": 4647,
+     "parts": {
+      "frame": 4181,
+      "cushion": 466
+     }
+    },
+    "medium": {
+     "file": "models/lounger.med.glb",
+     "bytes": 81712,
+     "tris": 2365,
+     "parts": {
+      "frame": 2117,
+      "cushion": 248
+     }
+    },
+    "low": {
+     "file": "models/lounger.low.glb",
+     "bytes": 26960,
+     "tris": 1316,
+     "parts": {
+      "frame": 1184,
+      "cushion": 132
+     }
+    }
+   },
+   "min": [
+    -0.346,
+    0,
+    -0.871
+   ],
+   "max": [
+    0.345,
+    0.799,
+    0.872
+   ]
+  },
+  "parasol": {
+   "kind": "piece",
+   "height": 2.4,
+   "parts": [
+    "base",
+    "canopy",
+    "pole"
+   ],
+   "tiers": {
+    "high": {
+     "file": "models/parasol.glb",
+     "bytes": 125524,
+     "tris": 1650,
+     "parts": {
+      "base": 398,
+      "pole": 798,
+      "canopy": 454
+     }
+    },
+    "medium": {
+     "file": "models/parasol.med.glb",
+     "bytes": 73632,
+     "tris": 1153,
+     "parts": {
+      "base": 278,
+      "pole": 558,
+      "canopy": 317
+     }
+    },
+    "low": {
+     "file": "models/parasol.low.glb",
+     "bytes": 22144,
+     "tris": 606,
+     "parts": {
+      "base": 159,
+      "pole": 319,
+      "canopy": 128
+     }
+    }
+   },
+   "min": [
+    -1.281,
+    0,
+    -1.281
+   ],
+   "max": [
+    1.281,
+    2.4,
+    1.281
+   ]
+  },
+  "pool-chair": {
+   "kind": "piece",
+   "height": 0.85,
+   "parts": [
+    "cushion",
+    "frame"
+   ],
+   "tiers": {
+    "high": {
+     "file": "models/pool-chair.glb",
+     "bytes": 14448,
+     "tris": 736,
+     "parts": {
+      "frame": 712,
+      "cushion": 24
+     }
+    },
+    "medium": {
+     "file": "models/pool-chair.med.glb",
+     "bytes": 14448,
+     "tris": 736,
+     "parts": {
+      "frame": 712,
+      "cushion": 24
+     }
+    },
+    "low": {
+     "file": "models/pool-chair.low.glb",
+     "bytes": 8644,
+     "tris": 600,
+     "parts": {
+      "frame": 576,
+      "cushion": 24
+     }
+    }
+   },
+   "min": [
+    -0.235,
+    0,
+    -0.25
+   ],
+   "max": [
+    0.235,
+    0.85,
+    0.25
+   ]
+  },
+  "patio-table": {
+   "kind": "piece",
+   "height": 0.72,
+   "parts": [
+    "frame",
+    "glass"
+   ],
+   "tiers": {
+    "high": {
+     "file": "models/patio-table.glb",
+     "bytes": 27952,
+     "tris": 1888,
+     "parts": {
+      "frame": 1808,
+      "glass": 80
+     }
+    },
+    "medium": {
+     "file": "models/patio-table.med.glb",
+     "bytes": 27952,
+     "tris": 1888,
+     "parts": {
+      "frame": 1808,
+      "glass": 80
+     }
+    },
+    "low": {
+     "file": "models/patio-table.low.glb",
+     "bytes": 27952,
+     "tris": 1888,
+     "parts": {
+      "frame": 1808,
+      "glass": 80
+     }
+    }
+   },
+   "min": [
+    -0.418,
+    0,
+    -0.423
+   ],
+   "max": [
+    0.418,
+    0.72,
+    0.423
+   ]
+  },
+  "bench": {
+   "kind": "piece",
+   "height": 0.82,
+   "parts": [
+    "frame",
+    "wood"
+   ],
+   "tiers": {
+    "high": {
+     "file": "models/bench.glb",
+     "bytes": 97008,
+     "tris": 3038,
+     "parts": {
+      "frame": 2544,
+      "wood": 494
+     }
+    },
+    "medium": {
+     "file": "models/bench.med.glb",
+     "bytes": 63244,
+     "tris": 2810,
+     "parts": {
+      "frame": 2316,
+      "wood": 494
+     }
+    },
+    "low": {
+     "file": "models/bench.low.glb",
+     "bytes": 17180,
+     "tris": 1272,
+     "parts": {
+      "frame": 848,
+      "wood": 424
+     }
+    }
+   },
+   "min": [
+    -0.773,
+    0,
+    -0.274
+   ],
+   "max": [
+    0.773,
+    0.82,
+    0.274
+   ]
+  },
+  "royal-palm": {
+   "kind": "plant",
+   "height": 4.48,
+   "parts": [
+    "fronds",
+    "trunk"
+   ],
+   "tiers": {
+    "high": {
+     "file": "models/royal-palm.glb",
+     "bytes": 211852,
+     "tris": 4223,
+     "parts": {
+      "trunk": 3992,
+      "fronds": 231
+     }
+    },
+    "medium": {
+     "file": "models/royal-palm.med.glb",
+     "bytes": 90752,
+     "tris": 1827,
+     "parts": {
+      "trunk": 1596,
+      "fronds": 231
+     }
+    },
+    "low": {
+     "file": "models/royal-palm.low.glb",
+     "bytes": 37592,
+     "tris": 895,
+     "parts": {
+      "trunk": 664,
+      "fronds": 231
+     }
+    }
+   },
+   "min": [
+    -0.449,
+    0.001,
+    -1.122
+   ],
+   "max": [
+    1.998,
+    4.48,
+    1.339
+   ]
+  }
+ }
+}

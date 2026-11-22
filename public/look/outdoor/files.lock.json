@@ -1,5 +1,5 @@
 {
-  "generatedBy": "tools/optimise-outdoor-real.mjs",
+  "generatedBy": "tools/optimise-outdoor-real.mjs and tools/optimise-outdoor-models.mjs",
   "files": {
     "grass/tufts.webp": {
       "bytes": 36562,
@@ -69,6 +69,30 @@
       "bytes": 46796,
       "sha256": "dafb2499ced9e8db269bbdbe53b72f551cda80618b754b111e44f023a3a972b9"
     },
+    "models/areca-palm.glb": {
+      "bytes": 408028,
+      "sha256": "de0e890c088491c3ebd3f3551d14b95ad5749c4bd3f2d2db0ce64abbe9262c54"
+    },
+    "models/areca-palm.low.glb": {
+      "bytes": 109156,
+      "sha256": "2479d238c1eb1bb8bc8e9f7c3742ed9759d209d8b498aa69377178a6ee261e16"
+    },
+    "models/areca-palm.med.glb": {
+      "bytes": 316428,
+      "sha256": "5f050c11afa5a0549f56199f2de4b62b01e67936fb639094b3132967a32ed26b"
+    },
+    "models/bench.glb": {
+      "bytes": 97008,
+      "sha256": "99ca9284df744bc7088603c2ae4b35ced83658c1eaeafe7220f53307049d5851"
+    },
+    "models/bench.low.glb": {
+      "bytes": 17180,
+      "sha256": "9c835baa69cdaf4608b835f664b42237d7bfdef0b46b4dec03d35532deeebf0b"
+    },
+    "models/bench.med.glb": {
+      "bytes": 63244,
+      "sha256": "b8e91bf56889ce729d5811773720f6f6f79de47c963d8ab8a3806b6c3e171593"
+    },
     "models/coconut-palm.glb": {
       "bytes": 459444,
       "sha256": "41cdf3628ca22a1df2ca8c282fa5b63b1da517085b3c6bbe89e46bdd554a1d47"
@@ -76,6 +100,78 @@
     "models/coconut-palm.low.glb": {
       "bytes": 160332,
       "sha256": "96c615c84b96f840250cd302e538feb9b05acf5f80c8d623b049fa290bab926a"
+    },
+    "models/lounger.glb": {
+      "bytes": 228860,
+      "sha256": "b733b58c9848ebfae1aa43e6ce4e41cc00f27f2dcda7b7fb4cb4d7b7eaed71a5"
+    },
+    "models/lounger.low.glb": {
+      "bytes": 26960,
+      "sha256": "e6b3d92f3729aa2bc147edd03eb27c0c1d7d689dbacd580e354873f3b93af730"
+    },
+    "models/lounger.med.glb": {
+      "bytes": 81712,
+      "sha256": "dc8240a765b8c984da20f13aaffc5e892a3a5c17becedccb1f526dc259146309"
+    },
+    "models/neem.glb": {
+      "bytes": 600128,
+      "sha256": "0cb1ebe5f909c898e0e14ba9be706511fc04f7f877d1251b491cea30fb8e4f14"
+    },
+    "models/neem.low.glb": {
+      "bytes": 81060,
+      "sha256": "23090996ffbd5ba9a1e16b1cc615983a70d805882f6749a7a3191daf2ec46e03"
+    },
+    "models/neem.med.glb": {
+      "bytes": 242932,
+      "sha256": "6bfa07c4b5c28a25a7193a2acb83fd3a601dbfda49e3f4ac024a6d28c2949642"
+    },
+    "models/parasol.glb": {
+      "bytes": 125524,
+      "sha256": "2f8934c48971918d502f1c53e160151e46a0a5e668812aae80e7f738f0456f9f"
+    },
+    "models/parasol.low.glb": {
+      "bytes": 22144,
+      "sha256": "8c2651b8f0a1f2b9646b2b7dfce068f38e23d7350dfc7cc92e57b1b736f8a30e"
+    },
+    "models/parasol.med.glb": {
+      "bytes": 73632,
+      "sha256": "937c92ca4c0cd7810fcb6d10a7d55e87c5e9ac0c42ead8d1a0f3584684872c82"
+    },
+    "models/patio-table.glb": {
+      "bytes": 27952,
+      "sha256": "aa22d3f45fa14123146a1e46253e267734c9e707b33184b1a64b5d5e2851d0a9"
+    },
+    "models/patio-table.low.glb": {
+      "bytes": 27952,
+      "sha256": "aa22d3f45fa14123146a1e46253e267734c9e707b33184b1a64b5d5e2851d0a9"
+    },
+    "models/patio-table.med.glb": {
+      "bytes": 27952,
+      "sha256": "aa22d3f45fa14123146a1e46253e267734c9e707b33184b1a64b5d5e2851d0a9"
+    },
+    "models/pool-chair.glb": {
+      "bytes": 14448,
+      "sha256": "24cdd8f4e0988e613fa1ac101db68bffbd97493fb8ab149fcf1f4a09d741272c"
+    },
+    "models/pool-chair.low.glb": {
+      "bytes": 8644,
+      "sha256": "284c8b6bd4368edbb8bd6af8058bda4796f890a94c7420cddde14b6bf13d4402"
+    },
+    "models/pool-chair.med.glb": {
+      "bytes": 14448,
+      "sha256": "24cdd8f4e0988e613fa1ac101db68bffbd97493fb8ab149fcf1f4a09d741272c"
+    },
+    "models/royal-palm.glb": {
+      "bytes": 211852,
+      "sha256": "874c02f0e15b58f5c795d603158d6282d7c835733caaf8b9c6e42424489ebefd"
+    },
+    "models/royal-palm.low.glb": {
+      "bytes": 37592,
+      "sha256": "959a6e13b046a902261e44cc5d8fe0eb354cc5107418c7f0c7b26f034c5a3e30"
+    },
+    "models/royal-palm.med.glb": {
+      "bytes": 90752,
+      "sha256": "011a8c810c8c86060b9d439a323fa38551c58bfcaeda60ceae17397ffe83d9fc"
     },
     "sky/sky_day.jpg": {
       "bytes": 79926,

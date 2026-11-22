@@ -137,5 +137,6 @@
   ],
   "roofs": [],
   "note": "Sample banquet deck after a published builder brochure, scaled from its one printed dimension",
-  "northDeg": -15
+  "northDeg": -15,
+  "aboveGroundM": 4.2
 }

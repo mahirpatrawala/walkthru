@@ -10,6 +10,8 @@ import { softCushion } from './soft';
 import { softSeg } from './core';
 import { CHROME, LEAF, RUBBER, SOIL, bar, disc, post, soft } from './kit';
 import { fitToBox } from './outdoor-fit';
+import { addPiece, pieceGeo, pieceModelIds } from './outdoor-models';
+import type { PieceGeo, PieceModelId } from './outdoor-models';
 
 export const POOL_VARIANTS = ['lounger', 'umbrella', 'chair', 'table', 'shower', 'towel', 'lifeguard', 'life-ring', 'depth-sign', 'changing-sign', 'planter', 'aqua-tower', 'aqua-sun', 'aqua-mushroom', 'aqua-jets'] as const;
 export type PoolVariant = (typeof POOL_VARIANTS)[number];
@@ -24,7 +26,36 @@ export const POOL_BLUE: MatSpec = { key: 'paint', tint: '#1E73A8' };
 export const SIGN_RED: MatSpec = { key: 'paint', tint: '#C93A2E' };
 export const WHITE_PAINT: MatSpec = { key: 'paint', tint: '#F2F2EE' };
 
+/** SPEC 19.13: the pieces drawn by a downloaded model once it has arrived (src/look/gen/outdoor-models.ts); until then, and without it, the generator's */
+export const POOL_MODELS: Partial<Record<PoolVariant, PieceModelId>> = { lounger: 'lounger', umbrella: 'parasol', chair: 'pool-chair', table: 'patio-table' };
+
 export function buildPool(env: GenEnv, size: GenSize, p: PoolParams, _roles: Roles): THREE.Group {
+  const mid = POOL_MODELS[p.variant];
+  const model = mid && pieceModelIds().includes(mid) ? pieceGeo(mid, env.q.tier) : null;
+  if (mid && model) return poolModel(model, size, p);
+  const out = buildPoolDrawn(env, size, p);
+  if (mid && pieceModelIds().includes(mid)) out.userData.outdoorModelWanted = mid;
+  return out;
+}
+
+/** a piece from its model, exactly its box: a parasol's base and pole are the box, its canopy is `canopyM` across (beyond the base, as the drawn one) */
+function poolModel(model: PieceGeo, { w, d, h }: GenSize, p: PoolParams): THREE.Group {
+  const g = new THREE.Group();
+  g.name = `gen:pool-${p.variant}`;
+  if (p.variant === 'umbrella') {
+    addPiece(g, model, w, h, d, (part) => (part === 'canopy' ? 'umbrella-canopy' : part), (part) => part !== 'canopy');
+    const canopy = g.children.find((c) => c.name === 'umbrella-canopy') as THREE.Mesh | undefined;
+    if (canopy) {
+      canopy.geometry.computeBoundingBox();
+      const b = canopy.geometry.boundingBox!, k = p.canopyM / Math.max(1e-6, b.max.x - b.min.x, b.max.z - b.min.z);
+      canopy.geometry.scale(k, 1, k);
+    }
+  } else addPiece(g, model, w, h, d, (part) => part);
+  g.userData.outdoorModelUsed = model.id;
+  return g;
+}
+
+function buildPoolDrawn(env: GenEnv, size: GenSize, p: PoolParams): THREE.Group {
   const parts = new Parts(env, `gen:pool-${p.variant}`);
   switch (p.variant) {
     case 'lounger': lounger(parts, size); break;

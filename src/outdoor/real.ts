@@ -9,6 +9,7 @@ import type { Tier } from '../look/types';
 import { LOOK_BASE } from '../look/assets';
 import type { AssetLoader } from '../look/assets';
 import type { SpeciesId } from './types';
+import modelFacts from './models.json';
 
 const BASE = 'outdoor/';
 const lowOf = (tier: Tier): string => (tier === 'low' ? '.low' : '');
@@ -28,11 +29,25 @@ export const MOSAIC_REPEAT_M = 0.3;
 export const DECK_REPEAT_M = 2;
 export const BARK_REPEAT_M = 1.5;
 
-/** the models of the open-air spaces: the file per tier, its height as shipped (metres, measured by the optimiser) and its parts */
-export const OUTDOOR_MODELS = {
+/** SPEC 19.13: the models of tools/optimise-outdoor-models.mjs, as measured on the shipped files (one file a tier: .low, .med and the full one) */
+export interface ModelFacts { kind: 'plant' | 'piece'; height: number; parts: string[]; min: number[]; max: number[]; tiers: Record<Tier, { file: string; bytes: number; tris: number }> }
+export const MODEL_FACTS = (modelFacts as unknown as { models: Record<string, ModelFacts> }).models;
+
+/** the plants drawn by a model (SPEC 19.12 coconut palm; SPEC 19.13 the others): the file per tier, its height as shipped (metres) and its parts */
+export type OutdoorModelId = 'coconut-palm' | 'neem' | 'areca-palm' | 'royal-palm';
+export interface OutdoorModel { file(tier: Tier): string; heightM: number; parts: readonly string[] }
+const fromFacts = (id: string): OutdoorModel => {
+  const f = MODEL_FACTS[id];
+  return { file: (tier) => `${BASE}${f?.tiers[tier]?.file ?? `models/${id}.glb`}`, heightM: f?.max?.[1] ?? f?.height ?? 1, parts: f?.parts ?? [] };
+};
+export const OUTDOOR_MODELS: Record<OutdoorModelId, OutdoorModel> = {
   'coconut-palm': { file: (tier: Tier) => `${BASE}models/coconut-palm${lowOf(tier)}.glb`, heightM: 7.65, parts: ['trunk', 'fibre', 'fronds', 'crown', 'nuts'] },
-} as const;
-export type OutdoorModelId = keyof typeof OUTDOOR_MODELS;
+  neem: fromFacts('neem'),
+  'areca-palm': fromFacts('areca-palm'),
+  'royal-palm': fromFacts('royal-palm'),
+};
+/** a model's leafy parts: alpha-tested, double-sided, moved by the wind */
+export const LEAFY_PARTS: ReadonlySet<string> = new Set(['leaves', 'fronds', 'flowers', 'crown', 'nuts', 'fibre']);
 
 /** a photographic texture through the outdoor materials' loader; null (and a warning) when it does not arrive */
 export async function photoTexture(loader: AssetLoader, path: string, srgb = true, anisotropy = 4): Promise<THREE.Texture | null> {

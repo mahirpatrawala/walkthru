@@ -11,7 +11,7 @@ import { SPECIES, speciesOf } from './species';
 import type { Species } from './species';
 import type { PlantSpot, SpeciesId } from './types';
 import type { AssetLoader } from '../look/assets';
-import { BARK_PATH, BARK_REPEAT_M, FROND_PATH, HEDGE_PATH, loadOutdoorModel, OUTDOOR_MODELS, photoTexture, sprayPath } from './real';
+import { BARK_PATH, BARK_REPEAT_M, FROND_PATH, HEDGE_PATH, LEAFY_PARTS, loadOutdoorModel, OUTDOOR_MODELS, photoTexture, sprayPath } from './real';
 
 const hasDom = (): boolean => typeof document !== 'undefined';
 
@@ -443,8 +443,11 @@ export function mountFoliage(spots: PlantSpot[], hedges: HedgeSeg[], tier: Tier,
         if (!parts) return;
         if (disposed) { for (const p of parts) { p.geometry.dispose(); disposeMaterial(p.material); } return; }
         for (const p of parts) {
-          if (windOn && (p.name === 'fronds' || p.name === 'nuts' || p.name === 'crown' || p.name === 'fibre')) withWind(p.material, clock, p.name === 'fronds' ? 0.06 : 0.03, model.heightM);
-          if (p.name === 'fronds') { p.material.side = THREE.DoubleSide; p.material.alphaTest = Math.max(0.4, p.material.alphaTest); }
+          const leafy = LEAFY_PARTS.has(p.name);
+          if (windOn && leafy) withWind(p.material, clock, p.name === 'fronds' ? 0.06 : p.name === 'leaves' || p.name === 'flowers' ? 0.045 : 0.03, model.heightM);
+          if (p.name === 'fronds' || p.name === 'leaves' || p.name === 'flowers') { p.material.side = THREE.DoubleSide; p.material.alphaTest = Math.max(0.4, p.material.alphaTest); }
+          // SPEC 19.13: a leaf lights itself a little with its own colour (light through a leaf), as the photo cards do: a crown seen against the sky is not black
+          if ((p.name === 'leaves' || p.name === 'flowers') && p.material.map) { p.material.emissiveMap = p.material.map; p.material.emissive.setRGB(1, 1, 1); p.material.emissiveIntensity = 0.14; }
           const im = mk(p.geometry, p.material, `plants:${id}:model-${p.name}`, model.heightM);
           im.castShadow = tier !== 'low';
           disposables.push(p.geometry, { dispose: () => disposeMaterial(p.material) });
