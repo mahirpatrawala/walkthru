@@ -39,7 +39,10 @@ function creditOf(o: Record<string, unknown>, lock: string, key: string): Credit
   if (!/^https?:\/\//.test(url)) return null;
   const authors = Array.isArray(o.authors) ? o.authors.map(str).filter(Boolean).join(', ') : '';
   const author = authors || str(o.author) || str(o.creator) || str(o.by);
-  const title = str(o.name) || str(o.title) || str(o.id) || key;
+  // a lock keyed by file path (an outdoor map) has no title: the asset's name is the last part of its page, made readable
+  const fromPage = (): string => decodeURIComponent(url.replace(/[?#].*$/, '').replace(/\/$/, '').split('/').pop() ?? '').replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const named = str(o.name) || str(o.title) || str(o.id);
+  const title = named && !/^\S+\/\S+$/.test(named) ? named : fromPage() || key;
   const licenceUrl = str(o.licenceUrl) || str(o.licencePage) || str(o.licenseUrl) || str(o.licensePage) || (LIC_URL.find(([re]) => re.test(licence))?.[1] ?? '');
   return { title, author: author || 'unknown author', url, licence, licenceUrl, lock };
 }

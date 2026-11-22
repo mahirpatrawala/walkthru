@@ -317,6 +317,8 @@ describe('"3D model credits": every CC BY asset of every lock file', () => {
     const firstCc0 = list.findIndex((c) => !isAttribution(c.licence));
     expect(list.slice(0, firstCc0 < 0 ? list.length : firstCc0).every((c) => isAttribution(c.licence))).toBe(true);
     for (const c of list) expect(isForbiddenLicence(c.licence), `${c.title} ${c.licence}`).toBe(false);
+    // a lock keyed by file path still gives a readable title (the asset's page name), never a file path
+    for (const c of list) expect(c.title, c.url).not.toMatch(/\.(jpe?g|png|webp|glb|gltf|hdr)$/i);
     for (const r of lock.rejected) expect(list.some((c) => c.url === r.url && /CC BY/.test(c.licence) && c.lock.includes('home')), r.url).toBe(false);
   });
   it('is tolerant: a missing file, a broken one, an unknown shape and new fields are skipped or read, never thrown', async () => {
