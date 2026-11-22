@@ -114,7 +114,7 @@ export function buildSofa(env: GenEnv, size: GenSize, p: SofaParams, roles: Role
     // piping along the front edge of each seat pad, and a seam line where the pads meet
     else if (q.tier !== 'low') {
       const pipe = shade(fab, 0.74);
-      parts.put('sofa-piping', pipe, rod({ x: x - (cw - 0.03) / 2, y: frameTop + seatH - 0.012, z: zb1 + 0.002 }, { x: x + (cw - 0.03) / 2, y: frameTop + seatH - 0.012, z: zb1 + 0.002 }, 0.0045, 6), { noShadow: true });
+      parts.put('sofa-piping', pipe, rod({ x: x - (cw - 0.03) / 2, y: frameTop + seatH - 0.012, z: zb1 - 0.0045 }, { x: x + (cw - 0.03) / 2, y: frameTop + seatH - 0.012, z: zb1 - 0.0045 }, 0.0045, 6), { noShadow: true });
     }
   }
   if (chaise !== 'none') {

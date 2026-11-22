@@ -36,7 +36,8 @@ export const WARDROBE_DEFAULTS: WardrobeParams = {
 };
 
 /** the shutter fronts stand this far behind the box front, so a handle stays inside the box */
-export const FRONT_RECESS = 0.009;
+/** shutters stand back from the box front by this much, so the bar and knob handles (16 mm proud of the face) stay inside the drawn box (bake parity, 1 mm) */
+export const FRONT_RECESS = 0.017;
 const GAP = 0.003;
 const TH = 0.018;
 const FRAME = 0.04;

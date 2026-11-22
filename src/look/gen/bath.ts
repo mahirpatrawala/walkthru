@@ -62,7 +62,7 @@ export function buildBath(env: GenEnv, size: GenSize, p: BathParams, roles: Role
     ]);
     put('wc-seat', [
       { y: S - 0.03, w: Math.min(w, 0.38), d: Math.min(d - 0.06, 0.66), zc: zf + 0.03, p: 2.8 },
-      { y: S - 0.012, w: Math.min(w, 0.385), d: Math.min(d - 0.055, 0.665), zc: zf + 0.03, p: 2.8 },
+      { y: S - 0.012, w: Math.min(w, 0.385), d: Math.min(d - 0.055, 0.665), zc: zf + 0.0275, p: 2.8 }, // the lip stays inside the box front
       { y: S, w: Math.min(w, 0.34), d: Math.min(d - 0.1, 0.6), zc: zf + 0.03, p: 3 },
     ]);
     parts.put('wc-cistern', ceramic, roundedBoxBetween(-hw + 0.01, hw - 0.01, S - 0.04, H - 0.022, -d / 2, -d / 2 + 0.2, 0.025, q.seg));
