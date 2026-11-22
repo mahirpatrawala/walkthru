@@ -4,7 +4,9 @@ import * as THREE from 'three';
 import { Parts, role, roleOr } from './core';
 import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { CHROME, SOIL, soft } from './kit';
-import { ACCENT_BLUE, ACCENT_RED, CONSOLE, FRAME, FRAME_GREY, IRON, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, WOOD_ASH, cylY, cylZ, pad, slab, tube } from './gymkit';
+import { softCushion } from './soft';
+import { addTextured, propGeo, propInfo } from '../gym/props';
+import { ACCENT_BLUE, ACCENT_RED, CONSOLE, FRAME, FRAME_GREY, IRON, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, WOOD_ASH, cylX, cylY, cylZ, noteProp, pad, rtube, slab, tube } from './gymkit';
 
 export const HALL_VARIANTS = ['chair', 'table-rect', 'table-round', 'stage', 'podium', 'screen', 'speaker', 'carrom', 'tt', 'pool', 'foosball', 'chess-set', 'card-set', 'carrom-set', 'banquet-set', 'cafe-set'] as const;
 export type HallVariant = (typeof HALL_VARIANTS)[number];
@@ -124,18 +126,22 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
     },
     tt: () => {
       // a table-tennis table: a 76 cm high blue top 274 × 152.5 with white lines, a net on two posts, and two folding leg frames
-      slab(parts, 'tt-top', { key: 'paint', tint: '#1E4D8C' }, -x1, x1, S - 0.03, S, z0, z1);
+      parts.box('tt-top', { key: 'paint', tint: '#1C477F' }, -x1, x1, S - 0.025, S, z0, z1, { c: 0.004 });
       slab(parts, 'tt-edge', { key: 'laminate', tint: '#F4F4F0' }, -x1, x1, S - 0.0, S + 0.0005, z0, z0 + 0.02);
       slab(parts, 'tt-edge', { key: 'laminate', tint: '#F4F4F0' }, -x1, x1, S - 0.0, S + 0.0005, z1 - 0.02, z1);
       slab(parts, 'tt-edge', { key: 'laminate', tint: '#F4F4F0' }, -x1, -x1 + 0.02, S - 0.0, S + 0.0005, z0, z1);
       slab(parts, 'tt-edge', { key: 'laminate', tint: '#F4F4F0' }, x1 - 0.02, x1, S - 0.0, S + 0.0005, z0, z1);
       slab(parts, 'tt-edge', { key: 'laminate', tint: '#F4F4F0' }, -0.0025, 0.0025, S - 0.0, S + 0.0005, z0, z1);
-      slab(parts, 'tt-frame', FRAME, -x1 + 0.1, x1 - 0.1, S - 0.07, S - 0.03, z0 + 0.1, z1 - 0.1);
+      // SPEC 16.17.2: a steel apron under each half, two rolling undercarriages of square tube with a cross brace, rubber-tyred castors
       for (const sx of [-1, 1]) {
-        const x = sx * (x1 - 0.35);
-        for (const sz of [-1, 1]) tube(parts, 'tt-legs', FRAME_GREY, [x, 0.06, sz * (z1 - 0.12)], [x, S - 0.07, sz * (z1 - 0.08)], 0.02);
-        tube(parts, 'tt-legs', FRAME_GREY, [x, 0.06, -(z1 - 0.12)], [x, 0.06, z1 - 0.12], 0.02);
-        for (const sz of [-1, 1]) cylY(parts, 'tt-wheels', IRON, x, sz * (z1 - 0.12), 0, 0.06, 0.03, 8);
+        rtube(parts, 'tt-frame', FRAME, [sx * 0.06, S - 0.05, z0 + 0.08], [sx * (x1 - 0.08), S - 0.05, z0 + 0.08], 0.03, 0.04, 0.006);
+        rtube(parts, 'tt-frame', FRAME, [sx * 0.06, S - 0.05, z1 - 0.08], [sx * (x1 - 0.08), S - 0.05, z1 - 0.08], 0.03, 0.04, 0.006);
+        for (const xx of [sx * 0.06, sx * (x1 - 0.08)]) rtube(parts, 'tt-frame', FRAME, [xx, S - 0.05, z0 + 0.08], [xx, S - 0.05, z1 - 0.08], 0.03, 0.04, 0.006);
+        const x = sx * (x1 - 0.42);
+        for (const sz of [-1, 1]) rtube(parts, 'tt-legs', FRAME_GREY, [x, 0.08, sz * (z1 - 0.16)], [x, S - 0.07, sz * (z1 - 0.2)], 0.04, 0.04, 0.008);
+        rtube(parts, 'tt-legs', FRAME_GREY, [x, 0.08, -(z1 - 0.16)], [x, 0.08, z1 - 0.16], 0.04, 0.04, 0.008);
+        rtube(parts, 'tt-legs', FRAME_GREY, [x, 0.12, 0], [sx * 0.12, S - 0.07, 0], 0.03, 0.03, 0.006);
+        for (const sz of [-1, 1]) { cylX(parts, 'tt-wheels', { key: 'rubber', tint: '#2A2B2E' }, x - 0.015, x + 0.015, 0.035, sz * (z1 - 0.16), 0.035, 12); slab(parts, 'tt-castors', FRAME, x - 0.02, x + 0.02, 0.035, 0.08, sz * (z1 - 0.16) - 0.02, sz * (z1 - 0.16) + 0.02); }
       }
       // net: 15.25 cm high above the top, posts at each side
       for (const sz of [-1, 1]) tube(parts, 'tt-net-posts', CHROME, [0, S, sz * (z1 - 0.007)], [0, H, sz * (z1 - 0.007)], 0.007);
@@ -143,35 +149,58 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
       slab(parts, 'tt-net-tape', { key: 'laminate', tint: '#F4F4F0' }, -0.005, 0.005, H - 0.012, H, z0, z1);
     },
     pool: () => {
-      // a pool table: a wooden body with six pockets, cloth in green, cushion rails, four turned legs; fifteen balls racked at one end and the cue ball
-      const bt = S, rail = 0.1;
-      parts.box('pool-body', POOL_WOOD, -x1, x1, bt - 0.2, bt - 0.0, z0, z1, { c: 0.01 });
-      slab(parts, 'pool-cloth', { key: 'felt', tint: '#1F6B46' }, -x1 + rail, x1 - rail, bt - 0.0, bt + 0.0006, z0 + rail, z1 - rail);
-      for (const [x, z, l, dd] of [[0, z0 + rail / 2, w - 2 * rail, rail], [0, z1 - rail / 2, w - 2 * rail, rail], [-x1 + rail / 2, 0, rail, d - 2 * rail], [x1 - rail / 2, 0, rail, d - 2 * rail]] as const)
-        parts.box('pool-cushions', { key: 'felt', tint: '#17573A' }, x - l / 2, x + l / 2, bt, bt + 0.06, z - dd / 2, z + dd / 2, { c: 0.01 });
-      for (const [cx, cz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1]] as const) cylY(parts, 'pool-pockets', IRON, cx * (x1 - rail * 0.6), cz * (z1 - rail * 0.6), bt - 0.0, bt + 0.045, 0.045, 12);
+      // an 8 ft pool table (SPEC 16.17.2): a walnut cabinet with a moulded apron, wood top rails with inlaid sights, green cushions and cloth, six
+      // leather pocket cups, four turned legs on levelling feet; fifteen balls racked at the foot spot, the cue ball at the head
+      const bt = S, rail = 0.12;
+      const body = q.tier === 'low' ? new THREE.BoxGeometry(w, 0.2, d) : softCushion(w, 0.2, d, { r: 0.03, puff: 0.002, seg: 2 });
+      body.translate(0, bt - 0.1, 0);
+      parts.put('pool-body', POOL_WOOD, body, { grain: 'x' });
+      parts.box('pool-apron', { key: 'wood', tint: '#5A4634' }, -x1 + 0.03, x1 - 0.03, bt - 0.26, bt - 0.19, z0 + 0.03, z1 - 0.03, { c: 0.012, grain: 'x' });
+      slab(parts, 'pool-cloth', { key: 'felt', tint: '#1F6B46' }, -x1 + rail, x1 - rail, bt - 0.004, bt + 0.0006, z0 + rail, z1 - rail);
+      // top rails (wood) and the cushions inside them (felt), H at the rails' top
+      const rt = H;
+      for (const [x, z, l, dd] of [[0, z0 + rail * 0.35, w, rail * 0.7], [0, z1 - rail * 0.35, w, rail * 0.7], [-x1 + rail * 0.35, 0, rail * 0.7, d], [x1 - rail * 0.35, 0, rail * 0.7, d]] as const)
+        parts.box('pool-rails', POOL_WOOD, x - l / 2, x + l / 2, bt + 0.005, rt, z - dd / 2, z + dd / 2, { c: 0.012, grain: x === 0 ? 'x' : 'z' });
+      for (const [x, z, l, dd] of [[0, z0 + rail * 0.85, w - 2 * rail, rail * 0.3], [0, z1 - rail * 0.85, w - 2 * rail, rail * 0.3], [-x1 + rail * 0.85, 0, rail * 0.3, d - 2 * rail], [x1 - rail * 0.85, 0, rail * 0.3, d - 2 * rail]] as const)
+        parts.box('pool-cushions', { key: 'felt', tint: '#17573A' }, x - l / 2, x + l / 2, bt, rt - 0.012, z - dd / 2, z + dd / 2, { c: 0.012 });
+      // sights: small pearl diamonds on the rails, three a section
+      if (q.tier !== 'low') {
+        for (const k of [1, 2, 3, 5, 6, 7]) for (const zz of [z0 + rail * 0.35, z1 - rail * 0.35]) cylY(parts, 'pool-sights', { key: 'white' }, -x1 + (k * w) / 8, zz, rt - 0.001, rt + 0.0008, 0.007, 8);
+        for (const k of [1, 2, 3]) for (const xx of [-x1 + rail * 0.35, x1 - rail * 0.35]) cylY(parts, 'pool-sights', { key: 'white' }, xx, z0 + (k * d) / 4, rt - 0.001, rt + 0.0008, 0.007, 8);
+      }
+      // pockets: black leather cups at the corners and the middle of the long sides, a dark hole in the bed
+      for (const [cx, cz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1]] as const) {
+        const px = cx * (x1 - rail * 0.75), pz = cz * (z1 - rail * 0.75);
+        cylY(parts, 'pool-pockets', { key: 'vinyl', tint: '#1B1A19' }, px, pz, bt - 0.12, rt + 0.002, 0.06, 16);
+        cylY(parts, 'pool-pocket-holes', { key: 'dark', tint: '#0C0C0C' }, px, pz, rt + 0.002, rt + 0.003, 0.045, 16);
+      }
+      // turned legs
+      const prof = [[0, 0], [0.09, 0], [0.09, 0.03], [0.07, 0.05], [0.06, 0.18], [0.085, 0.3], [0.09, 0.38], [0.065, 0.46], [0.07, bt - 0.26], [0, bt - 0.26]].map(([r0, y0]) => new THREE.Vector2(r0, y0));
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        cylY(parts, 'pool-legs', POOL_WOOD, sx * (x1 - 0.17), sz * (z1 - 0.17), 0, bt - 0.2, 0.08, 10);
-        cylY(parts, 'pool-feet', IRON, sx * (x1 - 0.17), sz * (z1 - 0.17), 0, 0.03, 0.095, 10);
+        const lg = new THREE.LatheGeometry(prof, q.tier === 'low' ? 8 : 16);
+        lg.translate(sx * (x1 - 0.2), 0, sz * (z1 - 0.2));
+        parts.put('pool-legs', POOL_WOOD, lg);
       }
       if (q.tier !== 'low') {
-        const br = 0.0285;
+        const br = 0.0285, bs = q.tier === 'high' ? 12 : 8;
+        const COL = ['#E2C230', '#2F5FA8', '#C03B30', '#4B2E83', '#E27A2D', '#2B7A3F', '#7A2A22', '#1A1A1A'];
         let n = 0;
         for (let r = 0; r < 5; r++) for (let c = 0; c <= r; c++) {
           const bx = x1 * 0.45 + r * br * 1.76, bz = (c - r / 2) * br * 2.02;
-          parts.put('pool-balls', { key: 'gloss', tint: ['#D5C13A', '#2F5FA8', '#C03B30', '#4B2E83', '#E27A2D'][n % 5] }, new THREE.SphereGeometry(br, 8, 6).translate(bx, bt + br + 0.0006, bz));
+          parts.put('pool-balls', { key: 'gloss', tint: COL[n % 8] }, new THREE.SphereGeometry(br, bs, bs * 0.75).translate(bx, bt + br + 0.0006, bz));
           n++;
         }
-        parts.put('pool-balls', { key: 'gloss', tint: '#F4F2EC' }, new THREE.SphereGeometry(br, 8, 6).translate(-x1 * 0.45, bt + br + 0.0006, 0));
+        parts.put('pool-balls', { key: 'gloss', tint: '#F4F2EC' }, new THREE.SphereGeometry(br, bs, bs * 0.75).translate(-x1 * 0.45, bt + br + 0.0006, 0));
       }
       void SOIL; void SHROUD; void SCREEN_GLASS;
     },
     foosball: () => {
       // a foosball table: a cabinet 140 x 76 cm on four legs, a green field, eight rods running across (the handles stand out past the sides: the footprint is 120 cm across with them)
       const bodyZ = 0.38;
-      parts.box('foos-cabinet', wood, -x1, x1, S - 0.2, S + 0.03, -bodyZ, bodyZ, { c: 0.008 });
+      // a dark walnut cabinet on black legs, whatever the pack's case colour (a white foosball table reads as a toy, as a white pool table does)
+      parts.box('foos-cabinet', POOL_WOOD, -x1, x1, S - 0.2, S + 0.03, -bodyZ, bodyZ, { c: 0.008, grain: 'x' });
       slab(parts, 'foos-field', { key: 'weave', tint: '#2F7A3E' }, -x1 + 0.06, x1 - 0.06, S + 0.0, S + 0.001, -bodyZ + 0.06, bodyZ - 0.06);
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) slab(parts, 'foos-legs', WOOD_ASH, sx * (x1 - 0.1) - 0.04, sx * (x1 - 0.1) + 0.04, 0, S - 0.2, sz * (bodyZ - 0.06) - 0.04, sz * (bodyZ - 0.06) + 0.04);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) slab(parts, 'foos-legs', { key: 'powder', tint: '#2B2D31' }, sx * (x1 - 0.1) - 0.04, sx * (x1 - 0.1) + 0.04, 0, S - 0.2, sz * (bodyZ - 0.06) - 0.04, sz * (bodyZ - 0.06) + 0.04);
       for (let i = 0; i < 8; i++) {
         const x = -0.55 + i * (1.1 / 7);
         tube(parts, 'foos-rods', CHROME, [x, S + 0.08, -z1 + 0.14], [x, S + 0.08, z1 - 0.14], 0.008);
@@ -179,19 +208,36 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
         const men = i % 4 === 0 ? 1 : i % 4 === 3 ? 3 : i % 4 === 1 ? 2 : 3;
         for (let m = 0; m < men; m++) {
           const mz = (m - (men - 1) / 2) * 0.17;
-          parts.box('foos-men', i < 4 ? ACCENT_RED : ACCENT_BLUE, x - 0.012, x + 0.012, S + 0.02, S + 0.1, mz - 0.025, mz + 0.025, { c: 0.002 });
+          // a player: legs and a foot to kick with, a shirt over the rod, a head (SPEC 16.17.2)
+          const team: MatSpec = i % 2 === 0 ? ACCENT_RED : ACCENT_BLUE;
+          parts.box('foos-men', team, x - 0.011, x + 0.011, S + 0.006, S + 0.05, mz - 0.016, mz + 0.016, { c: 0.003 });
+          parts.box('foos-men', team, x - 0.014, x + 0.014, S + 0.048, S + 0.086, mz - 0.022, mz + 0.022, { c: 0.006 });
+          if (q.tier !== 'low') parts.put('foos-heads', { key: 'plastic', tint: '#E9C9A4' }, new THREE.SphereGeometry(0.011, 8, 5).translate(x, S + 0.088, mz));
         }
       }
-      cylY(parts, 'foos-ball', { key: 'laminate', tint: '#F4F2EC' }, 0, 0, S + 0.001, S + 0.037, 0.018, 8);
+      parts.put('foos-ball', { key: 'gloss', tint: '#F4F2EC' }, new THREE.SphereGeometry(0.017, 12, 8).translate(0.07, S + 0.018, 0.05));
+      // the white centre line and circle on the field, the goal mouths at the ends
+      slab(parts, 'foos-lines', { key: 'white' }, -0.003, 0.003, S + 0.001, S + 0.0016, -bodyZ + 0.07, bodyZ - 0.07);
+      parts.put('foos-lines', { key: 'white' }, new THREE.RingGeometry(0.075, 0.081, 32).rotateX(-Math.PI / 2).translate(0, S + 0.0016, 0));
+      for (const sx of [-1, 1]) slab(parts, 'foos-goals', { key: 'dark', tint: '#141414' }, sx > 0 ? x1 - 0.002 : -x1 - 0.0, sx > 0 ? x1 : -x1 + 0.002, S - 0.08, S - 0.01, -0.1, 0.1);
     },
     'chess-set': () => {
       // a chess table: a 60 cm square top with the 8 x 8 board let in, a four-tube frame, and a chair at each end facing it
       const board = 0.46, sq = board / 8, t = 0.3;
       slab(parts, 'chess-top', wood, -t, t, S - 0.035, S, -t, t);
+      // SPEC 16.17.2: the board and men are the Poly Haven chess set (CC0) when it is here, scaled so the king stands inside the piece's height
+      const model = propGeo('chess', q.tier);
+      noteProp(parts, 'chess', !!model);
+      if (model) {
+        const info = propInfo('chess');
+        const k = Math.min(0.5 / info.dims.w, (H - S - 0.002) / info.dims.h);
+        addTextured(parts.group, model, 'chess-set-model', k, [0, S, 0]);
+      } else {
       slab(parts, 'chess-light', { key: 'laminate', tint: '#E8D9B5' }, -board / 2, board / 2, S, S + 0.0006, -board / 2, board / 2);
       for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if ((r + c) % 2 === 1) slab(parts, 'chess-dark', { key: 'laminate', tint: '#6B4A2B' }, -board / 2 + c * sq, -board / 2 + (c + 1) * sq, S, S + 0.0012, -board / 2 + r * sq, -board / 2 + (r + 1) * sq);
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) tube(parts, 'chess-legs', FRAME_GREY, [sx * (t - 0.04), 0, sz * (t - 0.04)], [sx * (t - 0.04), S - 0.035, sz * (t - 0.04)], 0.016);
       for (let c = 0; c < 8; c++) for (const sz of [-1, 1]) cylY(parts, 'chess-men', sz < 0 ? { key: 'laminate', tint: '#2A1D12' } : { key: 'laminate', tint: '#F1E6CC' }, -board / 2 + (c + 0.5) * sq, sz * (board / 2 - sq * 0.5), S, S + 0.03, 0.017, 8);
+      }
       const c0 = z1 - 0.26;
       chairAt(parts, roles, 0, c0, 0, 0.82);
       chairAt(parts, roles, 0, -c0, Math.PI, 0.82);
@@ -248,22 +294,49 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
   return parts.done();
 }
 
-/** A stacking chair at (x, z) turned `a` radians about the vertical, its back at -z before the turn (so the seat faces the point it is turned towards), `plain` for the café sets */
+/**
+ * A banquet chair at (x, z) turned `a` radians about the vertical, its back at -z before the turn (so the seat faces the point it is turned
+ * towards) (SPEC 16.17.2, 22 Nov 2026): a brushed steel tube frame (four legs, back posts bent into the back frame, side rails), an upholstered
+ * seat cushion and a padded back. `plain` (the café sets): a black steel bistro chair with a slatted back and no upholstery.
+ */
 function chairAt(parts: Parts, roles: Roles, x: number, z: number, a: number, H: number, plain = false): void {
-  // a chair faces +z in its own frame; `a` is the bearing from the table's centre to the chair, so the chair is turned to face back at the table
   const yaw = a + Math.PI;
-  const seatM: MatSpec = roleOr(roles, { key: 'weave', tint: '#2F4A66' }, 'hallChair');
+  const q = parts.env.q;
+  const seatM: MatSpec = plain ? { key: 'powder', tint: '#2B2D31' } : roleOr(roles, { key: 'weave', tint: '#2F4A66' }, 'hallChair');
+  const frame: MatSpec = plain ? { key: 'powder', tint: '#2B2D31' } : { key: 'metal', tint: '#B9BDC2' };
   const S = 0.46;
-  const place = (g: THREE.BufferGeometry): THREE.BufferGeometry => { g.rotateY(yaw); g.translate(x, 0, z); return g; };
-  const box = (name: string, mat: MatSpec, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number): void => {
-    parts.put(name, mat, place(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)));
+  const out: [string, MatSpec, THREE.BufferGeometry][] = [];
+  const sides = q.tier === 'high' ? 8 : 6;
+  const rod = (name: string, A: [number, number, number], B: [number, number, number], r: number): void => {
+    const va = new THREE.Vector3(...A), vb = new THREE.Vector3(...B);
+    const g = new THREE.CylinderGeometry(r, r, va.distanceTo(vb), sides, 1, false);
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize()));
+    g.translate((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2);
+    out.push([name, frame, g]);
   };
-  box('chair-seat', seatM, -0.23, 0.23, S - 0.05, S, -0.21, 0.26);
-  box('chair-back', seatM, -0.2, 0.2, H - 0.24, H, -0.26, -0.22);
+  const cushion = (name: string, w: number, h: number, d: number, cx: number, cy: number, cz: number, tilt = 0): void => {
+    const g = q.tier === 'low' ? new THREE.BoxGeometry(w, h, d) : softCushion(w, h, d, { r: Math.min(0.02, h / 2.2), puff: 0.004, seg: 2 });
+    if (tilt) g.rotateX(tilt);
+    g.translate(cx, cy, cz);
+    out.push([name, seatM, g]);
+  };
+  const r = 0.0105, lx = 0.2;
   for (const sx of [-1, 1]) {
-    box('chair-legs', FRAME_GREY, sx * 0.2 - 0.011, sx * 0.2 + 0.011, 0, S - 0.05, 0.22, 0.24);
-    box('chair-legs', FRAME_GREY, sx * 0.2 - 0.011, sx * 0.2 + 0.011, 0, S - 0.05, -0.24, -0.22);
-    box('chair-back-posts', FRAME_GREY, sx * 0.2 - 0.011, sx * 0.2 + 0.011, S - 0.05, H - 0.04, -0.26, -0.24);
+    rod('chair-legs', [sx * lx, 0, 0.22], [sx * (lx - 0.005), S - 0.05, 0.2], r);
+    rod('chair-legs', [sx * lx, 0, -0.23], [sx * (lx - 0.005), S - 0.05, -0.2], r);
+    rod('chair-rails', [sx * (lx - 0.005), S - 0.055, -0.2], [sx * (lx - 0.005), S - 0.055, 0.2], r * 0.85);
+    // the back post leans back a little and runs up to the top rail
+    rod('chair-back-posts', [sx * (lx - 0.005), S - 0.05, -0.2], [sx * lx, H - 0.0105, -0.2495], r);
   }
-  void plain;
+  rod('chair-rails', [-lx, H - 0.0105, -0.2495], [lx, H - 0.0105, -0.2495], r);
+  rod('chair-rails', [-(lx - 0.005), 0.16, 0.21], [lx - 0.005, 0.16, 0.21], r * 0.8);
+  if (plain) {
+    // a bistro seat pan and three back slats
+    out.push(['chair-seat', seatM, (q.tier === 'low' ? new THREE.BoxGeometry(0.46, 0.02, 0.46) : softCushion(0.46, 0.02, 0.46, { r: 0.008, puff: 0.001, seg: 2 })).translate(0, S - 0.01, 0.03)]);
+    for (let i = 0; i < 3; i++) { const y = H - 0.08 - i * 0.07; rod('chair-back-slats', [-(lx - 0.012), y, -0.25 + i * 0.006], [lx - 0.012, y, -0.25 + i * 0.006], 0.008); }
+  } else {
+    cushion('chair-seat', 0.46, 0.06, 0.46, 0, S - 0.03, 0.03);
+    cushion('chair-back', 0.38, 0.24, 0.045, 0, H - 0.15, -0.225, 0.1);
+  }
+  for (const [n, m, g] of out) { g.rotateY(yaw); g.translate(x, 0, z); parts.put(n, m, g, { tile: 0.4 }); }
 }

@@ -11,7 +11,7 @@ import { buildRealFurniture } from '../src/look/furniture-real';
 import { createFurnitureKit, DEFS } from '../src/look/furniture-materials';
 import { resetStyle, setStyle } from '../src/look/style';
 import { setModelsEnabled } from '../src/look/models/library';
-import { PROP_CREDITS, attachProps, clearProps, loadProp, propGeo, propInfo, propNote, setPropFetcher } from '../src/look/gym/props';
+import { PROP_CREDITS, attachProps, clearProps, loadProp, primeProp, propGeo, propInfo, propNote, setPropFetcher } from '../src/look/gym/props';
 import type { Tier } from '../src/look/types';
 
 const ROOT = path.resolve(__dirname, '..');
@@ -118,6 +118,36 @@ describe('the downloaded props', () => {
   });
 });
 
+describe('the chess set on the games-room chess table (SPEC 16.17.2)', () => {
+  it('the shipped file is a textured glTF (WebP colour maps; the phone file has colour maps only)', () => {
+    for (const t of ['full', 'low'] as const) {
+      const buf = fs.readFileSync(path.join(GYM, propInfo('chess').files[t].file));
+      const len = buf.readUInt32LE(12);
+      const json = JSON.parse(buf.subarray(20, 20 + len).toString('utf8')) as { materials: { pbrMetallicRoughness?: { baseColorTexture?: unknown }; normalTexture?: unknown }[]; images: { mimeType: string }[] };
+      expect(json.materials.every((m) => m.pbrMetallicRoughness?.baseColorTexture), t).toBe(true);
+      expect(json.images.every((i) => i.mimeType === 'image/webp'), t).toBe(true);
+      if (t === 'low') expect(json.materials.some((m) => m.normalTexture)).toBe(false);
+    }
+  });
+  it('a chess table with the set in stays inside its box, keeps the maps of the model, and the card says where it is from', () => {
+    // node cannot decode WebP, so the test hands in a small textured stand-in (src/look/models/load.ts does the same for the library)
+    for (const tier of ['low', 'high'] as Tier[]) {
+      clearProps();
+      const g0 = new THREE.BoxGeometry(propInfo('chess').dims.w, propInfo('chess').dims.h, propInfo('chess').dims.d).translate(0, propInfo('chess').dims.h / 2, 0);
+      primeProp('chess', tier, { kind: 'chess', parts: {}, meshes: [{ geometry: g0, material: new THREE.MeshStandardMaterial({ map: new THREE.Texture() }) }] });
+      const { g, item } = build('games-chess-set', tier);
+      const bb = bounds(g);
+      expect(bb.max.y).toBeLessThanOrEqual(item.heightM + 0.012);
+      expect(bb.max.x - bb.min.x).toBeLessThan(item.box.w + 0.012);
+      expect(bb.max.z - bb.min.z).toBeLessThan(item.box.d + 0.012);
+      let n = 0;
+      g.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.name === 'chess-set-model') { n++; expect((m.material as THREE.MeshStandardMaterial).map).toBeTruthy(); expect(m.userData.walkthruPart).toBe('chess-set-model'); } });
+      expect(n).toBe(1);
+      expect(propNote(item.id)).toContain('Riley Queen');
+    }
+  });
+});
+
 describe('files, lock and credits', () => {
   const lock = JSON.parse(fs.readFileSync(path.join(GYM, 'gym.lock.json'), 'utf8')) as {
     assets: Record<string, { licence: string; licenceUrl: string; licenceWords: string; licenceRead: string; authors: string[]; page: string; files: { url: string; sha256: string }[] }>;
@@ -152,12 +182,13 @@ describe('files, lock and credits', () => {
     expect(lock.rejected.length).toBeGreaterThan(3);
   });
   it('phone files are small and the full files modest; the manifest is what is on disk', () => {
-    for (const kind of ['dumbbell', 'kettlebell'] as const) {
+    for (const kind of ['dumbbell', 'kettlebell', 'chess'] as const) {
       const info = propInfo(kind);
       for (const t of ['full', 'low'] as const) {
         const f = path.join(GYM, info.files[t].file);
         expect(fs.statSync(f).size, `${kind} ${t}`).toBe(info.files[t].bytes);
-        expect(info.files[t].bytes, `${kind} ${t}`).toBeLessThan(t === 'low' ? 20_000 : 60_000);
+        // the chess set keeps its photographed maps (WebP); the weights are geometry only
+        expect(info.files[t].bytes, `${kind} ${t}`).toBeLessThan(kind === 'chess' ? (t === 'low' ? 150_000 : 500_000) : t === 'low' ? 20_000 : 60_000);
       }
       expect(info.tris.low).toBeLessThan(info.tris.full);
     }

@@ -153,7 +153,8 @@ describe('triangle budgets', () => {
     freew: { low: 2600, medium: 5200, high: 7500 },
     studio: { low: 1800, medium: 4200, high: 5200 },
     lobby: { low: 2600, medium: 6200, high: 9000 },
-    hall: { low: 1800, medium: 3800, high: 5500 },
+    // SPEC 16.17.2: banquet chairs with upholstered cushions and a tube frame, a pool table with turned legs and sights
+    hall: { low: 1800, medium: 4800, high: 6500 },
     pool: { low: 1800, medium: 3600, high: 5200 },
     garden: { low: 2600, medium: 5200, high: 7500 },
   };

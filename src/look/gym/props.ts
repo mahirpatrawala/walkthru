@@ -10,10 +10,10 @@ import { modelsEnabled } from '../models/library';
 import { floatGeometry } from '../models/load';
 import manifest from './manifest.json';
 
-export type PropKind = 'dumbbell' | 'kettlebell';
-export const PROP_KINDS: PropKind[] = ['dumbbell', 'kettlebell'];
+export type PropKind = 'dumbbell' | 'kettlebell' | 'chess';
+export const PROP_KINDS: PropKind[] = ['dumbbell', 'kettlebell', 'chess'];
 
-interface PropInfo { source: string; files: Record<'full' | 'low', { file: string; bytes: number }>; tris: Record<'full' | 'low', number>; parts: string[]; dims: Record<string, number> }
+interface PropInfo { source: string; /** keeps its own maps and materials (the chess set) */ textured?: boolean; files: Record<'full' | 'low', { file: string; bytes: number }>; tris: Record<'full' | 'low', number>; parts: string[]; dims: Record<string, number> }
 const INFO = (manifest as unknown as { models: Record<PropKind, PropInfo> }).models;
 export function propInfo(kind: PropKind): PropInfo { return INFO[kind]; }
 export const propFile = (t: Tier): 'full' | 'low' => (t === 'low' ? 'low' : 'full');
@@ -23,10 +23,11 @@ export const propUrl = (kind: PropKind, t: Tier): string => `/look/gym/${INFO[ki
 export const PROP_CREDITS: Record<PropKind, string> = {
   dumbbell: 'Dumbbells: "Weight Room Set 2" by Tytan (sketchfab.com/tylerhalterman), CC BY 4.0, adapted.',
   kettlebell: 'Kettlebells: "kettlebell" by anesbe89 (sketchfab.com/anesbe89), CC BY 4.0, adapted.',
+  chess: 'Chess set: "Chess Set" by Riley Queen (polyhaven.com), CC0.',
 };
 
 /** a loaded prop: its named parts in the model's own frame (the dumbbell along x, centred; the kettlebell 1 m high, foot centre at the origin) */
-export interface PropGeo { kind: PropKind; parts: Record<string, THREE.BufferGeometry> }
+export interface PropGeo { kind: PropKind; parts: Record<string, THREE.BufferGeometry>; /** a textured model's meshes as modelled, with their own materials (footprint centre at the origin, lowest point on y = 0, metres) */ meshes?: { geometry: THREE.BufferGeometry; material: THREE.MeshStandardMaterial }[] }
 
 const ready = new Map<string, PropGeo>();
 const loading = new Map<string, Promise<PropGeo | null>>();
@@ -64,17 +65,21 @@ export function loadProp(kind: PropKind, tier: Tier): Promise<PropGeo | null> {
       const gltf = await l.parseAsync(buf, '/look/gym/');
       gltf.scene.updateMatrixWorld(true);
       const parts: Record<string, THREE.BufferGeometry> = {};
+      const meshes: { geometry: THREE.BufferGeometry; material: THREE.MeshStandardMaterial }[] = [];
+      const textured = !!INFO[kind].textured;
       gltf.scene.traverse((o) => {
         const m = o as THREE.Mesh;
         if (!m.isMesh) return;
         const g = floatGeometry(m.geometry);
         g.applyMatrix4(m.matrixWorld);
-        g.deleteAttribute('uv');
         if (!g.getAttribute('normal')) g.computeVertexNormals();
+        if (textured) { meshes.push({ geometry: g, material: (Array.isArray(m.material) ? m.material[0] : m.material) as THREE.MeshStandardMaterial }); return; }
+        g.deleteAttribute('uv');
         parts[m.name || m.parent?.name || 'part'] = g;
       });
       for (const want of INFO[kind].parts) if (!parts[want]) throw new Error(`${url} has no part "${want}"`);
-      const geo: PropGeo = { kind, parts };
+      if (textured && meshes.length === 0) throw new Error(`${url} has no mesh`);
+      const geo: PropGeo = { kind, parts, ...(textured ? { meshes } : {}) };
       // a load started before clearProps (a test) does not fill the fresh cache
       if (mine === generation) ready.set(url, geo);
       return geo;
@@ -138,4 +143,19 @@ export function hookProps(group: THREE.Group, built: THREE.Object3D, itemId: str
   const wanted = (built.userData.gymPropsWanted as PropKind[] | undefined) ?? [];
   noteProps(itemId, used);
   if (wanted.length) void attachProps(group, itemId, [...new Set([...used, ...wanted])], tier, rebuild);
+}
+
+/**
+ * Adds a textured model's meshes to a generator's group, scaled uniformly by `k` and moved to (x, y, z): each mesh keeps its own maps
+ * (a copy of the material, so a piece can be disposed alone) and is named `name` for the bake and the colour pass.
+ */
+export function addTextured(group: THREE.Group, geo: PropGeo, name: string, k: number, at: [number, number, number]): void {
+  for (const m of geo.meshes ?? []) {
+    const g = m.geometry.clone().scale(k, k, k).translate(...at);
+    const mesh = new THREE.Mesh(g, m.material.clone());
+    mesh.name = name;
+    mesh.userData.walkthruPart = name;
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    group.add(mesh);
+  }
 }

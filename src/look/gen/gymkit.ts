@@ -446,7 +446,7 @@ export function consoleUnit(p: Parts, cx: number, cy: number, cz: number, w: num
 }
 
 /** marks the group as having wanted a model prop that was not loaded yet (src/look/gym/props.ts swaps it in) or used one */
-export function noteProp(p: Parts, kind: 'dumbbell' | 'kettlebell', used: boolean): void {
+export function noteProp(p: Parts, kind: 'dumbbell' | 'kettlebell' | 'chess', used: boolean): void {
   const k = used ? 'gymPropsUsed' : 'gymPropsWanted';
   const list = (p.group.userData[k] as string[] | undefined) ?? [];
   if (!list.includes(kind)) list.push(kind);
