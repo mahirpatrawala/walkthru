@@ -14,7 +14,7 @@
     "top": "oak-light",
     "fabric": "weave-greige",
     "bedding": "cotton-white",
-    "duvet": "quilt-white",
+    "duvet": "quilt-beige",
     "pillow": "cotton-white",
     "cushion": "weave-terracotta",
     "handle": "steel",
@@ -41,7 +41,7 @@
     "bed": {
       "base": "legs",
       "headboard": "slatted",
-      "duvet": "plain"
+      "duvet": "quilted"
     },
     "sofa": {
       "arms": "box",

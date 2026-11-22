@@ -126,6 +126,10 @@ export function finishLayer(kind: LookKind, f: FinishChoice, current: Record<str
     case 'bench':
       set(['case'], f.primary); set(['accent'], f.fabric);
       break;
+    case 'ottoman':
+      set(['accent'], f.fabric); set(['legs'], f.primary);
+      if (f.primary) params.legs = isMetal(f.primary) ? 'metal' : 'wood';
+      break;
     case 'swing':
       set(['case', 'swingWood', 'basket'], f.primary); set(['chain'], f.secondary); set(['cushion'], f.fabric);
       break;

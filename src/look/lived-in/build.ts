@@ -183,6 +183,49 @@ function rugTexture(tone: number, seed: number): THREE.Texture | null {
       }
     }
     for (let i = 0; i < 18; i++) { c.fillStyle = `rgba(0,0,0,${0.015 + rnd() * 0.02})`; c.fillRect(0, rnd() * h, w, 1 + rnd() * 2); }
+    fibre(c, w, h, rnd, 5000, 0.05);
+  });
+}
+
+/** fibre: many short light and dark strokes across the whole canvas, so a flat weave reads as yarn and not as a printed board */
+function fibre(c: CanvasRenderingContext2D, w: number, h: number, rnd: () => number, n: number, alpha: number): void {
+  for (let i = 0; i < n; i++) {
+    const x = rnd() * w, y = rnd() * h, len = 2 + rnd() * 5;
+    c.fillStyle = rnd() < 0.5 ? `rgba(255,255,255,${alpha * (0.5 + rnd())})` : `rgba(40,30,20,${alpha * (0.5 + rnd())})`;
+    if (rnd() < 0.5) c.fillRect(x, y, len, 1); else c.fillRect(x, y, 1, len);
+  }
+}
+
+/** The clean packs' rug (SPEC 16.15.2): a cream flat weave with a soft taupe lattice, a thin border in the room's accent and yarn texture. */
+function calmRugTexture(tone: number, seed: number): THREE.Texture | null {
+  const rnd = mulberry32(seed);
+  const accent = tones()[tone % tones().length] === tones()[6] ? tones()[0] : tones()[tone % tones().length];
+  return canvasTexture(768, 512, (c, w, h) => {
+    c.fillStyle = '#E9E1D3'; c.fillRect(0, 0, w, h);
+    // a slow cloud of tone, as yarn lots differ
+    for (let i = 0; i < 40; i++) { c.fillStyle = `rgba(${rnd() < 0.5 ? '255,250,240' : '120,100,80'},0.035)`; c.beginPath(); c.arc(rnd() * w, rnd() * h, 30 + rnd() * 90, 0, Math.PI * 2); c.fill(); }
+    // border: a band of the accent between two thin taupe lines
+    c.strokeStyle = '#B9AC98'; c.lineWidth = 3; c.strokeRect(22, 22, w - 44, h - 44);
+    c.strokeStyle = accent; c.lineWidth = 9; c.strokeRect(34, 34, w - 68, h - 68);
+    c.strokeStyle = '#B9AC98'; c.lineWidth = 2; c.strokeRect(46, 46, w - 92, h - 92);
+    // the field: an open diamond lattice in a soft taupe
+    c.save(); c.beginPath(); c.rect(54, 54, w - 108, h - 108); c.clip();
+    c.strokeStyle = 'rgba(150,132,110,0.55)'; c.lineWidth = 3;
+    const step = 64;
+    for (let k = -h; k < w + h; k += step) {
+      c.beginPath(); c.moveTo(k, 0); c.lineTo(k + h, h); c.stroke();
+      c.beginPath(); c.moveTo(k, h); c.lineTo(k + h, 0); c.stroke();
+    }
+    c.restore();
+    fibre(c, w, h, rnd, 14000, 0.06);
+  });
+}
+
+/** the fringe of a rug's short end: cream strands with gaps between them (alpha), lying on the floor */
+function fringeTexture(): THREE.Texture | null {
+  return canvasTexture(256, 16, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    for (let x = 1; x < w; x += 4) { c.fillStyle = x % 8 === 1 ? '#EFE6D6' : '#E3D8C4'; c.fillRect(x, 0, 2, h - (x % 12 === 5 ? 3 : 0)); }
   });
 }
 
@@ -432,15 +475,41 @@ const BUILD: Record<DecorPiece['kind'], Builder> = {
     parts.add(cyl(0.008, 0.012, 0.22, 0.2, 5), '#4C6A34', 0.9);
   },
   rug(p, parts, kit) {
-    const tex = rugTexture(p.tone, p.seed);
-    const geo = new THREE.BoxGeometry(p.w, p.height, p.d);
+    // SPEC 16.15.2: a woven rug with yarn texture (a calm flat weave in the clean packs, the dhurrie otherwise) and a fringe at each
+    // short end; the fringe lies inside the planned footprint, the woven body 4 cm short of each end
+    const calm = tones() === CALM_TONES;
+    const tex = calm ? calmRugTexture(p.tone, p.seed) : rugTexture(p.tone, p.seed);
+    const fr = Math.min(0.04, p.w * 0.04);
+    const geo = new THREE.BoxGeometry(p.w - 2 * fr, p.height, p.d);
     geo.translate(0, p.height / 2 - 0.004, 0);
     if (tex) {
-      const side = kit.mat({ hex: '#E9DDC6', rough: 1, metal: 0 });
+      const side = kit.mat({ hex: calm ? '#DDD3C2' : '#E9DDC6', rough: 1, metal: 0 });
       const top = kit.texturedMat(tex, 1);
+      // the yarn in relief: the same picture as a fine bump, so light grazing the rug picks out the weave
+      top.bumpMap = tex;
+      top.bumpScale = 0.6;
       parts.mesh(geo, [side, side, top, side, side, side], false);
+      const ft = fringeTexture();
+      if (ft) {
+        ft.wrapS = THREE.RepeatWrapping;
+        ft.repeat.set(p.d / 0.25, 1);
+        const fm = kit.texturedMat(ft, 1);
+        fm.transparent = false;
+        fm.alphaTest = 0.5;
+        fm.side = THREE.DoubleSide;
+        for (const sx of [-1, 1]) {
+          const q = new THREE.PlaneGeometry(fr, p.d);
+          q.rotateX(-Math.PI / 2);
+          q.rotateY(sx > 0 ? 0 : Math.PI);
+          // the strands run along x (the texture's v): turn the uv so the canvas's strands point out of the rug
+          const uv = q.attributes.uv as THREE.BufferAttribute;
+          for (let i = 0; i < uv.count; i++) { const u = uv.getX(i), v = uv.getY(i); uv.setXY(i, v, u); }
+          q.translate(sx * (p.w / 2 - fr / 2), 0.002, 0);
+          parts.mesh(q, fm, false);
+        }
+      }
     } else {
-      parts.mesh(geo, kit.mat({ hex: tones()[p.tone % 8] === tones()[6] ? '#C4623F' : tones()[p.tone % 8], rough: 1, metal: 0 }), false);
+      parts.mesh(geo, kit.mat({ hex: calm ? '#E4DACA' : tones()[p.tone % 8] === tones()[6] ? '#C4623F' : tones()[p.tone % 8], rough: 1, metal: 0 }), false);
     }
   },
   shoes(p, parts) {

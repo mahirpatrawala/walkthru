@@ -86,6 +86,9 @@ const MIN_PLACE_CELLS = 120;
 
 // ---------------------------------------------------------------- small geometry
 
+/** an ottoman, a pouf or a footstool: a low seat that stands on a living room's rug like the centre table */
+const isFootstool = (i: FurnitureItem): boolean => i.kind === 'sofa' && /ottoman|pouf|footstool/i.test(i.label ?? '');
+
 const world = (box: Box, lx: number, lz: number): Vec2 => {
   const { a, b } = boxAxes(box);
   return { x: box.cx + a.x * lz + b.x * lx, z: box.cz + a.z * lz + b.z * lx };
@@ -361,23 +364,84 @@ class Planner {
     return this.placeFloor('plant', room, cands, 0.36, 0.36, 0.78);
   }
 
+  /**
+   * A flat rug may come close to a doorway but never onto it (SPEC 16.15.2): every point of it keeps 0.30 m (the routes' body clearance) from
+   * the doorway's line and from an open edge, and stays out of the sweep of a hinged leaf (a door would catch its edge). The circle the
+   * standing pieces keep round a door (half its width plus 0.35 m) is far too much for a wide sliding door and pushed every rug off the seating.
+   */
+  private rugClearOfDoors(box: Box): boolean {
+    const pts = samples(box);
+    const keep = DECOR_CLEAR_M;
+    for (const d of this.doors) {
+      const f = d.frame, o = d.opening;
+      const a = { x: f.a.x + f.dir.x * (o.centreM - o.widthM / 2), z: f.a.z + f.dir.z * (o.centreM - o.widthM / 2) };
+      const b = { x: f.a.x + f.dir.x * (o.centreM + o.widthM / 2), z: f.a.z + f.dir.z * (o.centreM + o.widthM / 2) };
+      if (pts.some((p) => distanceToSegment(p, a, b) < keep)) return false;
+    }
+    for (const f of this.frames) if (f.kind === 'none' && pts.some((p) => distanceToSegment(p, f.a, f.b) < keep)) return false;
+    this.swing ??= resolveDoors(this.input.layout);
+    const swing = this.swing;
+    return pts.every((p) => !inDoorSweep(swing, p, 0));
+  }
+  private swing: ReturnType<typeof resolveDoors> | null = null;
+
+  /** a stack of books at one end of a centre table and a vase at the other (a round one: the vase alone, in the middle) */
+  private dressCentreTable(it: FurnitureItem): void {
+    if (!/^coffee/.test(it.catalogId ?? '')) return;
+    const room = this.itemRoom(it);
+    if (!room || room.roomType !== 'living') return;
+    const { w, d } = it.box;
+    const S = it.surfaceHeightM;
+    const put = (kind: DecorKind, lx: number, lz: number, pw: number, pd: number, height: number, yawOffset: number): void => {
+      const c = world(it.box, lx, lz);
+      this.push({ kind, roomId: room.id, place: 'surface', hostId: it.id, x: c.x, y: S, z: c.z, yawDeg: it.box.yawDeg + yawOffset, w: pw, d: pd, height }, it.id);
+    };
+    if (/round/.test(it.catalogId ?? '')) {
+      if (Math.min(w, d) >= 0.45) put('jug', 0, 0, 0.13, 0.13, 0.22, 0);
+      return;
+    }
+    if (w < 0.8 || d < 0.4) return;
+    put('books', -w / 2 + 0.24, 0.02, 0.22, 0.28, 0.12, -6);
+    put('jug', w / 2 - 0.17, -0.04, 0.13, 0.13, 0.22, 0);
+  }
+
+  /** a plant at one end of the room's main sofa, a little forward of the wall behind it: when the room got no plant elsewhere, or a second one in a room of 16 m2 or more */
+  private plantBesideSofa(room: RoomTag): void {
+    const have = this.pieces.filter((p) => p.kind === 'plant' && p.roomId === room.id).length;
+    if (have >= (polyArea(room.polygon) >= 16 ? 2 : 1)) return;
+    const id = this.mainSofaOf(room);
+    const sofa = id ? this.items.find((i) => i.id === id) : undefined;
+    if (!sofa) return;
+    const cands: { x: number; z: number; yawDeg: number }[] = [];
+    for (const sx of [-1, 1]) {
+      const c = world(sofa.box, sx * (sofa.box.w / 2 + 0.24), -sofa.box.d / 2 + 0.24);
+      cands.push({ x: c.x, z: c.z, yawDeg: sofa.box.yawDeg });
+    }
+    this.placeFloor('plant', room, cands, 0.36, 0.36, 0.95);
+  }
+
   private rugFor(room: RoomTag): DecorPiece | null {
-    const sofa = this.items.find((i) => i.kind === 'sofa' && i.box.w >= 1.2 && i.box.d <= 1.3 && this.itemRoom(i)?.id === room.id);
-    // a centre table stands ON the rug, so it is not one of the things the rug keeps clear of
-    const tables = this.items.filter((i) => /^coffee/.test(i.catalogId ?? '')).map((i) => i.box);
-    const others = this.items.filter((i) => i !== sofa && !/^coffee/.test(i.catalogId ?? '')).map((i) => i.box);
+    const sofa = this.items.find((i) => i.kind === 'sofa' && i.box.w >= 1.2 && i.box.d <= 1.3 && !isFootstool(i) && this.itemRoom(i)?.id === room.id);
+    // a centre table, an ottoman or a pouf stands ON the rug (SPEC 16.15.2), so it is not one of the things the rug keeps clear of
+    const onRug = (i: FurnitureItem): boolean => /^coffee/.test(i.catalogId ?? '') || isFootstool(i);
+    const tables = this.items.filter(onRug).map((i) => i.box);
+    const others = this.items.filter((i) => i !== sofa && !onRug(i)).map((i) => i.box);
     const tryBox = (box: Box, allow: Box[]): boolean => {
       if (!this.onFreeFloor(box, room, allow)) return false;
       if (others.some((b) => boxesOverlap(box, b, 0.02))) return false;
-      if (this.nearDoorway(box, 0.35)) return false;
+      if (!this.rugClearOfDoors(box)) return false;
       return true;
     };
     const cands: Box[] = [];
     if (sofa) {
       for (const k of [1, 0.85, 0.7]) {
         const W = Math.min(2.4, Math.max(1.4, sofa.box.w + 0.1)) * k, D = 1.6 * k;
-        const centre = world(sofa.box, 0, sofa.box.d / 2 - 0.25 + D / 2);
-        cands.push({ cx: centre.x, cz: centre.z, w: W, d: D, yawDeg: sofa.box.yawDeg });
+        // centred on the sofa first, then slid along it (up to a quarter of the spare width) to keep clear of a doorway at one end
+        for (const shift of [0, -0.15, 0.15, -0.3, 0.3]) {
+          if (Math.abs(shift) > Math.max(0, (W - 1.0) / 4) + 1e-9) continue;
+          const centre = world(sofa.box, shift, sofa.box.d / 2 - 0.25 + D / 2);
+          cands.push({ cx: centre.x, cz: centre.z, w: W, d: D, yawDeg: sofa.box.yawDeg });
+        }
       }
     }
     // no sofa (or no room in front of it): the roomiest spot, lined up with the room's longest wall
@@ -588,7 +652,7 @@ class Planner {
     let id = this.mainSofa.get(room.id);
     if (id === undefined) {
       let best: FurnitureItem | null = null;
-      for (const o of this.items) if (o.kind === 'sofa' && o.box.w >= 1.2 && o.box.d <= 1.3 && this.itemRoom(o)?.id === room.id && (!best || o.box.w > best.box.w)) best = o;
+      for (const o of this.items) if (o.kind === 'sofa' && !isFootstool(o) && o.box.w >= 1.2 && o.box.d <= 1.3 && this.itemRoom(o)?.id === room.id && (!best || o.box.w > best.box.w)) best = o;
       id = best?.id ?? '';
       this.mainSofa.set(room.id, id);
     }
@@ -878,7 +942,7 @@ class Planner {
     // a bed carries its own two sleeping pillows and a flat quilt (src/core/bed-layout.ts) and nothing else: a person lies on all of it
     if (it.kind === 'bed') return;
     if (it.kind === 'sofa') {
-      if (w < 1.2 || d > 1.3) return;
+      if (w < 1.2 || d > 1.3 || isFootstool(it)) return; // an ottoman has no back for a cushion to stand against
       const seatTop = S + 0.03;
       const aw = 0.16;
       const e = w / 2 - aw - 0.2;
@@ -977,6 +1041,10 @@ class Planner {
       this.pictures(r);
       this.pooja(r);
     }
+    // SPEC 16.15.2 (22 Nov 2026), planned last so every piece planned before keeps its id (a baked home's decor keeps its light):
+    // books and a vase on a living room's centre table, and a plant beside the sofa when the room has none yet
+    for (const it of this.items) this.dressCentreTable(it);
+    for (const r of [...living].sort(byArea)) this.plantBesideSofa(r);
     void layout;
     return this.pieces;
   }
