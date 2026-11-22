@@ -1,5 +1,5 @@
 // One product screenshot for the landing page (public/landing/*.webp): waits for the walk to be up, dismisses the person picker, runs PRE, waits SETTLE ms, captures.
-// NAME=tour PLOG=/tmp/shots.log CDP_OUT=/tmp/shots W=1280 H=800 PRE="..." node tools/cdp.mjs "http://localhost:5173/?building=sample-tower&space=f2-204&autohide=0" tools/landing-shot.cdp.js ; then cwebp -q 80. SPEC 2.9 lists the addresses.
+// GPU=1 NAME=tour PLOG=/tmp/shots.log CDP_OUT=/tmp/shots W=1280 H=800 PRE="..." node tools/cdp.mjs "http://localhost:5173/?building=sample-tower&space=f2-204&autohide=0" tools/landing-shot.cdp.js ; then cwebp -q 80. SPEC 2.9 lists the addresses.
 const fs = await import('node:fs');
 const name = process.env.NAME, pre = process.env.PRE || '', settle = +(process.env.SETTLE || 8000), gl = process.env.GL !== '0';
 const t0 = Date.now(); const L = (m) => fs.appendFileSync(process.env.PLOG, `[${name}] ` + Math.round((Date.now() - t0) / 1000) + 's ' + m + '\n');
