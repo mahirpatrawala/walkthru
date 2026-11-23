@@ -1,0 +1,81 @@
+/* The Views (src/buyer/viewpoints, SPEC 2.10): the room tabs along the bottom, the list of a tab's views at the left (a row over the tabs on a
+   phone), the panorama's note. Glass over the 3D view; every size in design units (src/brand/tokens.css). */
+
+/* ---- the room tabs: in the bottom bar, in place of the room strip while the Views are open */
+.wt-nav-bar:has(.wt-vp-tabs:not([hidden])) .wt-nav-row { display: none; }
+.wt-vp-tabs {
+  position: relative; min-width: 0; max-width: min(100%, calc(640 * var(--wt-u))); box-sizing: border-box; padding: calc(4 * var(--wt-u)); border-radius: var(--wt-r-pill); overflow: hidden; pointer-events: auto;
+}
+.wt-vp-tabs-in {
+  display: flex; align-items: center; gap: calc(2 * var(--wt-u)); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x; scroll-snap-type: x proximity; border-radius: var(--wt-r-pill);
+  /* the ends fade out, as the room strip's do: more tabs this way */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 calc(18 * var(--wt-u)), #000 calc(100% - calc(28 * var(--wt-u))), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 calc(18 * var(--wt-u)), #000 calc(100% - calc(28 * var(--wt-u))), transparent 100%);
+  padding: 0 calc(14 * var(--wt-u));
+}
+.wt-vp-tabs-in::-webkit-scrollbar { display: none; }
+.wt-vp-tab {
+  flex: none; scroll-snap-align: center; display: inline-flex; align-items: center; gap: calc(8 * var(--wt-u)); min-height: calc(44 * var(--wt-u)); padding: 0 calc(14 * var(--wt-u)) 0 calc(16 * var(--wt-u)); border: 0; border-radius: var(--wt-r-pill);
+  background: transparent; color: var(--wt-glass-text); font-family: var(--wt-font); font-size: calc(14 * var(--wt-u)); font-weight: 650; white-space: nowrap; cursor: pointer; text-shadow: inherit; transition: background var(--wt-fast) ease;
+}
+.wt-vp-tab:hover { background: var(--wt-glass-hover); }
+.wt-vp-tab-n { min-width: calc(20 * var(--wt-u)); padding: calc(2 * var(--wt-u)) calc(6 * var(--wt-u)); box-sizing: border-box; border-radius: var(--wt-r-pill); background: var(--wt-glass-tint); font-size: calc(12 * var(--wt-u)); font-weight: 650; text-align: center; color: var(--wt-glass-dim); }
+.wt-vp-tab.is-on { background: var(--wt-glass-on); color: var(--wt-glass-on-text); box-shadow: inset 0 0 0 1px var(--wt-glass-on-rim), inset 0 1px 0 var(--wt-glass-hi); }
+.wt-vp-tab.is-on .wt-vp-tab-n { background: var(--wt-vp-mark); color: #fff; text-shadow: none; }
+
+/* ---- the list of a tab's views: a small panel at the left, under the identity pill */
+.wt-vp-list {
+  position: fixed; left: calc(var(--wt-gutter) + var(--wt-safe-l)); top: calc(var(--wt-gutter) + var(--wt-safe-t) + calc(64 * var(--wt-u))); z-index: var(--wt-z-nav);
+  width: calc(260 * var(--wt-u)); max-height: calc(100vh - calc(330 * var(--wt-u))); box-sizing: border-box; display: flex; flex-direction: column; padding: calc(8 * var(--wt-u)) calc(8 * var(--wt-u)) calc(10 * var(--wt-u)); pointer-events: auto;
+}
+.wt-vp-head { display: flex; align-items: center; justify-content: space-between; gap: calc(6 * var(--wt-u)); padding-left: calc(8 * var(--wt-u)); }
+.wt-vp-count { font-size: calc(11.5 * var(--wt-u)); font-weight: 650; letter-spacing: 0.08em; color: var(--wt-glass-dim); white-space: nowrap; }
+.wt-vp-btns { display: flex; gap: calc(4 * var(--wt-u)); }
+.wt-vp-btn {
+  flex: none; width: calc(44 * var(--wt-u)); height: calc(44 * var(--wt-u)); padding: 0; border: 0; border-radius: 50%; background: var(--wt-glass-tint); color: var(--wt-glass-text);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.wt-vp-btn svg { width: calc(18 * var(--wt-u)); height: calc(18 * var(--wt-u)); }
+.wt-vp-btn:hover { background: var(--wt-glass-hover); }
+.wt-vp-btn.is-close { background: transparent; }
+.wt-vp-title { padding: calc(6 * var(--wt-u)) calc(8 * var(--wt-u)) calc(6 * var(--wt-u)); font-size: calc(19 * var(--wt-u)); font-weight: 650; letter-spacing: -0.01em; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wt-vp-items { display: flex; flex-direction: column; gap: calc(2 * var(--wt-u)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; min-height: 0; }
+.wt-vp-item {
+  display: flex; align-items: center; gap: calc(10 * var(--wt-u)); min-height: calc(44 * var(--wt-u)); padding: calc(6 * var(--wt-u)) calc(10 * var(--wt-u)); box-sizing: border-box; border: 0; border-radius: var(--wt-r-control);
+  background: transparent; color: var(--wt-glass-text); font-family: var(--wt-font); font-size: calc(14.5 * var(--wt-u)); font-weight: 500; line-height: 1.25; text-align: left; cursor: pointer; text-shadow: inherit;
+}
+.wt-vp-item:hover { background: var(--wt-glass-hover); }
+.wt-vp-item-dot { flex: none; width: calc(10 * var(--wt-u)); height: calc(10 * var(--wt-u)); border-radius: 50%; box-sizing: border-box; border: calc(2 * var(--wt-u)) solid var(--wt-vp-mark); background: transparent; }
+.wt-vp-item.is-current { background: var(--wt-glass-on); color: var(--wt-glass-on-text); font-weight: 650; box-shadow: inset 0 0 0 1px var(--wt-glass-on-rim); }
+.wt-vp-item.is-current .wt-vp-item-dot { background: var(--wt-vp-mark); }
+.wt-vp-btn:focus-visible, .wt-vp-item:focus-visible, .wt-vp-tab:focus-visible, .wt-vp-pano-walk:focus-visible { outline: calc(3 * var(--wt-u)) solid var(--wt-ochre); outline-offset: -2px; }
+/* the identity card opens over the list's place: the list steps aside while it does */
+.wt-hud.rv-id .wt-vp-list { opacity: 0; pointer-events: none; }
+
+/* ---- a panorama: its note and the way back to the live 3D, under the top row */
+.wt-vp-pano {
+  position: fixed; left: 50%; transform: translateX(-50%); top: calc(var(--wt-gutter) + var(--wt-safe-t) + calc(66 * var(--wt-u))); z-index: var(--wt-z-nav);
+  display: flex; align-items: center; gap: calc(12 * var(--wt-u)); padding: calc(4 * var(--wt-u)) calc(4 * var(--wt-u)) calc(4 * var(--wt-u)) calc(16 * var(--wt-u)); border-radius: var(--wt-r-pill); pointer-events: auto; white-space: nowrap;
+}
+.wt-vp-pano-note { font-size: calc(13.5 * var(--wt-u)); font-weight: 650; color: var(--wt-glass-dim); }
+.wt-vp-pano-walk {
+  min-height: calc(44 * var(--wt-u)); padding: 0 calc(16 * var(--wt-u)); border: 0; border-radius: var(--wt-r-pill); background: var(--wt-accent); color: #fff; font-family: var(--wt-font); font-size: calc(14 * var(--wt-u)); font-weight: 650; cursor: pointer;
+}
+.wt-vp-pano-walk:hover { background: var(--wt-accent-dark); }
+
+/* the fade of a move through a wall (behind the HUD, over the 3D view; nav.css's .wt-nav-fade) */
+.wt-vp-fade { transition-duration: 170ms; }
+canvas.wt-vp-hover { cursor: pointer; }
+
+/* ---- a phone (and a phone held sideways): the list is one row over the tabs; the header keeps the count and the buttons */
+@media (max-width: 760px), (pointer: coarse) and (max-height: 520px) and (min-width: 761px) {
+  .wt-vp-list {
+    position: static; width: min(100%, calc(560 * var(--wt-u))); max-height: none; padding: calc(4 * var(--wt-u)) calc(4 * var(--wt-u)) calc(6 * var(--wt-u)); border-radius: var(--wt-r-glass);
+  }
+  .wt-vp-head { padding-left: calc(10 * var(--wt-u)); }
+  .wt-vp-title { display: none; }
+  .wt-vp-items { flex-direction: row; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; touch-action: pan-x; overscroll-behavior-x: contain; padding: 0 calc(2 * var(--wt-u)); }
+  .wt-vp-items::-webkit-scrollbar { display: none; }
+  .wt-vp-item { flex: none; white-space: nowrap; border-radius: var(--wt-r-pill); padding: 0 calc(14 * var(--wt-u)) 0 calc(12 * var(--wt-u)); }
+  .wt-hud.rv-id .wt-vp-list { opacity: 1; pointer-events: auto; }
+  .wt-vp-pano { top: calc(var(--wt-gutter) + var(--wt-safe-t) + calc(56 * var(--wt-u))); }
+}

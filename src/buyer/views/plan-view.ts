@@ -32,6 +32,8 @@ export interface PlanViewDeps {
   water: { x0: number; z0: number; x1: number; z1: number }[];
   onRoomTap(roomId: string): void;
   onEscape(): void;
+  /** the Views (SPEC 2.10): a dot for every view, the current one ringed; a tap on a dot goes there */
+  viewMarks?: { list(): readonly { id: string; x: number; z: number; label: string }[]; current(): string | null; pick(id: string): void };
 }
 
 export interface PlanViewApi {
@@ -161,7 +163,25 @@ export function createPlanView(d: PlanViewDeps): PlanViewApi {
   live.setAttribute('pointer-events', 'none');
   const cone = el('path', { class: 'wt-views-cone' }, live);
   const dot = el('circle', { class: 'wt-views-dot' }, live);
+  const vps = g('wt-views-vps');
+  svg.appendChild(vps);
   svg.appendChild(live);
+  let vpSig = '';
+  function drawVps(): void {
+    const list = d.viewMarks?.list() ?? [];
+    const cur = d.viewMarks?.current() ?? null;
+    const sig = `${list.map((m) => m.id).join(',')}|${cur}|${pxPerM.toFixed(2)}`;
+    if (sig === vpSig) return;
+    vpSig = sig;
+    vps.replaceChildren();
+    for (const m of list) {
+      const c = el('circle', { class: `wt-views-vp${m.id === cur ? ' is-current' : ''}`, cx: n3(m.x), cy: n3(m.z), r: n3(6 / pxPerM) }, vps);
+      c.dataset.vp = m.id;
+      c.style.strokeWidth = `${1.6 / pxPerM}px`;
+      const t = el('title', {}, c);
+      t.textContent = m.label;
+    }
+  }
 
   // ---- pan and zoom: the picture's viewBox follows (centre, visible width in metres)
   const view = { cx: plan.x + plan.w / 2, cz: plan.z + plan.h / 2, w: plan.w };
@@ -188,6 +208,7 @@ export function createPlanView(d: PlanViewDeps): PlanViewApi {
     dot.style.strokeWidth = `${2 / pxPerM}px`;
     lastDrawn = null;
     drawMe();
+    drawVps();
     // the north arrow sits in the bottom left corner of what is on screen (the top and the right are the chrome's)
     const s = 22 / pxPerM;
     const rot = hasNorth ? -(d.northDeg as number) : 0;
@@ -273,6 +294,13 @@ export function createPlanView(d: PlanViewDeps): PlanViewApi {
   root.addEventListener('dblclick', (e) => { if (!(e.target as Element).closest('button')) fitView(); });
 
   const tapAt = (e: PointerEvent): void => {
+    // a View's dot first: the nearest within reach of the finger
+    if (d.viewMarks) {
+      const at = toPlan(e.clientX, e.clientY);
+      let best: string | null = null, bestD = 16 / pxPerM;
+      for (const m of d.viewMarks.list()) { const dd = Math.hypot(m.x - at.x, m.z - at.z); if (dd < bestD) { best = m.id; bestD = dd; } }
+      if (best) { d.viewMarks.pick(best); return; }
+    }
     const hit = (document.elementFromPoint(e.clientX, e.clientY) as Element | null)?.closest?.('g[data-room]') as SVGGElement | null;
     const id = hit?.dataset.room ?? null;
     if (id && goable.has(id)) d.onRoomTap(id);
@@ -319,7 +347,7 @@ export function createPlanView(d: PlanViewDeps): PlanViewApi {
       root.style.pointerEvents = a >= 0.5 ? 'auto' : 'none';
       if (was && !root.hidden) fitView();
     },
-    update() { if (!root.hidden) drawMe(); },
+    update() { if (!root.hidden) { drawMe(); drawVps(); } },
     fit: fitView,
     debug: () => ({ w: view.w, cx: view.cx, cz: view.cz, fitW, dimensions: showDims, north: hasNorth, doors: doorCount, furniture: furnCount }),
     dispose() {

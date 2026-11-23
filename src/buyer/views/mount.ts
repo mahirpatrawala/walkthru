@@ -57,6 +57,8 @@ export interface ViewsDeps {
   controls: boolean;
   /** the HUD is on screen (the buyer has chosen a height and started) */
   hudVisible(): boolean;
+  /** the Views' dots on the Plan (SPEC 2.10); filled in once the Views are mounted */
+  viewMarks?: { list(): readonly { id: string; x: number; z: number; label: string }[]; current(): string | null; pick(id: string): void };
 }
 
 export interface MountedViews extends ViewsApi {
@@ -135,6 +137,7 @@ export function mountViews(d: ViewsDeps): MountedViews {
     water: d.water,
     onRoomTap: (id) => { void goToRoom(id); },
     onEscape: () => api.set('walk'),
+    ...(d.viewMarks ? { viewMarks: d.viewMarks } : {}),
   });
   // ---- Furnish from above: the same session, the same rules (clearance, collision, the walls, My layout), only the pointer comes from the doll house's camera
   const furnishSession = (): FurnishMode['session'] | undefined => (modes.id === 'furnish' ? (modes.active() as FurnishMode | undefined)?.session : undefined);

@@ -112,7 +112,7 @@ html, body {
    takes labels away before anything is squeezed (hud.ts sets data-fit 0..3 on the row). The Tour always says what it is until the last step. */
 .wt-tool-label { display: none; }
 .wt-tourslot .wt-tool-label, .wt-exit .wt-tool-label, .wt-tools [data-btn="flats"] .wt-tool-label { display: inline; }
-html[data-labels="primary"] .wt-tools [data-btn="rooms"] .wt-tool-label, html[data-labels="primary"] .wt-tools [data-btn="measure"] .wt-tool-label, html[data-labels="primary"] .wt-tools [data-btn="furnish"] .wt-tool-label { display: inline; }
+html[data-labels="primary"] .wt-tools [data-btn="views"] .wt-tool-label, html[data-labels="primary"] .wt-tools [data-btn="rooms"] .wt-tool-label, html[data-labels="primary"] .wt-tools [data-btn="measure"] .wt-tool-label, html[data-labels="primary"] .wt-tools [data-btn="furnish"] .wt-tool-label { display: inline; }
 html[data-labels="full"] .wt-toprow .wt-tool-label { display: inline; }
 .wt-toprow[data-fit="1"] .wt-tools .wt-tool-label, .wt-toprow[data-fit="1"] .wt-seg .wt-tool-label, .wt-toprow[data-fit="2"] .wt-tool-label, .wt-toprow[data-fit="3"] .wt-tool-label { display: none !important; }
 .wt-toprow[data-fit="2"] .wt-tourslot .wt-nav-tourbtn, .wt-toprow[data-fit="3"] .wt-tourslot .wt-nav-tourbtn { padding: 0 calc(12 * var(--wt-u)); }

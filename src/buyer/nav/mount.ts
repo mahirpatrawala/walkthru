@@ -68,6 +68,9 @@ export interface MountedNav {
   startTour(opts?: TourOptions): Promise<TourState>;
   /** called from the frame loop where the keys and the thumb are read: true when the auto-walk moved the walker this frame (they are not read) */
   drive(dt: number): boolean;
+  /** the Views (SPEC 2.10): a dot on the plan for every view, the current one ringed; a press on a dot calls `onPick`. An empty list takes them away. */
+  setViewMarks(marks: readonly { id: string; x: number; z: number; label: string }[], onPick: (id: string) => void): void;
+  setViewCurrent(id: string | null): void;
   dispose(): void;
   debug: {
     driver: Driver;
@@ -261,7 +264,26 @@ export function mountNav(d: NavDeps): MountedNav {
   const halo = document.createElementNS(SVG_NS, 'circle');
   halo.setAttribute('class', 'wt-nav-halo');
   live.append(cone, halo, dot);
+  // the Views' dots (SPEC 2.10): under the walker's marks, over the rooms (a press on a dot is the dot's, not the room's)
+  const vpLayer = document.createElementNS(SVG_NS, 'g');
+  vpLayer.setAttribute('class', 'wt-nav-vps');
+  vpLayer.dataset.testid = 'nav-map-vps';
+  svg.appendChild(vpLayer);
   svg.appendChild(live);
+  let vpPick: ((id: string) => void) | null = null;
+  let vpR = 0.2;
+  const vpDots = new Map<string, SVGCircleElement>();
+  const sizeVpDots = (): void => {
+    const small = Math.max(0.1, Math.min(vb.width, vb.height));
+    vpR = Math.min(4 / Math.max(1, pxPerM), small * 0.05);
+    for (const c of vpDots.values()) { c.setAttribute('r', vpR.toFixed(4)); c.style.strokeWidth = `${(1.2 / Math.max(1, pxPerM)).toFixed(4)}px`; }
+  };
+  vpLayer.addEventListener('click', (e) => {
+    const c = (e.target as Element).closest?.('[data-vp]') as SVGElement | null;
+    if (!c || !vpPick) return;
+    e.stopPropagation();
+    vpPick(c.dataset.vp as string);
+  });
   const roomGroups = new Map<string, SVGGElement>();
   svg.querySelectorAll<SVGGElement>('g[data-room]').forEach((g) => roomGroups.set(g.dataset.room as string, g));
 
@@ -358,6 +380,7 @@ export function mountNav(d: NavDeps): MountedNav {
     halo.setAttribute('r', m.halo.toFixed(4));
     dot.style.strokeWidth = `${m.stroke.toFixed(4)}px`;
     coneLen = m.cone;
+    sizeVpDots();
     placeDirections();
     lastDrawn = null;
   };
@@ -656,6 +679,26 @@ export function mountNav(d: NavDeps): MountedNav {
   return {
     drive,
     startTour,
+    setViewMarks(marks, onPick) {
+      vpPick = onPick;
+      vpLayer.replaceChildren();
+      vpDots.clear();
+      for (const m of marks) {
+        const c = document.createElementNS(SVG_NS, 'circle');
+        c.setAttribute('class', 'wt-nav-vp');
+        c.setAttribute('cx', m.x.toFixed(3)); c.setAttribute('cy', m.z.toFixed(3));
+        c.dataset.vp = m.id;
+        const t = document.createElementNS(SVG_NS, 'title');
+        t.textContent = m.label;
+        c.appendChild(t);
+        vpLayer.appendChild(c);
+        vpDots.set(m.id, c);
+      }
+      sizeVpDots();
+    },
+    setViewCurrent(id) {
+      for (const [k, c] of vpDots) c.classList.toggle('is-current', k === id);
+    },
     dispose() {
       if (disposed) return;
       disposed = true;

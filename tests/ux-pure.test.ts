@@ -130,7 +130,7 @@ describe('the Flats list', () => {
 
 describe('one design language: the chrome is sized in tokens', () => {
   // a pixel size written raw (over 1.5 px) is a size that does not scale on a wall display; media queries and zoom-scaled panels (a rule that names `var(--wt-z)`) are the exceptions
-  const files = ['src/buyer/buyer.css', 'src/buyer/nav/nav.css', 'src/building/building.css', 'src/start/start.css', 'src/upload/upload.css'];
+  const files = ['src/buyer/buyer.css', 'src/buyer/nav/nav.css', 'src/buyer/viewpoints/viewpoints.css', 'src/building/building.css', 'src/start/start.css', 'src/upload/upload.css'];
   it.each(files)('%s has no raw pixel sizes', (f) => {
     const bad: string[] = [];
     fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((line, i) => {

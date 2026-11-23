@@ -61,6 +61,8 @@
   --wt-sheet-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 38%), var(--wt-sheet-fill);
   --wt-sheet-rim: rgba(255, 255, 255, 0.8);
   --wt-sheet-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(60, 40, 26, 0.14), 0 calc(14 * var(--wt-u)) calc(44 * var(--wt-u)) rgba(30, 18, 8, 0.26), 0 1px calc(3 * var(--wt-u)) rgba(30, 18, 8, 0.16);
+  /* the Views' markers (SPEC 2.10): the rings in the scene and the dots on the plans; a clear red that reads on a white wall and a dark floor */
+  --wt-vp-mark: #E2533D;
   /* the accent on dark glass (the brand terracotta, lifted so it reads) */
   --wt-accent-on-glass: #F0906F;
   /* the reveal: in, out, and the wait before out (src/buyer/chrome.ts REVEAL) */
