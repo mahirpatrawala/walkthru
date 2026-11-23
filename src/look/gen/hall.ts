@@ -6,7 +6,6 @@ import type { GenEnv, GenSize, MatSpec, Roles } from './core';
 import { CHROME, SOIL, soft } from './kit';
 import { softCushion } from './soft';
 import { addTextured, propGeo, propInfo } from '../gym/props';
-import { fitModel } from '../models/fit';
 import { ACCENT_BLUE, ACCENT_RED, CONSOLE, FRAME, FRAME_GREY, IRON, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, WOOD_ASH, cylX, cylY, cylZ, noteProp, pad, rtube, slab, tube, wholeModel } from './gymkit';
 
 export const HALL_VARIANTS = ['chair', 'table-rect', 'table-round', 'stage', 'podium', 'screen', 'speaker', 'carrom', 'tt', 'pool', 'foosball', 'chess-set', 'card-set', 'carrom-set', 'banquet-set', 'cafe-set'] as const;
@@ -23,8 +22,6 @@ const POOL_CLOTH: MatSpec = { key: 'felt', tint: '#1F6B46' };
  * under a hall's light) on the brushed steel frame */
 const SEAT_FABRIC: MatSpec = { key: 'weave', tint: '#9C8770' };
 export const HALL_DEFAULTS: HallParams = { variant: 'chair', liftM: 0 };
-/** the pool-table model's materials (as named in the source file) and the part each one is: the cloth, the six pocket cups, the leg pads; the rest is timber */
-const POOL_PARTS: Record<string, 'cloth' | 'pockets' | 'feet'> = { aiStandardSurface1: 'cloth', aiStandardSurface4: 'pockets', aiStandardSurface3: 'feet' };
 
 export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Roles): THREE.Group {
   const { w, d, h: H, s: S } = size;
@@ -36,10 +33,10 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
   const seg = q.tier === 'low' ? 12 : q.tier === 'medium' ? 20 : 28;
   const wseg = q.tier === 'low' ? 12 : 16;
   const wood = role(roles, 'case', 'accent');
-  // fifteen balls racked at the foot spot, the cue ball at the head (on the generated table or on the model's cloth)
+  // fifteen balls racked at the foot spot, the cue ball at the head
   const racked = (bt: number): void => {
     const br = 0.0285, bs = q.tier === 'high' ? 12 : 8;
-    // a ball stands taller than a rail: on a model whose rails are lower than that above its cloth the balls would leave the box, so none are racked
+    // a ball must stay inside the box: none are racked if the rails stand lower above the cloth than a ball
     if (q.tier !== 'low' && bt + 2 * br <= H + 0.001) {
       const COL = ['#E2C230', '#2F5FA8', '#C03B30', '#4B2E83', '#E27A2D', '#2B7A3F', '#7A2A22', '#1A1A1A'];
       let n = 0;
@@ -73,29 +70,6 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
     for (let i = 0; i < 6; i++) { const a = (i * Math.PI) / 3; cylY(parts, 'carrom-coins', i % 2 ? IRON : { key: 'laminate', tint: '#F1E8D0' }, Math.cos(a) * 0.04, Math.sin(a) * 0.04, bt + 0.0005, bt + 0.007, 0.016, 10); }
     cylY(parts, 'carrom-coins', { key: 'paint', tint: '#B3322B' }, 0, 0, bt + 0.0005, bt + 0.007, 0.016, 10);
     return bt - 0.05;
-  };
-  /**
-   * SPEC 16.17.4: the pool-table model's shapes in the app's materials. Each of its four materials is one kind of part (the cabinet, rails and
-   * legs; the cloth; the pocket cups; the leg pads): every part is scaled into the box like a whole model (16.17.3) and takes the matching
-   * finish with world-space grain. False when the model is not here (asked for, swapped in when it lands), does not fit, or models are off.
-   */
-  const poolModel = (): boolean => {
-    const info = propInfo('pool-table');
-    if (!info || !fitModel({ w: info.dims.w, h: info.dims.h, d: info.dims.d }, { w, h: H, d }).ok) return false;
-    const geo = propGeo('pool-table', q.tier);
-    noteProp(parts, 'pool-table', !!geo);
-    if (!geo?.meshes) return false;
-    const sx = w / info.dims.w, sy = H / info.dims.h, sz = d / info.dims.d;
-    for (const m of geo.meshes) {
-      const g = m.geometry.clone().scale(sx, sy, sz);
-      g.computeVertexNormals();
-      const which = POOL_PARTS[m.material.name] ?? 'body';
-      if (which === 'cloth') parts.put('pool-cloth', POOL_CLOTH, g);
-      else if (which === 'pockets') parts.put('pool-pockets', { key: 'vinyl', tint: '#2E2622' }, g);
-      else if (which === 'feet') parts.put('pool-feet', { key: 'rubber', tint: '#2A2B2E' }, g);
-      else parts.put('pool-body', POOL_WOOD, g, { grain: 'x' });
-    }
-    return true;
   };
   const build: Record<string, () => void> = {
     chair: () => {
@@ -212,10 +186,8 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
       slab(parts, 'tt-net-tape', { key: 'laminate', tint: '#F4F4F0' }, -0.005, 0.005, H - 0.012, H, z0, z1);
     },
     pool: () => {
-      // SPEC 16.17.3: the downloaded table (moulded cabinet, rails, pockets, legs) when it is here and fits the box. SPEC 16.17.4: its shapes
-      // only, in the app's own photographed walnut veneer and cloth (its own maps were a dark, drawn wood grain and a lime cloth); no balls,
-      // since a ball on its cloth would stand above the box
-      if (poolModel()) return;
+      // SPEC 16.17.4: generated. The downloaded table of 16.17.3 was retired: at close range its rails had no sights, its cushions no line and
+      // it could carry no balls inside the box; this one has all three
       // an 8 ft pool table (SPEC 16.17.2): a walnut cabinet with a moulded apron, wood top rails with inlaid sights, green cushions and cloth, six
       // leather pocket cups, four turned legs on levelling feet; fifteen balls racked at the foot spot, the cue ball at the head
       const bt = S, rail = 0.12;

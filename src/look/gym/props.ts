@@ -14,9 +14,9 @@ import clubManifest from '../club/manifest.json';
 /** the gym's props (public/look/gym, SPEC 16.17.1) */
 export type GymPropKind = 'dumbbell' | 'kettlebell' | 'chess';
 /** whole pieces of the clubhouse (public/look/club, SPEC 16.17.3): a model that stands in for a generated piece, scaled into its box */
-export type ClubPropKind = 'power-rack' | 'recumbent' | 'pool-table' | 'table-tennis' | 'carrom-board' | 'dartboard' | 'pendant' | 'chandelier';
+export type ClubPropKind = 'power-rack' | 'recumbent' | 'table-tennis' | 'carrom-board' | 'dartboard' | 'pendant' | 'chandelier';
 export type PropKind = GymPropKind | ClubPropKind;
-export const PROP_KINDS: PropKind[] = ['dumbbell', 'kettlebell', 'chess', 'power-rack', 'recumbent', 'pool-table', 'table-tennis', 'carrom-board', 'dartboard', 'pendant', 'chandelier'];
+export const PROP_KINDS: PropKind[] = ['dumbbell', 'kettlebell', 'chess', 'power-rack', 'recumbent', 'table-tennis', 'carrom-board', 'dartboard', 'pendant', 'chandelier'];
 
 type PropTier = 'full' | 'mid' | 'low';
 interface PropInfo {
@@ -49,7 +49,6 @@ export const PROP_CREDITS: Record<PropKind, string> = {
   chess: 'Chess set: "Chess Set" by Riley Queen (polyhaven.com), CC0.',
   'power-rack': 'Rack, bar and plates: "Weight Room Set 1" and "Weight Room Set 3" by Tytan (sketchfab.com/tylerhalterman), CC BY 4.0, adapted.',
   recumbent: 'Bike: "cycle" by killer456 (sketchfab.com/killer456), CC BY 4.0, adapted.',
-  'pool-table': 'Table: "Pooltable" by jdastine (sketchfab.com/jdastine), CC BY 4.0, adapted.',
   'table-tennis': 'Table: "Table Tennis Table" by Diccbudd (sketchfab.com/Diccbudd), CC BY 4.0, adapted.',
   'carrom-board': 'Board: "Karambol Carom Board" by Francesco Coldesina (sketchfab.com/topfrank2013), CC BY 4.0, adapted.',
   dartboard: 'Dartboard: "Dartboard" by Satyaki Mandal (polyhaven.com), CC0.',

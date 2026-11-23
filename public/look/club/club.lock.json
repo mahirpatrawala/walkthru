@@ -74,30 +74,6 @@
         }
       ]
     },
-    "sketchfab-cc96165eda374800a45f510d98216490": {
-      "id": "sketchfab-cc96165eda374800a45f510d98216490",
-      "name": "Pooltable",
-      "kind": "model",
-      "authors": [
-        "jdastine"
-      ],
-      "page": "https://sketchfab.com/3d-models/pooltable-cc96165eda374800a45f510d98216490",
-      "licence": "CC BY 4.0",
-      "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
-      "licenceWords": "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model cc96165eda374800a45f510d98216490): license \"by\", Sketchfab's \"CC Attribution\": \"Author must be credited. Commercial use is allowed.\"",
-      "use": "the 8 ft pool table: the walnut cabinet, rails, cloth and legs with their own maps (the source's loose balls left out; the generator racks its own)",
-      "licenceRead": "2026-11-22",
-      "fetched": "2026-11-22",
-      "files": [
-        {
-          "path": "cc96165eda374800a45f510d98216490.glb",
-          "url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-135/cc96165eda374800a45f510d98216490.glb",
-          "size": 3843832,
-          "md5": "4775df08a241cc9eb857fc98501bd625",
-          "sha256": "19882083f9a25810030197c627f86f21c8bd95b0eee9714fb7c1c52a83b8143b"
-        }
-      ]
-    },
     "sketchfab-457c34c9297d44a1a5d4e5d093c6a712": {
       "id": "sketchfab-457c34c9297d44a1a5d4e5d093c6a712",
       "name": "Table Tennis Table",
@@ -304,6 +280,11 @@
     }
   },
   "rejected": [
+    {
+      "what": "Pooltable (jdastine), CC BY",
+      "url": "https://sketchfab.com/3d-models/pooltable-cc96165eda374800a45f510d98216490",
+      "why": "SPEC 16.17.4: shipped on 22 Nov, retired on 23 Nov. Compared at the high tier on the GPU, from 2.5 m: its own maps are a drawn dark wood that rendered as a black mass and a mottled cloth; re-surfaced in the app's walnut and cloth it still had flat rails with no sights, a crude cushion line and no balls (a ball on its cloth would stand above the 0.86 m box), and it was squeezed 11 % in depth. The generated table (rails with pearl sights, felt cushions, leather pocket cups, turned legs, fifteen balls racked inside the box) read more like a real table, so it is back."
+    },
     {
       "what": "Treadmill Machine (sousinho), CC BY",
       "url": "https://sketchfab.com/3d-models/faed3a2a275b4fd68089e1d8bdfb7f89",
@@ -558,18 +539,6 @@
     "models/pendant.mid.glb": {
       "bytes": 70720,
       "sha256": "26837225f999298678f62716adda29b8ba365b27de0804334e21a708afb814a8"
-    },
-    "models/pool-table.glb": {
-      "bytes": 588152,
-      "sha256": "e6c783facb110f736f9cfca6c1171ec3390db7269cc15d2cb21ecc7b9978ccf5"
-    },
-    "models/pool-table.low.glb": {
-      "bytes": 53112,
-      "sha256": "46a3bc81ac8a982495afff2c62f991c749560308658b09c0f6a8abe73fd82fe9"
-    },
-    "models/pool-table.mid.glb": {
-      "bytes": 165764,
-      "sha256": "a6e9a9e3dc9ab074e093f247d9661201fd13bdcd6d4ca9ce86a47da7ad895431"
     },
     "models/power-rack.glb": {
       "bytes": 394372,

@@ -66,39 +66,6 @@
       "parts": [],
       "note": "one uniform scale to the 1.65 m length; the maker's name on the two flywheel shrouds painted out with the shroud's white."
     },
-    "pool-table": {
-      "source": [
-        "sketchfab-cc96165eda374800a45f510d98216490"
-      ],
-      "textured": true,
-      "surfaceM": 0.8614,
-      "dims": {
-        "w": 2.54,
-        "h": 0.9019,
-        "d": 1.2761
-      },
-      "files": {
-        "full": {
-          "file": "models/pool-table.glb",
-          "bytes": 588152
-        },
-        "mid": {
-          "file": "models/pool-table.mid.glb",
-          "bytes": 165764
-        },
-        "low": {
-          "file": "models/pool-table.low.glb",
-          "bytes": 53112
-        }
-      },
-      "tris": {
-        "full": 3312,
-        "mid": 2329,
-        "low": 1347
-      },
-      "parts": [],
-      "note": "the loose balls and a stray marker left out; the lime cloth toned to a tournament green; one uniform scale to the 2.54 m length."
-    },
     "dartboard": {
       "source": [
         "dartboard"

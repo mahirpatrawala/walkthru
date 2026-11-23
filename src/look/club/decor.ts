@@ -5,7 +5,7 @@
 // The plan is a pure function of the layout, the pieces and the space's kind (planClubDecor). The fittings that are downloaded models (a globe
 // pendant, a chandelier, the dartboard: Poly Haven, CC0) are swapped in when they arrive; until then, and with `?models=off`, a simple drawn
 // fitting stands in. A gym's linear lights are drawn here. The wall art is a framed reproduction of a public-domain painting (SPEC 16.17.4:
-// The Met's Open Access images, CC0, public/look/club/art, listed in club.lock.json), fitted inside its mount; until the picture arrives, if
+// The Met's Open Access images, CC0, public/look/club/art, listed in art.lock.json), fitted inside its mount; until the picture arrives, if
 // it cannot be had, or under Node, a generated colour field stands in.
 import * as THREE from 'three';
 import type { FurnitureItem, Layout, RoomTag, Vec2 } from '../../types';
@@ -20,7 +20,7 @@ export const CLUB_DECOR_LABEL = 'Ceiling lights and wall art are sample decor, n
 /** the label where the space's design sheet also gives a sample wall finish (the changing rooms' glazed wall tile, SPEC 16.17.4) */
 export const CLUB_DECOR_TILE_LABEL = 'Ceiling lights and wall tiles are sample decor, not from the plan.';
 
-/** SPEC 16.17.4: the pictures (public/look/club/art, CC0 reproductions from The Met's Open Access, credited in club.lock.json) and their aspect */
+/** SPEC 16.17.4: the pictures (public/look/club/art, CC0 reproductions from The Met's Open Access, credited in art/art.lock.json) and their aspect */
 export const CLUB_ART: { id: string; aspect: number }[] = [
   { id: 'olive-trees', aspect: 1.2533 },
   { id: 'pool-jas-de-bouffan', aspect: 1.2459 },

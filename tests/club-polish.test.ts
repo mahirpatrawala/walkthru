@@ -1,5 +1,5 @@
-// SPEC 16.17.4 (23 Nov 2026): the clubhouse polish. The pool table's model wears the app's photographed walnut and cloth (no balls, which
-// would stand above its box); the banquet and stacking chairs are upholstered in a mid-tone fabric; the gym's frames are a lighter titanium
+// SPEC 16.17.4 (23 Nov 2026): the clubhouse polish. The pool table is the generated one again (the 16.17.3 model retired), in a mid walnut
+// with its balls inside the box; the banquet and stacking chairs are upholstered in a mid-tone fabric; the gym's frames are a lighter titanium
 // grey and every cardio console has a lit display; the wall art is CC0 public-domain paintings fitted inside their mounts, each file the one
 // its lock records; the changing rooms' design sheets tile their walls, and the decor label says so.
 import { afterEach, describe, expect, it } from 'vitest';
@@ -12,7 +12,7 @@ import { buildRealFurniture } from '../src/look/furniture-real';
 import { createFurnitureKit } from '../src/look/furniture-materials';
 import { resetStyle, setStyle } from '../src/look/style';
 import { setModelsEnabled } from '../src/look/models/library';
-import { clearProps, primeProp, propInfo, propNote, setPropFetcher } from '../src/look/gym/props';
+import { PROP_KINDS, clearProps, propNote, setPropFetcher } from '../src/look/gym/props';
 import { CLUB_ART, CLUB_DECOR_LABEL, CLUB_DECOR_TILE_LABEL, artSize, clubArtUrl, mountClubDecor, planClubDecor } from '../src/look/club/decor';
 import { FRAME, FRAME_GREY, SHROUD } from '../src/look/gen/gymkit';
 import { finishDef } from '../src/look/finishes';
@@ -41,59 +41,37 @@ const matOf = (m: THREE.Mesh): THREE.MeshStandardMaterial => m.material as THREE
 /** relative luminance of an sRGB colour, 0..1 */
 const lum = (hex: string): number => { const c = new THREE.Color(hex); return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b; };
 
-/** the GLB's JSON chunk (the material names the generator reads) */
-function glbJson(file: string): { materials?: { name?: string }[] } {
-  const buf = fs.readFileSync(file);
-  const len = buf.readUInt32LE(12);
-  return JSON.parse(buf.subarray(20, 20 + len).toString('utf8')) as { materials?: { name?: string }[] };
-}
-
-describe('the pool table: the model\'s shapes in the app\'s walnut and cloth', () => {
-  /** node cannot decode the model's WebP maps: a stand-in with the model's four materials, each a slab inside the model's measured size */
-  const standIn = (tier: Tier): void => {
-    const d = propInfo('pool-table').dims;
-    const part = (name: string, y0: number, y1: number, inset: number): { geometry: THREE.BufferGeometry; material: THREE.MeshStandardMaterial } => {
-      const mat = new THREE.MeshStandardMaterial({ map: new THREE.Texture() }); mat.name = name;
-      return { geometry: new THREE.BoxGeometry(d.w - inset, y1 - y0, d.d - inset).translate(0, (y0 + y1) / 2, 0), material: mat };
-    };
-    primeProp('pool-table', tier, { kind: 'pool-table', parts: {}, meshes: [part('aiStandardSurface2', 0.02, d.h, 0), part('aiStandardSurface1', 0.85, 0.9, 0.1), part('aiStandardSurface4', 0.58, 0.86, 0.12), part('aiStandardSurface3', 0, 0.06, 0.9)] });
-  };
-  it('every shipped file names the four materials the generator sorts the parts by', () => {
-    for (const t of ['full', 'mid', 'low'] as const) {
-      const names = (glbJson(path.join(ROOT, 'public/look/club', propInfo('pool-table').files[t]!.file)).materials ?? []).map((m) => m.name);
-      for (const n of ['aiStandardSurface1', 'aiStandardSurface2', 'aiStandardSurface3', 'aiStandardSurface4']) expect(names, `${t} ${n}`).toContain(n);
+describe('the pool table: generated, a mid walnut, its balls racked inside the box', () => {
+  it('no downloaded model is asked for or shipped any more (the 16.17.3 model was retired), and the card credits none', () => {
+    expect((PROP_KINDS as string[]).includes('pool-table')).toBe(false);
+    expect(fs.existsSync(path.join(ROOT, 'public/look/club/models/pool-table.glb'))).toBe(false);
+    const lock = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/look/club/club.lock.json'), 'utf8')) as { assets: Record<string, unknown>; rejected: { what: string; why: string }[] };
+    expect(lock.assets['sketchfab-cc96165eda374800a45f510d98216490']).toBeUndefined();
+    expect(lock.rejected.some((r) => r.what.startsWith('Pooltable (jdastine), CC BY') && /retired/.test(r.why))).toBe(true);
+    for (const tier of ['low', 'medium', 'high'] as Tier[]) {
+      const { g, item } = build('hall-pool-table', tier);
+      expect(g.userData.gymPropsWanted ?? [], tier).not.toContain('pool-table');
+      expect(propNote(item.id)).not.toContain('Pooltable');
     }
   });
-  it('with the model: timber, cloth, pockets and feet in the app\'s materials, no source map, no balls, exactly its box, credited', () => {
-    for (const tier of ['low', 'medium', 'high'] as Tier[]) {
-      clearProps();
-      standIn(tier);
+  it('the walnut is a mid tone (not a black mass), the cloth a felt, and every ball stands below the rails\' top, inside the box', () => {
+    for (const tier of ['medium', 'high'] as Tier[]) {
       const { g, item } = build('hall-pool-table', tier);
       const ms = meshes(g);
-      const byName = (n: string): THREE.Mesh[] => ms.filter((m) => m.name === n);
-      expect(byName('pool-body').length, tier).toBeGreaterThan(0);
-      expect(matOf(byName('pool-body')[0]).name).toBe('wood');
-      expect(lum(`#${matOf(byName('pool-body')[0]).color.getHexString()}`), 'the walnut is a mid tone, not a black mass').toBeGreaterThan(0.12);
-      expect(matOf(byName('pool-cloth')[0]).name).toBe('felt');
-      expect(byName('pool-pockets').length).toBeGreaterThan(0);
-      expect(byName('pool-feet').length).toBeGreaterThan(0);
-      expect(byName('pool-balls').length, 'a ball on the model\'s cloth would stand above the box').toBe(0);
-      for (const m of ms) expect(matOf(m).map ?? null, `${tier} ${m.name}`).toBe(null);
+      const body = ms.filter((m) => m.name === 'pool-body');
+      expect(body.length).toBeGreaterThan(0);
+      expect(matOf(body[0]).name).toBe('wood');
+      expect(lum(`#${matOf(body[0]).color.getHexString()}`)).toBeGreaterThan(0.12);
+      expect(matOf(ms.find((m) => m.name === 'pool-cloth')!).name).toBe('felt');
+      const balls = ms.filter((m) => m.name === 'pool-balls');
+      expect(balls.length, tier).toBeGreaterThan(0);
+      const top = Math.max(...balls.map((m) => new THREE.Box3().setFromObject(m).max.y));
+      expect(top, tier).toBeLessThanOrEqual(item.heightM);
       const bb = bounds(g);
-      expect(bb.max.x - bb.min.x).toBeCloseTo(item.box.w, 2);
-      expect(bb.max.z - bb.min.z).toBeCloseTo(item.box.d, 2);
-      expect(bb.max.y).toBeLessThanOrEqual(item.heightM + 0.001);
-      expect(propNote(item.id)).toContain('Pooltable');
+      expect(bb.max.x - bb.min.x).toBeLessThanOrEqual(item.box.w + 0.012);
+      expect(bb.max.z - bb.min.z).toBeLessThanOrEqual(item.box.d + 0.012);
+      expect(bb.max.y).toBeLessThanOrEqual(item.heightM + 0.012);
     }
-  });
-  it('without it (or with ?models=off) the generated table racks its balls inside the box', () => {
-    setModelsEnabled(false);
-    const { g, item } = build('hall-pool-table', 'high');
-    const balls = meshes(g).filter((m) => m.name === 'pool-balls');
-    expect(balls.length).toBeGreaterThan(0);
-    const top = Math.max(...balls.map((m) => new THREE.Box3().setFromObject(m).max.y));
-    expect(top, 'every ball stands below the rails\' top, inside the box').toBeLessThanOrEqual(item.heightM);
-    expect(bounds(g).max.y).toBeLessThanOrEqual(item.heightM + 0.012);
   });
 });
 
