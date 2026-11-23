@@ -25,6 +25,10 @@ export const PIECE_CREDITS: Record<PieceModelId, string> = {
   'patio-table': 'Table: "Metallic garden table" by anDDDres (sketchfab.com/anDDDres), CC BY 4.0, adapted.',
 };
 
+/** SPEC 19.14 (23 Nov 2026): what a model's cushion colour is multiplied by (linear): the lounger's is a light grey weave (mean 0.44), the chair's a
+ *  flat ecru of 0.82 (both read as white paper under a midday sun); outdoor ecru canvas is about 0.3 to 0.4 */
+export const CUSHION_ALBEDO: Partial<Record<PieceModelId, [number, number, number]>> = { lounger: [0.8, 0.74, 0.62], 'pool-chair': [0.55, 0.52, 0.5] };
+
 export const pieceModelIds = (): PieceModelId[] => (Object.keys(PIECE_CREDITS) as PieceModelId[]).filter((id) => !!FACTS[id]);
 export const pieceUrl = (id: PieceModelId, tier: Tier): string | null => { const f = FACTS[id]?.tiers[tier]?.file; return f ? `/look/outdoor/${f}` : null; };
 
@@ -110,6 +114,9 @@ export function addPiece(group: THREE.Group, geo: PieceGeo, w: number, h: number
     g.deleteAttribute('tangent');
     const mat = m.material.clone();
     if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
+    // SPEC 19.14 (23 Nov 2026): a cushion is ecru canvas of a believable albedo, so it keeps its weave in full sun (it blew out white)
+    const cushion = m.part === 'cushion' ? CUSHION_ALBEDO[geo.id] : undefined;
+    if (cushion) { mat.color.multiply(new THREE.Color().setRGB(...cushion)); mat.roughness = Math.max(mat.roughness, 0.95); }
     const mesh = new THREE.Mesh(g, mat);
     mesh.name = name(m.part);
     mesh.userData.walkthruPart = mesh.name;

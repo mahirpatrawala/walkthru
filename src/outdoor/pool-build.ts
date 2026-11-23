@@ -243,6 +243,8 @@ export function buildPools(pools: readonly PoolBasin[], mats: OutdoorMaterials, 
           const q = alongX ? { x: p.x, z: p.z + (side === 'N' ? -cm / 2 : cm / 2) } : { x: p.x + (side === 'W' ? -cm / 2 : cm / 2), z: p.z };
           const plane = new THREE.PlaneGeometry(0.34, 0.13).rotateX(-Math.PI / 2);
           if (!alongX) plane.rotateY(Math.PI / 2);
+          // SPEC 19.14 (23 Nov 2026): read from the deck, standing at the edge facing the water (the north and west numerals were upside down)
+          if (side === 'N' || side === 'W') plane.rotateY(Math.PI);
           plane.translate(q.x, 0.032, q.z);
           const m = new THREE.MeshStandardMaterial({ map: tex ?? undefined, color: tex ? '#ffffff' : '#1E5F8C', roughness: 0.6 });
           free.push(m, plane); if (tex) free.push(tex);
