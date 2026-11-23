@@ -40,6 +40,12 @@ export interface Boundary {
   heightM?: number;
   /** wall paint, '#rrggbb' */
   colour?: string;
+  /**
+   * SPEC 19.14 (23 Nov 2026), a facade only: the building the space attaches to is wider than the space's edge. Its face continues along the
+   * edge's line `beforeM` before the edge's start and `afterM` past its end, and the building stands `depthM` behind it: read off the plan
+   * (the indoor rooms on that line), so a narrow edge (a bridge's end) does not stand alone as a pillar. Drawn as decor outside the space.
+   */
+  building?: { beforeM: number; afterM: number; depthM: number };
 }
 
 /** Steps into a pool along one of its edges: `count` treads, the top one `topDepthM` under the water, each next one `riserM` lower. */
@@ -203,6 +209,11 @@ export function parseOutdoor(json: unknown): OutdoorFile {
     if (!Number.isInteger(e.edge)) fail(`${p}.edge`, 'must be a whole number');
     if (b.heightM !== undefined) e.heightM = inRange(b.heightM, 0.4, 6, `${p}.heightM`);
     if (b.colour !== undefined) { if (typeof b.colour !== 'string' || !HEX.test(b.colour)) fail(`${p}.colour`, 'must be #rrggbb'); e.colour = b.colour; }
+    if (b.building !== undefined) {
+      if (e.kind !== 'facade') fail(`${p}.building`, 'is only for a facade');
+      if (!isObj(b.building)) fail(`${p}.building`, 'must be an object');
+      e.building = { beforeM: inRange(b.building.beforeM, 0, 200, `${p}.building.beforeM`), afterM: inRange(b.building.afterM, 0, 200, `${p}.building.afterM`), depthM: inRange(b.building.depthM, 0.3, 200, `${p}.building.depthM`) };
+    }
     out.boundary.push(e);
   });
   const spot = (s: unknown, p: string): PlantSpot => {

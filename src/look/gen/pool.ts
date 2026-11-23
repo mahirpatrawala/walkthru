@@ -321,10 +321,15 @@ function planter(P: Parts, { w, d, h, s }: GenSize): void {
 
 // ---------------------------------------------------------------- aqua play (a shallow children's water area)
 
-export const PLAY_RED: MatSpec = { key: 'paint', tint: '#C9372C' };
-export const PLAY_YELLOW: MatSpec = { key: 'paint', tint: '#E3B02A' };
-export const PLAY_BLUE: MatSpec = { key: 'paint', tint: '#2F6FB0' };
-export const PLAY_GREY: MatSpec = { key: 'dark', tint: '#3A3D42' };
+// SPEC 19.14 (23 Nov 2026): the finishes of commercial water-play equipment after a few seasons of sun and chlorine, not a toy's primaries: satin
+// powder-coated posts and rails in muted, slightly chalky colours, a gel-coated fibreglass slide and roof gone a little dull, an anti-slip rubber
+// deck, and stainless fittings (nozzles, caps, the spray post, the jet bar). Were saturated paint red, yellow and blue.
+export const PLAY_RED: MatSpec = { key: 'plastic', tint: '#9E5242' };
+export const PLAY_YELLOW: MatSpec = { key: 'plastic', tint: '#B09A6C' };
+export const PLAY_BLUE: MatSpec = { key: 'plastic', tint: '#4C6A78' };
+export const PLAY_GREY: MatSpec = { key: 'dark', tint: '#5E6166' };
+/** brushed stainless, a shade duller than a bathroom's chrome */
+export const STAINLESS: MatSpec = { key: 'metal', tint: '#C3C7CA' };
 
 /** SPEC 19.12: running water (white with air in it), drawn where the play feature sends it, inside the feature's own footprint and height */
 export const SPRAY: MatSpec = { key: 'sheer', tint: '#E3F1F5' };
@@ -389,7 +394,7 @@ function aquaTower(P: Parts, { w, d, h }: GenSize): void {
 function aquaSun(P: Parts, { w, h }: GenSize): void {
   const r = w / 2;
   disc(P, 'pad', PLAY_GREY, 0, 0, 0, 0.06, r * 0.5);
-  post(P, 'post', CHROME, 0, 0, 0.06, h - 0.2, 0.05);
+  post(P, 'post', STAINLESS, 0, 0, 0.06, h - 0.2, 0.05);
   disc(P, 'sun', PLAY_RED, 0, 0, h - 0.5, h - 0.2, r * 0.55);
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2;
@@ -401,7 +406,7 @@ function aquaSun(P: Parts, { w, h }: GenSize): void {
     const tt = Math.sqrt((2 * (h - 0.36)) / 9.8);
     stream(P, 'spray', tip, [Math.cos(a) * (r * 0.08) / tt, 0, -Math.sin(a) * (r * 0.08) / tt], tt * 0.98, 0.012);
   }
-  disc(P, 'nozzle', CHROME, 0, 0, h - 0.2, h, 0.06);
+  disc(P, 'nozzle', STAINLESS, 0, 0, h - 0.2, h, 0.06);
 }
 
 /** A water mushroom: a post, a wide yellow dome, and the curtain of water that falls from its rim to the pad. */
@@ -413,16 +418,20 @@ function aquaMushroom(P: Parts, { w, h }: GenSize): void {
   dome.translate(0, h - 0.32, 0);
   P.put('dome', PLAY_YELLOW, dome, { double: true });
   disc(P, 'rim', PLAY_YELLOW, 0, 0, h - 0.34, h - 0.32, r);
-  disc(P, 'cap', CHROME, 0, 0, h - 0.02, h, 0.05);
-  // the curtain, a little inside the rim, thinning (narrowing) as it falls
-  const curtain = new THREE.CylinderGeometry(r * 0.97, r * 0.94, h - 0.36, P.env.q.sides >= 12 ? 36 : 20, 1, true);
-  curtain.translate(0, (h - 0.36) / 2, 0);
-  P.put('spray', SPRAY, curtain, { noShadow: true, double: true });
+  disc(P, 'cap', STAINLESS, 0, 0, h - 0.02, h, 0.05);
+  // the curtain: SPEC 19.14 (23 Nov 2026) streams falling from the rim, a hand apart, drawing in a little as they fall (was a solid white
+  // cylinder that read as a bin under the dome)
+  const n = P.env.q.sides >= 12 ? 22 : 14;
+  const fall = Math.sqrt((2 * (h - 0.36)) / 9.8);
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    stream(P, 'spray', [Math.cos(a) * r * 0.96, h - 0.36, Math.sin(a) * r * 0.96], [-Math.cos(a) * r * 0.04 / fall, 0, -Math.sin(a) * r * 0.04 / fall], fall * 0.98, 0.01);
+  }
 }
 
 /** A row of ground spray jets in a stainless bar, nine nozzles along it. (Their water rises far above the 12 cm the row is: not drawn, the piece is the hardware.) */
 function aquaJets(P: Parts, { w, d, h }: GenSize): void {
-  P.box('bar', CHROME, -w / 2, w / 2, 0, h * 0.5, -d / 2, d / 2, { c: 0.004 });
+  P.box('bar', STAINLESS, -w / 2, w / 2, 0, h * 0.5, -d / 2, d / 2, { c: 0.004 });
   const n = 9;
-  for (let i = 0; i < n; i++) { const x = -w / 2 + 0.2 + (i * (w - 0.4)) / (n - 1); post(P, 'jets', WHITE_PAINT, x, 0, h * 0.5, h, 0.045, 0.7); }
+  for (let i = 0; i < n; i++) { const x = -w / 2 + 0.2 + (i * (w - 0.4)) / (n - 1); post(P, 'jets', STAINLESS, x, 0, h * 0.5, h, 0.045, 0.7); }
 }

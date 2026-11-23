@@ -19,6 +19,11 @@ export const PHOTO_SPRAYS: readonly SpeciesId[] = ['neem', 'gulmohar', 'frangipa
 export const sprayPath = (id: SpeciesId, tier: Tier): string | null => (PHOTO_SPRAYS.includes(id) ? `${BASE}leaves/${id}${lowOf(tier)}.webp` : null);
 export const FROND_PATH = `${BASE}leaves/palm-frond.webp`;
 export const HEDGE_PATH = `${BASE}leaves/hedge-ficus.jpg`;
+/** SPEC 19.14 (23 Nov 2026): metres one repeat of the hedge's leaf mat covers (it is mapped in world space; a ficus leaf is 6 to 8 cm) */
+export const HEDGE_REPEAT_M = 0.9;
+/** SPEC 19.14 (23 Nov 2026): the species drawn as branch tips (a frangipani) and their atlas: one real leaf photograph and a cluster of flowers */
+export const TIP_ATLAS: Partial<Record<SpeciesId, string>> = { frangipani: 'frangipani-tip' };
+export const tipPath = (id: SpeciesId, tier: Tier): string | null => (TIP_ATLAS[id] ? `${BASE}leaves/${TIP_ATLAS[id]}${lowOf(tier)}.webp` : null);
 export const BARK_PATH = `${BASE}tex/bark_diff.jpg`;
 export const GRASS_PATH = `${BASE}grass/tufts.webp`;
 export const DECK_PATHS = { diff: `${BASE}tex/deck_diff.jpg`, nor: `${BASE}tex/deck_nor.jpg` } as const;

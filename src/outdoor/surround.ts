@@ -14,13 +14,54 @@ import type { EdgeFrame, Layout, Vec2 } from '../types';
 import type { Tier } from '../look/types';
 import { mergeAndFree, segmentBox, flatGeometry } from './geo';
 import type { OutdoorFile } from './types';
+import type { GroundShade } from './sky-dome';
 
 /** the depth of a bridge's slab and of the slab edge along the deck (typical, not a drawing) */
 export const BRIDGE_SLAB_M = 0.5;
 export const SLAB_EDGE_M = 0.35;
-const PODIUM_PAINT = '#DDD0B8';
-const SLAB_PAINT = '#EFE6D3';
-const PLINTH_PAINT = '#9C978C';
+export const PODIUM_PAINT = '#DDD0B8';
+export const SLAB_PAINT = '#EFE6D3';
+export const PLINTH_PAINT = '#9C978C';
+
+const PLASTER_NOISE = `
+float owPH(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
+float owPN(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+  return mix(mix(owPH(i), owPH(i+vec2(1.,0.)), f.x), mix(owPH(i+vec2(0.,1.)), owPH(i+vec2(1.,1.)), f.x), f.y); }
+`;
+
+/**
+ * SPEC 19.14 (23 Nov 2026): painted render on a building's face, not one flat tone. In world space (so faces that meet carry on): soft patches a
+ * few metres across and a finer trowel grain, thin rain streaks running down (stronger in the first metre or two under a slab edge), and the
+ * foot of the wall a little darker where rain splashes it. All within about 10 % of the paint: it reads as an old coat of the same paint.
+ * `groundY` is where the wall stands; `slabY` the underside of the slab edge above it (streaks start there).
+ */
+export function plasterMaterial(colour: string, name: string, groundY: number, slabY: number): THREE.MeshStandardMaterial {
+  const m = new THREE.MeshStandardMaterial({ color: colour, roughness: 0.94, metalness: 0, name });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uOWGround = { value: groundY };
+    sh.uniforms.uOWSlab = { value: slabY };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vOWP; varying vec3 vOWN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvOWP = (modelMatrix * vec4(transformed, 1.0)).xyz; vOWN = normalize(mat3(modelMatrix) * objectNormal);');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vOWP; varying vec3 vOWN; uniform float uOWGround; uniform float uOWSlab;\n${PLASTER_NOISE}`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+  {
+    float al = abs(vOWN.x) > abs(vOWN.z) ? vOWP.z : vOWP.x;
+    vec2 w = vec2(al, vOWP.y);
+    float big = owPN(w / vec2(4.5, 2.6)), mid = owPN(w / 0.9 + 7.0), fine = owPN(w * 4.3 + 3.0);
+    float k = 1.0 + (big - 0.5) * 0.12 + (mid - 0.5) * 0.05 + (fine - 0.5) * 0.04;
+    float streak = smoothstep(0.55, 0.9, owPN(vec2(al * 3.1, vOWP.y * 0.09 + 2.0))) * (0.45 + 0.55 * owPN(vec2(al * 0.6 + 4.0, 0.5)));
+    float under = 1.0 - smoothstep(0.0, 2.2, uOWSlab - vOWP.y);
+    k *= 1.0 - 0.09 * streak * (0.4 + 0.6 * under) * step(vOWP.y, uOWSlab);
+    k *= 1.0 - 0.13 * (1.0 - smoothstep(0.2, 0.9, vOWP.y - uOWGround));
+    diffuseColor.rgb *= k;
+    diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.95, 0.95, 0.93), smoothstep(0.55, 0.85, big));
+  }`);
+  };
+  m.customProgramCacheKey = () => 'ow-plaster';
+  return m;
+}
 
 const NOOP_RAY = (): void => {};
 
@@ -54,6 +95,30 @@ export function surroundSegments(layout: Layout, file: OutdoorFile, frames: Edge
   return out;
 }
 
+/**
+ * SPEC 19.14 (23 Nov 2026): what of the space shades the plain ground (sky-dome.ts): every storeys' face that stands on it, the building's face
+ * where a facade says the building is wider than the space (`building`), and each bridge (a slab at the top, open under it). Null when the
+ * space says nothing of its height or stands on the ground.
+ */
+export function groundShade(layout: Layout, file: OutdoorFile, frames: EdgeFrame[] = computeEdgeFrames(layout)): GroundShade | null {
+  const above = file.aboveGroundM;
+  if (above === undefined || above <= basinBottomM(file)) return null;
+  const walls: GroundShade['walls'] = surroundSegments(layout, file, frames).filter((s) => s.kind === 'storeys').map((s) => [s.a.x, s.a.z, s.b.x, s.b.z]);
+  for (const b of file.boundary) {
+    const f = b.building && frames.find((q) => q.roomId === b.room && q.edge === b.edge);
+    if (!f || !b.building) continue;
+    const at = (u: number, o: number): [number, number] => [f.a.x + f.dir.x * u + f.out.x * o, f.a.z + f.dir.z * u + f.out.z * o];
+    const { beforeM, afterM, depthM } = b.building;
+    // the face along the line, and the two returns at its ends
+    walls.push([...at(-beforeM, 0), ...at(f.length + afterM, 0)], [...at(-beforeM, 0), ...at(-beforeM, depthM)], [...at(f.length + afterM, 0), ...at(f.length + afterM, depthM)]);
+  }
+  const slabs: GroundShade['slabs'] = file.areas.filter((a) => a.bridge).map((a) => {
+    const xs = a.polygon.map((p) => p.x), zs = a.polygon.map((p) => p.z);
+    return [Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs)];
+  });
+  return { walls, slabs };
+}
+
 /** how far under the deck the deepest basin goes (its floor and a slab under it): a ground any higher must leave the pools open */
 export function basinBottomM(file: OutdoorFile): number {
   let d = 0;
@@ -78,7 +143,7 @@ export function buildSurround(layout: Layout, file: OutdoorFile, tier: Tier): Su
   // the storeys are drawn only when the space really is up on them (deeper than its pools)
   const storeys = above > deep;
   const paint = (colour: string, name: string): THREE.MeshStandardMaterial => {
-    const m = new THREE.MeshStandardMaterial({ color: colour, roughness: 0.95, metalness: 0, name });
+    const m = plasterMaterial(colour, name, groundY, -SLAB_EDGE_M);
     disposables.push(m);
     return m;
   };
