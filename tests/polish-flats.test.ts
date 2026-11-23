@@ -1,6 +1,6 @@
 // SPEC 16.15.5 (23 Nov 2026): the flats polished. The Soho bed frame wears the kit's photographed linen weave over box-projected UVs; the WC's
-// own lid is turned down onto its seat; the ottoman's top is diamond-tufted relief; the TV unit's niche is an open shelf; a single-door fridge
-// shows its door seam and base grille; a slatted headboard stands in a frame. Every piece stays inside its drawn box (the bake's 1 mm), and
+// own lid is turned down onto its seat; the ottoman's top is diamond-tufted relief; the TV unit's niche is an open shelf; a slatted
+// headboard stands in a frame. Every piece stays inside its drawn box (the bake's 1 mm), and
 // the candidates looked at and refused are in the lock with the reason.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -196,7 +196,7 @@ describe('the ottoman\'s top is diamond-tufted', () => {
   });
 });
 
-describe('the TV unit\'s niche is an open shelf, the fridge has a door seam and a base grille, a slatted headboard has a frame', () => {
+describe('the TV unit\'s niche is an open shelf, a slatted headboard has a frame', () => {
   it('a ray into the niche reaches its back, 18 cm in, not a panel at the front', () => {
     const size: GenSize = { w: 1.8, d: 0.4, h: 1.62, s: 0.45 };
     for (const tier of ['low', 'medium', 'high'] as Tier[]) {
@@ -206,21 +206,6 @@ describe('the TV unit\'s niche is an open shelf, the fridge has a door seam and 
       expect(hit.object.name).toBe('tv-niche');
       expect(hit.point.z).toBeLessThan(0.2 - 0.17);
     }
-  });
-  it('a single-door fridge on medium and high has its gasket and a grille under the door; a phone keeps the plain door', () => {
-    const size: GenSize = { w: 0.58, d: 0.67, h: 1.45, s: 1.45 };
-    for (const tier of ['medium', 'high'] as Tier[]) {
-      const g = build('appliance', size, tier, { variant: 'fridge-1' });
-      expect(overBox(g, size)).toBeLessThanOrEqual(PARITY_TOLERANCE_M);
-      expect(part(g, 'fridge-gasket')).toBeTruthy();
-      const grille = part(g, 'fridge-grille')!, door = part(g, 'fridge-doors')!;
-      grille.geometry.computeBoundingBox(); door.geometry.computeBoundingBox();
-      expect(door.geometry.boundingBox!.min.y).toBeGreaterThan(grille.geometry.boundingBox!.max.y - 0.005);
-      expect(part(g, 'fridge-recess')).toBeUndefined();
-    }
-    const low = build('appliance', size, 'low', { variant: 'fridge-1' });
-    expect(part(low, 'fridge-grille')).toBeUndefined();
-    expect(part(low, 'fridge-gasket')).toBeUndefined();
   });
   it('a slatted headboard is held by two posts and a capping rail, the full width and height of the bed', () => {
     for (const [w, d] of [[1.01, 1.93], [1.32, 1.93]]) {

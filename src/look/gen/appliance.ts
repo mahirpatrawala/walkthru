@@ -40,26 +40,17 @@ export function buildAppliance(env: GenEnv, size: GenSize, p: ApplianceParams, r
     const zd = bz1 - 0.03, hz = bz1 - 0.012;
     const door = (x0: number, x1: number, y0: number, y1: number): void => {
       parts.put('fridge-doors', bodyM, roundedBoxBetween(x0, x1, y0, y1, zb - 0.002, zd, 0.018, q.seg));
-      // the rubber gasket shows in the gap round each door as a dark seam (medium and up: it is what reads a door as a door)
-      if (q.tier !== 'low') parts.put('fridge-gasket', RUBBER, roundedBoxBetween(x0 - 0.003, x1 + 0.003, y0 - 0.003, y1 + 0.003, zb + 0.0002, zb + 0.0014, 0.0004, 2), { noShadow: true });
+      // 2K: the rubber gasket shows in the gap round each door as a dark seam
+      if (q.ultra) parts.put('fridge-gasket', RUBBER, roundedBoxBetween(x0 - 0.003, x1 + 0.003, y0 - 0.003, y1 + 0.003, zb + 0.0002, zb + 0.0014, 0.0004, 2), { noShadow: true });
     };
     const handle = (x: number, y0: number, y1: number): void => {
-      // 2K: a dark recess in the door behind the handle, so the grip has something to be gripped in (on medium and high it read as a black slot)
+      // 2K: a dark recess in the door behind the handle, so the grip has something to be gripped in
       if (q.ultra) parts.put('fridge-recess', RUBBER, roundedBoxBetween(x - 0.03, x + 0.03, y0 - 0.035, y1 + 0.035, zd - 0.0012, zd + 0.0012, 0.0008, 2), { noShadow: true });
       bar(parts, 'fridge-handles', trim, [x, y0, hz], [x, y1, hz], 0.011);
       for (const y of [y0 + 0.02, y1 - 0.02]) bar(parts, 'fridge-handles', trim, [x, y, zd - 0.001], [x, y, hz], 0.006);
     };
     if (v === 'fridge-1') {
-      // a single-door fridge stands on a base with a dark ventilation grille under its door (medium and up; a phone keeps the full-height door)
-      const base = q.tier !== 'low' ? 0.07 : 0;
-      door(-w / 2 + 0.004, w / 2 - 0.004, feet + 0.01 + base, H - 0.01);
-      if (base > 0) {
-        box('fridge-grille', BLACK, -w / 2 + 0.012, w / 2 - 0.012, feet + 0.008, feet + base + 0.002, zb - 0.004, zb + 0.002, 0.001);
-        for (let i = 0; i < 4; i++) {
-          const y = feet + 0.02 + i * 0.013;
-          box('fridge-grille-slats', { key: 'blackMetal', tint: '#3A3C40' }, -w / 2 + 0.03, w / 2 - 0.03, y, y + 0.004, zb + 0.001, zb + 0.006, 0);
-        }
-      }
+      door(-w / 2 + 0.004, w / 2 - 0.004, feet + 0.01, H - 0.01);
       handle(w / 2 - 0.05, H * 0.35, H * 0.72);
     } else if (v === 'fridge-2') {
       const split = H * 0.64;
