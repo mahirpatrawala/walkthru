@@ -2,7 +2,8 @@
 //   all    every view of the space, one picture each (`<PREFIX>-<id>.png`), the rings left as a buyer sees them unless RINGS=0
 //   ui     the Views opened at view IDS (or the first), the tab of that view shown (`<PREFIX>-ui.png`), and the floor plan card large (`<PREFIX>-map.png`)
 //   rings  standing at view IDS with the rings in sight (`<PREFIX>-rings.png`)
-//   pano   a synthetic 360 degree picture (a gradient drawn here, with FRONT / RIGHT / BACK / LEFT on it; not a render) on view IDS: arrival, and a look to the right
+//   pano   a synthetic 360 degree picture (a gradient drawn here, with FRONT / RIGHT / BACK / LEFT on it; not a render) on view IDS: arrival, and a look to the right;
+//          with MANIFEST=1 the picture the scene's panos/manifest.json gives that view instead (the renderer's own)
 // CDP_OUT=~/walkthru-shots/viewpoints PLOG=... MODE=all PREFIX=a3 W=1600 H=900 node tools/cdp.mjs "http://localhost:5830/?building=sample-tower&space=f2-204&chrome=hidden" tools/viewpoints-shot.cdp.js
 const fs = await import('node:fs');
 const mode = process.env.MODE || 'all', prefix = process.env.PREFIX || 'vp', settle = +(process.env.SETTLE || 6000);
@@ -78,7 +79,8 @@ if (mode === 'pano') {
     g.font = '28px sans-serif'; g.fillText('synthetic test panorama, not a render', 1024, 580);
     return c.toDataURL('image/jpeg', 0.85); })()`);
   L('pano url bytes ' + String(url).length);
-  L('set: ' + await tev(`(window.__walkthru.viewpoints.setPano(${JSON.stringify(id)}, { url: ${JSON.stringify(url)}, x: ${v.x}, y: ${v.y}, z: ${v.z}, yawDeg: ${v.yawDeg} }), 'set')`));
+  // MANIFEST=1: the picture comes from the scene's panos/manifest.json (the renderer's), as a buyer gets it; else the synthetic one
+  if (process.env.MANIFEST !== '1') L('set: ' + await tev(`(window.__walkthru.viewpoints.setPano(${JSON.stringify(id)}, { url: ${JSON.stringify(url)}, x: ${v.x}, y: ${v.y}, z: ${v.z}, yawDeg: ${v.yawDeg} }), 'set')`));
   // arrive from another view, so the fade in after the glide is the real path
   const other = list.find((x) => x.id !== id && x.tab === v.tab) ?? list.find((x) => x.id !== id);
   L('start at ' + other.id + ': ' + await tev(`window.__walkthru.viewpoints.go(${JSON.stringify(other.id)}, true)`));
@@ -88,6 +90,7 @@ if (mode === 'pano') {
   out.panoShown = await tev(`window.__walkthru.viewpoints.panoShown()`);
   await sleep(settle);
   out.ui = await tev(`[...document.querySelectorAll('[data-testid]')].filter(e => e.offsetParent).map(e => e.dataset.testid).join(',')`);
+  out.note = await tev(`document.querySelector('[data-testid="views-pano-note"]')?.textContent ?? null`);
   await snap(`${prefix}-pano-front`);
   // look a quarter turn to the right by the walk's own look (a drag), as a buyer would
   await tev(`window.__walkthru.camera ? 'cam' : 'nocam'`);

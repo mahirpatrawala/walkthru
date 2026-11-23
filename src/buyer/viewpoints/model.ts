@@ -27,9 +27,11 @@ export function ringTargets(list: readonly Viewpoint[], from: Vec2, currentId: s
     .map((v) => ({ v, d: Math.hypot(v.x - from.x, v.z - from.z) }))
     .filter(({ v, d }) => d >= RING_MIN_M && d <= RING_MAX_M && inSight(grid, from, v))
     .sort((a, b) => a.d - b.d || (a.v.id < b.v.id ? -1 : 1))
-    .slice(0, n)
-    .map(({ v }) => v);
+    // two views that stand side by side (a doorway seen from two rooms) would be two rings on top of each other: the nearer one stands for both
+    .reduce<Viewpoint[]>((out, { v }) => (out.length < n && !out.some((o) => Math.hypot(o.x - v.x, o.z - v.z) < RING_APART_M) ? [...out, v] : out), []);
 }
+/** rings closer together than this are one ring (the nearer view's) */
+export const RING_APART_M = 0.9;
 
 /** A ring's radius on the floor, metres: a little larger far away, so a distant ring still reads (and is easy to hit) without the near ones shouting. */
 export function ringRadiusM(distM: number): number {

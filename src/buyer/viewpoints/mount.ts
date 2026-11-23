@@ -22,7 +22,7 @@ import { listLabel, sightLine, tabsOf } from './compose';
 import type { Viewpoint, ViewTab } from './compose';
 import { lookPoint, movePlan, planMarks, poseAt, ringRadiusM, ringTargets, stepView } from './model';
 import type { Pose } from './model';
-import { exportList, panoTurnRad } from './pano';
+import { PANO_NOTE, attachPanos, exportList, panoTurnRad } from './pano';
 import type { ExportedView } from './pano';
 import './viewpoints.css';
 
@@ -57,6 +57,8 @@ export interface MountedViewpoints {
   isOpen(): boolean;
   /** the view the walker stands at, or null once they have walked off it */
   at(): string | null;
+  /** pictures that arrive after the mount (the renderer's manifest): attached by view id to the views that have none of their own */
+  addPanos(panos: Record<string, Viewpoint['pano']>): number;
   /** for the Plan view's dots */
   marks: { list(): readonly { id: string; x: number; z: number; label: string }[]; current(): string | null; pick(id: string): void };
   dispose(): void;
@@ -154,6 +156,8 @@ export function mountViewpoints(d: ViewpointsDeps): MountedViewpoints {
   host.insertBefore(listEl, tabBar);
 
   const tabEls = new Map<string, HTMLButtonElement>();
+  /** the tab last scrolled into sight in the bar */
+  let shownTab: string | null = null;
   function renderTabs(): void {
     tabScroller.replaceChildren();
     tabEls.clear();
@@ -199,13 +203,19 @@ export function mountViewpoints(d: ViewpointsDeps): MountedViewpoints {
       b.classList.toggle('is-on', id === tabId);
       b.setAttribute('aria-selected', id === tabId ? 'true' : 'false');
     }
+    // the chosen tab is in sight in the bar (it scrolls sideways on a phone): once each time the tab changes, by a tap, a step or a ring
+    const tb = tabId ? tabEls.get(tabId) : undefined;
+    if (tb && !tabBar.hidden && shownTab !== tabId) {
+      shownTab = tabId;
+      try { tb.scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduced() ? 'auto' : 'smooth' }); } catch { /* old browsers */ }
+    }
     d.nav.setViewCurrent(atId);
   }
   function selectTab(id: string, goFirst = false): void {
     tabId = id;
     renderList();
     const b = tabEls.get(id);
-    if (b) { try { b.scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduced() ? 'auto' : 'smooth' }); } catch { /* old browsers */ } }
+    if (b) { shownTab = id; try { b.scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduced() ? 'auto' : 'smooth' }); } catch { /* old browsers */ } }
     // a tab's first view, as Navigo does, unless the walker already stands at one of the tab's views
     const t = tabs.find((x) => x.id === id);
     if (goFirst && t && !(atId && t.viewIds.includes(atId))) void go(t.viewIds[0]);
@@ -227,6 +237,7 @@ export function mountViewpoints(d: ViewpointsDeps): MountedViewpoints {
   }
   function close(): void {
     isOpenNow = false;
+    shownTab = null;
     listEl.hidden = true;
     tabBar.hidden = true;
     tool.classList.remove('is-active');
@@ -370,7 +381,8 @@ export function mountViewpoints(d: ViewpointsDeps): MountedViewpoints {
   panoBar.dataset.ui = '1';
   panoBar.dataset.testid = 'views-pano';
   panoBar.hidden = true;
-  el('span', 'wt-vp-pano-note', 'Illustrative render', panoBar);
+  const panoNote = el('span', 'wt-vp-pano-note', PANO_NOTE, panoBar);
+  panoNote.dataset.testid = 'views-pano-note';
   const walkBtn = el('button', 'wt-vp-pano-walk', 'Walk from here', panoBar);
   walkBtn.type = 'button';
   walkBtn.dataset.testid = 'views-walk-from-here';
@@ -394,6 +406,7 @@ export function mountViewpoints(d: ViewpointsDeps): MountedViewpoints {
       panoShown = true;
       panoTarget = 1;
       panoAt = { x: ch.position.x, z: ch.position.z };
+      panoNote.textContent = pano.note ?? PANO_NOTE;
       panoBar.hidden = false;
       if (reduced()) panoMat.opacity = 1;
       engage();
@@ -601,6 +614,15 @@ export function mountViewpoints(d: ViewpointsDeps): MountedViewpoints {
     close,
     isOpen: () => isOpenNow,
     at: () => atId,
+    addPanos(panos) {
+      const free: Record<string, unknown> = {};
+      for (const v of list) if (!v.pano && panos[v.id]) free[v.id] = panos[v.id];
+      const n = Object.keys(free).length;
+      if (!n) return 0;
+      list = attachPanos(list, free);
+      tabs = tabsOf(list);
+      return n;
+    },
     marks: { list: markList, current: () => atId, pick: (id) => { void go(id); } },
     dispose() {
       if (disposed) return;

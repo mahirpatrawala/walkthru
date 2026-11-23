@@ -19,7 +19,49 @@ export function parsePano(raw: unknown, sceneBase: string | null = null): PanoRe
   const url = r.url.trim();
   if (/^\s*javascript:/i.test(url)) return null;
   const abs = /^(https?:|data:image\/|\/)/i.test(url) || !sceneBase ? url : `${sceneBase.replace(/\/?$/, '/')}${url}`;
-  return { url: abs, x: r.x, y: r.y, z: r.z, yawDeg: ((r.yawDeg % 360) + 360) % 360 };
+  const note = typeof r.note === 'string' && r.note.trim() ? r.note.trim().slice(0, 60) : null;
+  return { url: abs, x: r.x, y: r.y, z: r.z, yawDeg: ((r.yawDeg % 360) + 360) % 360, ...(note ? { note } : {}) };
+}
+
+/** What the note over a picture says when its source names nothing (SPEC 16.2: a render is never passed off as a photograph). */
+export const PANO_NOTE = 'Illustrative render';
+
+/** The address of a scene's renderer manifest (`npm run pano`, written next to the pictures). */
+export const panoManifestUrl = (sceneBase: string): string => `${sceneBase.replace(/\/?$/, '/')}panos/manifest.json`;
+
+/**
+ * The renderer's manifest (`public/scenes/<scene>/panos/manifest.json`, version 1, written by `npm run pano`) as `viewpointPanos`: view id ->
+ * picture, the file for this device (`mobile` on a phone or the low tier, else `file`), the camera, the heading, and the manifest's `label` as the
+ * note. Only an equirectangular, yaw-centred version 1 manifest is read; anything else gives nothing, with a warning. Entries whose id names no
+ * view are kept out by `attachPanos` (the caller warns: `unmatchedPanos`).
+ */
+export function panosFromManifest(raw: unknown, sceneBase: string, opts: { mobile: boolean }): { panos: Record<string, PanoRef>; warnings: string[] } {
+  const out: Record<string, PanoRef> = {};
+  const warnings: string[] = [];
+  const m = raw as { version?: unknown; projection?: unknown; centre?: unknown; label?: unknown; panos?: unknown } | null;
+  if (!m || typeof m !== 'object') return { panos: out, warnings: ['the pictures\' manifest is not an object'] };
+  if (m.version !== 1) return { panos: out, warnings: [`the pictures' manifest is version ${String(m.version)}, not 1`] };
+  if (m.projection !== 'equirectangular' || m.centre !== 'yaw') return { panos: out, warnings: ['the pictures\' manifest is not equirectangular and centred on the heading'] };
+  if (!Array.isArray(m.panos)) return { panos: out, warnings: ['the pictures\' manifest has no list of pictures'] };
+  const note = typeof m.label === 'string' && m.label.trim() ? m.label.trim() : PANO_NOTE;
+  const dir = `${sceneBase.replace(/\/?$/, '/')}panos/`;
+  for (const e of m.panos as Record<string, unknown>[]) {
+    if (!e || typeof e !== 'object' || typeof e.id !== 'string') { warnings.push('a picture with no id was left out'); continue; }
+    const file = opts.mobile && typeof e.mobile === 'string' && e.mobile ? e.mobile : e.file;
+    // a bare file name in the panos folder: no folders, no addresses (the manifest sits next to its pictures)
+    if (typeof file !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*\.(jpe?g|webp|png|avif)$/i.test(file)) { warnings.push(`picture "${e.id}" has no usable file`); continue; }
+    if (typeof e.width === 'number' && typeof e.height === 'number' && Math.abs(e.width / e.height - 2) > 0.02) { warnings.push(`picture "${e.id}" is not twice as wide as high`); continue; }
+    const p = parsePano({ url: dir + file, x: e.x, y: e.y, z: e.z, yawDeg: e.yaw, note }, null);
+    if (!p) { warnings.push(`picture "${e.id}" has no camera or heading`); continue; }
+    out[e.id] = p;
+  }
+  return { panos: out, warnings };
+}
+
+/** Picture ids that name no view (they are not shown: render from `scripts/export-viewpoints.ts --poses` so the ids line up). */
+export function unmatchedPanos(views: readonly Viewpoint[], panos: Record<string, unknown>): string[] {
+  const ids = new Set(views.map((v) => v.id));
+  return Object.keys(panos).filter((k) => !ids.has(k));
 }
 
 /** `viewpointPanos` of a scene or a space: `{ "<view id>": { url, x, y, z, yawDeg } }`, attached to the views with those ids (the others are left as they are). */
@@ -37,6 +79,12 @@ export interface ExportedView { id: string; room: string; roomId: string; name: 
 /** What a renderer needs of each view: where the camera is (metres, three.js frame, y up), its heading and the composed pitch, and the names. */
 export function exportList(views: readonly Viewpoint[]): ExportedView[] {
   return views.map((v) => ({ id: v.id, room: v.roomLabel, roomId: v.roomId, name: v.name, tab: v.tabLabel, x: v.x, y: v.eyeM, z: v.z, yawDeg: v.yawDeg, pitchDeg: v.pitchDeg, source: v.source }));
+}
+
+/** The poses file of the panorama renderer (`npm run pano -- <scene> --poses <file>`): its pitch is up-positive, a view's is degrees below level. */
+export function posesForRenderer(views: readonly Viewpoint[]): { id: string; x: number; y: number; z: number; yaw: number; pitch: number; label: string }[] {
+  const r3 = (n: number): number => Math.round(n * 1000) / 1000;
+  return views.map((v) => ({ id: v.id, x: r3(v.x), y: r3(v.eyeM), z: r3(v.z), yaw: r3(v.yawDeg), pitch: r3(-v.pitchDeg) || 0, label: v.name }));
 }
 
 /**

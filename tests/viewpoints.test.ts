@@ -12,8 +12,8 @@ import { FACE_MIN_M, FRAME_HALF_DEG, MAX_VIEWS, checkViewpoint, composeViewpoint
 import type { ComposeInput, Viewpoint } from '../src/buyer/viewpoints/compose';
 import { viewpointsFromSpec } from '../src/buyer/viewpoints/override';
 import { resolveViewpoints } from '../src/buyer/viewpoints/resolve';
-import { inSight, movePlan, parseVpParam, planMarks, poseAt, ringRadiusM, ringTargets, stepView } from '../src/buyer/viewpoints/model';
-import { attachPanos, exportList, panoColumn, panoDirection, parsePano } from '../src/buyer/viewpoints/pano';
+import { RING_APART_M, inSight, movePlan, parseVpParam, planMarks, poseAt, ringRadiusM, ringTargets, stepView } from '../src/buyer/viewpoints/model';
+import { PANO_NOTE, attachPanos, exportList, panoColumn, panoDirection, panoManifestUrl, panosFromManifest, parsePano, posesForRenderer, unmatchedPanos } from '../src/buyer/viewpoints/pano';
 import { buildShareUrl } from '../src/buyer/share';
 import { planSvg } from '../src/start/plan-svg';
 import { DoorSim, loadScene } from './helpers/nav-sim';
@@ -175,7 +175,13 @@ describe('rings in the scene', () => {
       expect([...ds].sort((a, b) => a - b)).toEqual(ds);
       for (const v of r) expect(inSight(shut, at, v)).toBe(true);
       if (at.roomId === 'master-bedroom') for (const v of r) expect(['master-bedroom', 'master-toilet'].includes(v.roomId)).toBe(true);
+      // never two rings on top of each other
+      for (const [i, v] of r.entries()) for (const w of r.slice(i + 1)) expect(Math.hypot(v.x - w.x, v.z - w.z)).toBeGreaterThanOrEqual(RING_APART_M);
     }
+    // two views side by side are one ring, the nearer
+    const twin = { ...views[1], id: 'twin', x: views[1].x + 0.4 };
+    const r2 = ringTargets([...views, twin], views[0], views[0].id, input.grid);
+    expect(r2.filter((v) => v.id === 'twin' || v.id === views[1].id)).toHaveLength(r2.some((v) => v.id === views[1].id || v.id === 'twin') ? 1 : 0);
     // in an open-plan living and dining room the other views of the room are rung
     const ent = views[0];
     expect(ringTargets(views, ent, ent.id, shut).some((v) => v.roomId === 'living' || v.roomId === 'dining')).toBe(true);
@@ -284,5 +290,63 @@ describe('a 360 degree picture of a view', () => {
     const ex = exportList(withPics);
     expect(ex[1]).toMatchObject({ id: v.id, room: v.roomLabel, x: v.x, y: v.eyeM, z: v.z, yawDeg: v.yawDeg, pitchDeg: v.pitchDeg });
     expect(ex.length).toBe(views.length);
+  });
+});
+
+describe("the renderer's manifest (npm run pano: panos/manifest.json)", () => {
+  // the shape the panorama renderer writes (version 1), ids from `export-viewpoints --poses`
+  const manifestFor = (views: readonly Viewpoint[], extra: Record<string, unknown>[] = []): Record<string, unknown> => ({
+    version: 1, sceneId: B2, label: 'Illustrative render', projection: 'equirectangular', centre: 'yaw', renderer: 'Blender Cycles',
+    panos: [
+      ...views.slice(0, 2).map((v) => ({ id: v.id, x: v.x, y: 1.58, z: v.z, yaw: v.yawDeg, pitch: -v.pitchDeg, label: v.name, file: `${v.id}.jpg`, mobile: `${v.id}.m.jpg`, width: 4096, height: 2048 })),
+      ...extra,
+    ],
+  });
+
+  it('attaches each picture to the view of its id, the phone file on a phone, the label as the note, and names the strays', () => {
+    const { views } = of(B2);
+    const raw = manifestFor(views, [{ id: 'balcony', x: 1, y: 1.58, z: 1, yaw: 10, file: 'balcony.jpg', mobile: 'balcony.m.jpg', width: 2048, height: 1024 }]);
+    const base = `/scenes/${B2}/`;
+    expect(panoManifestUrl(base)).toBe(`/scenes/${B2}/panos/manifest.json`);
+    const desk = panosFromManifest(raw, base, { mobile: false });
+    expect(desk.warnings).toEqual([]);
+    expect(desk.panos[views[0].id]).toEqual({ url: `/scenes/${B2}/panos/${views[0].id}.jpg`, x: views[0].x, y: 1.58, z: views[0].z, yawDeg: views[0].yawDeg, note: 'Illustrative render' });
+    expect(panosFromManifest(raw, base, { mobile: true }).panos[views[1].id].url).toBe(`/scenes/${B2}/panos/${views[1].id}.m.jpg`);
+    expect(unmatchedPanos(views, desk.panos)).toEqual(['balcony']);
+    const withPics = attachPanos(views, desk.panos);
+    expect(withPics.filter((w) => w.pano).map((w) => w.id)).toEqual([views[0].id, views[1].id]);
+    expect(withPics[0].pano?.note).toBe('Illustrative render');
+    // a manifest without a label still says what it is
+    const { label: _l, ...noLabel } = raw;
+    expect(panosFromManifest(noLabel, base, { mobile: false }).panos[views[0].id].note).toBe(PANO_NOTE);
+  });
+
+  it('reads only an equirectangular, yaw-centred version 1 manifest, and only bare file names in its folder', () => {
+    const { views } = of(B2);
+    const base = `/scenes/${B2}/`;
+    expect(panosFromManifest({ ...manifestFor(views), version: 2 }, base, { mobile: false })).toMatchObject({ panos: {}, warnings: [expect.stringMatching(/version 2/)] });
+    expect(Object.keys(panosFromManifest({ ...manifestFor(views), projection: 'cubemap' }, base, { mobile: false }).panos)).toEqual([]);
+    expect(Object.keys(panosFromManifest(null, base, { mobile: false }).panos)).toEqual([]);
+    const bad = panosFromManifest(manifestFor([], [
+      { id: 'a', x: 0, y: 1.5, z: 0, yaw: 0, file: '../../secret.jpg' },
+      { id: 'b', x: 0, y: 1.5, z: 0, yaw: 0, file: 'https://elsewhere.example/b.jpg' },
+      { id: 'c', x: 0, y: 1.5, z: 0, yaw: 0, file: 'c.jpg', width: 1000, height: 1000 },
+      { id: 'd', y: 1.5, z: 0, yaw: 0, file: 'd.jpg' },
+      { id: 'e', x: 0, y: 1.5, z: 0, yaw: 0, file: 'e.webp' },
+    ]), base, { mobile: false });
+    expect(Object.keys(bad.panos)).toEqual(['e']);
+    expect(bad.warnings).toHaveLength(4);
+  });
+
+  it('gives the renderer poses with the views\' ids, the eye height and its up-positive pitch', () => {
+    const { views } = of(A3);
+    const poses = posesForRenderer(views);
+    expect(poses.map((p) => p.id)).toEqual(views.map((v) => v.id));
+    for (const [i, p] of poses.entries()) {
+      expect(p.pitch).toBeCloseTo(-views[i].pitchDeg, 2);
+      expect(p.y).toBeCloseTo(views[i].eyeM, 2);
+      expect(p.yaw).toBeCloseTo(views[i].yawDeg, 2);
+      expect(p.label).toBe(views[i].name);
+    }
   });
 });

@@ -2,6 +2,8 @@
 // Prints JSON: the scene, the frame's conventions and, for every view, its id, room, name, tab, the camera position (x, y, z: metres, three.js frame,
 // y up, y = eye height) and its heading and composed pitch. These are the very points the page shows (the same pure code, the same inputs: the scene
 // file's layout and furniture as drawn, and the space's or the scene's own `viewpoints` list when there is one). It reads files and prints; it writes nothing.
+// `--poses` prints instead the poses file the panorama renderer reads (`npm run pano -- <scene> --poses <file>`): a list of { id, x, y, z, yaw, pitch,
+// label } with the pitch up-positive as that renderer counts it, so its manifest's ids are the views' ids and the page attaches each picture to its view.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,13 +11,13 @@ import { validateProperty } from '../src/core/layout-validate';
 import { fixturesToItems } from '../src/core/fixtures';
 import { fixturesFromExtras } from '../src/buyer/fixtures-load';
 import { resolveViewpoints } from '../src/buyer/viewpoints/resolve';
-import { exportList } from '../src/buyer/viewpoints/pano';
+import { exportList, posesForRenderer } from '../src/buyer/viewpoints/pano';
 
 const args = process.argv.slice(2);
 const flag = (name: string): string | null => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] ?? null : null; };
 const sceneId = args.find((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1].startsWith('--')));
 if (!sceneId || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(sceneId)) {
-  console.error('usage: npx tsx scripts/export-viewpoints.ts <sceneId> [--building <id> --space <id>]');
+  console.error('usage: npx tsx scripts/export-viewpoints.ts <sceneId> [--building <id> --space <id>] [--poses]');
   process.exit(2);
 }
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
@@ -37,6 +39,7 @@ const r = resolveViewpoints({
   override: space?.viewpoints ?? property.viewpoints, panos: space?.viewpointPanos ?? property.viewpointPanos, sceneBase: `/scenes/${sceneId}/`,
 });
 for (const w of r.warnings) console.error(`warning: ${w}`);
+if (args.includes('--poses')) { console.log(JSON.stringify(posesForRenderer(r.views), null, 2)); process.exit(0); }
 console.log(JSON.stringify({
   sceneId,
   frame: 'three.js scene frame: metres, y up, floor at y = 0; heading yawDeg looks along (sin yaw, 0, cos yaw); pitchDeg is degrees below level. A panorama is rendered level, its middle column along the heading, the right half to the viewer\'s right.',

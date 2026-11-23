@@ -96,7 +96,11 @@ export interface Viewpoint {
  * An equirectangular picture (2:1) rendered from a camera at (x, y, z) in the scene's three.js frame (metres, y up), the middle of the picture
  * looking along `yawDeg` (forward is (sin yaw, 0, cos yaw)), level, the right half of the picture to the viewer's right.
  */
-export interface PanoRef { url: string; x: number; y: number; z: number; yawDeg: number }
+export interface PanoRef {
+  url: string; x: number; y: number; z: number; yawDeg: number;
+  /** what the note over the picture says (the renderer's manifest `label`); "Illustrative render" when not given */
+  note?: string;
+}
 
 /** A room tab: a main room and the baths, balconies and passages that open off it. */
 export interface ViewTab { id: string; label: string; roomIds: string[]; viewIds: string[] }
@@ -122,17 +126,21 @@ interface Sight { d: number; outlook: boolean; own: number }
 
 /** How far the eye sees from `p` along `yawDeg` before a wall or anything taller than the eye; open air past a window or a railing is an outlook (seen to the limit). */
 export function sightLine(grid: Grid, p: Vec2, yawDeg: number, maxM = RAY_MAX_M, room?: Uint8Array): Sight {
-  const dx = Math.sin(yawDeg * DEG), dz = Math.cos(yawDeg * DEG);
   const { cells, nx, nz, originX, originZ, cellM } = grid;
+  // in cells: where it starts and how far one metre along the line goes (the composer traces some 100,000 of these a flat)
+  const gx = (p.x - originX) / cellM, gz = (p.z - originZ) / cellM;
+  const sx = Math.sin(yawDeg * DEG) / cellM, sz = Math.cos(yawDeg * DEG) / cellM;
   let low = -1, own = -1;
   for (let d = RAY_STEP_M; d <= maxM; d += RAY_STEP_M) {
-    const i = Math.floor((p.x + dx * d - originX) / cellM), j = Math.floor((p.z + dz * d - originZ) / cellM);
+    const i = Math.floor(gx + sx * d), j = Math.floor(gz + sz * d);
     const out = i < 0 || j < 0 || i >= nx || j >= nz;
     const v = out ? GRID_VOID : cells[j * nx + i];
-    if (own < 0 && room && (out || !room[j * nx + i])) own = d;
-    const ownAt = (end: number): number => (room ? (own < 0 ? end : Math.min(own, end)) : end);
-    if (v === GRID_VOID) return low >= 0 && d - low < 0.6 ? { d: maxM, outlook: true, own: ownAt(d) } : { d, outlook: false, own: ownAt(d) };
-    if (v >= BLOCK_CM) return { d, outlook: false, own: ownAt(d) };
+    if (own < 0 && room !== undefined && (out || room[j * nx + i] === 0)) own = d;
+    // where the line leaves its own room (no closure here: this loop is the composer's hot path)
+    if (v === GRID_VOID || v >= BLOCK_CM) {
+      const ownD = room ? (own < 0 ? d : Math.min(own, d)) : d;
+      return v === GRID_VOID && low >= 0 && d - low < 0.6 ? { d: maxM, outlook: true, own: ownD } : { d, outlook: false, own: ownD };
+    }
     if (v > 0) low = d;
   }
   return { d: maxM, outlook: false, own: room ? (own < 0 ? maxM : own) : maxM };
