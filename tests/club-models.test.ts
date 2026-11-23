@@ -163,7 +163,9 @@ describe('whole pieces from models fit their catalogue box (SPEC 16.15: the box 
       expect(bb.max.y, `${id} ${tier} h`).toBeLessThanOrEqual(item.heightM + 0.012);
       expect(bb.min.y).toBeGreaterThan(-0.005);
       let n = 0;
-      g.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.name === `model-${kind}`) { n++; expect((m.material as THREE.MeshStandardMaterial).map).toBeTruthy(); expect(m.userData.walkthruPart).toBe(`model-${kind}`); } });
+      // SPEC 16.17.4: the pool table keeps the model's shapes but wears the app's own walnut and cloth (tests/club-polish.test.ts)
+      if (kind === 'pool-table') g.traverse((o) => { if (!(o as THREE.Mesh).isMesh) return; if (o.name === 'pool-body') n++; expect(o.name, 'a generated-only part').not.toBe('pool-apron'); });
+      else g.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.name === `model-${kind}`) { n++; expect((m.material as THREE.MeshStandardMaterial).map).toBeTruthy(); expect(m.userData.walkthruPart).toBe(`model-${kind}`); } });
       expect(n, `${id} ${tier}`).toBeGreaterThan(0);
       expect(propNote(item.id)).toContain(PROP_CREDITS[kind]);
     }

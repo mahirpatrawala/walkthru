@@ -2,7 +2,7 @@
   "version": 1,
   "pack": "clean-contrast",
   "source": "typical",
-  "note": "A typical designed lobby (the gallery default): a timber slat feature wall behind the reception desk, a stone-look desk top, a rug under the visitor seating, a polished large-format floor. Finishes and decor only.",
+  "note": "A typical designed lobby (the gallery default): a timber slat feature wall behind the reception desk, a stone-look desk top, a rug under the visitor seating, a polished large-format floor, a timber ceiling band over the reception (a sample finish, not from the plan). Finishes and decor only.",
   "items": {
     "lobby-1-lobby-desk": {
       "roles": {
@@ -51,6 +51,15 @@
         "foot": 0.5,
         "side": 0.5
       }
+    },
+    {
+      "kind": "ceiling-band",
+      "roomId": "entrance-lobby",
+      "x0": 3.9,
+      "z0": 0.02,
+      "x1": 8.1,
+      "z1": 2.6,
+      "dropM": 0.08
     }
   ]
 }
