@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "pack": "clean-contrast",
+  "source": "typical",
+  "note": "A typical changing-room scheme (a sample finish, not from the plan): pale glazed wall tile to the ceiling, a matt grey floor tile. Finishes only.",
+  "items": {},
+  "rooms": {
+    "changing-1": {
+      "floor": "tile-wet-grey",
+      "wall": "tile-wet-white"
+    }
+  },
+  "fixtures": []
+}

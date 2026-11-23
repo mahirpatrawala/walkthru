@@ -13,8 +13,14 @@ export type HallVariant = (typeof HALL_VARIANTS)[number];
 export interface HallParams { variant: HallVariant; liftM: number }
 /** a banquet table's cloth: white cotton unless a pack names a `tablecloth` role */
 const CLOTH: MatSpec = { key: 'cotton', tint: '#F3F0EA' };
-/** a pool table's timber is a dark walnut whatever the pack's case colour (a white pool table reads as a toy) */
-const POOL_WOOD: MatSpec = { key: 'wood', tint: '#6E5842' };
+/** a pool table's timber is a walnut whatever the pack's case colour (a white pool table reads as a toy); SPEC 16.17.4: a mid walnut, the
+ * dark one read as a black mass in the games room */
+const POOL_WOOD: MatSpec = { key: 'wood', tint: '#8A6A4E' };
+/** a pool table's cloth: a tournament green worsted (the photographed fine nap of the `felt` key) */
+const POOL_CLOTH: MatSpec = { key: 'felt', tint: '#1F6B46' };
+/** SPEC 16.17.4: the upholstery of the banquet, card and chess chairs and the carrom stools: a warm taupe woven fabric (the navy read black
+ * under a hall's light) on the brushed steel frame */
+const SEAT_FABRIC: MatSpec = { key: 'weave', tint: '#9C8770' };
 export const HALL_DEFAULTS: HallParams = { variant: 'chair', liftM: 0 };
 
 export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Roles): THREE.Group {
@@ -27,10 +33,10 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
   const seg = q.tier === 'low' ? 12 : q.tier === 'medium' ? 20 : 28;
   const wseg = q.tier === 'low' ? 12 : 16;
   const wood = role(roles, 'case', 'accent');
-  // fifteen balls racked at the foot spot, the cue ball at the head (on the generated table or on the model's cloth)
+  // fifteen balls racked at the foot spot, the cue ball at the head
   const racked = (bt: number): void => {
     const br = 0.0285, bs = q.tier === 'high' ? 12 : 8;
-    // a ball stands taller than a rail: on a model whose rails are lower than that above its cloth the balls would leave the box, so none are racked
+    // a ball must stay inside the box: none are racked if the rails stand lower above the cloth than a ball
     if (q.tier !== 'low' && bt + 2 * br <= H + 0.001) {
       const COL = ['#E2C230', '#2F5FA8', '#C03B30', '#4B2E83', '#E27A2D', '#2B7A3F', '#7A2A22', '#1A1A1A'];
       let n = 0;
@@ -68,7 +74,7 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
   const build: Record<string, () => void> = {
     chair: () => {
       // a stacking chair: a steel frame (four legs, the back posts), a padded seat and a padded back
-      const seatM: MatSpec = roleOr(roles, { key: 'weave', tint: '#2F4A66' }, 'hallChair');
+      const seatM: MatSpec = roleOr(roles, SEAT_FABRIC, 'hallChair');
       const lx = x1 - 0.03, lz = z1 - 0.03;
       for (const sx of [-1, 1]) {
         tube(parts, 'chair-legs', FRAME_GREY, [sx * lx, 0, lz], [sx * lx, S - 0.04, lz - 0.02], 0.011);
@@ -180,8 +186,8 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
       slab(parts, 'tt-net-tape', { key: 'laminate', tint: '#F4F4F0' }, -0.005, 0.005, H - 0.012, H, z0, z1);
     },
     pool: () => {
-      // SPEC 16.17.3: the downloaded table (walnut cabinet, rails, cloth, legs) when it is here and fits the box; the balls are racked on its cloth
-      if (wholeModel(parts, 'pool-table', { w, h: H, d })) { const info = propInfo('pool-table'); racked((info.surfaceM ?? S) * (H / info.dims.h)); return; }
+      // SPEC 16.17.4: generated. The downloaded table of 16.17.3 was retired: at close range its rails had no sights, its cushions no line and
+      // it could carry no balls inside the box; this one has all three
       // an 8 ft pool table (SPEC 16.17.2): a walnut cabinet with a moulded apron, wood top rails with inlaid sights, green cushions and cloth, six
       // leather pocket cups, four turned legs on levelling feet; fifteen balls racked at the foot spot, the cue ball at the head
       const bt = S, rail = 0.12;
@@ -189,7 +195,7 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
       body.translate(0, bt - 0.1, 0);
       parts.put('pool-body', POOL_WOOD, body, { grain: 'x' });
       parts.box('pool-apron', { key: 'wood', tint: '#5A4634' }, -x1 + 0.03, x1 - 0.03, bt - 0.26, bt - 0.19, z0 + 0.03, z1 - 0.03, { c: 0.012, grain: 'x' });
-      slab(parts, 'pool-cloth', { key: 'felt', tint: '#1F6B46' }, -x1 + rail, x1 - rail, bt - 0.004, bt + 0.0006, z0 + rail, z1 - rail);
+      slab(parts, 'pool-cloth', POOL_CLOTH, -x1 + rail, x1 - rail, bt - 0.004, bt + 0.0006, z0 + rail, z1 - rail);
       // top rails (wood) and the cushions inside them (felt), H at the rails' top
       const rt = H;
       for (const [x, z, l, dd] of [[0, z0 + rail * 0.35, w, rail * 0.7], [0, z1 - rail * 0.35, w, rail * 0.7], [-x1 + rail * 0.35, 0, rail * 0.7, d], [x1 - rail * 0.35, 0, rail * 0.7, d]] as const)
@@ -281,7 +287,7 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) slab(parts, 'carrom-legs', WOOD_ASH, sx * (t - 0.05) - 0.03, sx * (t - 0.05) + 0.03, 0, top, sz * (t - 0.05) - 0.03, sz * (t - 0.05) + 0.03);
       for (let i = 0; i < 4; i++) {
         const a = (i * Math.PI) / 2, sx = c0 * Math.sin(a), sz = c0 * Math.cos(a);
-        cylY(parts, 'stool-seat', roleOr(roles, { key: 'weave', tint: '#2F4A66' }, 'hallChair'), sx, sz, 0.41, 0.46, 0.17, seg);
+        cylY(parts, 'stool-seat', roleOr(roles, SEAT_FABRIC, 'hallChair'), sx, sz, 0.41, 0.46, 0.17, seg);
         for (let k = 0; k < 3; k++) { const b = (k * 2 * Math.PI) / 3 + a; tube(parts, 'stool-legs', FRAME_GREY, [sx + Math.cos(b) * 0.13, 0, sz + Math.sin(b) * 0.13], [sx + Math.cos(b) * 0.11, 0.41, sz + Math.sin(b) * 0.11], 0.011); }
       }
     },
@@ -318,7 +324,7 @@ export function buildHall(env: GenEnv, size: GenSize, p: HallParams, roles: Role
 function chairAt(parts: Parts, roles: Roles, x: number, z: number, a: number, H: number, plain = false): void {
   const yaw = a + Math.PI;
   const q = parts.env.q;
-  const seatM: MatSpec = plain ? { key: 'powder', tint: '#2B2D31' } : roleOr(roles, { key: 'weave', tint: '#2F4A66' }, 'hallChair');
+  const seatM: MatSpec = plain ? { key: 'powder', tint: '#2B2D31' } : roleOr(roles, SEAT_FABRIC, 'hallChair');
   const frame: MatSpec = plain ? { key: 'powder', tint: '#2B2D31' } : { key: 'metal', tint: '#B9BDC2' };
   const S = 0.46;
   const out: [string, MatSpec, THREE.BufferGeometry][] = [];

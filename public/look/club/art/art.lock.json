@@ -1,0 +1,225 @@
+{
+  "generatedBy": "scratch tools (see SPEC 16.17.4): Commons rendition of the Met Open Access image, trimmed and converted to WebP with sharp",
+  "read": "2026-11-23",
+  "note": "Sample decor of the clubhouse (src/look/club/decor.ts CLUB_ART). The Met's own image server answers scripts with a bot check, so the same files were taken from Wikimedia Commons, where the Met uploaded its Open Access images; each record says both pages.",
+  "assets": {
+    "met-437998": {
+      "id": "met-437998",
+      "name": "Olive Trees (1889)",
+      "kind": "image",
+      "authors": [
+        "Vincent van Gogh"
+      ],
+      "page": "https://www.metmuseum.org/art/collection/search/437998",
+      "mirror": "https://commons.wikimedia.org/wiki/File:Olive_Trees_MET_DT1946.jpg",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "licenceWords": "The Metropolitan Museum of Art Open Access: the object record (collectionapi.metmuseum.org, objects/437998) says \"isPublicDomain\": true; the Met releases images of public-domain works under Creative Commons Zero (CC0). The file is the Met's own image, as uploaded to Wikimedia Commons from the Met's Open Access release (Commons licence field: \"CC0\").",
+      "licenceRead": "2026-11-23",
+      "use": "a framed reproduction on a clubhouse wall (sample decor): olive-trees.webp (768 px) and olive-trees.low.webp (384 px), 1.2 % trimmed from each side (the scan shows the canvas edge)",
+      "files": [
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/7/74/Olive_Trees_MET_DT1946.jpg",
+          "sha1": "cf618548c047da0dae2fb51d00393be09a172610",
+          "note": "the original (3811 x 3040); its 1920 px Commons rendition (next) was converted"
+        },
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Olive_Trees_MET_DT1946.jpg/1920px-Olive_Trees_MET_DT1946.jpg",
+          "rendition": true,
+          "size": 1268692,
+          "sha256": "10b1abf3c961165c66b4d1f90a74f3c43ca1d96f415c5e1c53419cafc445101a"
+        }
+      ]
+    },
+    "met-435879": {
+      "id": "met-435879",
+      "name": "The Pool at the Jas de Bouffan (ca. 1885–86)",
+      "kind": "image",
+      "authors": [
+        "Paul Cézanne"
+      ],
+      "page": "https://www.metmuseum.org/art/collection/search/435879",
+      "mirror": "https://commons.wikimedia.org/wiki/File:The_Pool_at_the_Jas_de_Bouffan_MET_DT1492.jpg",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "licenceWords": "The Metropolitan Museum of Art Open Access: the object record (collectionapi.metmuseum.org, objects/435879) says \"isPublicDomain\": true; the Met releases images of public-domain works under Creative Commons Zero (CC0). The file is the Met's own image, as uploaded to Wikimedia Commons from the Met's Open Access release (Commons licence field: \"CC0\").",
+      "licenceRead": "2026-11-23",
+      "use": "a framed reproduction on a clubhouse wall (sample decor): pool-jas-de-bouffan.webp (768 px) and pool-jas-de-bouffan.low.webp (384 px), 1.2 % trimmed from each side (the scan shows the canvas edge)",
+      "files": [
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/7/7e/The_Pool_at_the_Jas_de_Bouffan_MET_DT1492.jpg",
+          "sha1": "5b66239762cadcdc7da310b250a3a7493bf20f7a",
+          "note": "the original (3809 x 3058); its 1920 px Commons rendition (next) was converted"
+        },
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/The_Pool_at_the_Jas_de_Bouffan_MET_DT1492.jpg/1920px-The_Pool_at_the_Jas_de_Bouffan_MET_DT1492.jpg",
+          "rendition": true,
+          "size": 1044233,
+          "sha256": "12cec1143fc8895607f47a462b4696cb6d182d85e4d1ff48fecd96fba4f30940"
+        }
+      ]
+    },
+    "met-436530": {
+      "id": "met-436530",
+      "name": "Oleanders (1888)",
+      "kind": "image",
+      "authors": [
+        "Vincent van Gogh"
+      ],
+      "page": "https://www.metmuseum.org/art/collection/search/436530",
+      "mirror": "https://commons.wikimedia.org/wiki/File:Oleanders_MET_DT1494.jpg",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "licenceWords": "The Metropolitan Museum of Art Open Access: the object record (collectionapi.metmuseum.org, objects/436530) says \"isPublicDomain\": true; the Met releases images of public-domain works under Creative Commons Zero (CC0). The file is the Met's own image, as uploaded to Wikimedia Commons from the Met's Open Access release (Commons licence field: \"CC0\").",
+      "licenceRead": "2026-11-23",
+      "use": "a framed reproduction on a clubhouse wall (sample decor): oleanders.webp (768 px) and oleanders.low.webp (384 px), 1.2 % trimmed from each side (the scan shows the canvas edge)",
+      "files": [
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/Oleanders_MET_DT1494.jpg",
+          "sha1": "f0fb9d1fb688f0bd1e568512f74583859a2c4b56",
+          "note": "the original (3811 x 3130); its 1280 px Commons rendition (next) was converted"
+        },
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Oleanders_MET_DT1494.jpg/1280px-Oleanders_MET_DT1494.jpg",
+          "rendition": true,
+          "size": 505908,
+          "sha256": "e123c340c037e213167195d7ee141bbde4ee8cccb2888a987e72996f1871ebcf"
+        }
+      ]
+    },
+    "met-436535": {
+      "id": "met-436535",
+      "name": "Wheat Field with Cypresses (1889)",
+      "kind": "image",
+      "authors": [
+        "Vincent van Gogh"
+      ],
+      "page": "https://www.metmuseum.org/art/collection/search/436535",
+      "mirror": "https://commons.wikimedia.org/wiki/File:Wheat_Field_with_Cypresses_MET_DT1567.jpg",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "licenceWords": "The Metropolitan Museum of Art Open Access: the object record (collectionapi.metmuseum.org, objects/436535) says \"isPublicDomain\": true; the Met releases images of public-domain works under Creative Commons Zero (CC0). The file is the Met's own image, as uploaded to Wikimedia Commons from the Met's Open Access release (Commons licence field: \"CC0\").",
+      "licenceRead": "2026-11-23",
+      "use": "a framed reproduction on a clubhouse wall (sample decor): wheat-field.webp (768 px) and wheat-field.low.webp (384 px), 1.2 % trimmed from each side (the scan shows the canvas edge)",
+      "files": [
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Wheat_Field_with_Cypresses_MET_DT1567.jpg",
+          "sha1": "446980f17f717b497e45f7ff4685cce4df299642",
+          "note": "the original (3811 x 3016); its 1280 px Commons rendition (next) was converted"
+        },
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Wheat_Field_with_Cypresses_MET_DT1567.jpg/1280px-Wheat_Field_with_Cypresses_MET_DT1567.jpg",
+          "rendition": true,
+          "size": 565865,
+          "sha256": "9cea68e57823c2be6da5f8b9e3aea2b5161432f210bcef75c905b2dfc598131d"
+        }
+      ]
+    },
+    "met-437655": {
+      "id": "met-437655",
+      "name": "The Forest at Pontaubert (1881)",
+      "kind": "image",
+      "authors": [
+        "Georges Seurat"
+      ],
+      "page": "https://www.metmuseum.org/art/collection/search/437655",
+      "mirror": "https://commons.wikimedia.org/wiki/File:The_Forest_at_Pontaubert_MET_DT2165.jpg",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "licenceWords": "The Metropolitan Museum of Art Open Access: the object record (collectionapi.metmuseum.org, objects/437655) says \"isPublicDomain\": true; the Met releases images of public-domain works under Creative Commons Zero (CC0). The file is the Met's own image, as uploaded to Wikimedia Commons from the Met's Open Access release (Commons licence field: \"CC0\").",
+      "licenceRead": "2026-11-23",
+      "use": "a framed reproduction on a clubhouse wall (sample decor): forest-pontaubert.webp (768 px) and forest-pontaubert.low.webp (384 px), 1.2 % trimmed from each side (the scan shows the canvas edge)",
+      "files": [
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/a/a3/The_Forest_at_Pontaubert_MET_DT2165.jpg",
+          "sha1": "09d6be899e197ca95301cefe01737d5d863de7ae",
+          "note": "the original (2972 x 3722); its 1920 px Commons rendition (next) was converted"
+        },
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/The_Forest_at_Pontaubert_MET_DT2165.jpg/1920px-The_Forest_at_Pontaubert_MET_DT2165.jpg",
+          "rendition": true,
+          "size": 2671700,
+          "sha256": "192616e58362a2d888cdc1a49913b3a7f065f0bf3b5d0818ddde3d2ec3442a72"
+        }
+      ]
+    },
+    "met-437980": {
+      "id": "met-437980",
+      "name": "Cypresses (1889)",
+      "kind": "image",
+      "authors": [
+        "Vincent van Gogh"
+      ],
+      "page": "https://www.metmuseum.org/art/collection/search/437980",
+      "mirror": "https://commons.wikimedia.org/wiki/File:Cypresses_MET_DP130999.jpg",
+      "licence": "CC0 1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "licenceWords": "The Metropolitan Museum of Art Open Access: the object record (collectionapi.metmuseum.org, objects/437980) says \"isPublicDomain\": true; the Met releases images of public-domain works under Creative Commons Zero (CC0). The file is the Met's own image, as uploaded to Wikimedia Commons from the Met's Open Access release (Commons licence field: \"CC0\").",
+      "licenceRead": "2026-11-23",
+      "use": "a framed reproduction on a clubhouse wall (sample decor): cypresses.webp (768 px) and cypresses.low.webp (384 px), 1.2 % trimmed from each side (the scan shows the canvas edge)",
+      "files": [
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/Cypresses_MET_DP130999.jpg",
+          "sha1": "3c09aeeea18424039af388d8b27a856155aa5a99",
+          "note": "the original (1476 x 1861); its 1280 px Commons rendition (next) was converted"
+        },
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Cypresses_MET_DP130999.jpg/1280px-Cypresses_MET_DP130999.jpg",
+          "rendition": true,
+          "size": 788233,
+          "sha256": "1509e0e84645d11291bbfee7d8111df916610a9d6658c9f40187acc8f8129e4a"
+        }
+      ]
+    }
+  },
+  "outputs": {
+    "olive-trees.webp": {
+      "bytes": 140646,
+      "sha256": "1b19f8d9cca467de59881acfa53d537c8b2697f73d7ad6003b08d5f7915e7bba"
+    },
+    "olive-trees.low.webp": {
+      "bytes": 30842,
+      "sha256": "a24fddee0d34d34be6097e48a9fccbe0a9f954e298595bd10541b54f238a6d48"
+    },
+    "pool-jas-de-bouffan.webp": {
+      "bytes": 107766,
+      "sha256": "a245cdffa5d63a95c7180b3bcca3358b3435a9f6fea59ca995868f43dcb7623c"
+    },
+    "pool-jas-de-bouffan.low.webp": {
+      "bytes": 26144,
+      "sha256": "78f3dc543db8846144f1e58c11990aec680bda582a7092a7ce97fdfba7ffe230"
+    },
+    "oleanders.webp": {
+      "bytes": 116848,
+      "sha256": "48e1395783236f3036ada052ebb4ec0201bbc2793235855bcab09469398a70bb"
+    },
+    "oleanders.low.webp": {
+      "bytes": 23670,
+      "sha256": "3fdb1f53bcbffd46a7a5fd830d3d1b83f11d9d743d2e5e7ef3a03a1cb5ba433e"
+    },
+    "wheat-field.webp": {
+      "bytes": 140890,
+      "sha256": "cd634ba348e28254244439377cdb2f752238cae8bc6a2cc80619f12b776c070f"
+    },
+    "wheat-field.low.webp": {
+      "bytes": 28720,
+      "sha256": "8808dda3c54f23181c06e701b29f04349396373a64e607363befcd73f0373db7"
+    },
+    "forest-pontaubert.webp": {
+      "bytes": 166880,
+      "sha256": "02c310f3c4a31b7c7082c965643c1346cf329c49753cb787c068569279a60513"
+    },
+    "forest-pontaubert.low.webp": {
+      "bytes": 31400,
+      "sha256": "211e65ab358f2e9d080661f19dfbd282dfc37854456c4f787385587a77534d73"
+    },
+    "cypresses.webp": {
+      "bytes": 136802,
+      "sha256": "6ef3055b230584007f5b4efe835f74ad4035052779cf6e801ad132c6888c4da2"
+    },
+    "cypresses.low.webp": {
+      "bytes": 30154,
+      "sha256": "7e6600af26d75d8a4c3af93d42aed464391a3c4af3e9cdad89db9426235d3596"
+    }
+  }
+}

@@ -209,22 +209,7 @@ if (want('recumbent')) {
     note: 'one uniform scale to the 1.65 m length; the maker\'s name on the two flywheel shrouds painted out with the shroud\'s white.' });
 }
 
-// ------------------------------------------------------------------ pool table: "Pooltable" by jdastine, CC BY 4.0
-if (want('pool-table')) {
-  const doc = await bake(await load('sketchfab-cc96165eda374800a45f510d98216490/cc96165eda374800a45f510d98216490.glb'));
-  // the 16 loose balls (one each with its own map, 12 000 of the 15 500 triangles, one fallen on a rail) and a stray marker are left out:
-  // the generator racks its own balls on the cloth
-  drop(doc, /pSphere|lambert1/);
-  // its cloth map is a saturated lime (mean 7, 151, 52 of 255): toned to a tournament green, the map's own weave kept
-  doc.getRoot().listMaterials().find((m) => m.getName() === 'aiStandardSurface1').setBaseColorFactor([1, 0.6, 0.95, 1]);
-  const b = boundsOf(doc);
-  // the bed (the cloth the balls sat on) is at the balls' lowest point in the source: y 12.16 of 2.62 .. 12.61
-  const bedY = 12.16;
-  const k = 2.54 / (b.max[0] - b.min[0]); // its length is the catalogue's 8 ft table, 2.54 m
-  move(doc, null, S(k));
-  await ship('pool-table', doc, { source: ['sketchfab-cc96165eda374800a45f510d98216490'], ratio: { full: 1, mid: 0.7, low: 0.4 }, tex: { full: 1024, mid: 512, low: 256 },
-    surfaceM: +((bedY - b.min[1]) * k).toFixed(4), note: 'the loose balls and a stray marker left out; the lime cloth toned to a tournament green; one uniform scale to the 2.54 m length.' });
-}
+// pool table: "Pooltable" by jdastine was shipped on 22 Nov 2026 and retired on 23 Nov (SPEC 16.17.4): the generated table is used
 
 // ------------------------------------------------------------------ table tennis: "Table Tennis Table" by Diccbudd, CC BY 4.0
 if (want('table-tennis')) {

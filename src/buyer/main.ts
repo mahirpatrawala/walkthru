@@ -31,7 +31,7 @@ import type { KitHandle } from '../look/kit';
 import { fetchDesignSheet } from '../look/design-sheet';
 import { livedInRugRooms, mountDesign } from '../look/design-mount';
 import { PACKS } from '../look/packs';
-import { doorPanelFinish, finishNote, getStyle, onStyleChange, setSpaceKind, setStyle, trimColours } from '../look/style';
+import { doorPanelFinish, finishNote, getStyle, onStyleChange, roomFinishIds, setSpaceKind, setStyle, trimColours } from '../look/style';
 import { resolveItemLook } from '../look/furniture-real';
 import { modelNote } from '../look/models/apply';
 import { propNote } from '../look/gym/props';
@@ -98,6 +98,7 @@ import { mountSceneTag, sceneOrigin, sceneTagText } from './scene-tag';
 import { isLocalHomeId } from '../upload/tag';
 import { createLivedIn, mountLivedInToggle } from '../look/lived-in';
 import { mountClubDecor } from '../look/club/decor';
+import { finishDef } from '../look/finishes';
 import type { ClubDecorHandle } from '../look/club/decor';
 import type { LivedIn } from '../look/lived-in';
 import { mountPartialBadge, partialRoomInView } from './partial-badge';
@@ -713,7 +714,9 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     club?.dispose(); club = null;
     const kind = host?.space.kind ?? property.spaceKind;
     // `?clubdecor=off` (before/after pictures, like `?models=off`) leaves it out
-    if (!host?.bare && !outdoorFile && kind && kind !== 'home' && params.get('clubdecor') !== 'off') club = mountClubDecor({ parent: viewer.scene, layout, furniture: store.pristine?.() ?? store.all(), kind, tier: startTier });
+    // SPEC 16.17.4: a design sheet that tiles a shared space's walls (the changing rooms) is a sample finish too, and the label says so
+    const wallTiles = layout.finishes.source !== 'sampled' && layout.rooms.some((r) => finishDef(roomFinishIds(r.id, getStyle(), r.roomType).wall?.[0])?.kind === 'tile');
+    if (!host?.bare && !outdoorFile && kind && kind !== 'home' && params.get('clubdecor') !== 'off') club = mountClubDecor({ parent: viewer.scene, layout, furniture: store.pristine?.() ?? store.all(), kind, tier: startTier, wallTiles });
     rooms?.setClubDecorNote?.(club?.label ?? null);
   };
   cleanup.push(() => { club?.dispose(); club = null; });

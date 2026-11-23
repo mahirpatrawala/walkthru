@@ -27,7 +27,6 @@ afterEach(() => { resetStyle(); setModelsEnabled(true); clearProps(); setPropFet
 const WHOLE: { kind: PropKind; rows: string[] }[] = [
   { kind: 'power-rack', rows: ['gym-power-rack'] },
   { kind: 'recumbent', rows: ['gym-recumbent'] },
-  { kind: 'pool-table', rows: ['hall-pool-table'] },
   { kind: 'table-tennis', rows: ['hall-table-tennis'] },
 ];
 const CLUB_KINDS = PROP_KINDS.filter((k) => propInfo(k).dir === 'club');

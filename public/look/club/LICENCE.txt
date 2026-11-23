@@ -14,10 +14,6 @@ CREDITS (CC BY 4.0: the author must be credited; the item card of a piece that s
     https://sketchfab.com/3d-models/cycle-11acede7444c4376b8080de4286b0460
     licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22: "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model 11acede7444c4376b8080de4286b0460): license "by", Sketchfab's "CC Attribution": "Author must be credited. Commercial use is allowed."")
     used for: the recumbent bike, as modelled with its own maps (the maker's name printed on its flywheel shrouds painted out)
-  Pooltable by jdastine
-    https://sketchfab.com/3d-models/pooltable-cc96165eda374800a45f510d98216490
-    licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22: "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model cc96165eda374800a45f510d98216490): license "by", Sketchfab's "CC Attribution": "Author must be credited. Commercial use is allowed."")
-    used for: the 8 ft pool table: the walnut cabinet, rails, cloth and legs with their own maps (the source's loose balls left out; the generator racks its own)
   Table Tennis Table by Diccbudd
     https://sketchfab.com/3d-models/table-tennis-table-457c34c9297d44a1a5d4e5d093c6a712
     licence: CC BY 4.0 http://creativecommons.org/licenses/by/4.0/ (read 2026-11-22: "Objaverse 1.0 metadata (allenai/objaverse on Hugging Face, the Sketchfab API v3 record of model 457c34c9297d44a1a5d4e5d093c6a712): license "by", Sketchfab's "CC Attribution": "Author must be credited. Commercial use is allowed."")
@@ -42,6 +38,9 @@ CC0 1.0 (public domain, no credit required, credited anyway):
     used for: chandeliers down the middle of the banquet halls (sample decor, labelled)
 
 Looked at on 2026-11-22 and NOT used:
+  Pooltable (jdastine), CC BY
+    https://sketchfab.com/3d-models/pooltable-cc96165eda374800a45f510d98216490
+    why: SPEC 16.17.4: shipped on 22 Nov, retired on 23 Nov. Compared at the high tier on the GPU, from 2.5 m: its own maps are a drawn dark wood that rendered as a black mass and a mottled cloth; re-surfaced in the app's walnut and cloth it still had flat rails with no sights, a crude cushion line and no balls (a ball on its cloth would stand above the 0.86 m box), and it was squeezed 11 % in depth. The generated table (rails with pearl sights, felt cushions, leather pocket cups, turned legs, fifteen balls racked inside the box) read more like a real table, so it is back.
   Treadmill Machine (sousinho), CC BY
     https://sketchfab.com/3d-models/faed3a2a275b4fd68089e1d8bdfb7f89
     why: a maker's logo printed on the deck and worn, blurred textures (also rejected in gym.lock.json)

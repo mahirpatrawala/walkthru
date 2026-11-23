@@ -4,7 +4,9 @@
 //
 // The plan is a pure function of the layout, the pieces and the space's kind (planClubDecor). The fittings that are downloaded models (a globe
 // pendant, a chandelier, the dartboard: Poly Haven, CC0) are swapped in when they arrive; until then, and with `?models=off`, a simple drawn
-// fitting stands in. Wall art and a gym's linear lights are drawn here.
+// fitting stands in. A gym's linear lights are drawn here. The wall art is a framed reproduction of a public-domain painting (SPEC 16.17.4:
+// The Met's Open Access images, CC0, public/look/club/art, listed in art.lock.json), fitted inside its mount; until the picture arrives, if
+// it cannot be had, or under Node, a generated colour field stands in.
 import * as THREE from 'three';
 import type { FurnitureItem, Layout, RoomTag, Vec2 } from '../../types';
 import type { Tier } from '../types';
@@ -15,6 +17,19 @@ import { boxCorners } from '../../core/geometry';
 
 /** SPEC 16.2 rule 4: the fixed label of this decor, shown in the rooms sheet while it is up */
 export const CLUB_DECOR_LABEL = 'Ceiling lights and wall art are sample decor, not from the plan.';
+/** the label where the space's design sheet also gives a sample wall finish (the changing rooms' glazed wall tile, SPEC 16.17.4) */
+export const CLUB_DECOR_TILE_LABEL = 'Ceiling lights and wall tiles are sample decor, not from the plan.';
+
+/** SPEC 16.17.4: the pictures (public/look/club/art, CC0 reproductions from The Met's Open Access, credited in art/art.lock.json) and their aspect */
+export const CLUB_ART: { id: string; aspect: number }[] = [
+  { id: 'olive-trees', aspect: 1.2533 },
+  { id: 'pool-jas-de-bouffan', aspect: 1.2459 },
+  { id: 'oleanders', aspect: 1.2179 },
+  { id: 'wheat-field', aspect: 1.2636 },
+  { id: 'forest-pontaubert', aspect: 0.7983 },
+  { id: 'cypresses', aspect: 0.7931 },
+];
+export const clubArtUrl = (id: string, tier: Tier): string => `/look/club/art/${id}${tier === 'low' ? '.low' : ''}.webp`;
 
 export type ClubDecorKind = 'pendant' | 'chandelier' | 'batten' | 'art' | 'dartboard';
 export interface ClubDecorPiece {
@@ -26,6 +41,8 @@ export interface ClubDecorPiece {
   /** wall pieces: width and height of the picture; a batten's length */
   w: number; h: number;
   seed: number;
+  /** a picture: which of CLUB_ART hangs in the frame (landscape in a landscape frame, portrait in a portrait one) */
+  art?: string;
 }
 
 /** the shared kinds that get decor: a gym (lights only), a games room, a hall or lounge, a lobby, a corridor or foyer */
@@ -152,7 +169,7 @@ export function planClubDecor(layout: Layout, furniture: FurnitureItem[], kind: 
     if (kind === 'gym' || kind === 'lobby') continue;
     const runs = room.polygon.flatMap((_, e) => freeRuns(room, e, layout, furniture, 0.35)).sort((p, q) => (q.t1 - q.t0) - (p.t1 - p.t0));
     let dart = kind === 'games';
-    let pictures = 0;
+    let pictures = 0, artN = 0;
     const maxPictures = Math.max(1, Math.min(4, Math.round((b.x1 - b.x0 + b.z1 - b.z0) / 7)));
     for (const r of runs) {
       const len = r.t1 - r.t0;
@@ -171,7 +188,10 @@ export function planClubDecor(layout: Layout, furniture: FurnitureItem[], kind: 
       const w = len >= 2.2 ? 1.0 : 0.6, h = len >= 2.2 ? 0.7 : 0.8;
       for (const t of pair ? [mid - 0.62, mid + 0.62] : [mid]) {
         const c = at(t);
-        out.push({ kind: 'art', x: c.x, y: 1.55, z: c.z, yawDeg: yaw, w, h, seed: seed++ });
+        // the picture: the room's next one of the frame's orientation, starting at a place the room's name gives (so two rooms differ)
+        const pool = CLUB_ART.filter((a) => (a.aspect >= 1) === (w >= h));
+        const art = pool[(hashOf(room.id) + artN++) % pool.length].id;
+        out.push({ kind: 'art', x: c.x, y: 1.55, z: c.z, yawDeg: yaw, w, h, seed: seed++, art });
       }
       pictures++;
     }
@@ -199,6 +219,7 @@ const PALETTES = [
   ['#EFE9DF', '#B85C4A', '#E0C9A6', '#5B6770'],
   ['#E6E2D8', '#7A8B99', '#D7B98E', '#33363B'],
 ];
+const hashOf = (s: string): number => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
 function rand(seed: number): () => number { let s = (seed * 2654435761) >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
 /** an abstract print: a ground and three or four soft colour fields and an arc, as vertex-coloured quads (in the picture's own frame, facing +z) */
@@ -232,6 +253,28 @@ function painting(w: number, h: number, seed: number): THREE.BufferGeometry {
   return g;
 }
 
+/** the picture's width and height in a frame: the mount's window less nothing, at the artwork's aspect (contain) */
+export function artSize(p: ClubDecorPiece): [number, number] {
+  const mount = Math.min(p.w, p.h) * 0.09;
+  const ww = p.w - 2 * mount, wh = p.h - 2 * mount;
+  const a = CLUB_ART.find((x) => x.id === p.art)?.aspect ?? ww / wh;
+  const pw = Math.min(ww, wh * a);
+  return [pw, pw / a];
+}
+
+/** puts a loaded picture in place of a frame's stand-in colour field */
+function hangPicture(g: THREE.Group, tex: THREE.Texture): void {
+  const old = g.getObjectByName('art-print') as THREE.Mesh | undefined;
+  if (!old) return;
+  const { w, h, z } = old.userData.picture as { w: number; h: number; z: number };
+  g.remove(old); old.geometry.dispose(); (old.material as THREE.Material).dispose();
+  // a matt print behind glass: the paper's own colours, a faint sheen
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.62, metalness: 0 });
+  const m = decorMesh(new THREE.PlaneGeometry(w, h).translate(0, 0, z), mat, 'art-print');
+  m.userData.picture = { w, h, z };
+  g.add(m);
+}
+
 function decorMesh(g: THREE.BufferGeometry, m: THREE.Material, name: string): THREE.Mesh {
   const mesh = new THREE.Mesh(g, m);
   mesh.name = name;
@@ -254,14 +297,18 @@ function drawPiece(p: ClubDecorPiece, tier: Tier): THREE.Object3D {
     o.add(decorMesh(body, mats.housing(), 'batten-body'));
     o.add(decorMesh(new THREE.BoxGeometry(0.06, 0.006, p.w - 0.02).translate(0, -0.053, 0), mats.diffuser(), 'batten-diffuser'));
   } else if (p.kind === 'art') {
-    const dark = p.seed % 2 === 0, fw = 0.025, depth = 0.03, mount = Math.min(p.w, p.h) * 0.09;
+    const dark = p.seed % 2 === 0, fw = 0.025, depth = 0.03;
     const f = mats.frame(dark);
     // the frame: four bars around the mount, standing `depth` off the wall
     for (const [x0, y0, x1, y1] of [[-p.w / 2 - fw, p.h / 2, p.w / 2 + fw, p.h / 2 + fw], [-p.w / 2 - fw, -p.h / 2 - fw, p.w / 2 + fw, -p.h / 2], [-p.w / 2 - fw, -p.h / 2, -p.w / 2, p.h / 2], [p.w / 2, -p.h / 2, p.w / 2 + fw, p.h / 2]])
       o.add(decorMesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, depth).translate((x0 + x1) / 2, (y0 + y1) / 2, depth / 2), f, 'art-frame'));
     o.add(decorMesh(new THREE.BoxGeometry(p.w, p.h, 0.004).translate(0, 0, depth - 0.012), mats.mount(), 'art-mount'));
-    const pic = painting(p.w - 2 * mount, p.h - 2 * mount, p.seed).translate(0, 0, depth - 0.0095);
-    o.add(decorMesh(pic, mats.paint(), 'art-print'));
+    // the picture fits inside the mount's window at its own aspect (the mount shows wider where the shapes differ, as a framer cuts it)
+    const [pw, ph] = artSize(p);
+    const pic = painting(pw, ph, p.seed).translate(0, 0, depth - 0.0095);
+    const m = decorMesh(pic, mats.paint(), 'art-print');
+    m.userData.picture = { w: pw, h: ph, z: depth - 0.0095 };
+    o.add(m);
   } else if (p.kind === 'pendant') {
     // stand-in until the model arrives: a cord, a cap and an opal globe, 0.95 m drop
     const seg = tier === 'low' ? 10 : 18;
@@ -299,7 +346,7 @@ function modelInto(o: THREE.Group, p: ClubDecorPiece, geo: PropGeo, kind: PropKi
 export interface ClubDecorHandle { group: THREE.Group; pieces: ClubDecorPiece[]; label: string | null; dispose(): void }
 
 /** builds the decor of a shared space under `parent` and swaps the model fittings in when they arrive */
-export function mountClubDecor(o: { parent: THREE.Object3D; layout: Layout; furniture: FurnitureItem[]; kind: string; tier: Tier }): ClubDecorHandle {
+export function mountClubDecor(o: { parent: THREE.Object3D; layout: Layout; furniture: FurnitureItem[]; kind: string; tier: Tier; /** the design sheet tiles the walls (a sample finish, said in the label) */ wallTiles?: boolean }): ClubDecorHandle {
   const group = new THREE.Group();
   group.name = 'club-decor';
   group.userData.decor = true;
@@ -319,12 +366,28 @@ export function mountClubDecor(o: { parent: THREE.Object3D; layout: Layout; furn
   if (modelsEnabled()) for (const [kind, list] of waiting) {
     void loadProp(kind, o.tier).then((geo) => { if (!live || !geo) return; for (const { g, p } of list) modelInto(g, p, geo, kind); });
   }
+  // the pictures: each file once, hung in every frame that shows it; a failed load keeps the colour field
+  const textures: THREE.Texture[] = [];
+  if (modelsEnabled() && typeof document !== 'undefined') {
+    const byArt = new Map<string, THREE.Group[]>();
+    group.children.forEach((g, i) => { const a = pieces[i]?.art; if (pieces[i]?.kind === 'art' && a) byArt.set(a, [...(byArt.get(a) ?? []), g as THREE.Group]); });
+    for (const [art, frames] of byArt) {
+      new THREE.TextureLoader().load(clubArtUrl(art, o.tier), (tex) => {
+        if (!live) { tex.dispose(); return; }
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 8;
+        textures.push(tex);
+        for (const g of frames) hangPicture(g, tex);
+      }, undefined, () => { /* the colour field stays */ });
+    }
+  }
   return {
-    group, pieces, label: pieces.length ? CLUB_DECOR_LABEL : null,
+    group, pieces, label: pieces.length ? (o.wallTiles ? CLUB_DECOR_TILE_LABEL : CLUB_DECOR_LABEL) : null,
     dispose() {
       live = false;
       o.parent.remove(group);
       group.traverse((x) => { const m = x as THREE.Mesh; if (!m.isMesh) return; m.geometry.dispose(); (m.material as THREE.Material).dispose(); });
+      for (const t of textures) t.dispose();
     },
   };
 }

@@ -14,31 +14,32 @@ import { addWhole, propGeo, propInfo } from '../gym/props';
 import { fitModel } from '../models/fit';
 
 // ---------------------------------------------------------------- materials
-/** powder-coated graphite steel: the frames (a commercial graphite grey: in a windowless gym lit by its downlights a black frame is only a silhouette, SPEC 16.20) */
-export const FRAME: MatSpec = { key: 'powder', tint: '#60656D' };
+/** powder-coated steel: the frames. SPEC 16.17.4: a titanium grey, the lighter of a commercial line's two frame colours (the graphite #60656D
+ * rendered near-black in the windowless gym, lit only by its fill light: every machine was a silhouette, SPEC 16.20) */
+export const FRAME: MatSpec = { key: 'powder', tint: '#8D939B' };
 /** titanium-silver powder coat: uprights, arms, handlebars of the cardio machines. SPEC 16.17.3: a painted finish (it was bare metal, which
  * mirrors the windowless gym's dark surroundings and read as black in the rendered room); commercial silver frames are powder-coated */
-export const FRAME_GREY: MatSpec = { key: 'powder', tint: '#A9AEB4' };
-/** moulded charcoal plastic: motor hoods, covers, consoles' backs */
-export const SHROUD: MatSpec = { key: 'plastic', tint: '#6A6F77' };
+export const FRAME_GREY: MatSpec = { key: 'powder', tint: '#C2C6CB' };
+/** moulded charcoal plastic: motor hoods, covers, consoles' backs (SPEC 16.17.4: a step lighter, it read black) */
+export const SHROUD: MatSpec = { key: 'plastic', tint: '#7D828A' };
 /** silver-painted sheet: the side shrouds of a weight stack, trim (SPEC 16.17.3: painted, not bare metal, for the same reason as FRAME_GREY) */
-export const SHROUD_LIGHT: MatSpec = { key: 'powder', tint: '#C5C9CE' };
-/** the console's face around a screen */
-export const CONSOLE: MatSpec = { key: 'plastic', tint: '#41454C' };
+export const SHROUD_LIGHT: MatSpec = { key: 'powder', tint: '#D2D5D9' };
+/** the console's face around a screen: a dark gloss bezel, so the lit screen and the white keys stand out of it */
+export const CONSOLE: MatSpec = { key: 'plastic', tint: '#383B41' };
 /** black vinyl upholstery (a leather-grain normal on medium and high) */
 export const PAD_BLACK: MatSpec = { key: 'vinyl' };
 export const PAD_GREY: MatSpec = { key: 'vinyl', tint: '#4B4F56' };
 /** the one accent colour: pop-pin knobs, selector pins, a stripe */
 export const ACCENT_RED: MatSpec = { key: 'plastic', tint: '#C2342C' };
 export const ACCENT_BLUE: MatSpec = { key: 'plastic', tint: '#2F5F9E' };
-/** the plates of a weight stack: black powder-coated steel */
-export const STACK_STEEL: MatSpec = { key: 'powder', tint: '#50545A' };
+/** the plates of a weight stack: black powder-coated steel (a step off black, so the plates' edges read) */
+export const STACK_STEEL: MatSpec = { key: 'powder', tint: '#5C6067' };
 /** cast iron of a barbell plate, a kettlebell */
 export const IRON: MatSpec = { key: 'powder', tint: '#50545A' };
 /** a console's screen: dark glass */
 export const SCREEN_GLASS: MatSpec = { key: 'granite', tint: '#121820' };
-/** a screen's picture: the blue of a workout display at rest (not emissive: a glowing panel would be the brightest thing in the room) */
-export const SCREEN_LIT: MatSpec = { key: 'gloss', tint: '#29507A' };
+/** a screen's picture: the blue of a workout display, lit dimly from within (SPEC 16.17.4: a switched-on display, never the brightest thing in the room) */
+export const SCREEN_LIT: MatSpec = { key: 'screen' };
 export const WOOD_ASH: MatSpec = { key: 'wood', tint: '#C8A06B' };
 /** black rubber: feet, belts, grips, dumbbell heads */
 export const RUBBER: MatSpec = { key: 'rubber' };

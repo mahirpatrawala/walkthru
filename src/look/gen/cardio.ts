@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { Parts } from './core';
 import type { GenEnv, GenSize, Roles } from './core';
-import { ACCENT_RED, CHROME, CONSOLE, FRAME, FRAME_GREY, PAD_BLACK, RUBBER, SCREEN_GLASS, SHROUD, SHROUD_LIGHT, consoleUnit, cylX, cylY, cylZ, grip, knob, pad, rtube, slab, tube, tubes, wholeModel } from './gymkit';
+import { ACCENT_RED, CHROME, CONSOLE, FRAME, FRAME_GREY, PAD_BLACK, RUBBER, SHROUD, SHROUD_LIGHT, consoleUnit, cylX, cylY, cylZ, grip, knob, pad, rtube, slab, tube, tubes, wholeModel } from './gymkit';
 import { softCushion } from './soft';
 
 export const CARDIO_VARIANTS = ['treadmill', 'cross', 'upright', 'spin', 'recumbent', 'rower', 'stair'] as const;
@@ -57,6 +57,8 @@ export function buildCardio(env: GenEnv, size: GenSize, p: CardioParams, _roles:
         // side handrail from the upright toward the walker, foam where the hand goes
         tubes(parts, 'tread-handrails', FRAME_GREY, [[x, H - 0.27, z0 + 0.16], [x + s2 * 0.01, 1.08, z0 + 0.5], [x + s2 * 0.01, 1.04, z0 + 0.86], [x + s2 * 0.01, 0.98, z0 + 0.92]], 0.019);
         grip(parts, [x + s2 * 0.01, 1.075, z0 + 0.54], [x + s2 * 0.01, 1.045, z0 + 0.84], 0.024);
+        // SPEC 16.17.4: the steel pulse sensors let into the front of each grip
+        if (q.tier !== 'low') tube(parts, 'tread-pulse-grips', CHROME, [x + s2 * 0.01, 1.074, z0 + 0.56], [x + s2 * 0.01, 1.068, z0 + 0.64], 0.0255);
       }
       tube(parts, 'tread-handrails', FRAME_GREY, [-x1 + 0.09, 1.16, z0 + 0.3], [x1 - 0.09, 1.16, z0 + 0.3], 0.018);
       grip(parts, [-0.2, 1.16, z0 + 0.3], [0.2, 1.16, z0 + 0.3], 0.022);
@@ -76,8 +78,8 @@ export function buildCardio(env: GenEnv, size: GenSize, p: CardioParams, _roles:
       parts.box('cross-housing-top', SHROUD_LIGHT, -x1 + 0.1, x1 - 0.1, 0.5, 0.58, z0 + 0.1, z0 + 0.5, { c: 0.006 });
       // the mast, with the console at its head
       tube(parts, 'cross-mast', FRAME_GREY, [0, 0.55, z0 + 0.28], [0, H - 0.2, z0 + 0.2], 0.05, true);
-      parts.box('cross-console', CONSOLE, -0.22, 0.22, H - 0.28, H, z0 + 0.04, z0 + 0.34, { c: 0.012 });
-      slab(parts, 'cross-screen', SCREEN_GLASS, -0.17, 0.17, H - 0.24, H - 0.05, z0 + 0.34, z0 + 0.344);
+      // SPEC 16.17.4: a tilted console with a lit screen and keys (it was a box with a dark pane)
+      consoleUnit(parts, 0, H - 0.14, z0 + 0.2, 0.44, 0.26, 0.12, 0.5, 'cross', H);
       // fixed grips, a bent bar from the console down toward the walker
       for (const s of [-1, 1]) tubes(parts, 'cross-fixed-grips', FRAME_GREY, [[s * 0.17, H - 0.3, z0 + 0.2], [s * 0.3, H - 0.38, z0 + 0.3], [s * 0.3, 1.2, z0 + 0.5], [s * 0.3, 1.1, z0 + 0.52]], 0.017);
       // moving arms: from a pivot on the mast down to the pedal links; set to the middle of their swing
@@ -100,8 +102,7 @@ export function buildCardio(env: GenEnv, size: GenSize, p: CardioParams, _roles:
       tube(parts, 'bike-frame', FRAME, [0, 0.07, z1 - 0.04], [0, 0.45, z1 - 0.28], 0.03);
       parts.box('bike-shroud', SHROUD, -0.1, 0.1, 0.16, 0.46, z0 + 0.22, z0 + 0.58, { c: 0.008 });
       tube(parts, 'bike-mast', FRAME_GREY, [0, 0.4, z0 + 0.3], [0, H - 0.2, z0 + 0.14], 0.032, true);
-      parts.box('bike-console', CONSOLE, -0.17, 0.17, H - 0.22, H, z0, z0 + 0.22, { c: 0.01 });
-      slab(parts, 'bike-screen', SCREEN_GLASS, -0.13, 0.13, H - 0.19, H - 0.04, z0 + 0.22, z0 + 0.224);
+      consoleUnit(parts, 0, H - 0.11, z0 + 0.12, 0.34, 0.2, 0.09, 0.55, 'bike', H);
       tubes(parts, 'bike-handlebar', FRAME_GREY, [[-0.22, H - 0.4, z0 + 0.38], [-0.22, H - 0.26, z0 + 0.14], [0.22, H - 0.26, z0 + 0.14], [0.22, H - 0.4, z0 + 0.38]], 0.017);
       grip(parts, [-0.22, H - 0.3, z0 + 0.3], [-0.22, H - 0.4, z0 + 0.38], 0.02);
       grip(parts, [0.22, H - 0.3, z0 + 0.3], [0.22, H - 0.4, z0 + 0.38], 0.02);
@@ -184,8 +185,7 @@ export function buildCardio(env: GenEnv, size: GenSize, p: CardioParams, _roles:
       tube(parts, 'rec-frame', FRAME, [0, 0.12, z0 + 0.04], [0, 0.12, z1 - 0.04], 0.04);
       parts.box('rec-shroud', SHROUD, -0.12, 0.12, 0.08, 0.44, z0 + 0.06, z0 + 0.46, { c: 0.01 });
       tube(parts, 'rec-mast', FRAME_GREY, [0, 0.4, z0 + 0.3], [0, H - 0.25, z0 + 0.2], 0.034, true);
-      parts.box('rec-console', CONSOLE, -0.19, 0.19, H - 0.28, H, z0 + 0.04, z0 + 0.34, { c: 0.01 });
-      slab(parts, 'rec-screen', SCREEN_GLASS, -0.15, 0.15, H - 0.24, H - 0.05, z0 + 0.34, z0 + 0.344);
+      consoleUnit(parts, 0, H - 0.14, z0 + 0.19, 0.38, 0.26, 0.11, 0.5, 'rec', H);
       // the seat: a base pad and a tall back, on a rail that slides
       pad(parts, 'rec-seat', PAD_BLACK, -0.24, 0.24, S - 0.09, S, z1 - 0.7, z1 - 0.32, 0.04);
       const back = new THREE.BoxGeometry(0.46, 0.5, 0.07);
@@ -216,8 +216,7 @@ export function buildCardio(env: GenEnv, size: GenSize, p: CardioParams, _roles:
       cylX(parts, 'rower-cage-rim', SHROUD, -0.1, 0.1, 0.3, z0 + 0.22, 0.2, Math.max(12, q.sides * 3));
       parts.box('rower-housing', SHROUD, -0.085, 0.085, 0.08, 0.3, z0 + 0.04, z0 + 0.42, { c: 0.008 });
       tube(parts, 'rower-monitor-arm', FRAME_GREY, [0, 0.4, z0 + 0.34], [0, H - 0.1, z0 + 0.2], 0.022, true);
-      parts.box('rower-monitor', CONSOLE, -0.1, 0.1, H - 0.2, H, z0 + 0.06, z0 + 0.32, { c: 0.008 });
-      slab(parts, 'rower-screen', SCREEN_GLASS, -0.08, 0.08, H - 0.17, H - 0.04, z0 + 0.32, z0 + 0.324);
+      consoleUnit(parts, 0, H - 0.1, z0 + 0.19, 0.2, 0.18, 0.06, 0.35, 'rower', H);
       // foot boards, tilted, with straps
       for (const s of [-1, 1]) {
         const board = new THREE.BoxGeometry(0.14, 0.02, 0.3);
@@ -244,9 +243,7 @@ export function buildCardio(env: GenEnv, size: GenSize, p: CardioParams, _roles:
       parts.box('stair-housing-top', SHROUD_LIGHT, -x1 + 0.16, x1 - 0.16, 1.3, 1.42, z0 + 0.04, z0 + 0.56, { c: 0.008 });
       slab(parts, 'stair-vent', FRAME, -0.2, 0.2, 0.3, 0.9, z0 + 0.62, z0 + 0.625);
       tube(parts, 'stair-mast', FRAME_GREY, [0, 1.4, z0 + 0.3], [0, H - 0.2, z0 + 0.24], 0.05, true);
-      parts.box('stair-console', CONSOLE, -0.27, 0.27, H - 0.36, H, z0, z0 + 0.3, { c: 0.012 });
-      slab(parts, 'stair-screen', SCREEN_GLASS, -0.22, 0.22, H - 0.32, H - 0.06, z0 + 0.3, z0 + 0.304);
-      slab(parts, 'stair-keys', SHROUD_LIGHT, -0.22, 0.22, H - 0.05, H - 0.01, z0 + 0.14, z0 + 0.3);
+      consoleUnit(parts, 0, H - 0.18, z0 + 0.16, 0.54, 0.32, 0.12, 0.45, 'stair', H);
       // the two step arms, one high and one low, each ending in a platform
       for (const [i, s] of [-1, 1].entries()) {
         const py = i === 0 ? 0.34 : 0.52;

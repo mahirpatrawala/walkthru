@@ -13,7 +13,9 @@ export type MatKey =
   // SPEC 16.21 (round 3): a quartz worktop and a woven rug, which only the Realistic materials layer gives a surface (Off draws them flat)
   | 'quartz' | 'rug' | 'felt'
   // SPEC 16.17.1 (22 Nov 2026): gym equipment: black vinyl upholstery (a photographed leather grain), powder-coated steel, rubber
-  | 'vinyl' | 'powder' | 'plastic' | 'rubber' | 'rubberFloor';
+  | 'vinyl' | 'powder' | 'plastic' | 'rubber' | 'rubberFloor'
+  // SPEC 16.17.4: a machine's lit display
+  | 'screen';
 
 interface Def {
   /** colour, also the flat colour on the low tier (the mean of the texture where there is one) */
@@ -84,7 +86,10 @@ export const DEFS: Record<MatKey, Def> = {
   powder: { color: '#60656D', roughness: 0.42, metalness: 0.1, tile: 1 },
   plastic: { color: '#6A6F77', roughness: 0.5, metalness: 0, tile: 1 },
   rubber: { color: '#4A4C51', roughness: 0.85, metalness: 0, tile: 0.6, nor: 'gym/tex/rubber_nor.jpg', norScale: 0.5 },
-  rubberFloor: { color: '#55575B', roughness: 0.9, metalness: 0, tile: 1.0, diff: 'gym/tex/rubber_floor_diff.jpg', nor: 'gym/tex/rubber_nor.jpg', norScale: 0.6 },
+  // SPEC 16.17.4: 0.5 m a repeat (at 1 m the flecks were 1 to 2 cm and the floor read as a starfield)
+  rubberFloor: { color: '#55575B', roughness: 0.9, metalness: 0, tile: 0.5, diff: 'gym/tex/rubber_floor_diff.jpg', nor: 'gym/tex/rubber_nor.jpg', norScale: 0.6 },
+  // a machine's display (SPEC 16.17.4): a switched-on screen gives its own dim light, so it reads in a windowless gym; never as bright as a lamp
+  screen: { color: '#0E1620', roughness: 0.22, metalness: 0, tile: 1, emissive: '#2D5F94' },
 };
 
 const DETAIL_VERT_PARS = '';
