@@ -60,6 +60,10 @@ export interface Space {
   outdoor?: boolean;
   /** the style pack this space opens in, unless the viewer has picked one (src/look/packs ids) */
   pack?: string;
+  /** a flat's own views (SPEC 2.10), in this space's scene frame: replaces the scene's and the generated ones */
+  viewpoints?: unknown[];
+  /** 360 degree pictures of this space's views, by view id */
+  viewpointPanos?: Record<string, unknown>;
 }
 
 export interface Level {

@@ -99,7 +99,7 @@ class BuildingWalk implements BuildingWalkApi {
       first: o.first,
       carry,
       bare: b.bare === true,
-      space: { id: loc.space.id, kind: loc.space.kind, outdoor: loc.space.outdoor === true, pack: loc.space.pack ?? null },
+      space: { id: loc.space.id, kind: loc.space.kind, outdoor: loc.space.outdoor === true, pack: loc.space.pack ?? null, ...(loc.space.viewpoints ? { viewpoints: loc.space.viewpoints } : {}), ...(loc.space.viewpointPanos ? { viewpointPanos: loc.space.viewpointPanos } : {}) },
       placeText: loc.space.name,
       levelText: loc.level.label,
       brand: shownBrand(b.id, b.brand),

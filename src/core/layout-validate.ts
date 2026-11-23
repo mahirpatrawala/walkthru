@@ -428,6 +428,9 @@ export function validateProperty(json: unknown): PropertyFile {
       fail(`north${part ? part[1] : ''}`, part ? part[2] : m);
     }
   }
+  // the Views (SPEC 2.10): an authored list replaces the generated one; pictures by view id. Read item by item by src/buyer/viewpoints, which leaves out what it cannot use.
+  if (json.viewpoints !== undefined) { if (!Array.isArray(json.viewpoints)) fail('viewpoints', 'must be a list'); out.viewpoints = json.viewpoints as unknown[]; }
+  if (json.viewpointPanos !== undefined) { if (!isObj(json.viewpointPanos)) fail('viewpointPanos', 'must be an object of view id to picture'); out.viewpointPanos = json.viewpointPanos as Record<string, unknown>; }
   if (json.splat !== undefined) {
     const s = json.splat;
     if (!isObj(s) || !isStr(s.file) || !isObj(s.transform)) return fail('splat', 'must have file and transform');

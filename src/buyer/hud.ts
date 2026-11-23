@@ -108,7 +108,7 @@ const EXTRA_ICONS = {
   plan: SVG('<path d="M4 4h16v16H4z"/><path d="M4 12h7M11 4v8M15 12v8M11 16h4"/>'),
 };
 /** the order of the tools, left to right; anything a module adds that is not here goes last. Keys are the short labels. */
-const TOOL_ORDER = ['Flats', 'Rooms', 'Measure', 'Furnish', 'Light', 'Materials', 'You', 'Scan', 'Share', 'Fullscreen', 'Controls'];
+const TOOL_ORDER = ['Flats', 'Views', 'Rooms', 'Measure', 'Furnish', 'Light', 'Materials', 'You', 'Scan', 'Share', 'Fullscreen', 'Controls'];
 /** short labels for buttons other modules add (their accessible names stay as they are) */
 const SHORT_LABEL: Record<string, string> = { 'Light and look': 'Light', 'Building map': 'Building', 'Take a tour of this home, room by room': 'Tour' };
 const LABELS_KEY = 'walkthru:hud:labels-seen';

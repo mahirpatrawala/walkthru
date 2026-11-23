@@ -133,3 +133,8 @@
 .wt-nav-plan .wt-nav-dir { fill: var(--wt-glass-text); font-family: var(--wt-font); font-weight: 700; paint-order: stroke; stroke: var(--wt-glass-lo); stroke-width: 0.18px; stroke-linejoin: round; opacity: 0.92; }
 .wt-nav-plan .wt-nav-dir.is-n { fill: var(--wt-accent-on-glass); }
 .wt-nav-plan .wt-nav-face { fill: var(--wt-glass-text); font-family: var(--wt-font); font-weight: 650; paint-order: stroke; stroke: var(--wt-glass-lo); stroke-width: 0.18px; stroke-linejoin: round; }
+
+/* ---- the Views' dots on the plan (SPEC 2.10): one for every view, the current one ringed in white */
+.wt-nav-plan .wt-nav-vp { fill: var(--wt-vp-mark); stroke: #fff; cursor: pointer; pointer-events: all; }
+.wt-nav-plan .wt-nav-vp:hover { filter: brightness(1.15); }
+.wt-nav-plan .wt-nav-vp.is-current { fill: #fff; stroke: var(--wt-vp-mark); }

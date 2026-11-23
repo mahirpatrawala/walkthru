@@ -89,6 +89,11 @@ import { createRoomsSheet, sizesNote } from './rooms';
 import { mountHomeLink } from './home-link';
 import { mountCreditsLink } from './credits-panel';
 import { mountNav } from './nav/mount';
+import { mountViewpoints } from './viewpoints/mount';
+import type { MountedViewpoints } from './viewpoints/mount';
+import { resolveViewpoints } from './viewpoints/resolve';
+import { parseVpParam } from './viewpoints/model';
+import { panoManifestUrl, panosFromManifest, unmatchedPanos } from './viewpoints/pano';
 import { mountDirections } from './directions/mount';
 import { readingFor, resolveNorth } from './directions/model';
 import { lookNorthDeg } from '../core/north';
@@ -599,7 +604,7 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
   async function doShare(): Promise<void> {
     const views = (ctx as unknown as { views?: { mode(): 'walk' | 'doll' | 'plan' } }).views;
     const url = buildShareUrl({
-      href: location.href, at: { x: character.position.x, z: character.position.z, yawDeg: camera.viewYawDeg }, cam: view, view: views?.mode(),
+      href: location.href, at: { x: character.position.x, z: character.position.z, yawDeg: camera.viewYawDeg }, cam: view, view: views?.mode(), vp: viewpoints?.at() ?? null,
       withLayout: host || !store.isEdited() ? null : (h) => layoutShareUrl(h, store.layout()),
     });
     const r = await shareWalk(url, `${hud.root.querySelector('.wt-id-place')?.textContent || property.title} · firstbeam`, pageShareEnv());
@@ -929,6 +934,8 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     }
   }
 
+  // the Views (SPEC 2.10): set views of a flat, mounted below; the Plan's dots read them through this
+  let viewpoints: MountedViewpoints | null = null;
   // ---- the view modes: Walk (this loop, as it always was), Doll house and Plan (src/buyer/views). Mounted after the loop above so its frame callback runs after the walk's camera.
   const views = mountViews({
     ctx, viewer, look, character, hud, modes, shell, furnitureRoot,
@@ -940,10 +947,62 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     initial: host && !host.first ? 'walk' : parseViewParam(location.search),
     controls: false, // the HUD's own top bar carries the Walk / Doll house / Plan switch (`hud.bindViews`)
     hudVisible: () => hud.root.style.display !== 'none',
+    viewMarks: { list: () => viewpoints?.marks.list() ?? [], current: () => viewpoints?.marks.current() ?? null, pick: (id) => viewpoints?.marks.pick(id) },
   });
   cleanup.push(() => views.dispose());
   ctx.views = views;
   hud.bindViews(views);
+  // ---- the Views (SPEC 2.10): a flat's set views, from the scene file's layout and furniture as drawn (the same inputs as scripts/export-viewpoints.ts), or the list the
+  // scene or the building's space gives; a room tab bar, a list, rings in the scene, dots on the plans, and `?vp=<id>`
+  // Composing costs some 20 to 100 ms for a furnished flat (more for an empty one): it waits for an idle moment after the first frames, unless the
+  // address names a view (then it is done at once, under the height picker). Nothing here is needed for the first picture.
+  if ((host?.space.kind ?? property.spaceKind ?? 'home') === 'home' && !outdoorFile && layout.rooms.filter((r) => !r.partial).length >= 2) {
+    let vpGone = false;
+    cleanup.push(() => { vpGone = true; });
+    const askedVp = !host || host.first ? parseVpParam(location.search) : null;
+    const composeAndMount = (): void => {
+      if (vpGone) return;
+      const t0 = performance.now();
+      const resolved = resolveViewpoints({
+        layout, furniture: [...property.furniture, ...fixtureItems],
+        override: host?.space.viewpoints ?? property.viewpoints, panos: host?.space.viewpointPanos ?? property.viewpointPanos, sceneBase: `/scenes/${sceneId}/`,
+      });
+      for (const w of resolved.warnings) console.warn(`[walkthru] views: ${w}`);
+      if (debug) console.info(`[walkthru] views: ${resolved.views.length} (${resolved.source}) in ${(performance.now() - t0).toFixed(1)} ms`);
+      if (resolved.views.length) {
+        const vp = mountViewpoints({
+          ctx, layout, list: resolved.views, nav, parent: hud.root, tools: hud.tools, liveGrid: () => store.grid(),
+          blocked: blocking, posed: () => !!interactions.pose(), getUp: () => interactions.getUp(), resetMotion: () => resetLocomotion(character),
+          firstPerson: () => { if (view !== 'first') applyView('first', false); },
+        });
+        viewpoints = vp;
+        cleanup.push(() => { vp.dispose(); viewpoints = null; });
+        // an address that names a view opens on it (a building's first space only)
+        if (askedVp && !vp.list.some((v) => v.id === askedVp)) console.warn(`[walkthru] views: no view "${askedVp}" in this home`);
+        else if (askedVp) void vp.go(askedVp, { instant: true });
+        // the renderer's 360 pictures (`npm run pano` writes panos/manifest.json next to them), when the scene has any: attached by view id to the
+        // views with no picture of their own; the phone's file on a phone or the low tier. No manifest is the usual case and says nothing.
+        if (!isLocalHomeId(sceneId)) {
+          const base = `/scenes/${sceneId}/`;
+          const mobile = look?.tier === 'low' || (typeof matchMedia === 'function' && matchMedia('(max-width: 760px), (max-height: 500px)').matches);
+          void fetch(panoManifestUrl(base), { cache: 'no-cache' }).then((r) => (r.ok && /json/.test(r.headers.get('content-type') ?? '') ? r.json() : null)).then((raw: unknown) => {
+            if (!raw || viewpoints !== vp) return;
+            const m = panosFromManifest(raw, base, { mobile });
+            for (const w of m.warnings) console.warn(`[walkthru] views: ${w}`);
+            const stray = unmatchedPanos(vp.list, m.panos);
+            if (stray.length) console.warn(`[walkthru] views: pictures with no view of that id, not shown: ${stray.join(', ')} (render from scripts/export-viewpoints.ts --poses)`);
+            const n = vp.addPanos(m.panos);
+            if (debug) console.info(`[walkthru] views: ${n} picture(s) from the manifest`);
+          }).catch(() => { /* no pictures */ });
+        }
+      }
+    };
+    if (askedVp) composeAndMount();
+    else {
+      const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+      if (ric) ric(composeAndMount, { timeout: 1500 }); else setTimeout(composeAndMount, 400);
+    }
+  }
   // the compass, the facing lines and, where the building switches it on, the Vastu checklist (SPEC 22): only with a north
   if (north && facing) {
     const dirs = mountDirections({
@@ -1108,6 +1167,12 @@ export async function boot(sceneId: string, requestedRoom: string | null, host: 
     },
   };
   (api as unknown as Record<string, unknown>).chrome = { level: () => chrome.machine.level, set: (l: ChromeLevel) => { chromeLevel = l; chrome.setLevel(l); }, flags: () => chrome.flags(), glass: () => glassTone.stats(), kick: () => glassTone.kick(), force: (m: 'blur' | 'flat' | null) => glassTone.force(m) };
+  (api as unknown as Record<string, unknown>).viewpoints = {
+    list: () => viewpoints?.debug.list() ?? [], tabs: () => viewpoints?.debug.tabs() ?? [], go: (id: string, instant = false) => viewpoints?.go(id, { instant }) ?? Promise.resolve(false),
+    open: () => viewpoints?.open(), close: () => viewpoints?.close(), at: () => viewpoints?.at() ?? null, rings: () => viewpoints?.debug.rings() ?? [],
+    showRings: (on: boolean) => viewpoints?.debug.showRings(on), setPano: (id: string, pano: Parameters<MountedViewpoints['debug']['setPano']>[1]) => viewpoints?.debug.setPano(id, pano),
+    panoShown: () => viewpoints?.debug.panoShown() ?? false, moving: () => viewpoints?.debug.moving() ?? false, state: () => viewpoints?.debug.state() ?? null,
+  };
   (window as unknown as { __walkthru: typeof api }).__walkthru = api;
 
   // ---- go

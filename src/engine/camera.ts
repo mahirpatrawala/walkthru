@@ -255,6 +255,13 @@ export class FollowCamera {
     this.fpEye = { x: p.x, y: p.y, z: p.z };
   }
 
+  /** First person: look this many degrees below level (a composed view, SPEC 2.10). `instant` skips the easing (the camera is driven over it anyway). */
+  setFirstPersonPitch(deg: number, instant = false): void {
+    this.fpPitch = clamp(deg, FP_PITCH_MIN_DEG, FP_PITCH_MAX_DEG);
+    this.fpBiasTarget = 0;
+    if (instant) { this.fpBias = 0; this.fpPitchSp = { value: this.fpPitch, velocity: 0 }; }
+  }
+
   /** Eases the heading to `yawDeg` over `seconds` by the short way round (first person: face the way a seat or a bed points). */
   turnTo(yawDeg: number, seconds = 0.5): void {
     this.yawTween = { from: this.yawDeg, to: this.yawDeg + angleDiff(this.yawDeg, yawDeg), t: 0, dur: Math.max(0.05, seconds) };

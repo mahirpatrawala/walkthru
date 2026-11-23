@@ -47,9 +47,9 @@ export function tourStops(layout: Layout, grid: Grid, focalOf?: (roomId: string)
 }
 
 /** The next stop: least (walking distance + surcharge). `lengthTo` gives Infinity for a stop that cannot be reached; those are returned apart. */
-export function pickNext(remaining: readonly TourStop[], lengthTo: (spot: Vec2) => number, spotOf: (s: TourStop) => Vec2 = (s) => s.spot): { next: TourStop | null; lengthM: number; unreachable: TourStop[] } {
-  let best: TourStop | null = null, bestCost = Infinity, bestLen = Infinity;
-  const unreachable: TourStop[] = [];
+export function pickNext<T extends { kind: RoomKind } = TourStop>(remaining: readonly T[], lengthTo: (spot: Vec2) => number, spotOf: (s: T) => Vec2 = (s) => (s as unknown as TourStop).spot): { next: T | null; lengthM: number; unreachable: T[] } {
+  let best: T | null = null, bestCost = Infinity, bestLen = Infinity;
+  const unreachable: T[] = [];
   for (const s of remaining) {
     const len = lengthTo(spotOf(s));
     if (!Number.isFinite(len)) { unreachable.push(s); continue; }

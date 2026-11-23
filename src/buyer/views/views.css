@@ -119,6 +119,8 @@
 .wt-views-plan .wt-views-north-n { fill: var(--wvp-ink); font-size: 0.9px; font-weight: 800; }
 .wt-views-plan .wt-views-cone { fill: rgba(192, 80, 46, 0.3); stroke: none; }
 .wt-views-plan .wt-views-dot { fill: var(--wtv-accent); stroke: #fff; }
+.wt-views-plan .wt-views-vp { fill: var(--wt-vp-mark); stroke: #fff; cursor: pointer; }
+.wt-views-plan .wt-views-vp.is-current { fill: #fff; stroke: var(--wt-vp-mark); }
 .wt-views-plan-ctl {
   position: absolute; right: calc(calc(16 * var(--wt-u, 1px)) + var(--wt-safe-r, 0px)); bottom: calc(calc(22 * var(--wt-u, 1px)) + var(--wt-safe-b, 0px)); display: flex; flex-direction: column; gap: calc(2 * var(--wt-u, 1px)); padding: calc(4 * var(--wt-u, 1px)); border-radius: calc(14 * var(--wt-u, 1px));
   background: var(--wt-glass); border: 1px solid var(--wt-glass-line); -webkit-backdrop-filter: var(--wt-glass-blur); backdrop-filter: var(--wt-glass-blur); box-shadow: var(--wt-glass-shadow); cursor: default;
