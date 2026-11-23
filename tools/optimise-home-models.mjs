@@ -51,6 +51,8 @@ const PLAIN = {
  * `part(node, material, comp)`: the part a source piece belongs to (`comp` is a connected piece's bbox in metres, origin as shipped), null drops it.
  * `plain`: part -> a PLAIN material (the source maps are not kept). `budget`: triangles per tier. `probe`: where the seat, rim, deck or top is
  * measured: x and z as fractions of the half width and half depth (+z is the front), the highest surface there below `below` (a fraction of the height).
+ * `probeSkip`: parts the probe does not see (a closed lid over the seat a person sits on). `close`: a part standing open (a WC lid) is turned flat
+ * onto the top of another part (its seat). `worldUV`: parts given box-projected UVs in metres (full tier only) for the kit's fabric maps.
  */
 const MODELS = [
   {
@@ -69,10 +71,13 @@ const MODELS = [
     part: () => 'fabric', budget: { full: 9000, low: 3000 }, tex: { full: 512, low: 256 }, probe: { x: 0, z: 0.25, below: 0.75 },
   },
   {
-    // unitless source; the lid stands open above the cistern in the source and is left out (a lid up would make the piece 10 cm taller than its box)
+    // unitless source. Its lid stands open against the cistern (up, it would make the piece 10 cm taller than its box): the source's own lid is
+    // turned down onto the seat (`close`), as a commode stands in a home; the flush button on the cistern stays out (it would put the piece 1 cm
+    // past the 12 % squeeze). The seat height is measured on the seat ring, under the lid (`probeSkip`): that is where a person sits.
     id: 'wc_floor', uid: 'adb3b931f3ef4941830eea9705657a3d', back: 'auto', size: { w: 0.4 },
-    part: (n, m, c) => (/02___/.test(m) && c.max[1] > 0.72 ? null : /02___/.test(m) ? 'seat' : 'pan'),
-    plain: { pan: 'ceramic', seat: 'ceramic' }, budget: { full: 8000, low: 2600 }, probe: { x: 0.6, z: 0.84, below: 0.7 },
+    part: (n, m, c) => (/02___/.test(m) && c.max[1] > 0.72 ? (c.max[0] - c.min[0] > 0.3 ? 'lid' : null) : /02___/.test(m) ? 'seat' : 'pan'),
+    close: { part: 'lid', onto: 'seat' }, probeSkip: ['lid'],
+    plain: { pan: 'ceramic', seat: 'ceramic', lid: 'ceramic' }, budget: { full: 8000, low: 2600 }, probe: { x: 0.6, z: 0.84, below: 0.7 },
   },
   {
     // the source is in centimetres (61 cm wide): kept at that real size
@@ -81,9 +86,11 @@ const MODELS = [
     plain: { bowl: 'ceramic', tap: 'chrome', trap: 'chrome' }, budget: { full: 5000, low: 1800 }, probe: { x: 0, z: 0.85, below: 1 },
   },
   {
-    // the frame and headboard of an upholstered bed; its mattress, duvet and pillows are left out (the generated bedding of SPEC 16.23 goes on it)
+    // the frame and headboard of an upholstered bed; its mattress, duvet and pillows are left out (the generated bedding of SPEC 16.23 goes on it).
+    // The source has no fabric maps: the frame gets box-projected UVs in metres (`worldUV`), so the app can dress it in the kit's photographed
+    // linen weave (src/look/models/instance.ts, `fabric`); the phone file keeps none (the phone shows plain colours).
     id: 'bed_frame_soho', uid: '97e361e8beda4112ac5b1b5bcd388cdf', back: 'auto', size: { w: 1.80 },
-    keep: (n, m) => /Soho_180_001/.test(m), part: () => 'frame', budget: { full: 9000, low: 2600 }, probe: { x: 0, z: 0.1, below: 0.6 },
+    keep: (n, m) => /Soho_180_001/.test(m), part: () => 'frame', worldUV: ['frame'], budget: { full: 9000, low: 2600 }, probe: { x: 0, z: 0.1, below: 0.6 },
   },
   {
     id: 'hob_4_glass', uid: '0a9441fbe4bd47b990e17dab99267d40', back: 0, size: { w: 0.75 },
@@ -178,6 +185,68 @@ function probeHeight(prims, x, z, limit) {
   return best;
 }
 
+/**
+ * Box-projected UVs in metres, chosen per triangle by its face normal (the dominant axis), so a fabric map lies at its real scale on every side
+ * without the stretch a per-vertex choice gives across a rounded edge. Vertices are split where the projection changes.
+ */
+const UV_METRES = 4;
+function boxUV(g) {
+  const pos = [], nor = g.nor ? [] : null, uv = [], idx = [], seen = new Map();
+  for (let t = 0; t < g.idx.length; t += 3) {
+    const [a, b, c] = [g.idx[t], g.idx[t + 1], g.idx[t + 2]];
+    const P = (v, k) => g.pos[v * 3 + k];
+    const e1 = [0, 1, 2].map((k) => P(b, k) - P(a, k)), e2 = [0, 1, 2].map((k) => P(c, k) - P(a, k));
+    const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]].map(Math.abs);
+    const ax = n[1] >= n[0] && n[1] >= n[2] ? 1 : n[0] >= n[2] ? 0 : 2;
+    for (const v of [a, b, c]) {
+      const key = v * 3 + ax;
+      if (!seen.has(key)) {
+        seen.set(key, pos.length / 3);
+        pos.push(P(v, 0), P(v, 1), P(v, 2));
+        if (nor) nor.push(g.nor[v * 3], g.nor[v * 3 + 1], g.nor[v * 3 + 2]);
+        // top and bottom: x, z; the sides facing x: z, y; the front and back: x, y. In units of UV_METRES about 0.5, so the coordinates stay
+        // inside 0..1 and are quantised like any UV (the app scales them back by the manifest's `uvMetres`)
+        const u = ax === 1 ? P(v, 0) : ax === 0 ? P(v, 2) : P(v, 0), w = ax === 1 ? P(v, 2) : P(v, 1);
+        uv.push(0.5 + u / UV_METRES, 0.5 + w / UV_METRES);
+      }
+      idx.push(seen.get(key));
+    }
+  }
+  g.pos = pos; g.nor = nor; g.uv = uv; g.idx = idx;
+}
+
+/**
+ * Turns a part that stands open (a WC lid against its cistern) flat onto the top of another (its seat): the open part's plane is found from its
+ * vertices (the direction of least spread), it is turned about x until that plane lies level with its outer face up, then set on the seat,
+ * centred on it in x and z. Nothing is scaled.
+ */
+function closeOnto(lid, seat) {
+  const n = lid.pos.length / 3;
+  const c = [0, 0, 0];
+  for (let i = 0; i < n; i++) for (let k = 0; k < 3; k++) c[k] += lid.pos[i * 3 + k] / n;
+  // the y-z covariance (the lid stands across x, so its plane's normal lies in the y-z plane)
+  let syy = 0, szz = 0, syz = 0;
+  for (let i = 0; i < n; i++) { const y = lid.pos[i * 3 + 1] - c[1], z = lid.pos[i * 3 + 2] - c[2]; syy += y * y; szz += z * z; syz += y * z; }
+  // the eigenvector of the smaller eigenvalue of [[syy, syz], [syz, szz]] is the plane's normal
+  const tr = syy + szz, det = syy * szz - syz * syz, lmin = tr / 2 - Math.sqrt(Math.max(0, (tr * tr) / 4 - det));
+  let ny = syz, nz = lmin - syy;
+  if (Math.hypot(ny, nz) < 1e-12) { ny = 0; nz = 1; }
+  const l = Math.hypot(ny, nz); ny /= l; nz /= l;
+  // swung open against the cistern, the lid's outer face looks back (-z) and its underside at the room: turn the outer face up, which brings
+  // the lid's top (when open) to the front, as closing it does
+  if (nz > 0) { ny = -ny; nz = -nz; }
+  const cosA = ny, sinA = -nz;
+  const turn = (y, z) => [y * cosA - z * sinA, y * sinA + z * cosA];
+  for (let i = 0; i < n; i++) {
+    const [y, z] = turn(lid.pos[i * 3 + 1] - c[1], lid.pos[i * 3 + 2] - c[2]);
+    lid.pos[i * 3 + 1] = y; lid.pos[i * 3 + 2] = z;
+    if (lid.nor) { const [ny2, nz2] = turn(lid.nor[i * 3 + 1], lid.nor[i * 3 + 2]); lid.nor[i * 3 + 1] = ny2; lid.nor[i * 3 + 2] = nz2; }
+  }
+  const lb = bboxOf(lid.pos, null), sb = bboxOf(seat.pos, null);
+  const dx = (sb.min[0] + sb.max[0]) / 2 - (lb.min[0] + lb.max[0]) / 2, dz = (sb.min[2] + sb.max[2]) / 2 - (lb.min[2] + lb.max[2]) / 2, dy = sb.max[1] - lb.min[1];
+  for (let i = 0; i < n; i++) { lid.pos[i * 3] += dx; lid.pos[i * 3 + 1] += dy; lid.pos[i * 3 + 2] += dz; }
+}
+
 // ------------------------------------------------------------------ writing a tier
 async function imageStats(bytes) {
   const { data, info } = await sharp(Buffer.from(bytes)).resize(128, 128, { fit: 'fill' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -213,12 +282,13 @@ async function writeTier(cfg, parts, tier) {
       .setIndices(doc.createAccessor().setType('SCALAR').setArray(new Uint32Array(g.idx)).setBuffer(buffer))
       .setMaterial(mat);
     if (g.nor) prim.setAttribute('NORMAL', doc.createAccessor().setType('VEC3').setArray(new Float32Array(g.nor)).setBuffer(buffer));
-    if (g.uv && !plain) prim.setAttribute('TEXCOORD_0', doc.createAccessor().setType('VEC2').setArray(new Float32Array(g.uv)).setBuffer(buffer));
+    // a part given UVs for the kit's maps keeps them on the full tier only (the phone shows plain colours)
+    if (g.uv && !plain && (tier === 'full' || !cfg.worldUV?.includes(name))) prim.setAttribute('TEXCOORD_0', doc.createAccessor().setType('VEC2').setArray(new Float32Array(g.uv)).setBuffer(buffer));
     scene.addChild(doc.createNode(name).setMesh(doc.createMesh(name).addPrimitive(prim)));
   }
   const total = Object.values(parts).reduce((a, g) => a + g.idx.length / 3, 0);
   const ratio = Math.min(1, cfg.budget[tier] / total);
-  await doc.transform(weld(), ...(ratio < 1 ? [simplify({ simplifier: MeshoptSimplifier, ratio, error: cfg.error?.[tier] ?? (tier === 'full' ? 0.004 : 0.012) })] : []), dedup(), prune(),
+  await doc.transform(weld(), ...(ratio < 1 ? [simplify({ simplifier: MeshoptSimplifier, ratio, error: cfg.error?.[tier] ?? (tier === 'full' ? 0.004 : 0.012) })] : []), dedup(), prune({ keepAttributes: !!cfg.worldUV }),
     textureCompress({ encoder: sharp, targetFormat: 'webp', resize: Array(2).fill(cfg.tex?.[tier] ?? (tier === 'full' ? 1024 : 512)), quality: tier === 'full' ? 82 : 74 }));
   const out = { tris: 0, parts: {} };
   for (const node of doc.getRoot().listNodes()) {
@@ -306,12 +376,14 @@ for (const cfg of MODELS) {
       if (name) add(name, p, tris);
     }
   }
+  if (cfg.close) closeOnto(parts[cfg.close.part], parts[cfg.close.onto]);
+  for (const name of cfg.worldUV ?? []) if (parts[name]) boxUV(parts[name]);
   for (const g of Object.values(parts)) if (g.nor && g.nor.every((v, i) => (i % 3 === 1 ? v === 1 : v === 0))) g.nor = null;
   // measured on the source geometry as shipped (before simplification): the size every fit decision uses
   b = boundsAll(Object.values(parts).map((g) => ({ pos: g.pos, idx: g.idx })));
   const dims = { w: b.max[0] - b.min[0], h: b.max[1] - b.min[1], d: b.max[2] - b.min[2] };
   let surfaceM;
-  if (cfg.probe) surfaceM = probeHeight(Object.values(parts).map((g) => ({ pos: g.pos, idx: g.idx })), cfg.probe.x * dims.w / 2, cfg.probe.z * dims.d / 2, cfg.probe.below * dims.h + 1e-6);
+  if (cfg.probe) surfaceM = probeHeight(Object.entries(parts).filter(([n]) => !cfg.probeSkip?.includes(n)).map(([, g]) => ({ pos: g.pos, idx: g.idx })), cfg.probe.x * dims.w / 2, cfg.probe.z * dims.d / 2, cfg.probe.below * dims.h + 1e-6);
   const full = await writeTier(cfg, parts, 'full');
   const low = await writeTier(cfg, parts, 'low');
   // no tier may reach past the measured box (simplification only removes vertices)
@@ -321,7 +393,7 @@ for (const cfg of MODELS) {
     const img = !cfg.plain?.[name] ? g.mat?.getBaseColorTexture()?.getImage() : null;
     const st = img ? await imageStats(img) : { mean: 0, cv: 0 };
     const col = cfg.plain?.[name] ? PLAIN[cfg.plain[name]].color : g.mat?.getBaseColorFactor() ?? [1, 1, 1, 1];
-    partFacts[name] = { tris: { low: low.parts[name] ?? 0, full: full.parts[name] ?? 0 }, detailMean: +st.mean.toFixed(4), detailCv: +st.cv.toFixed(3), material: { baseColor: col.map((v) => +v.toFixed(3)) } };
+    partFacts[name] = { tris: { low: low.parts[name] ?? 0, full: full.parts[name] ?? 0 }, detailMean: +st.mean.toFixed(4), detailCv: +st.cv.toFixed(3), material: { baseColor: col.map((v) => +v.toFixed(3)) }, ...(cfg.worldUV?.includes(name) ? { uvMetres: UV_METRES } : {}) };
   }
   manifest.models[cfg.id] = {
     id: cfg.id, source: `sketchfab-${cfg.uid}`, dir: 'home/models',

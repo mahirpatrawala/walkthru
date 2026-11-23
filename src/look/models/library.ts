@@ -17,7 +17,7 @@ export type ModelTier = 'low' | 'full';
 
 /** a shipped file; its SHA-256 is in public/look/models/models.lock.json */
 export interface ModelFile { file: string; bytes: number }
-export interface PartFacts { tris: { low: number; full: number }; detailMean: number; /** spread of light and dark in the diffuse map, relative to its mean */ detailCv?: number; material: { baseColor: number[] } }
+export interface PartFacts { tris: { low: number; full: number }; detailMean: number; /** spread of light and dark in the diffuse map, relative to its mean */ detailCv?: number; material: { baseColor: number[] }; /** metres one unit of the part's box-projected UVs covers (the optimiser's `worldUV`; full tier only) */ uvMetres?: number }
 /** one shipped model, as measured: sizes in metres in the model's own frame (x width, y height, z depth; front +Z) */
 export interface ModelInfo {
   id: string;
@@ -43,6 +43,12 @@ export interface PartUse {
   role?: string[];
   /** 'skip': left out of the bake's object-AO atlas (SPEC 16.14): a part made of hundreds of separate pieces (leaves, slats) would eat the whole atlas. It is still a movable mesh and is probe-lit like all furniture. */
   bake?: 'skip';
+  /**
+   * upholstered, with no fabric maps of its own (the Soho bed frame): it takes the first of its roles whose finish is a fabric and is dressed in
+   * the kit's own material of that kind (the photographed linen weave and its normal map on medium and high, SPEC 16.15.4) over the box-projected
+   * UVs the optimiser gave it (`PartFacts.uvMetres`)
+   */
+  fabric?: boolean;
 }
 export interface LibModel {
   id: string;

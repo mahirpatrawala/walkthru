@@ -78,7 +78,7 @@ function buildFromTemplate(tpl: Template, item: FurnitureItem, look: ResolvedLoo
     disposeKids(bedding);
   }
   const off = plan.offset ?? { y: 0, z: 0 };
-  const inst = instantiate(tpl, [{ x: 0, y: off.y, z: off.z, yawDeg: plan.fit.turned ? 90 : 0, scale: sc }], { partUse: plan.model.parts, roles: look.roles });
+  const inst = instantiate(tpl, [{ x: 0, y: off.y, z: off.z, yawDeg: plan.fit.turned ? 90 : 0, scale: sc }], { partUse: plan.model.parts, roles: look.roles, kit });
   for (const c of [...inst.children]) out.add(c);
   return out;
 }
