@@ -97,6 +97,8 @@ function parseSpace(v: unknown, path: string): Space {
   }
   if (v.outdoor !== undefined) { if (typeof v.outdoor !== 'boolean') fail(`${path}.outdoor`, 'must be true or false'); s.outdoor = v.outdoor as boolean; }
   if (v.pack !== undefined) s.pack = str(v, 'pack', path);
+  if (v.viewpoints !== undefined) s.viewpoints = arr(v, 'viewpoints', path);
+  if (v.viewpointPanos !== undefined) { if (!isObj(v.viewpointPanos)) fail(`${path}.viewpointPanos`, 'must be an object of view id to picture'); s.viewpointPanos = v.viewpointPanos as Record<string, unknown>; }
   if (v.notes !== undefined) s.notes = arr(v, 'notes', path).map((n, i) => (typeof n === 'string' ? n : fail(`${path}.notes[${i}]`, 'must be text')));
   return s;
 }

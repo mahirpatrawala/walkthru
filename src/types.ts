@@ -215,6 +215,10 @@ export interface PropertyFile {
   spaceKind?: SpaceKind;
   /** which way true north lies on this plan (SPEC 22.1). Absent = not known: no compass, no facing labels, no Vastu. Never guessed. */
   north?: NorthRef;
+  /** the Views (SPEC 2.10): an authored list of views that replaces the generated one (src/buyer/viewpoints/override.ts reads it) */
+  viewpoints?: unknown[];
+  /** the Views' 360 degree pictures, by view id (src/buyer/viewpoints/pano.ts) */
+  viewpointPanos?: Record<string, unknown>;
   updatedAt: string; // ISO 8601
 }
 

@@ -24,7 +24,7 @@ export interface SpaceHost {
   /** a bare building has none of the added decor by default */
   bare: boolean;
   /** which space this is (SPEC 18.9): its kind, whether it is outdoors, the style pack it opens in */
-  space: { id: string; kind: string; outdoor: boolean; pack: string | null };
+  space: { id: string; kind: string; outdoor: boolean; pack: string | null; /** the space's own views and pictures (SPEC 2.10) */ viewpoints?: unknown[]; viewpointPanos?: Record<string, unknown> };
   /** the first line of the identity card: the building and the level ("Sample Tower, Level 2") */
   placeText: string | null;
   /** the level's label ("Level 2"): the identity card's second line begins with it */
