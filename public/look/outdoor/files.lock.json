@@ -29,6 +29,14 @@
       "bytes": 47120,
       "sha256": "ee1080245ad7de25921407e6c0a5fc5f0e7a90cc4909010c03e390976ef1b909"
     },
+    "leaves/frangipani-tip.low.webp": {
+      "bytes": 7648,
+      "sha256": "bcea8d0212ee5b38771f730c6285af424909ef32ca1e7352e07b1e508d20da19"
+    },
+    "leaves/frangipani-tip.webp": {
+      "bytes": 16632,
+      "sha256": "f8e05dfa8ee95eba6acb2e1adceedf59066b63b928f4f63e54c9e2e196c6f225"
+    },
     "leaves/frangipani.low.webp": {
       "bytes": 18574,
       "sha256": "5833b27518ba80a4f635736dd50311d8c56651abcaa7e240495d13cbd79ea66f"

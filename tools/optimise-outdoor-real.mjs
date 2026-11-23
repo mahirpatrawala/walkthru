@@ -260,6 +260,50 @@ async function makeSprays() {
   }
 }
 
+/**
+ * SPEC 19.14 (23 Nov 2026): the frangipani's tip atlas, for the branching frangipani of src/outdoor/foliage.ts. Left half: ONE long leaf, a real
+ * leaf photograph (island_tree_02, alpha-cut) drawn base at the bottom centre, stretched to a frangipani's long obovate leaf and tinted its green.
+ * Right half: a cluster of flowers seen from above, each five overlapping cream petals turning in a pinwheel round a yellow throat (petal shapes
+ * drawn here, shaded for their curl; a frangipani has no leaf-shaped petal), with a few buds. Ships at 512 x 256 and 256 x 128.
+ */
+async function makeFrangipaniTip() {
+  const broad = await leafSprites('island_tree_02', 'island_tree_02_leaves', 8000, () => true);
+  // the longest, least torn leaves
+  const leaves = broad.filter((s) => s.len > 0).sort((a, b) => b.len / Math.max(b.w, b.h) - a.len / Math.max(a.w, a.h)).slice(0, 6);
+  const S = 1024; const c = canvas(S * 2, S); const r = rng(4242);
+  const s = leaves[0];
+  draw(c, s, S / 2, S - 6, 0, S * 0.97, false, toward(s.mean, hex('#3F7A33'), 0.45, 1.0), 0.8);
+  // flowers: a petal is an obovate blade from the throat out, its width greatest two thirds out, the near edge turned under (darker)
+  const cream = hex('#FBF6EA'), throat = hex('#F2BE3C');
+  const petalAt = (fx, fy, a, len, wid, twist) => {
+    const R = len * 1.1; const ca = Math.cos(a), sa = Math.sin(a);
+    for (let y = Math.floor(fy - R); y <= fy + R; y++) for (let x = Math.floor(fx - R); x <= fx + R; x++) {
+      if (x < S || x >= 2 * S || y < 0 || y >= S) continue;
+      const dx = x + 0.5 - fx, dy = y + 0.5 - fy; const u = (dx * ca + dy * sa) / len, v = (-dx * sa + dy * ca) / wid;
+      if (u < 0 || u > 1) continue;
+      const half = Math.sin(Math.PI * Math.pow(u, 0.75)) * (0.55 + 0.45 * u); // obovate
+      const vv = v - twist * u * u; if (Math.abs(vv) > half) continue;
+      const edge = Math.min(1, (half - Math.abs(vv)) * wid * 0.6); // a soft pixel at the rim
+      const curl = vv > 0 ? 0.86 + 0.14 * (1 - vv / half) : 1.0; // one side of each petal tucks under the next
+      const t = Math.min(1, u / 0.42); const col = cream.map((cv, i) => throat[i] + (cv - throat[i]) * (t * t * (3 - 2 * t)));
+      const k = curl * (0.9 + 0.1 * u) * (0.97 + 0.06 * Math.sin(v * 9 + u * 3));
+      const o = (y * c.w + x) * 4, al = edge, inv = 1 - al;
+      c.px[o] = col[0] * k * al + c.px[o] * inv; c.px[o + 1] = col[1] * k * al + c.px[o + 1] * inv; c.px[o + 2] = col[2] * k * al + c.px[o + 2] * inv; c.px[o + 3] = al + c.px[o + 3] * inv;
+    }
+  };
+  const spots = [];
+  for (let i = 0; i < 400 && spots.length < 12; i++) {
+    const a = r() * 6.283, d = Math.sqrt(r()) * S * 0.33; const p = { x: S * 1.5 + Math.cos(a) * d, y: S * 0.5 + Math.sin(a) * d, rr: S * (0.085 + r() * 0.035) };
+    if (spots.every((q) => Math.hypot(q.x - p.x, q.y - p.y) > (q.rr + p.rr) * 0.72)) spots.push(p);
+  }
+  // buds first (under the open flowers): short closed spindles, cream with a pink-tinged tip
+  for (let i = 0; i < 6; i++) { const a = r() * 6.283, d = S * (0.2 + r() * 0.2); petalAt(S * 1.5 + Math.cos(a) * d * 0.6, S * 0.5 + Math.sin(a) * d * 0.6, a, S * 0.07, S * 0.018, 0); }
+  for (const p of spots) { const rot = r() * 6.283; for (let k = 0; k < 5; k++) petalAt(p.x, p.y, rot + (k / 5) * 6.283, p.rr, p.rr * 0.5, 0.35); }
+  const out = (w, h) => sharp(toRGBA8(c), { raw: { width: c.w, height: c.h, channels: 4 } }).resize(w, h, { kernel: 'lanczos3' }).webp({ quality: 80, alphaQuality: 88, effort: 6 }).toBuffer();
+  await put('leaves/frangipani-tip.webp', await out(512, 256));
+  await put('leaves/frangipani-tip.low.webp', await out(256, 128));
+}
+
 /** a clipped hedge: small leaf photos packed densely over a dark green, wrapped at the edges so it tiles */
 async function makeHedge() {
   const broad = await leafSprites('island_tree_02', 'island_tree_02_leaves', 8000, () => true);
@@ -406,6 +450,7 @@ const manifestFile = path.join(OUT, 'manifest.json');
 const manifest = fs.existsSync(manifestFile) ? JSON.parse(fs.readFileSync(manifestFile, 'utf8')) : {};
 if (want('sprays') || [...(only ?? [])].some((k) => k.startsWith('spray:'))) await makeSprays();
 if (want('hedge')) await makeHedge();
+if (want('frangipani-tip')) await makeFrangipaniTip();
 if (want('grass')) await makeGrass();
 if (want('surfaces')) await makeSurfaces();
 if (want('sky')) manifest.sky = await makeSky();

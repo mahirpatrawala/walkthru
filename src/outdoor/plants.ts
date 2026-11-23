@@ -93,6 +93,13 @@ export const VEG_TIER: Record<Tier, { shrubShare: number; cardsPerClump: number;
   medium: { shrubShare: 1, cardsPerClump: 26, wind: true, clumpsPerTree: 22 },
   high: { shrubShare: 1, cardsPerClump: 34, wind: true, clumpsPerTree: 30 },
 };
+/** SPEC 19.14 (23 Nov 2026): a frangipani per tier: branch tips (3 limbs forking in two, then in three, then in three again (not the last time on low)), long leaves in each tip's rosette (a leaf
+ *  is two cards, bent), and flower cards over each tip (one flat, one tipped up) */
+export const CANDELABRA: Record<Tier, { tips: number; leaves: number; flowers: number; levels: number }> = {
+  low: { tips: 18, leaves: 7, flowers: 1, levels: 3 },
+  medium: { tips: 54, leaves: 12, flowers: 2, levels: 4 },
+  high: { tips: 54, leaves: 16, flowers: 2, levels: 4 },
+};
 const isShrub = (s: SpeciesId): boolean => { const f = speciesOf(s).form; return f === 'shrub' || f === 'bush'; };
 
 function keep(i: number, share: number): boolean {
@@ -127,6 +134,7 @@ export function cardsPerPlant(species: SpeciesId, tier: Tier): number {
     case 'crown': case 'umbrella': return t.clumpsPerTree * t.cardsPerClump;
     case 'shrub': return Math.round(t.cardsPerClump * 3);
     case 'bush': return Math.round(t.cardsPerClump * 1.6);
+    case 'candelabra': { const c = CANDELABRA[tier]; return c.tips * (c.leaves * 2 + c.flowers); }
   }
 }
 
