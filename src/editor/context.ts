@@ -78,7 +78,7 @@ export interface EditorHost extends EditorContext {
 export function asHost(ctx: EditorContext): EditorHost {
   const h = ctx as Partial<EditorHost>;
   if (typeof h.loadScene !== 'function' || typeof h.applyUnderlay !== 'function') {
-    throw new Error('This editor step needs the walkthru editor page (EditorHost).');
+    throw new Error('This editor step needs the firstbeam editor page (EditorHost).');
   }
   return ctx as EditorHost;
 }

@@ -22,29 +22,29 @@ export interface Problem { code: ProblemCode; title: string; detail: string; tip
 
 export const SUPPORTED_NOTE = 'A PDF floor plan saved from drawing software (AutoCAD, Revit, ArchiCAD, SketchUp and the like), one flat, with real lines and typed room names.';
 export const PRIVACY_NOTE = 'Your plan stays on this device. Nothing is uploaded anywhere.';
-export const PICTURE_MESSAGE = 'This PDF is a picture of a plan. For now Walkthru reads plans saved from drawing software. Photo and image plans are coming.';
+export const PICTURE_MESSAGE = 'This PDF is a picture of a plan. For now firstbeam reads plans saved from drawing software. Photo and image plans are coming.';
 
 const mb = (b: number): string => `${(b / 1024 / 1024).toFixed(b < 10 * 1024 * 1024 ? 1 : 0)} MB`;
 
 export function problem(code: ProblemCode, info: { size?: number; pages?: number; flats?: number; detail?: string } = {}): Problem {
   switch (code) {
     case 'no-file': return { code, title: 'Choose a file', detail: 'No file was chosen, so there is nothing to read yet.', tips: ['Pick a PDF floor plan.'] };
-    case 'several-files': return { code, title: 'One plan at a time', detail: 'Walkthru reads one flat at a time, so only one file can be chosen.', tips: ['Choose the PDF of the flat you want to walk through.'] };
+    case 'several-files': return { code, title: 'One plan at a time', detail: 'firstbeam reads one flat at a time, so only one file can be chosen.', tips: ['Choose the PDF of the flat you want to walk through.'] };
     case 'empty': return { code, title: 'That file is empty', detail: 'The file has no content.', tips: ['Export the plan again from your drawing software and choose the new PDF.'] };
-    case 'not-pdf': return { code, title: 'Upload a PDF', detail: 'Walkthru reads floor plans saved as a PDF from drawing software. This file is not a PDF.', tips: ['In your drawing software choose Print or Export, then PDF, and upload that file.'] };
-    case 'image-file': return { code, title: 'Upload a PDF', detail: 'This looks like a photo or an image. For now Walkthru reads plans saved from drawing software as a PDF. Photo and image plans are coming.', tips: ['If you have the plan as a drawing file, export it as a PDF.'] };
+    case 'not-pdf': return { code, title: 'Upload a PDF', detail: 'firstbeam reads floor plans saved as a PDF from drawing software. This file is not a PDF.', tips: ['In your drawing software choose Print or Export, then PDF, and upload that file.'] };
+    case 'image-file': return { code, title: 'Upload a PDF', detail: 'This looks like a photo or an image. For now firstbeam reads plans saved from drawing software as a PDF. Photo and image plans are coming.', tips: ['If you have the plan as a drawing file, export it as a PDF.'] };
     case 'too-big': return { code, title: 'That file is too large', detail: `This file is ${mb(info.size ?? 0)}. The limit is ${mb(LIMITS.maxBytes)}, so it opens quickly and safely on this device.`, tips: ['Export only the floor plan page, not the whole set.', 'Or save the PDF again with a smaller size option.'] };
     case 'unreadable': return { code, title: 'This PDF could not be opened', detail: 'The file is damaged or is not a normal PDF, so it could not be read.', tips: ['Open it in a PDF viewer to check it shows the plan.', 'Export it again from your drawing software.'] };
-    case 'encrypted': return { code, title: 'This PDF is locked', detail: 'The PDF needs a password, and Walkthru cannot read a locked file.', tips: ['Save a copy without the password and upload that.'] };
-    case 'too-many-pages': return { code, title: 'This PDF has too many pages', detail: `It has ${info.pages ?? 'many'} pages. Walkthru reads up to ${LIMITS.maxPages}.`, tips: ['Export only the floor plan page, plus the elevation pages if you have them.'] };
+    case 'encrypted': return { code, title: 'This PDF is locked', detail: 'The PDF needs a password, and firstbeam cannot read a locked file.', tips: ['Save a copy without the password and upload that.'] };
+    case 'too-many-pages': return { code, title: 'This PDF has too many pages', detail: `It has ${info.pages ?? 'many'} pages. firstbeam reads up to ${LIMITS.maxPages}.`, tips: ['Export only the floor plan page, plus the elevation pages if you have them.'] };
     case 'too-complex': return { code, title: 'This sheet is too large to read here', detail: 'The drawing holds a very large number of lines. That is usually a whole building or a site plan, which a laptop browser cannot read in reasonable time.', tips: ['Crop or export just one flat’s floor plan to its own page and upload that.'] };
     case 'picture-pdf': return { code, title: 'This PDF is a picture of a plan', detail: PICTURE_MESSAGE, tips: ['If you have the original drawing file, export a PDF from it.', 'A PDF with selectable text (try selecting a room name in a PDF viewer) works.'] };
     case 'blank': return { code, title: 'No drawing found on these pages', detail: 'The pages have no lines or text that make up a plan.', tips: ['Open the PDF in a viewer to check the plan shows.', 'Export the floor plan page again.'] };
     case 'not-a-plan': return { code, title: 'This PDF is not a floor plan', detail: 'It has text but no drawn lines, so there are no walls to read. It looks like a document, not a drawing.', tips: ['Upload the floor plan page saved from drawing software.', 'Try the sample plan to see what a good file looks like.'] };
     case 'no-rooms': return { code, title: 'We could not find rooms in this plan', detail: 'The file opened, but no walls closed into rooms we could name. It may be an elevation, a site plan or a furniture layout, or the room names may be drawn as pictures.', tips: ['Upload the page that shows the floor plan with walls and room names.', 'Make sure room names are typed text, not scanned or traced.', 'Try the sample plan to see what a good file looks like.'] };
-    case 'several-flats': return { code, title: 'This sheet shows several flats', detail: `We found about ${info.flats ?? 'more than one'} flats on this sheet. Walkthru walks one flat at a time, so nothing was built.`, tips: ['Crop or export one flat’s plan to its own page and upload that.'] };
+    case 'several-flats': return { code, title: 'This sheet shows several flats', detail: `We found about ${info.flats ?? 'more than one'} flats on this sheet. firstbeam walks one flat at a time, so nothing was built.`, tips: ['Crop or export one flat’s plan to its own page and upload that.'] };
     case 'timeout': return { code, title: 'This is taking too long', detail: `Reading stopped after ${LIMITS.maxSeconds} seconds. The drawing is probably much more detailed than a single flat plan.`, tips: ['Export just one flat’s floor plan to its own page.', 'A plan with fewer drawn details reads faster.'] };
-    case 'no-worker': return { code, title: 'This browser cannot read plans', detail: 'The reader needs a current browser (Chrome, Edge, Safari 15 or later, Firefox 114 or later).', tips: ['Open Walkthru in an up-to-date browser.'] };
+    case 'no-worker': return { code, title: 'This browser cannot read plans', detail: 'The reader needs a current browser (Chrome, Edge, Safari 15 or later, Firefox 114 or later).', tips: ['Open firstbeam in an up-to-date browser.'] };
     case 'failed': return { code, title: 'We could not read this plan', detail: info.detail ?? 'Something unexpected stopped the reader.', tips: ['Try exporting the plan to PDF again.', 'Try the sample plan to check this browser works.'] };
   }
 }

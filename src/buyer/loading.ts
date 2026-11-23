@@ -43,7 +43,7 @@ export function createLoadingScreen(parent: HTMLElement): LoadingScreen {
   const brandRow = el('div', 'wt-screen-brand', undefined, card);
   brandRow.dataset.testid = 'loading-brand';
   brandRow.hidden = true;
-  const h1 = el('h1', undefined, 'walkthru', card);
+  const h1 = el('h1', undefined, 'firstbeam', card);
   const sub = el('p', 'wt-sub', 'Opening the home…', card);
   const bar = el('div', 'wt-progress', undefined, card);
   const fill = el('div', undefined, undefined, bar);

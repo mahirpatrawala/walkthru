@@ -66,7 +66,7 @@ function card(grid: HTMLElement, b: BuildingIndexEntry, go: (url: string) => voi
 export async function renderBuildingPage(root: HTMLElement, id: string, go: (url: string) => void): Promise<void> {
   const top = h('div', 'ws-top', undefined, root);
   const brand = h('span', 'wt-brand', undefined, top);
-  brand.innerHTML = `${BRAND_MARK}<span>walkthru</span>`;
+  brand.innerHTML = `${BRAND_MARK}<span>firstbeam</span>`;
   const holder = h('div', undefined, undefined, root);
   let b;
   try {
@@ -80,7 +80,7 @@ export async function renderBuildingPage(root: HTMLElement, id: string, go: (url
     back.addEventListener('click', (e) => { e.preventDefault(); go('/'); });
     return;
   }
-  document.title = b.brand ? `${b.name} · ${b.brand.name}` : `${b.name} · walkthru`;
+  document.title = b.brand ? `${b.name} · ${b.brand.name}` : `${b.name} · firstbeam`;
   if (b.brand) top.remove();
   mountBuildingMap(holder, {
     building: b, actionLabel: 'Walk in',

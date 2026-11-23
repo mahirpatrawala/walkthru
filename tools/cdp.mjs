@@ -8,12 +8,14 @@ const [url, scriptPath] = process.argv.slice(2);
 const port = 20000 + Math.floor(Math.random() * 20000);
 const profile = fs.mkdtempSync(`${OUT}/prof-`);
 const chrome = spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', [
-  '--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
+  '--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
+  // GPU=1 renders on the Mac's GPU (Metal); software GL (the default) makes the app pick the low tier, so pictures for people use GPU=1
+  ...(process.env.GPU === '1' ? ['--use-angle=metal', '--enable-gpu'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']),
   '--ignore-gpu-blocklist', '--window-size=1280,800', '--no-first-run', '--disable-extensions', 'about:blank',
 ], { stdio: 'ignore' });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let targets;
-for (let i = 0; i < 50; i++) { try { targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json(); break; } catch { await sleep(200); } }
+for (let i = 0; i < 300; i++) { try { targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json(); break; } catch { await sleep(200); } }
 const page = targets.find((t) => t.type === 'page');
 const ws = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((r) => (ws.onopen = r));

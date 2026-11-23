@@ -98,7 +98,7 @@ describe('the HUD with a brand', () => {
     expect((parts.name as unknown as { hidden: boolean }).hidden).toBe(false);
     expect(parts.card.className).toContain('has-brand');
     expect(logo()!.all().some((e) => e.tagName === 'IMG' && (e as unknown as { src: string }).src === '/buildings/sample-tower/brand.svg')).toBe(true);
-    expect(credit()!.textContent).toBe('powered by walkthru');
+    expect(credit()!.textContent).toBe('powered by firstbeam');
 
     // no logo file: the initials; the credit turned off: no credit, and never two
     show({ name: 'Sample Developers', tagline: null, logoUrl: null, credit: false });

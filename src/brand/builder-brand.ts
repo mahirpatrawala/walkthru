@@ -73,7 +73,7 @@ export function shownBrand(buildingId: string, brand: BuilderBrand | undefined):
   if (!brand) return null;
   return { name: brand.name, tagline: brand.tagline ?? null, logoUrl: brandLogoUrl(buildingId, brand), credit: brand.hideCredit !== true };
 }
-export const CREDIT_TEXT = 'powered by walkthru';
+export const CREDIT_TEXT = 'powered by firstbeam';
 /** Two letters for a brand with no logo: "Sample Developers" -> "SD". */
 export function brandInitials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);

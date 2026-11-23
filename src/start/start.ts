@@ -64,7 +64,7 @@ export async function mountStart(): Promise<void> {
   const root = h('main', 'ws');
   root.dataset.testid = 'start';
   document.body.appendChild(root);
-  document.title = 'walkthru';
+  document.title = 'firstbeam';
   // forward declared: the landing hero's buttons navigate inside this page
   let navigate: Go = (url) => { location.assign(url); };
   // the landing page's hero is made once (bare `/` only) and kept, so its picture does not start again when the list is redrawn
@@ -174,7 +174,7 @@ function renderHero(root: HTMLElement): void {
   hero.dataset.testid = 'start-hero';
   const nav = h('div', 'ws-nav', undefined, hero);
   const brand = h('span', 'wt-brand', undefined, nav);
-  brand.innerHTML = `${BRAND_MARK}<span>walkthru</span>`; // a fixed string from src/brand/mark.ts
+  brand.innerHTML = `${BRAND_MARK}<span>firstbeam</span>`; // a fixed string from src/brand/mark.ts
   const copy = h('div', 'ws-hero-copy', undefined, hero);
   h('h1', undefined, 'Choose where to walk', copy);
   h('p', 'ws-lead', 'Pick a building or a home. Sizes come from the drawing, and anything it does not show is marked as not measured.', copy);
@@ -182,7 +182,7 @@ function renderHero(root: HTMLElement): void {
 
 /** `landing`: the landing page has its own hero and title; the list is drawn into its "Projects" band. */
 function renderGallery(root: HTMLElement, index: SceneIndex, mine: SceneEntry[], buildings: BuildingIndex, go: Go, refreshMine: () => void, landing = false): void {
-  if (!landing) { document.title = 'walkthru'; renderHero(root); }
+  if (!landing) { document.title = 'firstbeam'; renderHero(root); }
   renderBuildingList(root, buildings, go);
   const section = h('div', 'ws-section', undefined, root);
   section.id = 'homes';
@@ -259,7 +259,7 @@ function renderUploads(root: HTMLElement, mine: SceneEntry[], go: Go, refresh: (
 // ---------------------------------------------------------------- step 2: where do you want to start?
 
 function renderPicker(root: HTMLElement, s: SceneEntry, requested: string | null, go: Go): void {
-  document.title = `${s.title} · walkthru`;
+  document.title = `${s.title} · firstbeam`;
   const layout = s.layout;
   const rooms = startableRooms(layout);
   const ids = new Set(rooms.map((r) => r.id));
@@ -271,7 +271,7 @@ function renderPicker(root: HTMLElement, s: SceneEntry, requested: string | null
   back.href = '/';
   link(back, go);
   const brand = h('span', 'wt-brand', undefined, top);
-  brand.innerHTML = `${BRAND_MARK}<span>walkthru</span>`;
+  brand.innerHTML = `${BRAND_MARK}<span>firstbeam</span>`;
 
   const wrap = h('div', 'ws-pick', undefined, root);
   wrap.dataset.testid = 'start-room';

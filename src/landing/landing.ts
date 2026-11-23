@@ -11,7 +11,8 @@ import { buildHeroBuilding } from './hero-building';
 import { buildHeroModel, heroSceneIds } from './hero-model';
 import { mountHeroArt } from './hero-canvas';
 
-export const LANDING_TITLE = 'walkthru · We make your project impossible to ignore';
+export const TAGLINE = 'Have your building walkthrough ready before you place the first beam';
+export const LANDING_TITLE = `firstbeam · ${TAGLINE}`;
 export const PROJECTS_ID = 'projects';
 export const HOW_ID = 'how-it-works';
 const HERO_THEME = '#17110E';
@@ -40,9 +41,9 @@ const SHOTS: { file: string; w: number; h: number; title: string; text: string; 
   { file: 'tour', w: 1280, h: 800, wide: true, title: 'A guided tour', text: 'One tap, and the home is walked room by room, each room named as you arrive.', alt: 'A furnished room in the 3D walk during the tour, with the tour’s card naming the room.' },
   { file: 'doll', w: 1120, h: 700, title: 'Doll house', text: 'The whole flat from above with the ceiling off, furniture and all.', alt: 'A furnished flat seen from above as a doll house, every room open.' },
   { file: 'plan', w: 1280, h: 800, title: 'Plan view', text: 'The floor plan with room names and sizes, one tap from the walk.', alt: 'The floor plan of a flat with room names and sizes.' },
-  { file: 'map', w: 1440, h: 900, title: 'The whole building', text: 'Every level and every flat on one map. Pick a place and walk in.', alt: 'The building’s map page: its levels, and the plan of one level with its four flats.' },
-  { file: 'pool', w: 1280, h: 800, title: 'Clubhouse and pool', text: 'The amenities are walked like any room: the pool deck, the gym, the halls.', alt: 'The pool deck of the clubhouse level in the 3D walk.' },
-  { file: 'materials', w: 1280, h: 800, title: 'Realistic materials', text: 'Wood, stone and fabric from photographed material maps.', alt: 'A kitchen in the 3D walk with photographed wood and stone materials.' },
+  { file: 'map', w: 1440, h: 900, title: 'The whole building', text: 'Every floor and every flat on one page. Pick a flat and walk in.', alt: 'The building page: the tower drawn floor by floor beside a grid of every flat with its number and type.' },
+  { file: 'pool', w: 1280, h: 720, title: 'Clubhouse and pool', text: 'The amenities are walked like any room: the pool deck, the gym, the halls.', alt: 'The pool deck of the clubhouse level in the 3D walk: a row of loungers on timber decking beside the pool, trees and flowering shrubs beyond.' },
+  { file: 'materials', w: 1280, h: 800, title: 'Realistic materials', text: 'Wood, stone and fabric from photographed material maps.', alt: 'The dining area of a flat in the 3D walk: an oak-plank floor, upholstered chairs and a laid table under a coffered ceiling.' },
   { file: 'clean', w: 1600, h: 900, title: 'Made for the sales-room screen', text: 'On a big screen the controls step away, and the home is the picture.', alt: 'A living room filling the screen with the controls hidden.' },
 ];
 
@@ -73,9 +74,9 @@ export function createLanding(go: (url: string) => void): Landing {
   hero.dataset.testid = 'landing-hero';
 
   const nav = h('nav', 'wl-nav', undefined, hero);
-  nav.setAttribute('aria-label', 'walkthru');
+  nav.setAttribute('aria-label', 'firstbeam');
   const brand = h('span', 'wt-brand', undefined, nav);
-  brand.innerHTML = `${BRAND_MARK}<span>walkthru</span>`; // a fixed string from src/brand/mark.ts
+  brand.innerHTML = `${BRAND_MARK}<span>firstbeam</span>`; // a fixed string from src/brand/mark.ts
   const contact = contactHref();
   const navEnd = h('div', 'wl-nav-end', undefined, nav);
   if (contact) {
@@ -92,10 +93,13 @@ export function createLanding(go: (url: string) => void): Landing {
   const copy = h('div', 'wl-copy wl-copy-top', undefined, grid);
   h('p', 'wl-label', 'White-labelled 3D walkthroughs for real-estate developers', copy);
   const h1 = h('h1', undefined, undefined, copy);
-  h('span', 'wl-line', 'We make your project', h1);
-  h1.appendChild(document.createTextNode(' '));
+  // the tagline, in lines short enough to stand unbroken on a phone; the stroke draws under the last
+  for (const line of ['Have your building', 'walkthrough ready', 'before you place']) {
+    h('span', 'wl-line', line, h1);
+    h1.appendChild(document.createTextNode(' '));
+  }
   const em = h('span', 'wl-line wl-em', undefined, h1);
-  h('span', undefined, 'impossible to ignore', em);
+  h('span', undefined, 'the first beam', em);
   em.insertAdjacentHTML('beforeend', UNDERLINE);
 
   // the building stands between the headline and the paragraph on a phone, and beside both on a wide screen
@@ -204,7 +208,7 @@ export function createLanding(go: (url: string) => void): Landing {
   }
   const foot = h('p', 'wl-foot', undefined, closing);
   const fb = h('span', 'wt-brand', undefined, foot);
-  fb.innerHTML = `${BRAND_MARK}<span>walkthru</span>`; // a fixed string from src/brand/mark.ts
+  fb.innerHTML = `${BRAND_MARK}<span>firstbeam</span>`; // a fixed string from src/brand/mark.ts
   h('span', undefined, 'White-labelled 3D walkthroughs for real-estate developers', foot);
 
   return {

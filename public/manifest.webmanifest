@@ -1,6 +1,6 @@
 {
-  "name": "walkthru",
-  "short_name": "walkthru",
+  "name": "firstbeam",
+  "short_name": "firstbeam",
   "description": "Walk through a flat or a building in 3D before it is built.",
   "start_url": "/",
   "scope": "/",
