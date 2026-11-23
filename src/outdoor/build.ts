@@ -10,6 +10,7 @@ import { GROUND, OutdoorMaterials, patchGround } from './materials';
 import type { GroundKind } from './materials';
 import type { HedgeSeg } from './plants';
 import type { Boundary, GroundArea, GroundFinish, OutdoorFile, Roof } from './types';
+import { PLINTH_PAINT, PODIUM_PAINT, SLAB_EDGE_M, SLAB_PAINT, plasterMaterial } from './surround';
 
 /** the height of each finish above the deck: a thin lift so a finish drawn over another never fights it in the depth buffer */
 export const FINISH_Y: Record<GroundFinish, number> = { lawn: 0, bed: 0, paving: 0.002, deck: 0.004, gravel: 0.008, path: 0.01, track: 0.012, rubber: 0.02 };
@@ -21,6 +22,9 @@ export const DEFAULT_GLASS_M = 1.1;
 export const PODIUM_M = 4.2;
 export const STOREY_M = 3.1;
 const PAINT = '#E6D9BF';
+/** SPEC 19.14 (23 Nov 2026): the building's render where the space's facade is joined to the rest of the building: a warm off-white a shade under
+ *  the shell's paint, which read as a white light-box in full sun */
+export const FACADE_RENDER = '#E2D5BE';
 
 export interface BuildCtx { layout: Layout; file: OutdoorFile; mats: OutdoorMaterials; tier: Tier }
 
@@ -209,10 +213,35 @@ export function buildFacadeDecor(ctx: BuildCtx): THREE.Group {
   const frame = metal(ctx, '#D8D8D4');
   const paint = wallPaint(ctx, '#F1EADB');
   const gl: THREE.BufferGeometry[] = [], fr: THREE.BufferGeometry[] = [], pn: THREE.BufferGeometry[] = [];
+  // SPEC 19.14 (23 Nov 2026): the rest of the building where a facade says it is wider than the space (a bridge's end)
+  const massUp: THREE.BufferGeometry[] = [], massDown: THREE.BufferGeometry[] = [], skin: THREE.BufferGeometry[] = [], slabBand: THREE.BufferGeometry[] = [], plinth: THREE.BufferGeometry[] = [];
+  const groundY = -(ctx.file.aboveGroundM ?? 0) - 0.02;
   for (const b of ctx.file.boundary) {
     if (b.kind !== 'facade') continue;
     const f = frames.get(`${b.room}:${b.edge}`);
     if (!f) continue;
+    const bld = b.building;
+    // the bands run the whole width of the face: the edge and, with `building`, the building on either side of it
+    const u0 = bld ? -bld.beforeM : 0, u1 = f.length + (bld ? bld.afterM : 0);
+    if (bld) {
+      for (const [a, c] of [[-bld.beforeM, 0], [f.length, f.length + bld.afterM]] as const) {
+        if (c - a < 0.05) continue;
+        // the building's mass behind its face: o from 0 (the face, flush with the facade's) to depthM; its storey under the deck, then the rest
+        massUp.push(segmentBox(pt(f, a, bld.depthM / 2 - 0.004), pt(f, c, bld.depthM / 2 - 0.004), bld.depthM + 0.008, 0, H, 0, 1));
+        if (groundY < -0.4) {
+          massDown.push(segmentBox(pt(f, a, bld.depthM / 2 - 0.004), pt(f, c, bld.depthM / 2 - 0.004), bld.depthM + 0.008, groundY, 0, 0, 1));
+          slabBand.push(segmentBox(pt(f, a, -0.03), pt(f, c, -0.03), 0.06, -SLAB_EDGE_M, 0.02, 0, 1));
+          plinth.push(segmentBox(pt(f, a, -0.02), pt(f, c, -0.02), 0.04, groundY, groundY + 0.3, 0, 1));
+        }
+      }
+      // the edge's own wall (the shell's, with its door) takes the same render above and beside its openings, so it is one face
+      const doors = ctx.layout.openings.filter((o) => o.roomId === b.room && o.edge === b.edge).map((o) => [o.centreM - o.widthM / 2 - 0.06, o.centreM + o.widthM / 2 + 0.06, (o.headM ?? 2.1) + 0.06] as const);
+      const top = Math.max(2.2, ...doors.map((d) => d[2]));
+      skin.push(segmentBox(pt(f, -0.02, -0.007), pt(f, f.length + 0.02, -0.007), 0.006, top, H, 0, 1));
+      let u = -0.02;
+      for (const [d0, d1] of [...doors].sort((p, q) => p[0] - q[0])) { if (d0 - u > 0.02) skin.push(segmentBox(pt(f, u, -0.007), pt(f, d0, -0.007), 0.006, 0, top, 0, 1)); u = Math.max(u, d1); }
+      if (f.length - u > 0.02) skin.push(segmentBox(pt(f, u, -0.007), pt(f, f.length + 0.02, -0.007), 0.006, 0, top, 0, 1));
+    }
     // the room's side of the wall is at o = 0 going inwards (negative o)
     const openings = ctx.layout.openings.filter((o) => o.roomId === b.room && o.edge === b.edge).map((o) => [o.centreM - o.widthM / 2 - 0.5, o.centreM + o.widthM / 2 + 0.5] as const);
     const clear = (u0: number, u1: number): boolean => openings.every(([a, c]) => u1 < a || u0 > c);
@@ -227,17 +256,26 @@ export function buildFacadeDecor(ctx: BuildCtx): THREE.Group {
     // clubhouse glazing: tall panels between the door and the ends
     for (let u = 1.4; u + 2.4 < f.length; u += 3.2) win(u, u + 2.4, 0.25, 3.3);
     // the podium's cornice, and a slab edge at every storey above
-    pn.push(segmentBox(pt(f, 0, -0.14), pt(f, f.length, -0.14), 0.28, PODIUM_M - 0.34, PODIUM_M, 0, 1));
-    for (let y = PODIUM_M + STOREY_M; y < H - 0.2; y += STOREY_M) pn.push(segmentBox(pt(f, 0, -0.05), pt(f, f.length, -0.05), 0.1, y - 0.18, y, 0, 1));
+    pn.push(segmentBox(pt(f, u0, -0.14), pt(f, u1, -0.14), 0.28, PODIUM_M - 0.34, PODIUM_M, 0, 1));
+    for (let y = PODIUM_M + STOREY_M; y < H - 0.2; y += STOREY_M) pn.push(segmentBox(pt(f, u0, -0.05), pt(f, u1, -0.05), 0.1, y - 0.18, y, 0, 1));
     // flats' windows: two to a bay, 1.5 m wide, sill 0.9 m, head 2.1 m above each floor
     for (let y = PODIUM_M; y + STOREY_M <= H + 0.3; y += STOREY_M) for (let u = 1.2; u + 1.5 < f.length; u += 3.0) win(u, u + 1.5, y + 0.9, y + 2.1);
     // the top of the face
-    pn.push(segmentBox(pt(f, 0, -0.18), pt(f, f.length, -0.18), 0.36, H - 0.12, H + 0.1, 0, 1));
+    pn.push(segmentBox(pt(f, u0, -0.18), pt(f, u1, -0.18), 0.36, H - 0.12, H + 0.1, 0, 1));
   }
   const add = (list: THREE.BufferGeometry[], mat: THREE.Material, name: string, cast: boolean): void => { const g = mergeAndFree(list); if (g) group.add(tag(new THREE.Mesh(g, mat), name, cast, true)); };
   add(gl, glass, 'facade-glass', false);
   add(fr, frame, 'facade-frames', true);
   add(pn, paint, 'facade-bands', true);
+  if (massUp.length || skin.length) {
+    const render = ctx.mats.plain('plaster:facade', () => plasterMaterial(FACADE_RENDER, 'outdoor-facade-render', groundY, PODIUM_M - 0.34));
+    add([...massUp, ...skin], render, 'facade-building', true);
+  }
+  if (massDown.length) add(massDown, ctx.mats.plain('plaster:podium', () => plasterMaterial(PODIUM_PAINT, 'outdoor-storeys', groundY, -SLAB_EDGE_M)), 'facade-building-storeys', true);
+  if (slabBand.length) add(slabBand, ctx.mats.plain('plaster:slab', () => plasterMaterial(SLAB_PAINT, 'outdoor-slab-edge', groundY, -SLAB_EDGE_M)), 'facade-building-slab', true);
+  if (plinth.length) add(plinth, ctx.mats.plain('plaster:plinth', () => plasterMaterial(PLINTH_PAINT, 'outdoor-plinth', groundY, -SLAB_EDGE_M)), 'facade-building-plinth', true);
+  // decor: no ray of the walk measures on it
+  group.traverse((o) => { if ((o as THREE.Mesh).isMesh && String(o.name).startsWith('facade-building')) (o as THREE.Mesh).raycast = () => {}; });
   return group;
 }
 

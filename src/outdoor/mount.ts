@@ -18,7 +18,7 @@ import type { OutdoorFile } from './types';
 import { mountSkyDome } from './sky-dome';
 import type { SkyDome } from './sky-dome';
 import { mountGrass } from './grass';
-import { buildSurround } from './surround';
+import { buildSurround, groundShade } from './surround';
 import type { GrassHandle } from './grass';
 
 export interface OutdoorStats { triangles: number; drawCalls: number; meshes: number; plants: number; hedgeSegments: number; instancedMeshes: number; /** SPEC 19.12: grass tufts drawn, and whether the sky picture is up */ grassTufts: number; skyPicture: boolean }
@@ -87,7 +87,7 @@ export async function mountOutdoor(o: MountOptions): Promise<OutdoorMount> {
   let dome: SkyDome | null = null;
   const growDome = (): void => {
     dome?.dispose();
-    dome = mountSkyDome(mats.loader, tier, file.aboveGroundM !== undefined ? { groundBelowM: file.aboveGroundM } : {});
+    dome = mountSkyDome(mats.loader, tier, file.aboveGroundM !== undefined ? { groundBelowM: file.aboveGroundM, shade: groundShade(layout, file) ?? undefined } : {});
     dome.mesh.onBeforeRender = (_r, _s, camera) => { dome!.follow(camera); dome!.mesh.updateMatrixWorld(); };
     group.add(dome.mesh);
     syncDome();

@@ -179,8 +179,36 @@ export const wingPools = (): PoolBasin[] => [
 export const aquaPools = (): PoolBasin[] => [basin('aqua', P.WATER_PX.aqua, 'S', [[0, 0.3], [1, 0.45]], { kids: true, tile: 'turquoise', copingM: 0.25, waterBelowDeckM: 0.1 })];
 
 const holeFor = (pools: PoolBasin[]): Vec2[][] => unionOutline(pools.map((p) => growRect(p.rect, p.copingM)));
-const boundariesFor = (d: Draft, id: string, edge: { facadeKind: 'facade'; others: Boundary['kind'] }): Boundary[] =>
-  d.rooms[0].edges.map((k, i): Boundary => (k === 'wall' ? { room: id, edge: i, kind: edge.facadeKind } : { room: id, edge: i, kind: edge.others, heightM: 1.1, colour: '#E9DCC2' }));
+const boundariesFor = (d: Draft, id: string, edge: { facadeKind: 'facade'; others: Boundary['kind'] }, indoor: Draft[] = []): Boundary[] =>
+  d.rooms[0].edges.map((k, i): Boundary => {
+    if (k !== 'wall') return { room: id, edge: i, kind: edge.others, heightM: 1.1, colour: '#E9DCC2' };
+    const building = buildingAlong(d.rooms[0].polygon, i, indoor);
+    return { room: id, edge: i, kind: edge.facadeKind, ...(building ? { building } : {}) };
+  });
+
+/**
+ * SPEC 19.14 (23 Nov 2026): how far the building runs on along an open-air space's facade edge, read off the indoor rooms of the plan: the rooms
+ * with a wall on that line (within the drawn wall's thickness, 0.6 m) give the face's extent past the edge's two ends, and the shallowest of
+ * them how deep the building stands behind it. Null when the building is no wider than the edge (by 0.5 m).
+ */
+function buildingAlong(poly: Vec2[], edge: number, indoor: Draft[]): { beforeM: number; afterM: number; depthM: number } | null {
+  const a = poly[edge], b = poly[(edge + 1) % poly.length];
+  const L = Math.hypot(b.x - a.x, b.z - a.z), ux = (b.x - a.x) / L, uz = (b.z - a.z) / L;
+  // the outward normal: away from the space's centre
+  const cx = poly.reduce((s, p) => s + p.x, 0) / poly.length, cz = poly.reduce((s, p) => s + p.z, 0) / poly.length;
+  let nx = uz, nz = -ux;
+  if ((a.x - cx) * nx + (a.z - cz) * nz < 0) { nx = -nx; nz = -nz; }
+  let lo = 0, hi = L, depth = Infinity;
+  for (const room of indoor.flatMap((dr) => dr.rooms)) {
+    const pts = room.polygon.map((p) => ({ u: (p.x - a.x) * ux + (p.z - a.z) * uz, o: (p.x - a.x) * nx + (p.z - a.z) * nz }));
+    const onLine = pts.filter((p) => Math.abs(p.o) < 0.6);
+    if (onLine.length < 2 || pts.some((p) => p.o < -0.6)) continue;
+    lo = Math.min(lo, ...onLine.map((p) => p.u)); hi = Math.max(hi, ...onLine.map((p) => p.u));
+    depth = Math.min(depth, Math.max(...pts.map((p) => p.o)));
+  }
+  const r2 = (v: number): number => Math.round(v * 100) / 100;
+  return -lo > 0.5 || hi - L > 0.5 ? { beforeM: r2(-lo), afterM: r2(hi - L), depthM: r2(depth) } : null;
+}
 
 const strip = (id: string, r: P.PxRect): GroundArea => ({ id, finish: 'bed', polygon: rectPoly(px(r)), edgingM: 0.1 });
 const scatter = (id: string, r: P.PxRect, seed: number, species: PlantBed['species'], density = 2.4): PlantBed => ({ id: `planting-${id}`, polygon: rectPoly(px(r)), species, density, seed, scale: 1 });
@@ -191,7 +219,7 @@ const FLOWERS: PlantBed['species'] = [{ id: 'hibiscus', weight: 3 }, { id: 'boug
  *  sample building has one storey under it, and the map and the walk follow the sample building) */
 export const ABOVE_GROUND_M = 4.2;
 
-export function wingOutdoor(d: Draft, bare: boolean): OutdoorFile {
+export function wingOutdoor(d: Draft, bare: boolean, indoor: Draft[] = []): OutdoorFile {
   const pools = wingPools();
   const [sh, lap, led] = [pools[0].rect, pools[1].rect, pools[2].rect];
   const cm = COPING, gap = 0.01;
@@ -218,7 +246,7 @@ export function wingOutdoor(d: Draft, bare: boolean): OutdoorFile {
     const centre: Record<number, PlantSpot['species']> = { 3: 'coconut-palm', 4: 'frangipani', 5: 'coconut-palm' };
     P.WING_PX.trees.forEach(([x, y], i) => trees.push({ species: centre[i] ?? 'neem', ...at([x, y]), scale: centre[i] === 'frangipani' ? 1.1 : centre[i] ? 0.95 : 1.05 }));
   }
-  const boundary = boundariesFor(d, 'pool', { facadeKind: 'facade', others: 'parapet' });
+  const boundary = boundariesFor(d, 'pool', { facadeKind: 'facade', others: 'parapet' }, indoor);
   return { ...EMPTY_OUTDOOR, note: bare ? 'The pool wing, bare: the deck, the pools and the lawns, with nothing placed or planted' : 'Sample pool wing after a published builder brochure, scaled from its one printed dimension', northDeg: P.NORTH_DEG, seed: 7, aboveGroundM: ABOVE_GROUND_M, areas, pools, boundary, trees, beds, rows, roofs: [] };
 }
 
@@ -300,7 +328,7 @@ export function buildPodium(empty: boolean): Podium {
     scenes.set(dr.id, { property: dressed, ...(outdoor ? { outdoor } : {}) });
   };
   put(d.foyer); put(d.games); put(d.link); put(d.gym); put(d.changing1); put(d.changing2); put(d.hall1); put(d.lounge); put(d.hall2);
-  put(d.deck, deckOutdoor(d.deck, empty)); put(d.aqua, aquaOutdoor(d.aqua, empty)); put(d.wing, wingOutdoor(d.wing, empty));
+  put(d.deck, deckOutdoor(d.deck, empty)); put(d.aqua, aquaOutdoor(d.aqua, empty)); put(d.wing, wingOutdoor(d.wing, empty, [d.foyer, d.changing1, d.changing2, d.gym]));
 
   const lift = (id: string): Portal => ({ id, kind: 'lift', opening: id, lift: id });
   const stairs: Portal = { id: 'stairs', kind: 'stairs', opening: 'door-stairs', label: 'Stairs' };
